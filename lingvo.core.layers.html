@@ -668,6 +668,100 @@ quantization, it is required.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="lingvo.core.layers.StackingOverTime">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers.</code><code class="descname">StackingOverTime</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#StackingOverTime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.StackingOverTime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Stacking applied along the time axis.</p>
+<p>At each time step of an input sequence, elements are stacked over the
+window of (‘left_context’ + 1 + ‘right_context’) steps around the current
+time step. Zeros will be padded to the left or right of the sequence for
+elements around the boundaries. Finally the stacked outputs are emitted
+once every ‘stride’ steps.</p>
+<p>E.g. if an input sequence is: [4], [1], [9], [3], [5], [2], [8]
+left_context = 1, right_context = 1, stride = 3,
+then the output sequence would be: [0, 4, 1], [9, 3, 5], [2, 8, 0]</p>
+<p>Note that this layer only performs tensor transformation, so there are no
+learnable parameters.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers.StackingOverTime.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#StackingOverTime.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.StackingOverTime.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.layers.StackingOverTime.window_size">
+<code class="descname">window_size</code><a class="headerlink" href="#lingvo.core.layers.StackingOverTime.window_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the stacking window size.</p>
+<p>The output dimension will be window_size * the input dimension.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Window size.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.StackingOverTime._ApplyStack">
+<code class="descname">_ApplyStack</code><span class="sig-paren">(</span><em>inputs</em>, <em>pad_value=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#StackingOverTime._ApplyStack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.StackingOverTime._ApplyStack" title="Permalink to this definition">¶</a></dt>
+<dd><p>The core function to apply the stacking to inputs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inputs</strong> – [batch, time, depth].</li>
+<li><strong>pad_value</strong> – the padding value for left/right context.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">[batch, ceil(time / stride), depth * stacking_window_length].</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">out</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.StackingOverTime.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>inputs</em>, <em>paddings=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#StackingOverTime.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.StackingOverTime.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the stacking to inputs along the time axis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inputs</strong> – The inputs tensor. It is expected to be of shape [batch, time,
+feature].</li>
+<li><strong>paddings</strong> – The paddings tensor. It is expected to be of shape [batch, time,
+1], where all but the last dimension match those of inputs. Each value
+is 0 or 1 indicating whether a time step of a sequence is padded in the
+inputs to reach the max length in the batch.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>(outputs, out_paddings) pair.</dt>
+<dd><p class="first last">outputs is of shape [batch, ceil(time / stride), feature * stacking].
+out_paddings is of shape [batch, ceil(time / stride), 1]. out_paddings
+will be 0 if any of the corresponding input padding is 0.</p>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.core.layers.FCLayer">
 <em class="property">class </em><code class="descclassname">lingvo.core.layers.</code><code class="descname">FCLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#FCLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.FCLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.ProjectionLayer" title="lingvo.core.layers.ProjectionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.ProjectionLayer</span></code></a></p>

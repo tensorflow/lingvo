@@ -1112,6 +1112,143 @@
     <span class="k">return</span> <span class="n">out</span></div></div>
 
 
+<div class="viewcode-block" id="StackingOverTime"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.StackingOverTime">[docs]</a><span class="k">class</span> <span class="nc">StackingOverTime</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Stacking applied along the time axis.</span>
+
+<span class="sd">     At each time step of an input sequence, elements are stacked over the</span>
+<span class="sd">     window of (&#39;left_context&#39; + 1 + &#39;right_context&#39;) steps around the current</span>
+<span class="sd">     time step. Zeros will be padded to the left or right of the sequence for</span>
+<span class="sd">     elements around the boundaries. Finally the stacked outputs are emitted</span>
+<span class="sd">     once every &#39;stride&#39; steps.</span>
+
+<span class="sd">     E.g. if an input sequence is: [4], [1], [9], [3], [5], [2], [8]</span>
+<span class="sd">     left_context = 1, right_context = 1, stride = 3,</span>
+<span class="sd">     then the output sequence would be: [0, 4, 1], [9, 3, 5], [2, 8, 0]</span>
+
+<span class="sd">     Note that this layer only performs tensor transformation, so there are no</span>
+<span class="sd">     learnable parameters.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="StackingOverTime.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.StackingOverTime.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StackingOverTime</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+             <span class="s1">&#39;Number of time steps to stack on the left to the central step.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;right_context&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+             <span class="s1">&#39;Number of time steps to stack on the right to the central step.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stride&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The stride for emitting the stacked output.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StackingOverTime</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">window_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the stacking window size.</span>
+
+<span class="sd">    The output dimension will be window_size * the input dimension.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Window size.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">+</span> <span class="mi">1</span>
+
+<div class="viewcode-block" id="StackingOverTime._ApplyStack"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.StackingOverTime._ApplyStack">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">pad_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The core function to apply the stacking to inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      inputs: [batch, time, depth].</span>
+<span class="sd">      pad_value: the padding value for left/right context.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      out: [batch, ceil(time / stride), depth * stacking_window_length].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">inputs</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">depth</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+      <span class="c1"># Add zero paddings to the left and right of the input sequence.</span>
+      <span class="n">padded_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">left_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span> <span class="n">depth</span><span class="p">],</span> <span class="n">pad_value</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">padded_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">left_padding</span><span class="p">,</span> <span class="n">padded_inputs</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">right_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">,</span> <span class="n">depth</span><span class="p">],</span> <span class="n">pad_value</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">padded_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">padded_inputs</span><span class="p">,</span> <span class="n">right_padding</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+
+      <span class="c1"># Original sequence length before padding.</span>
+      <span class="n">inputs_max_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="c1"># Make p.stacking copies of the padded sequence with the original sequence</span>
+      <span class="c1"># length, where each copy is offset by 1 time step.</span>
+      <span class="n">pieces</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">stacking_window_len</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">stacking_window_len</span><span class="p">):</span>
+        <span class="n">pieces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded_inputs</span><span class="p">[:,</span> <span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">inputs_max_len</span><span class="p">,</span> <span class="p">:])</span>
+      <span class="c1"># Apply stacking.</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">pieces</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Apply striding.</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[:,</span> <span class="p">::</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="StackingOverTime.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.StackingOverTime.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply the stacking to inputs along the time axis.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      inputs: The inputs tensor. It is expected to be of shape [batch, time,</span>
+<span class="sd">        feature].</span>
+<span class="sd">      paddings: The paddings tensor. It is expected to be of shape [batch, time,</span>
+<span class="sd">        1], where all but the last dimension match those of inputs. Each value</span>
+<span class="sd">        is 0 or 1 indicating whether a time step of a sequence is padded in the</span>
+<span class="sd">        inputs to reach the max length in the batch.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      (outputs, out_paddings) pair.</span>
+<span class="sd">        outputs is of shape [batch, ceil(time / stride), feature * stacking].</span>
+<span class="sd">        out_paddings is of shape [batch, ceil(time / stride), 1]. out_paddings</span>
+<span class="sd">        will be 0 if any of the corresponding input padding is 0.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="c1"># Checks the inputs shape has 3 dimensions.</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="c1"># Checks the paddings shape has 3 dimensions, and the last one is 1.</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+            <span class="c1"># Checks the first two dimensions of inputs and paddings shapes match.  # pylint: disable=line-too-long</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="p">],</span>
+        <span class="n">inputs</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyStack</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+      <span class="c1"># Stack the padding values with the same context and stride parameters.</span>
+      <span class="c1"># Then take the minimum padding values within each stacking window, since</span>
+      <span class="c1"># an output time step becomes a padded one only if all of the underlying</span>
+      <span class="c1"># stacked steps are padded ones.</span>
+      <span class="n">out_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyStack</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">pad_value</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+      <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">out_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keep_dims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+      <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">out_paddings</span></div></div>
+
+
 <div class="viewcode-block" id="FCLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FCLayer">[docs]</a><span class="k">class</span> <span class="nc">FCLayer</span><span class="p">(</span><span class="n">ProjectionLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Fully-connected layer (matmul + bias + optional activation).&quot;&quot;&quot;</span>
 
