@@ -290,8 +290,16 @@
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;pruning_hparams_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Pruning related hyperparameters. A dict &#39;</span>
         <span class="s1">&#39;with hyperparameter: value pairs. See tf.contrib.model_pruning.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;enqueue_max_steps&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Max enqueue steps. -1 meaning no limit.&#39;</span>
+        <span class="s1">&#39; This flag should be set for unit-test only.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;save_interval_seconds&#39;</span><span class="p">,</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span>
               <span class="s1">&#39;Generates a checkpoint roughly once every this many seconds.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;save_max_to_keep&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+              <span class="s1">&#39;Maximum number of recent checkpoints to keep.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;save_keep_checkpoint_every_n_hours&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span>
+              <span class="s1">&#39;How often to keep a checkpoint.&#39;</span><span class="p">)</span>
+
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;summary_interval_steps&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
               <span class="s1">&#39;Generates a checkpoint roughly once every this many steps.&#39;</span><span class="p">)</span>
     <span class="c1"># The following params must mirror those in Learner.Params().</span>
@@ -752,8 +760,8 @@
     <span class="n">all_vars</span> <span class="o">&amp;=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
     <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
-        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span><span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;moving_average&#39;</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span>
+                                 <span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;moving_average&#39;</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span> <span class="o">=</span> <span class="n">ema</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">all_vars</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTask.Decode"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
@@ -1106,8 +1114,15 @@
               <span class="s1">&#39;See BaseTask documentation for details.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;early_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
               <span class="s1">&#39;Early stopping based on dev-set performance.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;enqueue_max_steps&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Max enqueue steps. -1 meaning no limit.&#39;</span>
+        <span class="s1">&#39; This flag should be set for unit-test only.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;save_interval_seconds&#39;</span><span class="p">,</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span>
               <span class="s1">&#39;Generates a checkpoint roughly once every this many seconds.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;save_max_to_keep&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+              <span class="s1">&#39;Maximum number of recent checkpoints to keep.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;save_keep_checkpoint_every_n_hours&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span>
+              <span class="s1">&#39;How often to keep a checkpoint.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;summary_interval_steps&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
               <span class="s1">&#39;Generates a checkpoint roughly once every this many steps.&#39;</span><span class="p">)</span>
 
@@ -1208,7 +1223,10 @@
       <span class="n">tp</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span>
       <span class="c1"># init_from_checkpoint_rules does not need to be copied.</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">early_stop</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">enqueue_max_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">save_interval_seconds</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_interval_seconds</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">save_max_to_keep</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_interval_seconds</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">summary_interval_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">summary_interval_steps</span>
 
     <span class="k">return</span> <span class="n">p</span></div>

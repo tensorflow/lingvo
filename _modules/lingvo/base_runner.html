@@ -178,18 +178,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">early_stop</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
-    <span class="s1">&#39;enqueue_max_steps&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Max enqueue steps. -1 meaning no limit.&#39;</span>
-    <span class="s1">&#39; This flag should be set for unit-test only.&#39;</span><span class="p">)</span>
-
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;saver_max_to_keep&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
-                        <span class="s1">&#39;Maximum number of recent checkpoints to keep.&#39;</span><span class="p">)</span>
-
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_float</span><span class="p">(</span><span class="s1">&#39;saver_keep_checkpoint_every_n_hours&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span>
-                      <span class="s1">&#39;How often to keep a checkpoint.&#39;</span><span class="p">)</span>
-
-<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
-
 
 <div class="viewcode-block" id="BaseRunner"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner">[docs]</a><span class="k">class</span> <span class="nc">BaseRunner</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for all jobs.&quot;&quot;&quot;</span>
@@ -204,8 +192,8 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      params:  Params object containing model configuration.</span>
-<span class="sd">      model_task_name:  String name of the task this runner should execute</span>
-<span class="sd">        for multitask models only.  See flag for details.</span>
+<span class="sd">      model_task_name:  String name of the task this runner should execute for</span>
+<span class="sd">        multitask models only.  See flag for details.</span>
 <span class="sd">      logdir:  String path to the log directory to output to.</span>
 <span class="sd">      tf_master:  String path to the master job, e.g. &#39;local&#39;.</span>
 <span class="sd">      trial:   An optional hyperparameter trial. Used by Vizier studies.</span>
@@ -299,13 +287,15 @@
 <div class="viewcode-block" id="BaseRunner._GetSaver"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._GetSaver">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSaver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a saver.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Using EMA for evaluation.&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">())</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span>
         <span class="n">sharded</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">max_to_keep</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_max_to_keep</span><span class="p">,</span>
-        <span class="n">keep_checkpoint_every_n_hours</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_keep_checkpoint_every_n_hours</span><span class="p">,</span>
+        <span class="n">max_to_keep</span><span class="o">=</span><span class="n">tp</span><span class="o">.</span><span class="n">save_max_to_keep</span><span class="p">,</span>
+        <span class="n">keep_checkpoint_every_n_hours</span><span class="o">=</span><span class="n">tp</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span><span class="p">,</span>
         <span class="n">pad_step_number</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># %08d</span>
         <span class="n">write_version</span><span class="o">=</span><span class="n">saver_pb2</span><span class="o">.</span><span class="n">SaverDef</span><span class="o">.</span><span class="n">V2</span><span class="p">)</span></div>
 
@@ -410,6 +400,7 @@
 
 <div class="viewcode-block" id="BaseRunner._LoopEnqueue"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._LoopEnqueue">[docs]</a>  <span class="k">def</span> <span class="nf">_LoopEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs the enqueue op in a loop.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
@@ -422,7 +413,7 @@
       <span class="n">global_enqueue_steps</span> <span class="o">=</span> <span class="kc">None</span>
 
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;params.train.max_steps: </span><span class="si">%d</span><span class="s1">, enqueue_max_steps: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
-                      <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enqueue_max_steps</span><span class="p">)</span>
+                      <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span><span class="p">)</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gsteps</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">global_enqueue_steps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -434,9 +425,9 @@
               <span class="n">local_enqueue_steps</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-          <span class="n">global_steps_with_available_data</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-              <span class="n">global_enqueue_steps</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span> <span class="o">*</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span><span class="p">)</span>
+          <span class="n">global_steps_with_available_data</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">global_enqueue_steps</span> <span class="o">//</span>
+                                                 <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span> <span class="o">*</span>
+                                                 <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">global_steps_with_available_data</span> <span class="o">=</span> <span class="n">global_enqueue_steps</span>
 
@@ -444,24 +435,22 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done. ShouldStop is True.&#39;</span><span class="p">)</span>
           <span class="k">return</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">enqueue_max_steps</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
-            <span class="n">local_enqueue_steps</span> <span class="o">&gt;=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enqueue_max_steps</span><span class="p">):</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done. FLAGS.enqueue_max_steps reached.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
+            <span class="n">local_enqueue_steps</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span><span class="p">):</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done. train.enqueue_max_steps reached.&#39;</span><span class="p">)</span>
           <span class="k">return</span>
         <span class="n">local_enqueue_steps</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="c1"># There are tpu_infeed_parallelism parallel threads enqueuing.</span>
         <span class="c1"># We account for all of them when updating global_enqueue_steps.</span>
-        <span class="n">global_enqueue_steps</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span>
+        <span class="n">global_enqueue_steps</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span>
 
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">op</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="BaseRunner._GetSession"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._GetSession">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSession</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">graph</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span><span class="p">,</span>
-        <span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span>
-        <span class="n">config</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SessionConfig</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SessionConfig</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="BaseRunner._GetTtlDir"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._GetTtlDir">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_GetTtlDir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">duration</span><span class="p">):</span>
@@ -509,8 +498,8 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> summary on checkpoint@</span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span>
                             <span class="n">global_step</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tag</span><span class="p">)</span>
     <span class="n">summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span>
-        <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: step:</span><span class="si">%6d</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">status_metrics</span><span class="p">)))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: step:</span><span class="si">%6d</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                           <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">status_metrics</span><span class="p">)))</span>
     <span class="k">if</span> <span class="n">text_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">text_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">status_metrics</span><span class="p">))</span></div>

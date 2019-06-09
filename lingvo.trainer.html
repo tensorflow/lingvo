@@ -165,7 +165,7 @@
 <p>Trainer.</p>
 <p>To run locally:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ bazel build -c opt //lingvo:trainer
-$ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>image.mnist.LeNet5 --mode<span class="o">=</span>sync --logdir<span class="o">=</span>/tmp/lenet5 --run_locally<span class="o">=</span>cpu
+$ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>image.mnist.LeNet5 --mode<span class="o">=</span>sync --logdir<span class="o">=</span>/tmp/lenet5       --run_locally<span class="o">=</span>cpu
 </pre></div>
 </div>
 <p>To use GPU, add <code class="xref py py-obj docutils literal notranslate"><span class="pre">--config=cuda</span></code> to build command and set <code class="xref py py-obj docutils literal notranslate"><span class="pre">--run_locally=gpu</span></code>.</p>
@@ -204,6 +204,16 @@ $ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>im
 <dl class="method">
 <dt id="lingvo.trainer.Controller._Loop">
 <code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._Loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Controller._Save">
+<code class="descname">_Save</code><span class="sig-paren">(</span><em>sess</em>, <em>gsteps</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._Save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._Save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Controller._Restore">
+<code class="descname">_Restore</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._Restore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._Restore" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -493,8 +503,18 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Controller._Restore">
+<code class="descname">_Restore</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._Restore" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="lingvo.trainer.RunnerManager.Controller._RestoreIfNeeded">
 <code class="descname">_RestoreIfNeeded</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._RestoreIfNeeded" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Controller._Save">
+<code class="descname">_Save</code><span class="sig-paren">(</span><em>sess</em>, <em>gsteps</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._Save" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

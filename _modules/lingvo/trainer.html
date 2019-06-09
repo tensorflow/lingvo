@@ -167,7 +167,8 @@
 
 <span class="sd">  $ bazel build -c opt //lingvo:trainer</span>
 <span class="sd">  $ bazel-bin/lingvo/trainer --logtostderr \</span>
-<span class="sd">      --model=image.mnist.LeNet5 --mode=sync --logdir=/tmp/lenet5 --run_locally=cpu</span>
+<span class="sd">      --model=image.mnist.LeNet5 --mode=sync --logdir=/tmp/lenet5 \</span>
+<span class="sd">      --run_locally=cpu</span>
 
 <span class="sd">To use GPU, add `--config=cuda` to build command and set `--run_locally=gpu`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
@@ -277,6 +278,18 @@
     <span class="s1">&#39;job prefix, evaler will match all evaler jobs, while &#39;</span>
     <span class="s1">&#39;evaler_dev and decoder_dev will only match the corresponding &#39;</span>
     <span class="s1">&#39;jobs that are on the dev set.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
+    <span class="s1">&#39;enqueue_max_steps&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Max enqueue steps. -1 meaning no limit.&#39;</span>
+    <span class="s1">&#39; This flag should be set for unit-test only.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;saver_max_to_keep&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="s1">&#39;Maximum number of recent checkpoints to keep.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_float</span><span class="p">(</span><span class="s1">&#39;saver_keep_checkpoint_every_n_hours&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="s1">&#39;How often to keep a checkpoint.&#39;</span><span class="p">)</span>
+
+<span class="c1"># Please consider adding model params instead of adding flags.</span>
 
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
@@ -428,7 +441,7 @@
                                                        <span class="n">total_examples</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
           <span class="c1"># Close all the queues so the enqueue threads can also finish.</span>
           <span class="k">for</span> <span class="n">close_op</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">close_queue_ops</span><span class="p">:</span>
             <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">close_op</span><span class="p">)</span>
@@ -437,9 +450,7 @@
 
         <span class="c1"># Checkpoint.</span>
         <span class="k">if</span> <span class="n">now</span> <span class="o">&gt;=</span> <span class="n">next_checkpoint_seconds</span><span class="p">:</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint&#39;</span><span class="p">)</span>
-          <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint done: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
           <span class="n">next_checkpoint_seconds</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">save_interval_seconds</span>
 
         <span class="c1"># Summary.</span>
@@ -466,17 +477,26 @@
         <span class="k">if</span> <span class="n">now</span> <span class="o">&lt;</span> <span class="n">next_iteration_seconds</span><span class="p">:</span>
           <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">next_iteration_seconds</span> <span class="o">-</span> <span class="n">now</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="Controller._Save"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller._Save">[docs]</a>  <span class="k">def</span> <span class="nf">_Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint&#39;</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint done: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Controller._Restore"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller._Restore">[docs]</a>  <span class="k">def</span> <span class="nf">_Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load from checkpoint </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">path</span></div>
+
 <div class="viewcode-block" id="Controller._RestoreIfNeeded"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller._RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">_RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized</span><span class="p">))</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">uninitialized_var_names</span><span class="p">:</span>
       <span class="k">return</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Uninitialized var list: </span><span class="si">%s</span><span class="s1"> &#39;</span><span class="p">,</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load from checkpoint </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
       <span class="k">return</span>
 
     <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span>
@@ -767,8 +787,8 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
               <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_RETRIEVE_OPS</span><span class="p">)</span>
           <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="p">(</span><span class="n">tpu_embedding_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                                 <span class="k">if</span> <span class="n">tpu_embedding_collection</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">tpu_embedding_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">tpu_embedding_collection</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
           <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
@@ -938,8 +958,9 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training skipped (trial requested to stop).&#39;</span><span class="p">)</span>
       <span class="k">return</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
-      <span class="n">config_proto</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="o">.</span><span class="n">config_proto</span>
-                      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="n">config_proto</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="o">.</span><span class="n">config_proto</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(</span>
               <span class="n">embedding_config</span><span class="o">=</span><span class="n">config_proto</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
@@ -1316,8 +1337,8 @@
                                     <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
       <span class="n">post_process_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-          <span class="s1">&#39;Done fetching (</span><span class="si">%f</span><span class="s1"> seconds)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">post_process_start</span> <span class="o">-</span> <span class="n">fetch_start</span><span class="p">))</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done fetching (</span><span class="si">%f</span><span class="s1"> seconds)&#39;</span> <span class="o">%</span>
+                      <span class="p">(</span><span class="n">post_process_start</span> <span class="o">-</span> <span class="n">fetch_start</span><span class="p">))</span>
       <span class="n">decode_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">decode_out</span><span class="p">:</span>
         <span class="n">buffered_decode_out</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">decode_out</span><span class="p">)</span>
@@ -1353,8 +1374,9 @@
 
     <span class="n">should_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
-      <span class="n">trial_should_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="p">(</span>
-          <span class="n">global_step</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
+      <span class="n">trial_should_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span>
+                                                        <span class="n">dec_metrics</span><span class="p">,</span>
+                                                        <span class="n">checkpoint_path</span><span class="p">)</span>
       <span class="n">should_stop</span> <span class="o">=</span> <span class="n">should_stop</span> <span class="ow">or</span> <span class="n">trial_should_stop</span>
     <span class="k">return</span> <span class="n">should_stop</span></div>
 
@@ -1439,9 +1461,17 @@
             <span class="n">dataset_name</span><span class="p">,</span> <span class="n">dataset_name_retry</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
         <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span>
                                             <span class="n">dataset_name_retry</span><span class="p">)</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="s1">&#39;Succeeded after retrying as </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="n">dataset_name_retry</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Succeeded after retrying as </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span>
+                           <span class="n">dataset_name_retry</span><span class="p">)</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># Updates a few params based on flags.</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enqueue_max_steps</span><span class="p">:</span>
+      <span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enqueue_max_steps</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_max_to_keep</span><span class="p">:</span>
+      <span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_max_to_keep</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_max_to_keep</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_keep_checkpoint_every_n_hours</span><span class="p">:</span>
+      <span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_keep_checkpoint_every_n_hours</span>
     <span class="k">return</span> <span class="n">cfg</span></div>
 
 <div class="viewcode-block" id="RunnerManager.MaybeConfigRunDistributed"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigRunDistributed">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeConfigRunDistributed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
