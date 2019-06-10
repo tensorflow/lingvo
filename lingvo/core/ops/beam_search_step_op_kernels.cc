@@ -796,7 +796,7 @@ class TopKTerminatedHypsOp : public OpKernel {
         ctx, in_src_seq_lens.dim_size(0) == num_beams,
         errors::InvalidArgument(
             "src_seq_lengths should be a 1-d Tensor of length num_beams. Got ",
-            in_src_seq_lens.dims(), " vs ", num_beams));
+            in_src_seq_lens.dim_size(0), " vs ", num_beams));
     std::vector<int32> src_seq_lengths(num_beams);
     for (int i = 0; i < num_beams; ++i) {
       src_seq_lengths[i] = in_src_seq_lens.flat<int>()(i);
