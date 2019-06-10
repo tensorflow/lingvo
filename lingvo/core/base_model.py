@@ -1065,7 +1065,9 @@ class SingleTaskModel(BaseModel):
   @classmethod
   def Params(cls, task_params=None):
     p = super(SingleTaskModel, cls).Params()
-    p.Define('task', None, 'Task Params.')
+    p.Define(
+        'task', None,
+        '`InstantiableParams` object for a `BaseTask` or its derivatives.')
 
     if task_params is not None:
       # Copy over model parameters from the task parameters.
@@ -1134,8 +1136,10 @@ class MultiTaskModel(BaseModel):
   @classmethod
   def Params(cls):
     p = super(MultiTaskModel, cls).Params()
-    p.Define('task_params', hyperparams.Params(),
-             'Params object mapping task name to task Params.')
+    p.Define(
+        'task_params', hyperparams.Params(),
+        'Params object mapping task name to `BaskTask`(or derivatives) '
+        'Params.')
     p.Define(
         'task_probs', hyperparams.Params(),
         'Params object mapping task name to the relative likelihood the '
