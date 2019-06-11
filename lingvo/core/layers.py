@@ -1390,7 +1390,16 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     p.Define('vocab_size', 0, 'Depth of the input.')
     p.Define('embedding_dim', 0, 'Depth of the output.')
     p.Define('input_keys', None, 'Name of inputs in InputBatch.')
-    p.Define('combiner', 'mean', 'Must be "sum", "sqrtn" or "mean"')
+    p.Define(
+        'combiner', 'mean',
+        'Must be "sum", "sqrtn", "mean" or None in the case of a '
+        '"sequence embedding "')
+    p.Define(
+        'max_sequence_length', None,
+        'If not None or 0, embedding lookup will return a '
+        '"sequence embedding" of shape '
+        '`[batch, max_sequence_length, embedding_dim]` without applying a '
+        'sequence  reducing combiner')
     p.Define('initial_accumulator', None, 'Initial value of accumulator.')
     p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
     return p
@@ -1405,7 +1414,10 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     assert p.initial_accumulator > 0
     assert p.name
     assert p.num_tpu_hosts > 0
-    assert p.combiner
+    if p.combiner is None:
+      assert p.max_sequence_length
+    if p.max_sequence_length is not None and p.max_sequence_length > 0:
+      assert p.combiner is None
 
     cluster = self.cluster
     num_hosts = p.num_tpu_hosts
@@ -1413,6 +1425,10 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     self._ids_per_shard = int(math.ceil(float(p.vocab_size) / num_hosts))
     self._padded_vocab_size = self._ids_per_shard * num_hosts
     self._input_keys = p.input_keys
+
+    self._max_sequence_length = 0
+    if p.max_sequence_length:
+      self._max_sequence_length = p.max_sequence_length
 
     self._table_name = '{}_table'.format(p.name)
     self._table_config = tpu_embedding_lib.TableConfig(
@@ -1499,6 +1515,10 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
   def input_keys(self):
     return self._input_keys
 
+  @property
+  def max_sequence_length(self):
+    return self._max_sequence_length
+
   def CpuEmbLookup(self, ids_map):
     """CPU evaluation embedding lookup.
 
@@ -1507,37 +1527,47 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         -1 is used as a padding id.
 
     Returns:
-      An activations dict of string ->  [batch, 1, embedding_dim] float32
-      Tensor.
+      An activations dict of string -> float32 Tensor.
+      For non-sequence embeddings: [batch, 1, embedding_dim]
+      For sequence embeddings: [batch, max_sequence_length, embedding_dim]
+
     """
     p = self.params
     rets = collections.OrderedDict()
-    for k, ids in ids_map.items():
-      # Dense to sparse.
-      dense_shape = tf.shape(ids, out_type=tf.int64)
-      sample_indices = tf.cast(tf.where(tf.not_equal(ids, -1)), tf.int64)
-      embedding_indices = tf.cast(tf.gather_nd(ids, sample_indices), tf.int64)
-      sparse_ids = tf.SparseTensor(
-          indices=sample_indices,
-          values=embedding_indices,
-          dense_shape=dense_shape)
-      # [?, embedding_dim]
-      # For tf.nn.embedding_lookup_sparse, output.dim0 might be different from
-      # sparse_ids.dense_shape.dim0.
-      # In fact, the '?' is the smallest span starting from the index=0 that
-      # covers all the results.
-      embs = tf.nn.embedding_lookup_sparse(
-          self.theta.wm,
-          sparse_ids,
-          None,  # sp_weights
-          combiner=p.combiner)
-      batch_size = dense_shape[0]
-      # Explicitly pad results to maintain dim0=batch.
-      dim0_padlen = tf.cast(batch_size, tf.int32) - tf.shape(embs)[0]
-      embs = tf.pad(embs, [[0, dim0_padlen], [0, 0]])
-      embs = py_utils.HasShape(embs, [batch_size], ndims=1)
-      # [batch, 1, embedding_dim]
-      rets[k] = tf.expand_dims(embs, 1)
+    if self.max_sequence_length > 0:
+      # "Sequence embedding", no combiner case
+      for k, ids in ids_map.items():
+        embs = tf.nn.embedding_lookup(self.theta.wm, tf.reshape(ids, [-1]))
+        out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
+        rets[k] = tf.reshape(embs, out_shape)
+    else:
+      # Non-"Sequence embedding", combiner case
+      for k, ids in ids_map.items():
+        # Dense to sparse.
+        dense_shape = tf.shape(ids, out_type=tf.int64)
+        sample_indices = tf.cast(tf.where(tf.not_equal(ids, -1)), tf.int64)
+        embedding_indices = tf.cast(tf.gather_nd(ids, sample_indices), tf.int64)
+        sparse_ids = tf.SparseTensor(
+            indices=sample_indices,
+            values=embedding_indices,
+            dense_shape=dense_shape)
+        # [?, embedding_dim]
+        # For tf.nn.embedding_lookup_sparse, output.dim0 might be different from
+        # sparse_ids.dense_shape.dim0.
+        # In fact, the '?' is the smallest span starting from the index=0 that
+        # covers all the results.
+        embs = tf.nn.embedding_lookup_sparse(
+            self.theta.wm,
+            sparse_ids,
+            None,  # sp_weights
+            combiner=p.combiner)
+        batch_size = dense_shape[0]
+        # Explicitly pad results to maintain dim0=batch.
+        dim0_padlen = tf.cast(batch_size, tf.int32) - tf.shape(embs)[0]
+        embs = tf.pad(embs, [[0, dim0_padlen], [0, 0]])
+        embs = py_utils.HasShape(embs, [batch_size], ndims=1)
+        # [batch, 1, embedding_dim]
+        rets[k] = tf.expand_dims(embs, 1)
     return rets
 
 
@@ -1581,9 +1611,12 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     num_hosts = p.num_tpu_hosts
 
     self.CreateChildren('tables', p.tables)
-
     load_op_list = []
     retrieve_op_list = []
+
+    # At the feature level, track which are associated
+    # with "sequence embeddings".
+    self._sequence_features = {}
 
     if py_utils.use_tpu():
       num_cores = cluster.params.worker.tpus_per_replica
@@ -1596,8 +1629,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         load_op_list += table.load_op_list
         retrieve_op_list += table.retrieve_op_list
         for feature in table.input_keys:
+          if table.max_sequence_length > 0:
+            self._sequence_features[feature] = True
           feature_to_config_dict[feature] = tpu_embedding_lib.FeatureConfig(
-              table.table_name)
+              table.table_name, max_sequence_length=table.max_sequence_length)
       mode = tpu_embedding_lib.TRAINING
       optimization_parameters = tpu_embedding_lib.AdagradParameters(
           p.learning_rate, p.initial_accumulator)
@@ -1639,7 +1674,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       ids_map: A dict of `input_key` string -> [batch, sequence] int32 Tensor.
                -1 is used as a padding id.
     Returns:
-      Activations dict of string -> [batch, 1, embedding_dim] float32 Tensor.
+      Activations dict of string ->
+      For non-sequence embeddings:  [batch, 1, embedding_dim],
+      For sequence embeddings: [batch, max_sequence_length, embedding_dim]
+      float32 Tensor.
     """
     p = self.params
 
@@ -1650,7 +1688,11 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       tf.add_to_collection(py_utils.TPU_EMBEDDING_ACTIVATIONS, activations)
       ret = collections.OrderedDict()
       for k, v in activations.items():
-        ret[k] = tf.expand_dims(v, axis=[1])
+        if k in self._sequence_features:
+          ret[k] = v
+        else:
+          # Non-sequence embeddings, we fill the "time" dimension with 1.
+          ret[k] = tf.expand_dims(v, axis=[1])
       return ret
 
     def CpuEmbLookup(ids_map):
