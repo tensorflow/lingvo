@@ -759,6 +759,50 @@ will be 0 if any of the corresponding input padding is 0.</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="lingvo.core.layers.StackingOverTime.Unstack">
+<code class="descname">Unstack</code><span class="sig-paren">(</span><em>stacked</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#StackingOverTime.Unstack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.StackingOverTime.Unstack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inverts stacking over time.</p>
+<p>Given ‘stacked’ outputs from this StackingOverTime layer,</p>
+<blockquote>
+<div>stacked = this_layer.FProp(inputs),</div></blockquote>
+<p>this method attempts to reconstruct the original ‘inputs’. If
+stride &lt;= window_size, <code class="xref py py-obj docutils literal notranslate"><span class="pre">Unstack(stacked)</span></code> returns a Tensor that is identical
+to ‘inputs’ but up to stride - 1 frames shorter in the time axis. If
+stride &gt; window_size, the original input cannot be recovered, and a
+ValueError is raised.</p>
+<p><a class="reference internal" href="#lingvo.core.layers.StackingOverTime.Unstack" title="lingvo.core.layers.StackingOverTime.Unstack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unstack()</span></code></a> can also be used to project the outputs of downstream layers
+back to the original unstacked inputs. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">inputs</span> <span class="o">=</span> <span class="o">...</span>  <span class="c1"># [batch, length, input_dim]</span>
+<span class="c1"># [batch, ceil(length / stride), rnn_dim]</span>
+<span class="n">rnn_out</span> <span class="o">=</span> <span class="n">rnn</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">stacking</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span>
+<span class="c1"># [batch, length, rnn_dim]</span>
+<span class="n">back_projected_rnn_out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
+    <span class="n">stacking</span><span class="o">.</span><span class="n">Unstack</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">rnn_out</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">stacking</span><span class="o">.</span><span class="n">window_size</span><span class="p">])),</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Note this method does not take or return a separate padding tensor. The
+caller is responsible for knowing which of outputs are padding (e.g. based
+on the padding of the original FProp inputs).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>stacked</strong> – Tensor of shape [batch, time, window_size * feature_dim], assumed
+to be the output of <a class="reference internal" href="#lingvo.core.layers.StackingOverTime.FProp" title="lingvo.core.layers.StackingOverTime.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The reconstructed (but truncated) input Tensor, with shape
+[batch, L - (L - 1) % stride, feature_dim] where L is the length of the
+original inputs. The length of the returned Tensor is also, equivalently,
+(stacked_length - 1) * stride + 1.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – if stride &gt; window_size.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
