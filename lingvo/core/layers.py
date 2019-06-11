@@ -1047,8 +1047,7 @@ class StackingOverTime(base_layer.BaseLayer):
       # Make p.stacking copies of the padded sequence with the original sequence
       # length, where each copy is offset by 1 time step.
       pieces = []
-      stacking_window_len = p.left_context + 1 + p.right_context
-      for i in range(stacking_window_len):
+      for i in range(self.window_size):
         pieces.append(padded_inputs[:, i:i + inputs_max_len, :])
       # Apply stacking.
       out = tf.concat(pieces, 2)
@@ -1102,6 +1101,80 @@ class StackingOverTime(base_layer.BaseLayer):
       out_paddings = tf.reduce_min(out_paddings, axis=2, keep_dims=True)
 
       return outputs, out_paddings
+
+  def Unstack(self, stacked):
+    """Inverts stacking over time.
+
+    Given 'stacked' outputs from this StackingOverTime layer,
+
+      stacked = this_layer.FProp(inputs),
+
+    this method attempts to reconstruct the original 'inputs'. If
+    stride <= window_size, `Unstack(stacked)` returns a Tensor that is identical
+    to 'inputs' but up to stride - 1 frames shorter in the time axis. If
+    stride > window_size, the original input cannot be recovered, and a
+    ValueError is raised.
+
+    `Unstack()` can also be used to project the outputs of downstream layers
+    back to the original unstacked inputs. For example::
+
+        inputs = ...  # [batch, length, input_dim]
+        # [batch, ceil(length / stride), rnn_dim]
+        rnn_out = rnn.FProp(stacking.FProp(inputs))
+        # [batch, length, rnn_dim]
+        back_projected_rnn_out = py_utils.PadOrTrimTo(
+            stacking.Unstack(tf.tile(rnn_out, [1, 1, stacking.window_size])),
+            tf.size(inputs))
+
+    Note this method does not take or return a separate padding tensor. The
+    caller is responsible for knowing which of outputs are padding (e.g. based
+    on the padding of the original FProp inputs).
+
+    Args:
+      stacked: Tensor of shape [batch, time, window_size * feature_dim], assumed
+        to be the output of `FProp`.
+
+    Returns:
+      The reconstructed (but truncated) input Tensor, with shape
+      [batch, L - (L - 1) % stride, feature_dim] where L is the length of the
+      original inputs. The length of the returned Tensor is also, equivalently,
+      (stacked_length - 1) * stride + 1.
+
+    Raises:
+      ValueError: if stride > window_size.
+    """
+    p = self.params
+    if p.stride > self.window_size:
+      raise ValueError(
+          "Can't invert StackingOverTime with stride (%d) > window_size (%d)" %
+          (p.stride, self.window_size))
+
+    # Reshape to allow indexing individual frames within each stacked window.
+    batch_size, stacked_length, _ = py_utils.GetShape(stacked, 3)
+    stacked = tf.reshape(stacked,
+                         [batch_size, stacked_length, self.window_size, -1])
+
+    # Determine the length of the original input represented in 'stacked'. This
+    # is the total number of frames in 'stacked', minus the duplicates and any
+    # leading/trailing padding. (This may be up to stride - 1 less than the true
+    # input length.)
+    input_length = (stacked_length - 1) * p.stride + 1
+    # Compute the index of the window and frame in 'stacked' where each frame of
+    # the original input is located, and extract them with tf.gather_nd.
+    input_indices = tf.range(0, input_length)
+    m = tf.mod(input_indices, p.stride)
+    in_next_window = tf.to_int32(tf.greater(m, p.right_context))
+    window_index = tf.div(input_indices, p.stride) + in_next_window
+    frame_index = p.left_context + m - p.stride * in_next_window
+    # [input_length, 2]
+    window_and_frame_indices = tf.concat(
+        [window_index[:, None], frame_index[:, None]], axis=1)
+
+    def _GatherOne(stacked_sequence):
+      return tf.gather_nd(stacked_sequence, window_and_frame_indices)
+
+    # [batch_size, input_length, feature_dim]
+    return tf.map_fn(_GatherOne, stacked)
 
 
 class FCLayer(ProjectionLayer):

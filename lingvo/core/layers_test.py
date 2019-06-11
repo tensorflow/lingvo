@@ -1827,6 +1827,31 @@ class ProjectionLayerTest(test_utils.TestCase):
       expected_output_paddings = [[[0], [0], [0], [0], [0]]]
       self.assertAllClose(expected_output_paddings, output_paddings.eval())
 
+  def _testUnstack(self, params, inputs):
+    with self.session(use_gpu=True) as sess:
+      stacker = params.Instantiate()
+      stacked, _ = stacker.FProp(inputs)
+      unstacked = stacker.Unstack(stacked)
+      inputs, stacked, unstacked = sess.run([inputs, stacked, unstacked])
+      expected_length = (
+          inputs.shape[1] - (inputs.shape[1] - 1) % stacker.params.stride)
+      self.assertAllClose(inputs[:, :expected_length, :], unstacked)
+
+  def testStackingOverTimeUnstack(self):
+    params = layers.StackingOverTime.Params()
+    params.name = 'stackingOverTime'
+
+    batch_size = 2
+    length = 7
+    depth = 3
+    inputs = tf.reshape(
+        tf.range(batch_size * length * depth), [batch_size, length, depth])
+    self._testUnstack(params.Set(left_context=2, stride=1), inputs)
+    self._testUnstack(params.Set(stride=2), inputs)
+    self._testUnstack(params.Set(stride=2, right_context=3), inputs)
+    self._testUnstack(params.Set(stride=3), inputs)
+    self._testUnstack(params.Set(stride=4, right_context=3), inputs)
+
 
 class EmbeddingLayerTest(test_utils.TestCase):
 
