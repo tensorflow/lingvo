@@ -361,6 +361,20 @@ Y.&nbsp;Qin, N.&nbsp;Carlini, I.&nbsp;Goodfellow, G.&nbsp;Cottrell, and C.&nbsp;
 
 </td>
 </tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="park2019specaugment">19</a>]
+</td>
+<td class="bibtexitem">
+D.&nbsp;S. Park, W.&nbsp;Chan, Y.&nbsp;Zhang, C.&nbsp;Chiu, B.&nbsp;Zoph, E.&nbsp;D. Cubuk, and Q.&nbsp;V. Le,
+  &ldquo;SpecAugment: A Simple Data Augmentation Method for Automatic Speech
+  Recognition,&rdquo; in <em>arXiv</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/pdf/1904.08779.pdf">pdf</a>&nbsp;]
+
+</td>
+</tr>
 </table>
 
 ## Language understanding
