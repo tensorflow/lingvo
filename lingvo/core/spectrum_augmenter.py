@@ -46,6 +46,13 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     p.Define('time_mask_max_ratio', 1.0,
              'Maximum portion allowed for time masking.')
     p.Define('use_noise', False, 'Whether to noisify the time masked region.')
+    p.Define('unstack', False,
+             'Whether to unstack features before applying SpecAugment')
+    p.Define('stack_height', 3, 'Number of frames stacked on top of each other')
+    if p.unstack:
+      assert (p.stack_height == p.left_content + 1 + p.right_context ==
+              p.frame_stride)
+
     return p
 
   @base_layer.initializer
@@ -210,6 +217,20 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       outputs = outputs + tf.expand_dims(outputs_mask, -1)
     return outputs
 
+  def UnstackFeatures(self, src_inputs, src_paddings):
+    """Unstacks src_input and src_paddings based off stack height."""
+    sh = self.params.stack_height
+    # TODO(ngyuzh) Change to py_utils.GetShape
+    bs, old_series_length, _, channels = src_inputs.get_shape().as_list()
+    unstacked_series_length = old_series_length * sh
+    src_inputs = tf.reshape(src_inputs,
+                            [bs, unstacked_series_length, -1, channels])
+    content = 1 - src_paddings
+    lengths = tf.cast(sh * tf.reduce_sum(content, axis=1), tf.int32)
+    mask = tf.sequence_mask(lengths, maxlen=unstacked_series_length)
+    src_paddings = 1 - tf.cast(mask, tf.int32)
+    return src_inputs, src_paddings
+
   def _AugmentationNetwork(self, series_length, num_freq, inputs, paddings):
     """Returns augmented features.
 
@@ -227,7 +248,15 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     """
     p = self.params
     dtype = p.dtype
-    lengths = tf.reduce_sum(1.0 - paddings, 1)
+
+    # Unstack the features.
+    if p.unstack:
+      original_inputs = inputs
+      inputs, paddings = self.UnstackFeatures(inputs, paddings)
+      num_freq //= p.stack_height
+      series_length *= p.stack_height
+
+    lengths = tf.reduce_sum(1 - paddings, 1)
     for _ in range(p.time_mask_count):
       inputs = self._TimeMask(
           inputs,
@@ -238,6 +267,11 @@ class SpectrumAugmenter(base_layer.BaseLayer):
           dtype=dtype)
     for _ in range(p.freq_mask_count):
       inputs = self._FrequencyMask(inputs, num_freq=num_freq, dtype=dtype)
+
+    # Restack the features after applying specaugment.
+    if p.unstack:
+      inputs = tf.reshape(inputs, original_inputs.shape)
+
     return inputs
 
   def FProp(self, theta, inputs, paddings):

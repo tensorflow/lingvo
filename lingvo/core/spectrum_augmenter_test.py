@@ -108,6 +108,39 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  def testSpectrumAugmenterUnstacking(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      tf.compat.v1.set_random_seed(1234)
+      inputs = tf.ones([3, 5, 4, 2], dtype=tf.float32)
+      paddings = tf.zeros([3, 5])
+      p = spectrum_augmenter.SpectrumAugmenter.Params()
+      p.name = 'specAug_layers'
+      p.unstack = True
+      p.stack_height = 2
+      p.freq_mask_max_bins = 6
+      p.time_mask_max_frames = 1
+      p.random_seed = 12345
+      specaug_layer = p.Instantiate()
+      expected_output = np.array([[[[0., 0.], [1., 1.], [0., 0.], [1., 1.]],
+                                   [[0., 0.], [1., 1.], [0., 0.], [1., 1.]],
+                                   [[0., 0.], [1., 1.], [0., 0.], [1., 1.]],
+                                   [[0., 0.], [1., 1.], [0., 0.], [1., 1.]],
+                                   [[0., 0.], [1., 1.], [0., 0.], [1., 1.]]],
+                                  [[[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]]],
+                                  [[[0., 0.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[0., 0.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[0., 0.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[0., 0.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[0., 0.], [0., 0.], [0., 0.], [0., 0.]]]])
+      h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
+      actual_layer_output = sess.run(h)
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
 
 if __name__ == '__main__':
   tf.test.main()
