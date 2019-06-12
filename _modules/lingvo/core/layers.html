@@ -535,16 +535,39 @@
 
     <span class="n">padding_algorithm</span> <span class="o">=</span> <span class="s1">&#39;SAME&#39;</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">causal_convolution</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Only 1D causal convolutions supported.&#39;</span>
+      <span class="c1"># Causal convolution is only applied in time (height) dimension.</span>
       <span class="c1"># Use VALID padding and shift the inputs to the right to ensure that the</span>
       <span class="c1"># first output only depends on the first input and so on. The output is</span>
       <span class="c1"># the same size as the input, as if the convolution used SAME padding.</span>
       <span class="n">padding_algorithm</span> <span class="o">=</span> <span class="s1">&#39;VALID&#39;</span>
-      <span class="c1"># The effective spatial filter width for dilated convolutions is</span>
-      <span class="c1"># (kernel_width - 1) * dilation_rate + 1 as according to</span>
+      <span class="c1"># The effective spatial filter size for dilated convolutions is</span>
+      <span class="c1"># (kernel - 1) * dilation_rate + 1 as according to</span>
       <span class="c1"># https://www.tensorflow.org/api_docs/python/tf/nn/convolution.</span>
       <span class="n">causal_pad_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">causal_pad_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+
+      <span class="c1"># Apply padding in width dimension to mimic SAME padding.</span>
+      <span class="c1"># Using the similar logic as above to produce the same number of output</span>
+      <span class="c1"># as if SAME padding is used.</span>
+      <span class="n">width_pad_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+      <span class="c1"># The amount of padding on the left is tricky. If stride &gt; 1, total</span>
+      <span class="c1"># padding required for SAME padding would be:</span>
+      <span class="c1">#   pad = ceil(input_size / stride - 1) * stride + eff_kernel - input_size</span>
+      <span class="c1"># where eff_kernel = (kernel - 1) * dilation_rate + 1</span>
+      <span class="c1"># TensorFlow also pads more on the right / bottom side if total padding</span>
+      <span class="c1"># required is an odd number, so pad_left = pad // 2</span>
+      <span class="c1"># Therefore pad_left could depend on input size, which might be dynamic.</span>
+      <span class="c1"># Here we only handle two special cases where 1) stride = 1, then</span>
+      <span class="c1">#   pad_left = (eff_kernel - 1) // 2</span>
+      <span class="c1"># and 2) kernel = 1, then</span>
+      <span class="c1">#   pad_left = 0</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Causal convolution only supports width stride = 1 &#39;</span>
+                         <span class="s1">&#39;or filter width = 1.&#39;</span><span class="p">)</span>
+      <span class="n">width_pad_left</span> <span class="o">=</span> <span class="n">width_pad_size</span> <span class="o">//</span> <span class="mi">2</span>
+      <span class="n">width_pad_right</span> <span class="o">=</span> <span class="n">width_pad_size</span> <span class="o">-</span> <span class="n">width_pad_left</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">causal_pad_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                               <span class="p">[</span><span class="n">width_pad_left</span><span class="p">,</span> <span class="n">width_pad_right</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
 
     <span class="c1"># Lambda for computing the actual convolution.</span>
     <span class="k">def</span> <span class="nf">ComputeRawConvolution</span><span class="p">(</span><span class="n">filter_w</span><span class="p">):</span>
