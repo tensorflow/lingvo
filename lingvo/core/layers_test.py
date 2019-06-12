@@ -1045,6 +1045,122 @@ class ConvLayerTest(test_utils.TestCase):
       with self.assertRaises(AssertionError):
         self.assertAllClose(v1[:, 2:, :, :], v2[:, 2:, :, :])
 
+  def testCausalConv2DLayerFProp(self):
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(398847392)
+      np.random.seed(12345)
+      params = layers.ConvLayer.Params()
+      params.name = 'causal_conv'
+      params.filter_shape = [2, 2, 3, 2]
+      params.filter_stride = [1, 1]
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.is_eval = False
+      params.causal_convolution = True
+      params.activation = 'NONE'
+      params.batch_norm = False
+
+      conv_layer = layers.ConvLayer(params)
+      in_padding1 = tf.zeros([2, 4], dtype=tf.float32)
+      inputs1 = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, 3, 3]), dtype=tf.float32)
+
+      output1, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
+      tf.global_variables_initializer().run()
+      v1 = sess.run(output1)
+      tf.logging.info('CausalConv output: %s', np.array_repr(v1))
+      # pylint: disable=bad-whitespace,bad-continuation,line-too-long
+      self.assertAllClose(v1, [
+          [[[-0.065196  , -0.0597635 ],
+            [ 0.02871699, -0.02915794],
+            [-0.00529849, -0.02677475]],
+           [[-0.0227601 ,  0.06118587],
+            [ 0.25884673, -0.13917476],
+            [ 0.03899311, -0.06894699]],
+           [[-0.28780231, -0.12121122],
+            [ 0.2447218 ,  0.09553684],
+            [-0.07054863,  0.12110104]],
+           [[ 0.17036264, -0.00258163],
+            [ 0.28644818, -0.02746056],
+            [ 0.06173857, -0.11599959]]],
+          [[[ 0.1468567 ,  0.12725323],
+            [-0.00131077, -0.03644447],
+            [ 0.0266833 ,  0.01140832]],
+           [[-0.23816   , -0.07873908],
+            [-0.07348203,  0.25653225],
+            [-0.21931274, -0.0569509 ]],
+           [[-0.06972647, -0.03123237],
+            [ 0.07432974, -0.03340006],
+            [ 0.10474236,  0.00807726]],
+           [[ 0.07581483,  0.25381109],
+            [ 0.07091375, -0.14229891],
+            [ 0.05247882, -0.08783717]]]
+      ])  # pyformat: disable
+      # pylint: enable=bad-whitespace,bad-continuation,line-too-long
+
+  def testCausalConv2DEqualsConv2DWithPadding(self):
+    # Causal conv is equivalent to regular conv with zero pre-padding.
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(398847392)
+      np.random.seed(12345)
+      params = layers.ConvLayer.Params()
+      params.name = 'causal_conv'
+      params.filter_shape = [2, 2, 3, 2]
+      params.filter_stride = [1, 1]
+      params.params_init = py_utils.WeightInit.Gaussian(0.1, seed=12345)
+      params.is_eval = False
+      params.causal_convolution = True
+      params.activation = 'NONE'
+      params.batch_norm = False
+      causal_conv_layer = layers.ConvLayer(params)
+
+      normal_conv_params = params.Copy()
+      normal_conv_params.name = 'conv'
+      normal_conv_params.causal_convolution = False
+      normal_conv_layer = layers.ConvLayer(normal_conv_params)
+      inputs1 = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, 3, 3]), dtype=tf.float32)
+      # Causal conv with kernel height (time) = 2 requires prepadding size 1.
+      inputs1_pad = tf.concat([tf.zeros([2, 1, 3, 3]), inputs1], axis=1)
+
+      output_causal, _ = causal_conv_layer.FPropDefaultTheta(inputs1)
+      output_normal, _ = normal_conv_layer.FPropDefaultTheta(inputs1_pad)
+      tf.global_variables_initializer().run()
+      v_causal, v_normal = sess.run([output_causal, output_normal])
+      # Normal conv would produce an extra timestep due to SAME padding at the
+      # end.
+      self.assertAllClose(v_causal, v_normal[:, :-1])
+
+  def testCausalConv2DEqualsConv2DWithKernelHeightOne(self):
+    # When kernel height (time) = 1, causal convolution regresses to normal
+    # convolution with SAME padding.
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(398847392)
+      np.random.seed(12345)
+      params = layers.ConvLayer.Params()
+      params.name = 'causal_conv'
+      params.filter_shape = [1, 2, 3, 2]
+      params.filter_stride = [1, 1]
+      params.params_init = py_utils.WeightInit.Gaussian(0.1, seed=12345)
+      params.is_eval = False
+      params.causal_convolution = True
+      params.activation = 'NONE'
+      params.batch_norm = False
+      causal_conv_layer = layers.ConvLayer(params)
+
+      normal_conv_params = params.Copy()
+      normal_conv_params.name = 'conv'
+      normal_conv_params.causal_convolution = False
+      normal_conv_layer = layers.ConvLayer(normal_conv_params)
+      inputs1 = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, 3, 3]), dtype=tf.float32)
+
+      output_causal, _ = causal_conv_layer.FPropDefaultTheta(inputs1)
+      output_normal, _ = normal_conv_layer.FPropDefaultTheta(inputs1)
+      tf.global_variables_initializer().run()
+      v_causal, v_normal = sess.run([output_causal, output_normal])
+
+      self.assertAllClose(v_causal, v_normal)
+
   def testConvLayerBackProp(self):
     with self.session(use_gpu=True) as sess:
       tf.set_random_seed(398847392)
