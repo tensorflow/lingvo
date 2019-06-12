@@ -191,6 +191,13 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;time_mask_max_ratio&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
              <span class="s1">&#39;Maximum portion allowed for time masking.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_noise&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to noisify the time masked region.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;unstack&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to unstack features before applying SpecAugment&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stack_height&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Number of frames stacked on top of each other&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">unstack</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">stack_height</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">left_content</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">frame_stride</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -355,6 +362,20 @@
       <span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">outputs_mask</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">outputs</span></div>
 
+<div class="viewcode-block" id="SpectrumAugmenter.UnstackFeatures"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.UnstackFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">UnstackFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_inputs</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Unstacks src_input and src_paddings based off stack height.&quot;&quot;&quot;</span>
+    <span class="n">sh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">stack_height</span>
+    <span class="c1"># TODO(ngyuzh) Change to py_utils.GetShape</span>
+    <span class="n">bs</span><span class="p">,</span> <span class="n">old_series_length</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">channels</span> <span class="o">=</span> <span class="n">src_inputs</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+    <span class="n">unstacked_series_length</span> <span class="o">=</span> <span class="n">old_series_length</span> <span class="o">*</span> <span class="n">sh</span>
+    <span class="n">src_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">src_inputs</span><span class="p">,</span>
+                            <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">unstacked_series_length</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">channels</span><span class="p">])</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">src_paddings</span>
+    <span class="n">lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">sh</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="n">unstacked_series_length</span><span class="p">)</span>
+    <span class="n">src_paddings</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">src_inputs</span><span class="p">,</span> <span class="n">src_paddings</span></div>
+
 <div class="viewcode-block" id="SpectrumAugmenter._AugmentationNetwork"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork">[docs]</a>  <span class="k">def</span> <span class="nf">_AugmentationNetwork</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">series_length</span><span class="p">,</span> <span class="n">num_freq</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns augmented features.</span>
 
@@ -372,7 +393,15 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
-    <span class="n">lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Unstack the features.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">unstack</span><span class="p">:</span>
+      <span class="n">original_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+      <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UnstackFeatures</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+      <span class="n">num_freq</span> <span class="o">//=</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_height</span>
+      <span class="n">series_length</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_height</span>
+
+    <span class="n">lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_count</span><span class="p">):</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TimeMask</span><span class="p">(</span>
           <span class="n">inputs</span><span class="p">,</span>
@@ -383,6 +412,11 @@
           <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">freq_mask_count</span><span class="p">):</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FrequencyMask</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">num_freq</span><span class="o">=</span><span class="n">num_freq</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="c1"># Restack the features after applying specaugment.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">unstack</span><span class="p">:</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">original_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">inputs</span></div>
 
 <div class="viewcode-block" id="SpectrumAugmenter.FProp"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
