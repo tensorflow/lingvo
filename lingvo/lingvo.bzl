@@ -155,6 +155,10 @@ def lingvo_proto_cc(name, src, deps = []):
         srcs = [basename + ".pb.cc"],
         hdrs = [basename + ".pb.h"],
     )
+    lingvo_cc_library(
+        name = "%s_cc" % name,
+        deps = [":%s" % name],
+    )
 
 def lingvo_proto_py(name, src, deps = []):
     # TODO(drpng): only works with proto with no deps within lingvo.

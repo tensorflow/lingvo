@@ -199,7 +199,7 @@ custom_kernel_library(
     hdrs = ["beam_search_step_op_kernels.h"],
     op_def_lib = [":x_ops"],
     deps = [
-        ":hyps_proto",
+        ":hyps_proto_cc",
         ":simple_vocab",
     ],
 )
