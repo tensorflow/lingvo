@@ -38,18 +38,7 @@ py_binary(
     python_version = "PY3",
     srcs_version = "PY2AND3",
     deps = [
-        ":wpm_encode_file_main_lib",
-        # Implicit six dependency.
-    ],
-)
-
-py_library(
-    name = "wpm_encode_file_main_lib",
-    srcs = ["wpm_encode_file.py"],
-    srcs_version = "PY2AND3",
-    deps = [
         ":wpm_encode_file_lib",
-        # Implicit six dependency.
     ],
 )
 
