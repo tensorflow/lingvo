@@ -1082,7 +1082,7 @@ class SingleTaskModel(BaseModel):
       tp.early_stop = p.task.train.early_stop
       tp.enqueue_max_steps = p.task.train.enqueue_max_steps
       tp.save_interval_seconds = p.task.train.save_interval_seconds
-      tp.save_max_to_keep = p.task.train.save_interval_seconds
+      tp.save_max_to_keep = p.task.train.save_max_to_keep
       tp.save_keep_checkpoint_every_n_hours = p.task.train.save_keep_checkpoint_every_n_hours
       tp.summary_interval_steps = p.task.train.summary_interval_steps
 
