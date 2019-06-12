@@ -176,30 +176,66 @@ class WordLevelOneBwdsSimpleSampledSoftmaxTiny(
   RNN_STATE_DIM = 32
 
 
-# Try the following params and deploy 8 accelerators to train a bigger model
-# EMBEDDING_DIM = 2048
-# GPUS = 8  # For example, on 8 accelerator, each of which has 16G mem.
-# SPLITS = [10 + 12 * i for i in range(GPUS - 1)]
-# LAYERS = SPLITS[-1]  #4.9B params
-# BATCH_SIZE = 32
-# NUM_MICRO_BATCHES = 32
+# Example large transformer model using GPIPE.
+# Relative throughput on multiple V100s, each with 16GB ram.
+# GPUs throughput
+# 1    1
+# 2    0.93
+# 4    0.85
+# 8    0.775
 @model_registry.RegisterSingleTaskModel
-class OneBWdsGPipeTransformer(WordLevelOneBwdsBase):
+class OneBWdsGPipeTransformerWPM(WordLevelOneBwdsBase):
   """LM using gpipe transformer."""
-  EMBEDDING_DIM = 1024
-  BATCH_SIZE = 8
-  MAX_TOKENS = 128  # The max sequence length in one example.
-  LAYERS = 6
+  VOCAB_SIZE = 32000
+  EMBEDDING_DIM = 2048
+  BATCH_SIZE = 32
+  MAX_TOKENS = 1024  # The max sequence length in one example.
+
   # GPIPE related params.
-  SPLITS = 1
-  NUM_MICRO_BATCHES = 1
+  GPUS = 4
+  # A list of ending index for each split/partition in ascending order.
+  # For example SPLITS = [8, 16, 24, 32] defined a 32 layer model with 4 splits,
+  # each of which contains 8 layers.
+  # The number belows runs on 16GB-V100s. Your mileage may vary.
+  SPLITS = [8 * (i + 1) for i in range(GPUS)]
+  LAYERS = SPLITS[-1]
+  # Set NUM_MICRO_BATCHES >= len(SPLITS) * 4 to minimize gpipe bubble.
+  NUM_MICRO_BATCHES = 32
 
   @classmethod
   def Train(cls):
-    p = super(OneBWdsGPipeTransformer, cls).Train()
+    p = super(OneBWdsGPipeTransformerWPM, cls).Train()
+    # Replace it with your own wordpiece tokenizer.
+    p.tokenizer = tokenizers.AsciiTokenizer.Params()
+    p.target_max_length = cls.MAX_TOKENS
+    p.tokenizer.target_sos_id = 1
+    p.tokenizer.target_eos_id = 2
+    p.tokenizer.target_unk_id = 0
+    p.tokenizer.vocab_size = cls.VOCAB_SIZE
     p.bucket_upper_bound = [cls.MAX_TOKENS]
     p.bucket_batch_limit = [cls.BATCH_SIZE]
     p.fixed_input_shape = True
+    return p
+
+  @classmethod
+  def Dev(cls):
+    p = cls.Train()
+    p.file_pattern = 'text:' + os.path.join(
+        cls.CORPUS_DIR, 'heldout-monolingual.tokenized.shuffled',
+        'news.en.heldout-00001*')
+    p.name = '1bwds_dev_set'
+    p.num_batcher_threads = 1
+    p.num_samples = 6206  # Number of sentences to evaluate on.
+    return p
+
+  @classmethod
+  def Test(cls):
+    p = cls.Dev()
+    p.file_pattern = 'text:' + os.path.join(
+        cls.CORPUS_DIR, 'heldout-monolingual.tokenized.shuffled',
+        'news.en.heldout-00000*')
+    p.name = '1bwds_test_set'
+    p.num_samples = 6075  # Number of sentences to evaluate on.
     return p
 
   @classmethod
