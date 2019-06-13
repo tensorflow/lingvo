@@ -336,8 +336,11 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;dimension of the embedding layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;label_smoothing&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Label smoothing class.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rnn_cell_tpl&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-             <span class="s1">&#39;RNNCell params template.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;rnn_cell_tpl&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;RNNCell params template. &#39;</span>
+        <span class="s1">&#39;Can be a single param or &#39;</span>
+        <span class="s1">&#39;a list of rnn_layers params, one for each layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rnn_cell_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;size of the rnn cells.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;rnn_cell_hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;internal size of the rnn cells. When &#39;</span>
@@ -457,30 +460,34 @@
       <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
 
+      <span class="n">params_rnn_cells</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">feat_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_dim</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+          <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span><span class="p">)</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span>
+          <span class="n">rnn_cell_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">rnn_cell_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">inputs_arity</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">decoder_utils</span><span class="o">.</span><span class="n">SetRnnCellNodes</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">rnn_cell_params</span><span class="p">)</span>
+        <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">feat_dim</span> <span class="o">+</span> <span class="n">atten_context_dim</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rnn_cell&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rnn_cell_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+        <span class="n">feat_dim</span> <span class="o">=</span> <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">num_output_nodes</span>
+        <span class="n">params_rnn_cells</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rnn_cell_params</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rnn_cell&#39;</span><span class="p">,</span> <span class="n">params_rnn_cells</span><span class="p">)</span>
+
       <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">feat_dim</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax_uses_attention</span><span class="p">:</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span> <span class="o">+</span> <span class="n">atten_context_dim</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">+=</span> <span class="n">atten_context_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
 
       <span class="n">p</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">base_model_logits_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fusion&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fusion</span><span class="p">)</span>
-
-      <span class="n">params_rnn_cells</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span><span class="p">):</span>
-        <span class="n">rnn_cell_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
-        <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">inputs_arity</span> <span class="o">=</span> <span class="mi">2</span>
-        <span class="n">decoder_utils</span><span class="o">.</span><span class="n">SetRnnCellNodes</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">rnn_cell_params</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rnn_cell&#39;</span>
-          <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_dim</span> <span class="o">+</span> <span class="n">atten_context_dim</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rnn_cell_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-          <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span> <span class="o">+</span> <span class="n">atten_context_dim</span>
-        <span class="n">params_rnn_cells</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rnn_cell_params</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rnn_cell&#39;</span><span class="p">,</span> <span class="n">params_rnn_cells</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">_CreateAtten</span><span class="p">()</span>
 
@@ -498,10 +505,9 @@
 <div class="viewcode-block" id="AsrDecoderBase._CreateAtten"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._CreateAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
     <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">query_dim</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">query_dim</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">query_dim</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_cell</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AsrDecoderBase._GetAttenContextDim"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._GetAttenContextDim">[docs]</a>  <span class="k">def</span> <span class="nf">_GetAttenContextDim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -557,7 +563,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
             <span class="n">packed_src</span><span class="p">,</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_cell</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">],</span>
+                     <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
             <span class="n">zero_atten_state</span><span class="p">,</span>
             <span class="n">per_step_source_padding</span><span class="o">=</span><span class="n">per_step_source_padding</span><span class="p">))</span>
     <span class="n">atten_context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">contextualizer</span><span class="o">.</span><span class="n">ZeroAttention</span><span class="p">(</span>
@@ -1168,7 +1175,8 @@
                                                      <span class="n">targets</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">dec_bs</span><span class="p">)</span>
 
       <span class="n">atten_context_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetAttenContextDim</span><span class="p">()</span>
-      <span class="n">out_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span> <span class="o">+</span> <span class="n">atten_context_dim</span>
+      <span class="n">rnn_output_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_cell</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_output_nodes</span>
+      <span class="n">out_dim</span> <span class="o">=</span> <span class="n">rnn_output_dim</span> <span class="o">+</span> <span class="n">atten_context_dim</span>
       <span class="n">state0</span><span class="o">.</span><span class="n">step_outs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">dec_bs</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">],</span>
                                   <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
       <span class="n">target_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">targets</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
@@ -1213,7 +1221,7 @@
 
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax_uses_attention</span><span class="p">:</span>
         <span class="n">step_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
-            <span class="n">accumulated_states</span><span class="o">.</span><span class="n">step_outs</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="p">,</span> <span class="n">atten_context_dim</span><span class="p">],</span>
+            <span class="n">accumulated_states</span><span class="o">.</span><span class="n">step_outs</span><span class="p">,</span> <span class="p">[</span><span class="n">rnn_output_dim</span><span class="p">,</span> <span class="n">atten_context_dim</span><span class="p">],</span>
             <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">step_out</span> <span class="o">=</span> <span class="n">accumulated_states</span><span class="o">.</span><span class="n">step_outs</span>
@@ -1654,8 +1662,9 @@
       <span class="c1"># AsrDecoderBase.ComputePredictionsFunctional().RnnStep().  Refactor the</span>
       <span class="c1"># code so as to remove this assumption.</span>
       <span class="n">atten_context_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetAttenContextDim</span><span class="p">()</span>
+      <span class="n">rnn_output_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_cell</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_output_nodes</span>
       <span class="n">softmax_input</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
-          <span class="n">step_out</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="p">,</span> <span class="n">atten_context_dim</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+          <span class="n">step_out</span><span class="p">,</span> <span class="p">[</span><span class="n">rnn_output_dim</span><span class="p">,</span> <span class="n">atten_context_dim</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">softmax_input</span><span class="p">,</span> <span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">prev_fusion_states</span><span class="p">,</span> <span class="n">softmax_input</span><span class="p">,</span> <span class="n">cur_target_info</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>

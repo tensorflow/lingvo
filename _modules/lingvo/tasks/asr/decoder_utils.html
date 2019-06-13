@@ -174,7 +174,8 @@
 
 
 <div class="viewcode-block" id="SetRnnCellNodes"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_utils.html#lingvo.tasks.asr.decoder_utils.SetRnnCellNodes">[docs]</a><span class="k">def</span> <span class="nf">SetRnnCellNodes</span><span class="p">(</span><span class="n">decoder_params</span><span class="p">,</span> <span class="n">rnn_cell_params</span><span class="p">):</span>
-  <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">decoder_params</span><span class="o">.</span><span class="n">rnn_cell_dim</span>
+  <span class="k">if</span> <span class="n">decoder_params</span><span class="o">.</span><span class="n">rnn_cell_dim</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">decoder_params</span><span class="o">.</span><span class="n">rnn_cell_dim</span>
   <span class="k">if</span> <span class="n">decoder_params</span><span class="o">.</span><span class="n">rnn_cell_hidden_dim</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rnn_cell_params</span><span class="p">,</span> <span class="s1">&#39;num_hidden_nodes&#39;</span><span class="p">):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
