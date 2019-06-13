@@ -29,7 +29,8 @@ from lingvo.core import py_utils
 
 
 def SetRnnCellNodes(decoder_params, rnn_cell_params):
-  rnn_cell_params.num_output_nodes = decoder_params.rnn_cell_dim
+  if decoder_params.rnn_cell_dim > 0:
+    rnn_cell_params.num_output_nodes = decoder_params.rnn_cell_dim
   if decoder_params.rnn_cell_hidden_dim > 0:
     if not hasattr(rnn_cell_params, 'num_hidden_nodes'):
       raise ValueError(

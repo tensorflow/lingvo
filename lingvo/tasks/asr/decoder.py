@@ -191,8 +191,11 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
     p.Define('emb_dim', 0, 'dimension of the embedding layer.')
     p.Define('label_smoothing', None, 'Label smoothing class.')
-    p.Define('rnn_cell_tpl', rnn_cell.LSTMCellSimple.Params(),
-             'RNNCell params template.')
+    p.Define(
+        'rnn_cell_tpl', rnn_cell.LSTMCellSimple.Params(),
+        'RNNCell params template. '
+        'Can be a single param or '
+        'a list of rnn_layers params, one for each layer.')
     p.Define('rnn_cell_dim', 0, 'size of the rnn cells.')
     p.Define(
         'rnn_cell_hidden_dim', 0, 'internal size of the rnn cells. When '
@@ -312,30 +315,34 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       p.emb.embedding_dim = p.emb_dim
       self.CreateChild('emb', p.emb)
 
+      params_rnn_cells = []
+      feat_dim = p.emb_dim
+      for i in range(p.rnn_layers):
+        if isinstance(p.rnn_cell_tpl, (list, tuple)):
+          assert len(p.rnn_cell_tpl) == p.rnn_layers
+          rnn_cell_params = p.rnn_cell_tpl[i].Copy()
+        else:
+          rnn_cell_params = p.rnn_cell_tpl.Copy()
+        rnn_cell_params.dtype = p.dtype
+        rnn_cell_params.inputs_arity = 2
+        decoder_utils.SetRnnCellNodes(p, rnn_cell_params)
+        rnn_cell_params.num_input_nodes = feat_dim + atten_context_dim
+        if i == 0:
+          rnn_cell_params.name = 'rnn_cell'
+        else:
+          rnn_cell_params.name = 'rnn_cell_%d' % i
+        feat_dim = rnn_cell_params.num_output_nodes
+        params_rnn_cells.append(rnn_cell_params)
+      self.CreateChildren('rnn_cell', params_rnn_cells)
+
       p.softmax.dtype = p.dtype
+      p.softmax.input_dim = feat_dim
       if p.softmax_uses_attention:
-        p.softmax.input_dim = p.rnn_cell_dim + atten_context_dim
-      else:
-        p.softmax.input_dim = p.rnn_cell_dim
+        p.softmax.input_dim += atten_context_dim
       self.CreateChild('softmax', p.softmax)
 
       p.fusion.base_model_logits_dim = p.softmax.input_dim
       self.CreateChild('fusion', p.fusion)
-
-      params_rnn_cells = []
-      for i in range(p.rnn_layers):
-        rnn_cell_params = p.rnn_cell_tpl.Copy()
-        rnn_cell_params.dtype = p.dtype
-        rnn_cell_params.inputs_arity = 2
-        decoder_utils.SetRnnCellNodes(p, rnn_cell_params)
-        if i == 0:
-          rnn_cell_params.name = 'rnn_cell'
-          rnn_cell_params.num_input_nodes = p.emb_dim + atten_context_dim
-        else:
-          rnn_cell_params.name = 'rnn_cell_%d' % i
-          rnn_cell_params.num_input_nodes = p.rnn_cell_dim + atten_context_dim
-        params_rnn_cells.append(rnn_cell_params)
-      self.CreateChildren('rnn_cell', params_rnn_cells)
 
       self._CreateAtten()
 
@@ -353,10 +360,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
   def _CreateAtten(self):
     p = self.params
     p.attention.dtype = p.dtype
-    p.attention.source_dim = (
-        p.attention.source_dim if p.attention.source_dim else p.source_dim)
+    p.attention.source_dim = p.attention.source_dim or p.source_dim
     p.attention.query_dim = (
-        p.attention.query_dim if p.attention.query_dim else p.rnn_cell_dim)
+        p.attention.query_dim or self.rnn_cell[0].params.num_output_nodes)
     self.CreateChild('atten', p.attention)
 
   def _GetAttenContextDim(self):
@@ -412,7 +418,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         self.atten.ComputeContextVectorWithSource(
             theta.atten,
             packed_src,
-            tf.zeros([bs, p.rnn_cell_dim], dtype=py_utils.FPropDtype(p)),
+            tf.zeros([bs, self.rnn_cell[0].params.num_output_nodes],
+                     dtype=py_utils.FPropDtype(p)),
             zero_atten_state,
             per_step_source_padding=per_step_source_padding))
     atten_context = self.contextualizer.ZeroAttention(
@@ -1023,7 +1030,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
                                                      targets.ids, dec_bs)
 
       atten_context_dim = self._GetAttenContextDim()
-      out_dim = p.rnn_cell_dim + atten_context_dim
+      rnn_output_dim = self.rnn_cell[-1].params.num_output_nodes
+      out_dim = rnn_output_dim + atten_context_dim
       state0.step_outs = tf.zeros([dec_bs, out_dim],
                                   dtype=py_utils.FPropDtype(p))
       target_embs = self.emb.EmbLookup(theta.emb, targets.ids)
@@ -1068,7 +1076,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
       if not p.softmax_uses_attention:
         step_out, _ = tf.split(
-            accumulated_states.step_outs, [p.rnn_cell_dim, atten_context_dim],
+            accumulated_states.step_outs, [rnn_output_dim, atten_context_dim],
             axis=-1)
       else:
         step_out = accumulated_states.step_outs
@@ -1509,8 +1517,9 @@ class AsrDecoder(AsrDecoderBase):
       # AsrDecoderBase.ComputePredictionsFunctional().RnnStep().  Refactor the
       # code so as to remove this assumption.
       atten_context_dim = self._GetAttenContextDim()
+      rnn_output_dim = self.rnn_cell[-1].params.num_output_nodes
       softmax_input, _ = tf.split(
-          step_out, [p.rnn_cell_dim, atten_context_dim], axis=-1)
+          step_out, [rnn_output_dim, atten_context_dim], axis=-1)
 
     softmax_input, fusion_states = self.fusion.FProp(
         theta.fusion, prev_fusion_states, softmax_input, cur_target_info.id,

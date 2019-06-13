@@ -190,7 +190,7 @@ class DecoderTest(test_utils.TestCase):
         vn_config=py_utils.VariationalNoiseParams(None, True, False))
     _ = decoder.AsrDecoder(p)
 
-  def testDecoderFPropHelper(self):
+  def testDecoderFProp(self):
     """Create decoder with default params, and verify that FProp runs."""
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       tf.set_random_seed(8372749040)
@@ -206,8 +206,32 @@ class DecoderTest(test_utils.TestCase):
       # Target batch size is 4. Therefore, we should expect 4 here.
       self.assertEqual(per_sequence_loss_val.shape, (4,))
 
-  def testDecoderFPropHelperWithProjection(self):
+  def testDecoderFPropWithProjection(self):
     """Create decoder with projection layers, and verify that FProp runs."""
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      tf.set_random_seed(8372749040)
+
+      p = self._DecoderParams(
+          vn_config=py_utils.VariationalNoiseParams(None, True, False))
+      rnn_cell_tpl = p.rnn_cell_tpl
+      p.rnn_cell_tpl = [
+          rnn_cell_tpl.Copy().Set(
+              num_output_nodes=i + 2, num_hidden_nodes=i + 5)
+          for i in range(p.rnn_layers)
+      ]
+      p.rnn_cell_dim = -1
+      p.rnn_cell_hidden_dim = -1
+
+      loss, per_sequence_loss = self._testDecoderFPropHelper(params=p)
+      tf.global_variables_initializer().run()
+      loss_val, per_sequence_loss_val = sess.run([loss, per_sequence_loss])
+
+      print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
+      # Target batch size is 4. Therefore, we should expect 4 here.
+      self.assertEqual(per_sequence_loss_val.shape, (4,))
+
+  def testDecoderFPropWithPerLayerDims(self):
+    """Create and fprop a decoder with different dims per layer."""
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       tf.set_random_seed(8372749040)
 
