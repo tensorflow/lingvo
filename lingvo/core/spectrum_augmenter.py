@@ -101,7 +101,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     # Make sure the sampled length was smaller than max_ratio * length_bound.
     # Note that sampling in this way was biased
     # (shorter sequence may over-masked.)
-    length_bound = tf.cast(choose_range, dtype=tf.float32)
+    length_bound = tf.cast(choose_range, dtype=dtype)
     length_bound = tf.cast(max_ratio * length_bound, dtype=tf.int32)
     length = tf.minimum(max_length, tf.maximum(length_bound, 1))
     # Choose starting point
@@ -109,14 +109,14 @@ class SpectrumAugmenter(base_layer.BaseLayer):
                                      maxval=1.0,
                                      seed=p.random_seed)
     start_with_in_valid_range = random_start * tf.cast(
-        (choose_range - length + 1), dtype=tf.float32)
+        (choose_range - length + 1), dtype=dtype)
     start = tf.cast(start_with_in_valid_range, tf.int32)
     end = start + length - 1
 
     # Shift starting and end point by small value
     delta = tf.constant(0.1)
-    start = tf.expand_dims(tf.cast(start, tf.float32) - delta, -1)
-    end = tf.expand_dims(tf.cast(end, tf.float32) + delta, -1)
+    start = tf.expand_dims(tf.cast(start, dtype) - delta, -1)
+    end = tf.expand_dims(tf.cast(end, dtype) + delta, -1)
 
     # Construct mask
     diagonal = tf.tile(
@@ -124,6 +124,8 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         [batch_size, 1])
     mask = 1.0 - tf.cast(
         tf.logical_and(diagonal < end, diagonal > start), dtype=dtype)
+    if p.fprop_dtype is not None and p.fprop_dtype != p.dtype:
+      mask = tf.cast(mask, p.fprop_dtype)
     return mask
 
   def _FrequencyMask(self, inputs, num_freq=80, dtype=tf.float32):
@@ -200,7 +202,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       factor = tf.random_uniform((),
                                  minval=1.0,
                                  maxval=2.0,
-                                 dtype=tf.float32,
+                                 dtype=dtype,
                                  seed=p.random_seed)
       stddev = factor * 0.1 + 0.0001
       noise = tf.random.normal(
@@ -221,7 +223,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     """Unstacks src_input and src_paddings based off stack height."""
     sh = self.params.stack_height
     # TODO(ngyuzh) Change to py_utils.GetShape
-    bs, old_series_length, _, channels = src_inputs.get_shape().as_list()
+    bs, old_series_length, _, channels = py_utils.GetShape(src_inputs)
     unstacked_series_length = old_series_length * sh
     src_inputs = tf.reshape(src_inputs,
                             [bs, unstacked_series_length, -1, channels])
@@ -251,7 +253,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     # Unstack the features.
     if p.unstack:
-      original_inputs = inputs
+      stacked_series_length = series_length
       inputs, paddings = self.UnstackFeatures(inputs, paddings)
       num_freq //= p.stack_height
       series_length *= p.stack_height
@@ -270,7 +272,10 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     # Restack the features after applying specaugment.
     if p.unstack:
-      inputs = tf.reshape(inputs, original_inputs.shape)
+      inputs = tf.reshape(
+          inputs,
+          [tf.shape(inputs)[0], stacked_series_length, -1,
+           tf.shape(inputs)[3]])
 
     return inputs
 
