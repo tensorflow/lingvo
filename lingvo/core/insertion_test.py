@@ -162,8 +162,47 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
       for b in range(batch_size):
         length = np.sum(1 - canvas_paddings[b, :]).astype(np.int32)
         self.assertAllEqual(canvas[b, :length], canvas_indices[b, :length])
+        # Test the invalid slots.
         self.assertAllEqual(canvas[b, length:],
+                            [0] * (canvas.shape[1] - length))
+        self.assertAllEqual(canvas_indices[b, length:],
                             [time_dim - 1] * (canvas.shape[1] - length))
+
+  def testMaxCanvasSizeUnderUniformRollinPolicy(self):
+    """Tests for valid canvas size."""
+    with self.session(use_gpu=True) as sess:
+      params = insertion.SymbolInsertionLayer.Params()
+      params.name = 'insertion'
+      params.rollin_policy = 'oracle'
+      params.oracle_policy = 'uniform'
+
+      insertion_layer = insertion.SymbolInsertionLayer(params)
+
+      batch_size = 4
+      time_dim = 10
+
+      inputs = tf.tile(tf.expand_dims(tf.range(time_dim), 0), [batch_size, 1])
+      inputs_len = tf.random.uniform([batch_size], 0, time_dim, tf.int32)
+      paddings = 1 - tf.sequence_mask(inputs_len, time_dim, tf.int32)
+      spec = insertion_layer.FProp(None, inputs, paddings)
+
+      canvas_with_max_length = False
+      for _ in range(1000):
+        canvas_max_len, canvas, canvas_paddings = sess.run(
+            [inputs_len, spec.canvas, spec.canvas_paddings])
+
+        for b in range(batch_size):
+          max_len = canvas_max_len[b]
+          length = np.sum(1 - canvas_paddings[b, :]).astype(np.int32)
+          canvas_with_max_length |= length == max_len
+          self.assertLessEqual(length, max_len)
+          # Invalid entries of canvas should be 0.
+          self.assertAllEqual(canvas[b, length:],
+                              [0] * (canvas.shape[1] - length))
+
+      # With high probability, there should be at least one canvas that is
+      # of the same size as the maximum canvas size.
+      self.assertEqual(canvas_with_max_length, True)
 
   def testGetValidCanvasAndTargetsUnderUniformOraclePolicy(self):
     """Tests for valid canvas+targets under uniform (rollin+oracle) policy."""

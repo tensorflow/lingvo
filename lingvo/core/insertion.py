@@ -230,7 +230,8 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
     # Trim everything > c_len_max.
     c_indices = c_indices[:, :c_len_max]
 
-    # Invalidate any indices >= c_len.
+    # Invalidate any indices >= c_len, we use the last index as the default
+    # invalid index.
     c_indices = tf.where(
         tf.expand_dims(tf.range(c_len_max), 0) < tf.expand_dims(c_len, 1),
         c_indices, tf.fill(py_utils.GetShape(c_indices), time_dim - 1))
@@ -243,6 +244,7 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
 
     # Compute the paddings.
     c_paddings = 1 - tf.sequence_mask(c_len, c_len_max, dtype=x_paddings.dtype)
+    c *= tf.cast(1 - c_paddings, tf.int32)
 
     indices = tf.concat([
         tf.reshape(
