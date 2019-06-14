@@ -18,6 +18,10 @@
 #
 # To run, you must first `apt-get install bibtex2html`.
 
+# Fail on errors, even within a pipeline.
+set -e
+set -o pipefail
+
 readonly OUTPUT_FILE=PUBLICATIONS.md
 
 echo -e "# List of publications using Lingvo.\n" > ${OUTPUT_FILE}
