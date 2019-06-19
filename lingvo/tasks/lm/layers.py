@@ -1190,9 +1190,6 @@ class GPipeTransformerLm(BaseLanguageModel):
     p = super(GPipeTransformerLm, cls).Params()
     p.Define('stack', layers_with_gpipe.GPipeTransformerStack.Params(),
              'GPipeTransformerStack Layer params.')
-    p.Define('label_smoother', None, 'Label smoothing class.')
-    p.Define('softmax', layers.SimpleFullSoftmax.Params(),
-             'The softmax layer params.')
 
     # Default config for the transformer layers.
     trans_tpl = p.stack.encoder_tpl
@@ -1253,6 +1250,9 @@ class GPipeTransformerLm(BaseLanguageModel):
     p.stack.model_dim = model_dim
     p.stack.num_micro_batches = num_micro_batches
     p.stack.num_encoder_layers = num_layers
+    p.stack.state_dtype = p.dtype
+    if p.fprop_dtype:
+      p.stack.state_dtype = p.fprop_dtype
     emb_params_init = py_utils.WeightInit.Gaussian(1.0 / math.sqrt(model_dim))
     p.stack.emb_tpl.token_emb.Set(
         use_matmul=False,
@@ -1273,11 +1273,12 @@ class GPipeTransformerLm(BaseLanguageModel):
     trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_pre_proj = True
     trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_post_proj = True
     trans_tpl.tr_fflayer_tpl.hidden_dim = hidden_dim
-    p.softmax.Set(
+    p.stack.softmax_tpl.softmax.Set(
         num_classes=vocab_size, input_dim=model_dim, num_shards=num_shards)
     if softmax_max_alloc:
       # If the vocab is very large, computes the softmax chunk-by-chunk.
-      p.softmax.chunk_size = max(1, int(softmax_max_alloc / vocab_size))
+      p.stack.softmax_tpl.softmax.chunk_size = max(
+          1, int(softmax_max_alloc / vocab_size))
     return p
 
   @base_layer.initializer
@@ -1288,9 +1289,9 @@ class GPipeTransformerLm(BaseLanguageModel):
 
     with tf.variable_scope(p.name):
       self.CreateChild('stack', p.stack)
-      self.CreateChild('softmax', p.softmax)
-      if p.label_smoother is not None:
-        self.CreateChild('smoother', p.label_smoother)
+
+  def zero_state(self, theta, batch_size):
+    return py_utils.NestedMap()
 
   def FProp(self, theta, inputs, paddings, state0=None, labels=None):
     """Computes xent loss given the language model input activations.
@@ -1317,15 +1318,17 @@ class GPipeTransformerLm(BaseLanguageModel):
     p = self.params
     ids = py_utils.HasRank(inputs, 2)
     paddings = py_utils.HasShape(paddings, tf.shape(ids))
-    layer_out = self.stack.FProp(theta.stack, ids, paddings)
-    tf.logging.info('layer_out shape = {}'.format(layer_out.shape))
-
-    if not (p.label_smoother is None or p.is_eval):
-      # [time, batch, num_classes]
-      labels.class_probabilities = self.smoother.FProp(
-          theta.smoother, paddings, labels.class_ids, target_ids=None)
-      labels.pop('class_ids', None)
-    xent_output = ComputeXentOutput(self.softmax, theta.softmax, layer_out,
-                                    labels)
-    xent_output.last_hidden = layer_out
-    return xent_output, None
+    per_example_xent, logits = self.stack.FProp(
+        theta.stack, ids, paddings, None, None, None, None,
+        tf.cast(labels.class_ids, py_utils.FPropDtype(p)), labels.class_weights)
+    per_example_argmax = py_utils.ArgMax(logits)
+    total_xent = tf.reduce_sum(per_example_xent * labels.class_weights)
+    total_weights = tf.reduce_sum(labels.class_weights)
+    xent_output = py_utils.NestedMap(
+        total_weight=total_weights,
+        per_example_xent=per_example_xent,
+        logits=logits,
+        per_example_argmax=per_example_argmax,
+        avg_xent=total_xent / total_weights,
+        total_xent=total_xent)
+    return xent_output, {}

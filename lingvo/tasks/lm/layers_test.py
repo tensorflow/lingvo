@@ -895,11 +895,11 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     p.stack.emb_tpl.token_emb.embedding_dim = dims
     p.stack.emb_tpl.position_emb.embedding_dim = dims
     p.stack.model_dim = dims
-    p.softmax.input_dim = dims
+    p.stack.softmax_tpl.softmax.input_dim = dims
+    p.stack.softmax_tpl.softmax.num_classes = vocab
     trans_tpl = p.stack.encoder_tpl
     trans_tpl.tr_atten_tpl.num_attention_heads = 2
     trans_tpl.tr_fflayer_tpl.hidden_dim = hidden_dim
-    p.softmax.num_classes = vocab
     return p
 
   def _SetupGraph(self, p, time, batch, vocab, return_grad=False):
