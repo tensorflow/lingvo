@@ -163,8 +163,69 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-core-target-sequence-sampler-module">
-<h1>lingvo.core.target_sequence_sampler module<a class="headerlink" href="#lingvo-core-target-sequence-sampler-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.core.target_sequence_sampler">
+<span id="lingvo-core-target-sequence-sampler-module"></span><h1>lingvo.core.target_sequence_sampler module<a class="headerlink" href="#module-lingvo.core.target_sequence_sampler" title="Permalink to this headline">¶</a></h1>
+<p>A library to sample target sequences given a decoder and decoder inputs.</p>
+<p>The sampled sequences can be used for training, e.g., with scheduled sampling,
+OCD, second-pass deliberation.</p>
+<dl class="function">
+<dt id="lingvo.core.target_sequence_sampler._ComputePaddings">
+<code class="descclassname">lingvo.core.target_sequence_sampler.</code><code class="descname">_ComputePaddings</code><span class="sig-paren">(</span><em>ids</em>, <em>eos_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#_ComputePaddings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler._ComputePaddings" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.target_sequence_sampler.TargetSequenceSampler">
+<em class="property">class </em><code class="descclassname">lingvo.core.target_sequence_sampler.</code><code class="descname">TargetSequenceSampler</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Helper class for sampling target sequences with a decoder from inputs.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.target_sequence_sampler.TargetSequenceSampler.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample">
+<code class="descname">Sample</code><span class="sig-paren">(</span><em>decoder_theta</em>, <em>encoder_outputs</em>, <em>random_seed</em>, <em>init_state_callback</em>, <em>pre_step_callback</em>, <em>post_step_callback</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler.Sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Samples target sequences, one target sequence per source sequence.</p>
+<p>(Please see beam_search_helper.py for description of decoder callbacks.)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>decoder_theta</strong> – A NestedMap object containing weights’ values of the
+decoder layer and its children layers, to be passed to decoder
+callbacks.</li>
+<li><strong>encoder_outputs</strong> – the outputs of the encoder, to be passed to callbacks.</li>
+<li><strong>random_seed</strong> – a scalar int32 tensor representing the random seed.</li>
+<li><strong>init_state_callback</strong> – decoder._InitBeamSearchStateCallback.</li>
+<li><strong>pre_step_callback</strong> – decoder._PreBeamSearchStepCallback.</li>
+<li><strong>post_step_callback</strong> – decoder._PostBeamSearchStepCallback.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
+<li>‘logits’: [batch, max_target_length, vocab_size], representing the
+distribution from which target sequences are sampled.</li>
+<li>’ids’: [batch, max_target_length] of int32, representing the target
+sequence ids, not including target_sos_id, but maybe ending with
+target_eos_id if end-of-sequence is reached before target_seq_len.</li>
+<li>’paddings’: [batch, max_target_length] of 0/1, where 1 represents
+a padded timestep.</li>
+</ul>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">A NestedMap containing the following tensors</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
