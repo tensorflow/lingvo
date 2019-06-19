@@ -948,59 +948,9 @@ value and <code class="xref py py-obj docutils literal notranslate"><span class=
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.tasks.lm.layers.GPipeTransformerLmNoEmbedding">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">GPipeTransformerLmNoEmbedding</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#GPipeTransformerLmNoEmbedding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.GPipeTransformerLmNoEmbedding" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.layers.BaseLanguageModel" title="lingvo.tasks.lm.layers.BaseLanguageModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.layers.BaseLanguageModel</span></code></a></p>
-<p>GPipe Transformer language model.</p>
-<dl class="classmethod">
-<dt id="lingvo.tasks.lm.layers.GPipeTransformerLmNoEmbedding.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#GPipeTransformerLmNoEmbedding.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.GPipeTransformerLmNoEmbedding.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.lm.layers.GPipeTransformerLmNoEmbedding.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0=None</em>, <em>labels=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#GPipeTransformerLmNoEmbedding.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.GPipeTransformerLmNoEmbedding.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes xent loss given the language model input activations.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</li>
-<li><strong>inputs</strong> – Input activation. A tensor of shape [time, batch, model_dim].</li>
-<li><strong>paddings</strong> – A 0/1 tensor of shape [time, batch].</li>
-<li><strong>state0</strong> – Not used for Transformer.</li>
-<li><strong>labels</strong> – If not None, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields: -
-class_weights, a tensor with shape [time, batch] containing the weights
-for each target word. - class_ids, a tensor with shape [time, batch] of
-int32 dtype containing the target class labels. - class_probabilities, a
-tensor with shape [time, batch, vocab_size] of float values indicating
-class-membership probabilities.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> is not None, returns (xent_output, None), where
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
-value. Otherwise, <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> only contains the softmax logits.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.lm.layers.GPipeTransformerLmNoEmbedding.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#GPipeTransformerLmNoEmbedding.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.GPipeTransformerLmNoEmbedding.zero_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="lingvo.tasks.lm.layers.GPipeTransformerLm">
 <em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">GPipeTransformerLm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#GPipeTransformerLm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.GPipeTransformerLm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.layers.GPipeTransformerLmNoEmbedding" title="lingvo.tasks.lm.layers.GPipeTransformerLmNoEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.layers.GPipeTransformerLmNoEmbedding</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.layers.BaseLanguageModel" title="lingvo.tasks.lm.layers.BaseLanguageModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.layers.BaseLanguageModel</span></code></a></p>
 <p>GPipe Transformer based language model layer.</p>
 <dl class="classmethod">
 <dt id="lingvo.tasks.lm.layers.GPipeTransformerLm.Params">

@@ -168,13 +168,11 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">collections</span>
-
-<span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
-
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="c1"># TODO(yonghui):</span>
 <span class="c1">#   1) Change the tensor shape [max_decoder_time_steps, batch_size *</span>
@@ -228,13 +226,15 @@
 
 <span class="sd">      def InitBeamSearchState(theta, encoder_outputs, num_hyps_per_beam):</span>
 <span class="sd">        Args:</span>
-<span class="sd">          theta: A NestedMap object containing weights&#39; values of this</span>
-<span class="sd">              layer and its children layers.</span>
+<span class="sd">          theta: A NestedMap object containing weights&#39; values of this layer and</span>
+<span class="sd">            its children layers.</span>
 <span class="sd">          encoder_outputs: A NestedMap computed by encoder.</span>
 <span class="sd">          num_hyps_per_beam: An int, number hyps to keep for source sentence.</span>
+
 <span class="sd">        Returns:</span>
-<span class="sd">          initial_results: a `.NestedMap` of initial results. It should contain</span>
-<span class="sd">              the following tensors at the minimum.</span>
+<span class="sd">          initial_results: a `.NestedMap` of initial results. It must contain</span>
+<span class="sd">              the &#39;atten_probs&#39; and &#39;log_probs&#39; tensors. Optionally it may</span>
+<span class="sd">              contain &#39;step_ids&#39;.</span>
 <span class="sd">              .log_probs: The initial log probs for each of the tokens in</span>
 <span class="sd">                  the target vocab, of shape [num_hyps_per_beam * src_batch,</span>
 <span class="sd">                  vocab_size]. src_batch &quot;b&quot; and hyp_per_beam &quot;h&quot; is</span>
@@ -243,6 +243,11 @@
 <span class="sd">                  num_hyps_per_beam * src_batch, src_len]. src_batch &quot;b&quot;</span>
 <span class="sd">                  and hyp_per_beam &quot;h&quot; is represented at index</span>
 <span class="sd">                  (h * src_batch + b).</span>
+<span class="sd">              .step_ids: Optional. The initial ids of shape [num_hyps_per_beam *</span>
+<span class="sd">                  src_batch, 1] for which to start the beam search. src_batch</span>
+<span class="sd">                  &quot;b&quot; and hyp_per_beam &quot;h&quot; is represented at index (h *</span>
+<span class="sd">                  src_batch + b).  If not specified, we default to a tensor</span>
+<span class="sd">                  filled with target_sos_id.</span>
 <span class="sd">          states: a `.NestedMap` of tensors representing states that the client</span>
 <span class="sd">              would like to keep track of for each hyp.</span>
 
@@ -257,12 +262,13 @@
 <span class="sd">                                    in_states,</span>
 <span class="sd">                                    num_hyps_per_beam):</span>
 <span class="sd">        Args:</span>
-<span class="sd">          theta: A NestedMap object containing weights&#39; values of this</span>
-<span class="sd">              layer and its children layers.</span>
+<span class="sd">          theta: A NestedMap object containing weights&#39; values of this layer and</span>
+<span class="sd">            its children layers.</span>
 <span class="sd">          encoder_outputs: A NestedMap computed by encoder.</span>
 <span class="sd">          step_ids: A tensor of shape [num_hyps_per_beam * src_batch, 1].</span>
 <span class="sd">          in_states: A `.NestedMap` of tensors representing states that the</span>
-<span class="sd">              clients would like to keep track of for each of the active hyps.</span>
+<span class="sd">            clients would like to keep track of for each of the active hyps.</span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">          results: A `.NestedMap` of beam search results. It should contain</span>
 <span class="sd">              the &#39;atten_probs&#39; and &#39;log_probs&#39; tensors at the minimal.</span>
@@ -291,11 +297,12 @@
 <span class="sd">                                     new_step_ids,</span>
 <span class="sd">                                     other_states):</span>
 <span class="sd">        Args:</span>
-<span class="sd">          theta: A NestedMap object containing weights&#39; values of this</span>
-<span class="sd">              layer and its children layers.</span>
+<span class="sd">          theta: A NestedMap object containing weights&#39; values of this layer and</span>
+<span class="sd">            its children layers.</span>
 <span class="sd">          encoder_outputs: A NestedMap computed by encoder.</span>
 <span class="sd">          new_step_ids: Token ids for the next beam search step.</span>
 <span class="sd">          other_states: A `.NestedMap`.</span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">          final_states, A `.NestedMap`.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
@@ -393,23 +400,24 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of the decoder</span>
-<span class="sd">          layer and its children layers.</span>
-<span class="sd">      encoder_outputs: A `.NestedMap` containing encoder outputs to be passed</span>
-<span class="sd">        to the callbacks.</span>
+<span class="sd">        layer and its children layers.</span>
+<span class="sd">      encoder_outputs: A `.NestedMap` containing encoder outputs to be passed to</span>
+<span class="sd">        the callbacks.</span>
 <span class="sd">      cur_step: A scalar int tensor, the current time step, 0-based.</span>
 <span class="sd">      step_ids: An int tensor of shape [num_hyps, 1]. The input ids to the</span>
-<span class="sd">          current search step.</span>
+<span class="sd">        current search step.</span>
 <span class="sd">      core_bs_states: A tuple of core beam search states. This list is</span>
-<span class="sd">          maintained by this helper class.</span>
-<span class="sd">      other_states: A `.NestedMap` of other beam search states.</span>
-<span class="sd">          This `.NestedMap` is managed and updated by the client. It is</span>
-<span class="sd">          expected that each of its member tensors are of rank &gt;= 1. t[i, ...]</span>
-<span class="sd">          is the state of the i-th hyp at the beginning of this search step.</span>
+<span class="sd">        maintained by this helper class.</span>
+<span class="sd">      other_states: A `.NestedMap` of other beam search states. This</span>
+<span class="sd">        `.NestedMap` is managed and updated by the client. It is expected that</span>
+<span class="sd">        each of its member tensors are of rank &gt;= 1. t[i, ...] is the state of</span>
+<span class="sd">        the i-th hyp at the beginning of this search step.</span>
 <span class="sd">      num_hyps_per_beam: Num of hyps to keep per beam.</span>
 <span class="sd">      pre_beam_search_step_callback: The `PreBeamSearchStepCallback` callback.</span>
-<span class="sd">          See class header comments for more details.</span>
+<span class="sd">        See class header comments for more details.</span>
 <span class="sd">      post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.</span>
-<span class="sd">          See class header comments for more details.</span>
+<span class="sd">        See class header comments for more details.</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of following elements for the next beam search step,</span>
 <span class="sd">      (next step, all_done, step_ids, core_bs_states, other_states)</span>
@@ -471,8 +479,9 @@
 
     <span class="n">new_other_states</span> <span class="o">=</span> <span class="n">other_states</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">ReOrderHyps</span><span class="p">)</span>
 
-    <span class="n">final_other_states</span> <span class="o">=</span> <span class="n">post_beam_search_step_callback</span><span class="p">(</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">new_other_states</span><span class="p">)</span>
+    <span class="n">final_other_states</span> <span class="o">=</span> <span class="n">post_beam_search_step_callback</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
+                                                        <span class="n">new_step_ids</span><span class="p">,</span>
+                                                        <span class="n">new_other_states</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">(</span><span class="n">cur_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">all_done</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">new_bs_states</span><span class="p">,</span>
             <span class="n">final_other_states</span><span class="p">)</span></div>
@@ -488,21 +497,21 @@
     <span class="sd">&quot;&quot;&quot;Performs beam-search based decoding.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A NestedMap object containing weights&#39; values of the decoder</span>
-<span class="sd">        layer and its children layers.</span>
-<span class="sd">      encoder_outputs: A NestedMap containing encoder outputs to be passed</span>
-<span class="sd">        to the callbacks.</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of the decoder layer</span>
+<span class="sd">        and its children layers.</span>
+<span class="sd">      encoder_outputs: A NestedMap containing encoder outputs to be passed to</span>
+<span class="sd">        the callbacks.</span>
 <span class="sd">      num_hyps_per_beam_override: If set to a value &lt;= 0, this parameter is</span>
-<span class="sd">        ignored. If set to a value &gt; 0, then this value will be used to</span>
-<span class="sd">        override `p.num_hyps_per_beam`.</span>
+<span class="sd">        ignored. If set to a value &gt; 0, then this value will be used to override</span>
+<span class="sd">        `p.num_hyps_per_beam`.</span>
 <span class="sd">      init_beam_search_state: The `InitBeamSearchState` callback. Please refer</span>
-<span class="sd">          to the class header comments for more details.</span>
+<span class="sd">        to the class header comments for more details.</span>
 <span class="sd">      pre_beam_search_step_callback: The `PreBeamSearchStepCallback` callback.</span>
-<span class="sd">          Please refer to the class header comments for more details.</span>
+<span class="sd">        Please refer to the class header comments for more details.</span>
 <span class="sd">      post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.</span>
-<span class="sd">          Please refer to the class header comments for more details.</span>
-<span class="sd">      max_steps: maximum beam search steps. If None,</span>
-<span class="sd">          use self.params.target_seq_len.</span>
+<span class="sd">        Please refer to the class header comments for more details.</span>
+<span class="sd">      max_steps: maximum beam search steps. If None, use</span>
+<span class="sd">        self.params.target_seq_len.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A `BeamSearchDecodeOutput`.</span>
@@ -520,8 +529,13 @@
     <span class="n">num_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">initial_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">num_beams</span> <span class="o">=</span> <span class="n">num_hyps</span> <span class="o">//</span> <span class="n">num_hyps_per_beam</span>
 
-    <span class="n">step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-                       <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">target_sos_id</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+    <span class="k">if</span> <span class="s1">&#39;step_ids&#39;</span> <span class="ow">in</span> <span class="n">initial_results</span><span class="p">:</span>
+      <span class="c1"># [num_hyps, 1]</span>
+      <span class="n">step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ensure_shape</span><span class="p">(</span><span class="n">initial_results</span><span class="o">.</span><span class="n">step_ids</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                         <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">target_sos_id</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+
     <span class="n">min_score</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e36</span>
     <span class="n">best_scores</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">num_beams</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">+</span> <span class="n">min_score</span><span class="p">)</span>
     <span class="n">cumulative_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
@@ -660,8 +674,8 @@
   <span class="n">concatenated</span> <span class="o">=</span> <span class="p">{}</span>
   <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">value_dict</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">beam_search_outputs</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="s1">&#39;Incomplete values for </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">beam_search_outputs</span><span class="p">))</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incomplete values for </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                       <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">beam_search_outputs</span><span class="p">))</span>
     <span class="n">concatenated</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
   <span class="n">scores</span> <span class="o">=</span> <span class="n">concatenated</span><span class="p">[</span><span class="s1">&#39;topk_scores&#39;</span><span class="p">]</span>

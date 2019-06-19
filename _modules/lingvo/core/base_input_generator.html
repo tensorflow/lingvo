@@ -163,7 +163,11 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
-
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">input_generator_helper</span> <span class="k">as</span> <span class="n">ig_helper</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tokenizers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">map</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
@@ -174,11 +178,6 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">io_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">tpu_embedding</span> <span class="k">as</span> <span class="n">tpu_embedding_lib</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">input_generator_helper</span> <span class="k">as</span> <span class="n">ig_helper</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tokenizers</span>
-<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
 
 
 <div class="viewcode-block" id="BaseInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGenerator</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -419,8 +418,9 @@
         <span class="c1"># simple string pattern.</span>
         <span class="s1">&#39;file_pattern&#39;</span><span class="p">,</span>
         <span class="s1">&#39;&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;A single file pattern string, a list of &lt;file_pattern, weight&gt; pairs&#39;</span>
-        <span class="s1">&#39;or a list of  &lt;file_pattern, weight, bprop_variable_filter&gt; tuples.&#39;</span>
+        <span class="s1">&#39;A single file pattern string, a list of file pattern strings or a list&#39;</span>
+        <span class="s1">&#39; of &lt;file_pattern, weight&gt; pairs or a list of  &lt;file_pattern, weight, &#39;</span>
+        <span class="s1">&#39;bprop_variable_filter&gt; tuples.&#39;</span>
         <span class="s1">&#39;In the later 2 cases, probablistic samples are from the inputs &#39;</span>
         <span class="s1">&#39;proportional to their weights. Typically, values are binary &#39;</span>
         <span class="s1">&#39;protocol buffers containing train/eval samples. Keys are not used.&#39;</span><span class="p">)</span>
@@ -453,6 +453,15 @@
         <span class="s1">&#39;different input sources within batch or across batches (the &#39;</span>
         <span class="s1">&#39;default option). This option only takes effect when file_pattern&#39;</span>
         <span class="s1">&#39; is a list of file patterns with weights.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_chaining&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to output records from &#39;</span>
+        <span class="s1">&#39;different input sources one after another, i.e., first all records &#39;</span>
+        <span class="s1">&#39;from a first input source, then all records from a second one, etc. &#39;</span>
+        <span class="s1">&#39;use_chaining does not guarantee that records from subsequent input &#39;</span>
+        <span class="s1">&#39;sources are placed in separate input batches. &#39;</span>
+        <span class="s1">&#39;This option only takes effect when file_pattern is a list of file &#39;</span>
+        <span class="s1">&#39;patterns.&#39;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -474,6 +483,7 @@
         <span class="s1">&#39;flush_every_n&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">flush_every_n</span><span class="p">,</span>
         <span class="s1">&#39;num_threads&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span><span class="p">,</span>
         <span class="s1">&#39;require_sequential_order&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">require_sequential_order</span><span class="p">,</span>
+        <span class="s1">&#39;use_chaining&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span><span class="p">,</span>
     <span class="p">})</span>
     <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_InputOpBucketingArgs</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">args</span></div>
@@ -537,6 +547,39 @@
       <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
           <span class="s1">&#39;The function may not be fully implemented. Have you added &#39;</span> <span class="o">+</span>
           <span class="s1">&#39;input_source_weights as params? Original exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildChainingDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildChainingDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildChainingDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read and return input batch from a p.file_pattern list.</span>
+
+<span class="sd">    `p.file_pattern` should be a list of file_patterns. file_patterns will</span>
+<span class="sd">    be consumed consequtively.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tf.Tensor or `.NestedMap` of tf.Tensor same as</span>
+<span class="sd">      `self._DataSourceFromFilePattern()`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If unknown token type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">):</span>
+      <span class="c1"># Chaining doesn&#39;t work with weights or backprop filters, i.e. when</span>
+      <span class="c1"># file_pattern param contains a list of</span>
+      <span class="c1"># &lt;file_pattern, weight, [bprop_variable_filter]&gt; tuples.</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list of strings, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,))</span>
+
+    <span class="n">file_patterns</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">)</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">file_pattern</span> <span class="ow">in</span> <span class="n">file_patterns</span><span class="p">:</span>
+      <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">file_pattern</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Can not use commas in file_pattern when chaining &#39;</span>
+                         <span class="s1">&#39;is used. file_pattern: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">file_pattern</span><span class="p">,))</span>
+
+    <span class="c1"># Do not set self._bprop_onehot as it shouldn&#39;t be used later on.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">),</span> <span class="n">weights</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildCrossBatchMixingDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Read and return input batch from a p.file_pattern list.</span>
@@ -607,7 +650,10 @@
           <span class="n">input_file_pattern</span><span class="p">),</span> <span class="kc">None</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_file_pattern</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_within_batch_mixing</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span><span class="p">,</span> <span class="s2">&quot;Can&#39;t both use chaining and mixing&quot;</span>
         <span class="n">data</span><span class="p">,</span> <span class="n">source_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildWithinBatchMixingDataSource</span><span class="p">(),</span> <span class="kc">None</span>
+      <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">source_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildChainingDataSource</span><span class="p">(),</span> <span class="kc">None</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Otherwise fall back to MixByWeight-based approach.</span>
         <span class="n">data</span><span class="p">,</span> <span class="n">source_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildCrossBatchMixingDataSource</span><span class="p">()</span>

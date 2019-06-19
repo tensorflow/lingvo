@@ -167,6 +167,53 @@
 <span id="lingvo-core-base-decoder-module"></span><h1>lingvo.core.base_decoder module<a class="headerlink" href="#module-lingvo.core.base_decoder" title="Permalink to this headline">¶</a></h1>
 <p>Common decoder interface.</p>
 <dl class="class">
+<dt id="lingvo.core.base_decoder.DecoderOutput">
+<em class="property">class </em><code class="descclassname">lingvo.core.base_decoder.</code><code class="descname">DecoderOutput</code><span class="sig-paren">(</span><em>metrics</em>, <em>predictions</em>, <em>per_sequence</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="method">
+<dt id="lingvo.core.base_decoder.DecoderOutput._asdict">
+<code class="descname">_asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput._asdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new OrderedDict which maps field names to their values</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_decoder.DecoderOutput._fields">
+<code class="descname">_fields</code><em class="property"> = ('metrics', 'predictions', 'per_sequence')</em><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput._fields" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.base_decoder.DecoderOutput._make">
+<em class="property">classmethod </em><code class="descname">_make</code><span class="sig-paren">(</span><em>iterable</em>, <em>new=&lt;built-in method __new__ of type object at 0x8f9920&gt;</em>, <em>len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput._make" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a new DecoderOutput object from a sequence or iterable</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_decoder.DecoderOutput._replace">
+<code class="descname">_replace</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput._replace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new DecoderOutput object replacing specified fields with new values</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_decoder.DecoderOutput.metrics">
+<code class="descname">metrics</code><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput.metrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_decoder.DecoderOutput.per_sequence">
+<code class="descname">per_sequence</code><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput.per_sequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_decoder.DecoderOutput.predictions">
+<code class="descname">predictions</code><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput.predictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.core.base_decoder.BaseDecoder">
 <em class="property">class </em><code class="descclassname">lingvo.core.base_decoder.</code><code class="descname">BaseDecoder</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseDecoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
@@ -194,8 +241,7 @@ predict.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A map from metric name (a python string) to a tuple (value, weight).
-Both value and weight are scalar Tensors.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A DecoderOutput namedtuple.</p>
 </td>
 </tr>
 </tbody>

@@ -164,9 +164,16 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
-<span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">bn_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">conv_layers_with_time_padding</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">quant_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">recurrent</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
@@ -178,14 +185,6 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">functional_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">inplace_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">tpu_embedding</span> <span class="k">as</span> <span class="n">tpu_embedding_lib</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">bn_layers</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">conv_layers_with_time_padding</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">quant_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">recurrent</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
 
 
 <div class="viewcode-block" id="Gelu"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Gelu">[docs]</a><span class="k">def</span> <span class="nf">Gelu</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">):</span>
@@ -1701,7 +1700,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">rets</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">rets</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_sequence_length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="c1"># &quot;Sequence embedding&quot;, no combiner case</span>
       <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">ids_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1733,8 +1732,8 @@
         <span class="c1"># Explicitly pad results to maintain dim0=batch.</span>
         <span class="n">dim0_padlen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">embs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim0_padlen</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
-        <span class="n">embs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">ndims</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># [batch, 1, embedding_dim]</span>
+        <span class="n">embs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">ndims</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">rets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">rets</span></div></div>
 
@@ -1754,13 +1753,10 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TPUEmbeddingLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tables&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;TPUEmbeddingTables&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pipeline_execution_with_tensor_core&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Set to True to be faster. See tpu_embedding.py for details.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;batch_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Per-core batch size.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_accumulator&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Initial value of accumulator.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Learning rate.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_tpu_hosts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Total number of TPU hosts.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1771,12 +1767,16 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">&gt;</span> <span class="mi">0</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="n">initial_accumulator</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">initial_accumulator</span>
+    <span class="k">assert</span> <span class="n">initial_accumulator</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">initial_accumulator</span> <span class="o">==</span> <span class="n">initial_accumulator</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">])</span>
+    <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="n">t</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">==</span> <span class="n">num_tpu_hosts</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">])</span>
 
     <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
-    <span class="n">num_hosts</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;tables&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">)</span>
     <span class="n">load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1803,10 +1803,10 @@
               <span class="n">table</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">max_sequence_length</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">max_sequence_length</span><span class="p">)</span>
       <span class="n">mode</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TRAINING</span>
       <span class="n">optimization_parameters</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">AdagradParameters</span><span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span><span class="p">)</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span> <span class="n">initial_accumulator</span><span class="p">)</span>
       <span class="n">device_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">DeviceConfig</span><span class="p">(</span>
           <span class="n">num_cores</span><span class="o">=</span><span class="n">num_cores</span><span class="p">,</span>
-          <span class="n">num_hosts</span><span class="o">=</span><span class="n">num_hosts</span><span class="p">,</span>
+          <span class="n">num_hosts</span><span class="o">=</span><span class="n">num_tpu_hosts</span><span class="p">,</span>
           <span class="n">job_name</span><span class="o">=</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TPUEmbedding</span><span class="p">(</span>
           <span class="n">table_to_config_dict</span><span class="p">,</span>
@@ -1854,7 +1854,7 @@
       <span class="k">del</span> <span class="n">ids_map</span>
       <span class="n">activations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="o">.</span><span class="n">get_activations</span><span class="p">()</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">,</span> <span class="n">activations</span><span class="p">)</span>
-      <span class="n">ret</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
       <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">activations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sequence_features</span><span class="p">:</span>
           <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
@@ -1865,7 +1865,7 @@
 
     <span class="k">def</span> <span class="nf">CpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;CPU evaluation embedding lookup.&quot;&quot;&quot;</span>
-      <span class="n">rets</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+      <span class="n">rets</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
       <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="p">:</span>
         <span class="n">table_id_map</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">input_keys</span><span class="p">:</span>

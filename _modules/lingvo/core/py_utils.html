@@ -174,11 +174,16 @@
 <span class="kn">import</span> <span class="nn">traceback</span>
 <span class="kn">import</span> <span class="nn">zlib</span>
 
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">retry</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">symbolic</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
-<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.contrib.model_pruning.python.layers</span> <span class="k">import</span> <span class="n">core_layers</span> <span class="k">as</span> <span class="n">pruning_layers</span>
 <span class="kn">from</span> <span class="nn">tensorflow.contrib.tpu.python.tpu</span> <span class="k">import</span> <span class="n">tpu</span>
@@ -187,11 +192,6 @@
 <span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="k">import</span> <span class="n">rewriter_config_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="k">import</span> <span class="n">deprecation</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">retry</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">symbolic</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
-<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
                      <span class="s1">&#39;If False, we disable all asserts.&#39;</span><span class="p">)</span>
@@ -1460,6 +1460,9 @@
   <span class="sd">&quot;&quot;&quot;Return the global_step variable, creating it if it does not exist.</span>
 
 <span class="sd">  Prefer GetGlobalStep if a tensor rather than a tf.Variable is sufficient.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The global_step variable, or a new created one if it does not exist.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
       <span class="n">global_variable_scope</span><span class="p">,</span> <span class="n">use_resource</span><span class="o">=</span><span class="n">use_resource_variables</span><span class="p">()):</span>

@@ -164,9 +164,24 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">collections</span>
+
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">beam_search_helper</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">target_sequence_sampler</span>
+
+<span class="c1"># metrics: Dict[Text, Tuple[float, float]] A dict of named metrics, which must</span>
+<span class="c1">#   include &#39;loss&#39;. The value of the dict is (metric_val, count), where</span>
+<span class="c1">#   metric_val is the sum of the metric over all examples, and count is the</span>
+<span class="c1">#   number of examples seen. The mean value of the metric is metric_val/count.</span>
+<span class="c1">#   This is the first output of ComputeLoss.</span>
+<span class="c1"># predictions: Union[Tensor, Dict[Text, Tensor], NestedMap] This is the output</span>
+<span class="c1">#   of ComputePredictions.</span>
+<span class="c1"># per_sequence: Dict[Text, Tensor] This is the second output of ComputeLoss.</span>
+<span class="n">DecoderOutput</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s1">&#39;DecoderOutput&#39;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s1">&#39;metrics&#39;</span><span class="p">,</span> <span class="s1">&#39;predictions&#39;</span><span class="p">,</span> <span class="s1">&#39;per_sequence&#39;</span><span class="p">],</span>
+<span class="p">)</span>
 
 
 <div class="viewcode-block" id="BaseDecoder"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseDecoder">[docs]</a><span class="k">class</span> <span class="nc">BaseDecoder</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -191,11 +206,12 @@
 <span class="sd">        predict.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A map from metric name (a python string) to a tuple (value, weight).</span>
-<span class="sd">      Both value and weight are scalar Tensors.</span>
+<span class="sd">      A DecoderOutput namedtuple.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+    <span class="n">metrics</span><span class="p">,</span> <span class="n">per_sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">DecoderOutput</span><span class="p">(</span>
+        <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span> <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">per_sequence</span><span class="o">=</span><span class="n">per_sequence</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseDecoder.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseDecoder.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>

@@ -247,13 +247,15 @@
 <p>This callback is called once only at the beginning of beam search:</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>def InitBeamSearchState(theta, encoder_outputs, num_hyps_per_beam):
   Args:
-    theta: A NestedMap object containing weights&#39; values of this
-        layer and its children layers.
+    theta: A NestedMap object containing weights&#39; values of this layer and
+      its children layers.
     encoder_outputs: A NestedMap computed by encoder.
     num_hyps_per_beam: An int, number hyps to keep for source sentence.
+
   Returns:
-    initial_results: a `.NestedMap` of initial results. It should contain
-        the following tensors at the minimum.
+    initial_results: a `.NestedMap` of initial results. It must contain
+        the &#39;atten_probs&#39; and &#39;log_probs&#39; tensors. Optionally it may
+        contain &#39;step_ids&#39;.
         .log_probs: The initial log probs for each of the tokens in
             the target vocab, of shape [num_hyps_per_beam * src_batch,
             vocab_size]. src_batch &quot;b&quot; and hyp_per_beam &quot;h&quot; is
@@ -262,6 +264,11 @@
             num_hyps_per_beam * src_batch, src_len]. src_batch &quot;b&quot;
             and hyp_per_beam &quot;h&quot; is represented at index
             (h * src_batch + b).
+        .step_ids: Optional. The initial ids of shape [num_hyps_per_beam *
+            src_batch, 1] for which to start the beam search. src_batch
+            &quot;b&quot; and hyp_per_beam &quot;h&quot; is represented at index (h *
+            src_batch + b).  If not specified, we default to a tensor
+            filled with target_sos_id.
     states: a `.NestedMap` of tensors representing states that the client
         would like to keep track of for each hyp.
 </pre></div>
@@ -274,12 +281,13 @@ is called:</p>
                               in_states,
                               num_hyps_per_beam):
   Args:
-    theta: A NestedMap object containing weights&#39; values of this
-        layer and its children layers.
+    theta: A NestedMap object containing weights&#39; values of this layer and
+      its children layers.
     encoder_outputs: A NestedMap computed by encoder.
     step_ids: A tensor of shape [num_hyps_per_beam * src_batch, 1].
     in_states: A `.NestedMap` of tensors representing states that the
-        clients would like to keep track of for each of the active hyps.
+      clients would like to keep track of for each of the active hyps.
+
   Returns:
     results: A `.NestedMap` of beam search results. It should contain
         the &#39;atten_probs&#39; and &#39;log_probs&#39; tensors at the minimal.
@@ -306,11 +314,12 @@ is called:</p>
                                new_step_ids,
                                other_states):
   Args:
-    theta: A NestedMap object containing weights&#39; values of this
-        layer and its children layers.
+    theta: A NestedMap object containing weights&#39; values of this layer and
+      its children layers.
     encoder_outputs: A NestedMap computed by encoder.
     new_step_ids: Token ids for the next beam search step.
     other_states: A `.NestedMap`.
+
   Returns:
     final_states, A `.NestedMap`.
 </pre></div>
@@ -343,17 +352,17 @@ is called:</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of the decoder
 layer and its children layers.</li>
-<li><strong>encoder_outputs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing encoder outputs to be passed
-to the callbacks.</li>
+<li><strong>encoder_outputs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing encoder outputs to be passed to
+the callbacks.</li>
 <li><strong>cur_step</strong> – A scalar int tensor, the current time step, 0-based.</li>
 <li><strong>step_ids</strong> – An int tensor of shape [num_hyps, 1]. The input ids to the
 current search step.</li>
 <li><strong>core_bs_states</strong> – A tuple of core beam search states. This list is
 maintained by this helper class.</li>
-<li><strong>other_states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of other beam search states.
-This <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> is managed and updated by the client. It is
-expected that each of its member tensors are of rank &gt;= 1. t[i, …]
-is the state of the i-th hyp at the beginning of this search step.</li>
+<li><strong>other_states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of other beam search states. This
+<a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> is managed and updated by the client. It is expected that
+each of its member tensors are of rank &gt;= 1. t[i, …] is the state of
+the i-th hyp at the beginning of this search step.</li>
 <li><strong>num_hyps_per_beam</strong> – Num of hyps to keep per beam.</li>
 <li><strong>pre_beam_search_step_callback</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">PreBeamSearchStepCallback</span></code> callback.
 See class header comments for more details.</li>
@@ -379,21 +388,21 @@ See class header comments for more details.</li>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A NestedMap object containing weights’ values of the decoder
-layer and its children layers.</li>
-<li><strong>encoder_outputs</strong> – A NestedMap containing encoder outputs to be passed
-to the callbacks.</li>
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of the decoder layer
+and its children layers.</li>
+<li><strong>encoder_outputs</strong> – A NestedMap containing encoder outputs to be passed to
+the callbacks.</li>
 <li><strong>num_hyps_per_beam_override</strong> – If set to a value &lt;= 0, this parameter is
-ignored. If set to a value &gt; 0, then this value will be used to
-override <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.num_hyps_per_beam</span></code>.</li>
+ignored. If set to a value &gt; 0, then this value will be used to override
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">p.num_hyps_per_beam</span></code>.</li>
 <li><strong>init_beam_search_state</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">InitBeamSearchState</span></code> callback. Please refer
 to the class header comments for more details.</li>
 <li><strong>pre_beam_search_step_callback</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">PreBeamSearchStepCallback</span></code> callback.
 Please refer to the class header comments for more details.</li>
 <li><strong>post_beam_search_step_callback</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">PostBeamSearchStepCallback</span></code> callback.
 Please refer to the class header comments for more details.</li>
-<li><strong>max_steps</strong> – maximum beam search steps. If None,
-use self.params.target_seq_len.</li>
+<li><strong>max_steps</strong> – maximum beam search steps. If None, use
+self.params.target_seq_len.</li>
 </ul>
 </td>
 </tr>

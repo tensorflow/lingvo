@@ -169,12 +169,12 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">optimizer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 
 <div class="viewcode-block" id="Learner"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner">[docs]</a><span class="k">class</span> <span class="nc">Learner</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -249,6 +249,27 @@
 <div class="viewcode-block" id="Learner.GetVarGrads"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.GetVarGrads">[docs]</a>  <span class="k">def</span> <span class="nf">GetVarGrads</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span></div>
 
+<div class="viewcode-block" id="Learner.GetTrainableVariables"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.GetTrainableVariables">[docs]</a>  <span class="k">def</span> <span class="nf">GetTrainableVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filter</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filter</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">neg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_exclusion</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_exclusion</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">VariableFilter</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Returns True if variable v should be optimized by this learner.&quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="n">pos</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pos</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_filter: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+      <span class="k">if</span> <span class="n">neg</span> <span class="ow">and</span> <span class="n">neg</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_exclusion: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">VariableFilter</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="Learner.Apply"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">,</span> <span class="n">gradient_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gradient_adjuster</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes updates on &#39;vmap&#39; to optimize &#39;loss&#39;.</span>
 
@@ -268,24 +289,8 @@
     <span class="c1"># compatibility on variables created by self.optimizer.Apply().</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="n">pos</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filter</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filter</span> <span class="k">else</span> <span class="kc">None</span>
-    <span class="n">neg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_exclusion</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_exclusion</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">vmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTrainableVariables</span><span class="p">(</span><span class="n">vmap</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">VariableFilter</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
-      <span class="sd">&quot;&quot;&quot;Returns True if variable v should be optimized by this learner.&quot;&quot;&quot;</span>
-      <span class="k">if</span> <span class="n">pos</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pos</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_filter: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                        <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">False</span>
-      <span class="k">if</span> <span class="n">neg</span> <span class="ow">and</span> <span class="n">neg</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_exclusion: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                        <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">False</span>
-      <span class="k">return</span> <span class="kc">True</span>
-
-    <span class="n">vmap</span> <span class="o">=</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">VariableFilter</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: bprop variable: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
@@ -459,17 +464,18 @@
 <span class="p">]</span>
 
 
-<div class="viewcode-block" id="ExtractLearnerFromLegacyParams"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.ExtractLearnerFromLegacyParams">[docs]</a><span class="k">def</span> <span class="nf">ExtractLearnerFromLegacyParams</span><span class="p">(</span><span class="n">tp</span><span class="p">):</span>
+<div class="viewcode-block" id="ExtractLearnerFromLegacyParams"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.ExtractLearnerFromLegacyParams">[docs]</a><span class="k">def</span> <span class="nf">ExtractLearnerFromLegacyParams</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">Learner</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Extracts legacy learner params from &#39;tp&#39; to a Learner params.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    tp: BaseTask training params (p.train). Its legacy params will be cleared to</span>
 <span class="sd">      be None after the conversion.</span>
+<span class="sd">    cls: Learner class where we set the params.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A params for Learner.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">lp</span> <span class="o">=</span> <span class="n">Learner</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">lp</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
   <span class="n">lp</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;loss&#39;</span>
   <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tp</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
     <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_LEGACY_LEARNER_PARAMS</span><span class="p">:</span>
