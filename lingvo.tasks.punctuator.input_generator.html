@@ -164,65 +164,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-lingvo.tasks.punctuator.input_generator">
-<span id="lingvo-tasks-punctuator-input-generator-module"></span><h1>lingvo.tasks.punctuator.input_generator module<a class="headerlink" href="#module-lingvo.tasks.punctuator.input_generator" title="Permalink to this headline">¶</a></h1>
-<p>Punctuator input generator.</p>
-<dl class="class">
-<dt id="lingvo.tasks.punctuator.input_generator.PunctuatorInput">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.punctuator.input_generator.</code><code class="descname">PunctuatorInput</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/punctuator/input_generator.html#PunctuatorInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.punctuator.input_generator.PunctuatorInput" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator" title="lingvo.core.base_input_generator.BaseSequenceInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseSequenceInputGenerator</span></code></a></p>
-<p>Reads text line by line and processes them for the punctuator task.</p>
-<dl class="classmethod">
-<dt id="lingvo.tasks.punctuator.input_generator.PunctuatorInput.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/punctuator/input_generator.html#PunctuatorInput.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.punctuator.input_generator.PunctuatorInput.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defaults params for PunctuatorInput.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.punctuator.input_generator.PunctuatorInput._ProcessLine">
-<code class="descname">_ProcessLine</code><span class="sig-paren">(</span><em>line</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/punctuator/input_generator.html#PunctuatorInput._ProcessLine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.punctuator.input_generator.PunctuatorInput._ProcessLine" title="Permalink to this definition">¶</a></dt>
-<dd><p>A single-text-line processor.</p>
-<p>Gets a string tensor representing a line of text that have been read from
-the input file, and splits it to graphemes (characters).
-We use original characters as the target labels, and the lowercased and
-punctuation-removed characters as the source labels.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>line</strong> – a 1D string tensor.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of tensors, in the expected order by __init__.</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.punctuator.input_generator.PunctuatorInput._DataSourceFromFilePattern">
-<code class="descname">_DataSourceFromFilePattern</code><span class="sig-paren">(</span><em>file_pattern</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/punctuator/input_generator.html#PunctuatorInput._DataSourceFromFilePattern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.punctuator.input_generator.PunctuatorInput._DataSourceFromFilePattern" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create the input processing op.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_pattern</strong> – The file pattern to use as input.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">an operation that when executed, calls <a class="reference internal" href="#lingvo.tasks.punctuator.input_generator.PunctuatorInput._ProcessLine" title="lingvo.tasks.punctuator.input_generator.PunctuatorInput._ProcessLine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_ProcessLine</span></code></a> on a line read</td>
-</tr>
-</tbody>
-</table>
-<p>from <code class="xref py py-obj docutils literal notranslate"><span class="pre">file_pattern</span></code>.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.punctuator.input_generator.PunctuatorInput.InputBatch">
-<code class="descname">InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/punctuator/input_generator.html#PunctuatorInput.InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.punctuator.input_generator.PunctuatorInput.InputBatch" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a single batch as a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> to be passed to the model.</p>
-</dd></dl>
-
-</dd></dl>
-
+  <div class="section" id="lingvo-tasks-punctuator-input-generator-module">
+<h1>lingvo.tasks.punctuator.input_generator module<a class="headerlink" href="#lingvo-tasks-punctuator-input-generator-module" title="Permalink to this headline">¶</a></h1>
 </div>
 
 
