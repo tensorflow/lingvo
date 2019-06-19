@@ -47,10 +47,10 @@ py_library(
     srcs = ["wpm_encode_file.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo/core:wpm_encoder",
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:wpm_encoder",
     ],
 )
 
@@ -83,9 +83,9 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         # Additional FFT kernels dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:py_utils",
         "//lingvo/tasks/asr:frontend",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -97,9 +97,9 @@ py_test(
     ],
     deps = [
         ":audio_lib",
-        # Implicit tensorflow dependency.
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 

@@ -18,11 +18,6 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-from six.moves import range
-from six.moves import zip
-import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
@@ -30,6 +25,9 @@ from lingvo.core import py_utils
 from lingvo.core import tshape
 from lingvo.core.gpipe import FeatureExtractionLayer
 from lingvo.core.gpipe import PipeliningLayer
+from six.moves import range
+from six.moves import zip
+import tensorflow as tf
 
 
 def _common_gpipe_transformer_params(p):
@@ -378,7 +376,6 @@ class GPipeTransformerStack(PipeliningLayer):
     p = super(GPipeTransformerStack, cls).Params()
 
     # GPipe Related
-    p.Define('num_splits', 1, 'Deprecated.')
     p.Define(
         'splits', 1,
         'Number of splits, or list of integers specifying the ending index for '
@@ -388,11 +385,6 @@ class GPipeTransformerStack(PipeliningLayer):
     p.Define('model_dim', 1024, 'Characteristic depth (dimension).')
     p.Define('num_encoder_layers', 0, 'Number of transformer encoder layers.')
     p.Define('num_decoder_layers', 0, 'Number of transformer encoder layers.')
-    p.Define(
-        'use_pipelined_embeddings', False,
-        'Set to True if using GPipeEmbeddingLayer within the '
-        'GPipeTransformerStack. In this case all FProp inputs should be '
-        'source_id / target_id instead of source_vecs / target_vecs.')
     p.Define('emb_tpl', GPipeTransformerEmbeddingLayer.Params(),
              'Prepare embeddings for Transformer input.')
     p.Define('encoder_tpl', GPipeTransformerLayer.Params(),
@@ -411,8 +403,6 @@ class GPipeTransformerStack(PipeliningLayer):
         'Defaults to number of decoder layers if transparent.')
     p.Define('packed_input', False,
              'If True, assumes multiple training samples per input.')
-    p.Define('apply_dropout_every_n', 1,
-             'Apply dropout to every n-th layer only.')
     p.encoder_tpl.has_aux_atten = False
     p.decoder_tpl.has_aux_atten = True
     p.decoder_tpl.mask_self_atten = True
@@ -429,7 +419,7 @@ class GPipeTransformerStack(PipeliningLayer):
       for i, j in zip(p.splits[:-1], p.splits[1:]):
         assert i < j, 'Splits must be in increasing order.'
     else:
-      num_splits = max(p.splits, p.num_splits)  # Supporting deprecated param.
+      num_splits = p.splits
       layers_per_split = (num_layers - 1) // num_splits + 1
       p.splits = []
       for i in range(num_splits):
@@ -442,23 +432,17 @@ class GPipeTransformerStack(PipeliningLayer):
       transformers = []
 
       # Encoder Embedding layer.
-      if p.use_pipelined_embeddings:
-        if len(p.splits) > 1 or p.num_micro_batches > 1:
-          p.emb_tpl.dropout_tpl = layers.DeterministicDropoutLayer.Params()
-        p.emb_tpl.packed_input = p.packed_input
-        p.emb_tpl.is_transparent = p.is_transparent
-        p.emb_tpl.add_tgt_embedding_layer = (p.num_decoder_layers > 0)
-        p.emb_tpl.name = 'emb'
-        transformers.append(p.emb_tpl)
+      if len(p.splits) > 1 or p.num_micro_batches > 1:
+        p.emb_tpl.dropout_tpl = layers.DeterministicDropoutLayer.Params()
+      p.emb_tpl.packed_input = p.packed_input
+      p.emb_tpl.is_transparent = p.is_transparent
+      p.emb_tpl.add_tgt_embedding_layer = (p.num_decoder_layers > 0)
+      p.emb_tpl.name = 'emb'
+      transformers.append(p.emb_tpl)
 
       # Encoder layers.
       for i in range(p.num_encoder_layers):
         params = p.encoder_tpl.Copy()
-        if i % p.apply_dropout_every_n != 0:
-          params.tr_atten_tpl.residual_dropout_prob = 0.0
-          params.tr_atten_tpl.atten_dropout_prob = 0.0
-          params.tr_fflayer_tpl.residual_dropout_prob = 0.0
-          params.tr_fflayer_tpl.relu_dropout_prob = 0.0
         params.name = 'encoder_%d' % (i)
         params.is_transparent = p.is_transparent
         params.packed_input = p.packed_input
@@ -484,11 +468,6 @@ class GPipeTransformerStack(PipeliningLayer):
         params.packed_input = p.packed_input
         params.is_transparent = p.is_transparent and (
             p.num_transparent_outputs == p.num_decoder_layers)
-        if i % p.apply_dropout_every_n != 0:
-          params.tr_atten_tpl.residual_dropout_prob = 0.0
-          params.tr_atten_tpl.atten_dropout_prob = 0.0
-          params.tr_fflayer_tpl.residual_dropout_prob = 0.0
-          params.tr_fflayer_tpl.relu_dropout_prob = 0.0
         if len(p.splits) > 1 or p.num_micro_batches > 1:
           params = self.SetupDeterministicDropout(params)
         assert params.has_aux_atten
@@ -496,9 +475,7 @@ class GPipeTransformerStack(PipeliningLayer):
       cells = []
       cell_start = 0
       # To account for embedding layers in the pipeline.
-      offset = 0
-      if p.use_pipelined_embeddings:
-        offset += 1
+      offset = 1
       for split, cell_end in enumerate(p.splits):
         # Layer 0 (embeddings) is always in split 0.
         sub = transformers[cell_start:(cell_end + offset)]
@@ -596,14 +573,12 @@ class GPipeTransformerStack(PipeliningLayer):
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      source_input: A sequence of input Tensors of [time, batch, dim] shape. If
-        p.use_pipelined_embeddings is set, A sequence of ints indicating source
-        input ids of [time, batch] shape.
+      source_input:  A sequence of ints indicating source input ids of
+        [time, batch] shape.
       source_paddings: A sequence of 0s and 1s indicating input paddings of
         [time, batch] shape.
-      target_input: [target_time, target_batch, dim]. If
-        p.use_pipelined_embeddings is set, A sequence of ints indicating target
-        input ids of [time, batch] shape.
+      target_input: A sequence of ints indicating target input ids of
+        [time, batch] shape.
       target_paddings: [target_time, target_batch]
       source_segment_id: A sequence of ints indicating source segment ids of
         [time, batch] shape.
@@ -624,20 +599,13 @@ class GPipeTransformerStack(PipeliningLayer):
     if p.packed_input:
       assert source_segment_id is not None, (
           'Need to specify src_segment_id if packed input is supported.')
-      if p.use_pipelined_embeddings:
-        assert source_pos_id is not None, (
-            'Need to specify src_pos_id for packed input and embeddings.')
-    if p.use_pipelined_embeddings:
-      gpipe_outputs = super(GPipeTransformerStack,
-                            self).FProp(theta, source_input, source_paddings,
-                                        target_input, target_paddings,
-                                        source_segment_id, target_segment_id,
-                                        source_pos_id, target_pos_id)
-    else:
-      gpipe_outputs = super(GPipeTransformerStack,
-                            self).FProp(theta, source_input, source_paddings,
-                                        target_input, target_paddings,
-                                        source_segment_id, target_segment_id)
+      assert source_pos_id is not None, (
+          'Need to specify src_pos_id for packed input and embeddings.')
+    gpipe_outputs = super(GPipeTransformerStack,
+                          self).FProp(theta, source_input, source_paddings,
+                                      target_input, target_paddings,
+                                      source_segment_id, target_segment_id,
+                                      source_pos_id, target_pos_id)
     if p.num_decoder_layers > 0:
       transformer_output = gpipe_outputs[2]
     else:

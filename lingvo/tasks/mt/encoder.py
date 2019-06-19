@@ -19,11 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-
-
-from six.moves import range
-import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import model_helper
@@ -31,6 +26,8 @@ from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import summary_utils
 from lingvo.tasks.mt import layers as mt_layers
+from six.moves import range
+import tensorflow as tf
 
 tf.flags.DEFINE_bool('transformer_encoder_truncates_inputs', False,
                      'Whether TransformerEncoder truncates inputs to max len.')

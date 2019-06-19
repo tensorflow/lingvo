@@ -46,7 +46,9 @@ from __future__ import print_function
 
 import collections
 import zlib
-
+from lingvo.core import cluster_factory
+from lingvo.core import py_utils
+from lingvo.core import sendrecv
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
@@ -54,9 +56,6 @@ import tensorflow as tf
 from tensorflow.python.framework import function
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
-from lingvo.core import cluster_factory
-from lingvo.core import py_utils
-from lingvo.core import sendrecv
 
 DevicePair = collections.namedtuple('DevicePair', ['send', 'recv'])
 

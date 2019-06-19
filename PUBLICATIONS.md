@@ -375,6 +375,95 @@ D.&nbsp;S. Park, W.&nbsp;Chan, Y.&nbsp;Zhang, C.&nbsp;Chiu, B.&nbsp;Zoph, E.&nbs
 
 </td>
 </tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="li2019semisupervised">20</a>]
+</td>
+<td class="bibtexitem">
+B.&nbsp;Li, T.&nbsp;N. Sainath, R.&nbsp;Pang, and Z.&nbsp;Wu, &ldquo;Semi-supervised training for
+  end-to-end models via weak distillation,&rdquo; in <em>Proc. IEEE International
+  Conference on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2019.
+[&nbsp;<a href="https://ieeexplore.ieee.org/document/8682172">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="chang2019joint">21</a>]
+</td>
+<td class="bibtexitem">
+S.-Y. Chang, R.&nbsp;Prabhavalkar, Y.&nbsp;He, T.&nbsp;N. Sainath, and G.&nbsp;Simko, &ldquo;Joint
+  endpointing and decoding with end-to-end models,&rdquo; in <em>Proc. IEEE
+  International Conference on Acoustics, Speech, and Signal Processing
+  (ICASSP)</em>, 2019.
+[&nbsp;<a href="https://ieeexplore.ieee.org/document/8683109">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="heymann2019improving">22</a>]
+</td>
+<td class="bibtexitem">
+J.&nbsp;Heymann, K.&nbsp;C. Sim, and B.&nbsp;Li, &ldquo;Improving ctc using stimulated learning for
+  sequence modeling,&rdquo; in <em>Proc. IEEE International Conference on
+  Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2019.
+[&nbsp;<a href="https://ieeexplore.ieee.org/document/8682700">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="bruguier2019phoebe">23</a>]
+</td>
+<td class="bibtexitem">
+A.&nbsp;Bruguier, R.&nbsp;Prabhavalkar, G.&nbsp;Pundak, and T.&nbsp;N. Sainath, &ldquo;Phoebe:
+  Pronunciation-aware contextualization for end-to-end speech recognition,&rdquo; in
+  <em>Proc. IEEE International Conference on Acoustics, Speech, and Signal
+  Processing (ICASSP)</em>, 2019.
+[&nbsp;<a href="https://ieeexplore.ieee.org/document/8682441">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="he2019streaming">24</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;He, T.&nbsp;N. Sainath, R.&nbsp;Prabhavalkar, I.&nbsp;McGraw, R.&nbsp;Alvarez, D.&nbsp;Zhao,
+  D.&nbsp;Rybach, A.&nbsp;Kannan, Y.&nbsp;Wu, R.&nbsp;Pang, Q.&nbsp;Liang, D.&nbsp;Bhatia, Y.&nbsp;Shangguan,
+  B.&nbsp;Li, G.&nbsp;Pundak, K.&nbsp;C. Sim, T.&nbsp;Bagby, S.-Y. Chang, K.&nbsp;Rao, and
+  A.&nbsp;Gruenstein, &ldquo;Streaming end-to-end speech recognition for mobile
+  devices,&rdquo; in <em>Proc. IEEE International Conference on Acoustics,
+  Speech, and Signal Processing (ICASSP)</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1811.06621">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="irie2019unit">25</a>]
+</td>
+<td class="bibtexitem">
+K.&nbsp;Irie, R.&nbsp;Prabhavalkar, A.&nbsp;Kannan, A.&nbsp;Bruguier, D.&nbsp;Rybach, and P.&nbsp;Nguyen,
+  &ldquo;Model unit exploration for sequence-to-sequence speech recognition,&rdquo; <em>
+  arXiv e-prints</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1902.01955">pdf</a>&nbsp;]
+
+</td>
+</tr>
 </table>
 
 ## Language understanding

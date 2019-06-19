@@ -22,15 +22,14 @@ from __future__ import print_function
 import collections
 import os
 import pickle
-
+from lingvo.core import generic_input
+from lingvo.core import py_utils
+from lingvo.core import test_utils
 import numpy as np
 import six
 from six.moves import range
 
 import tensorflow as tf
-from lingvo.core import generic_input
-from lingvo.core import py_utils
-from lingvo.core import test_utils
 
 
 class GenericInputOpTest(test_utils.TestCase):

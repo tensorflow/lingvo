@@ -17,19 +17,17 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-from six.moves import range
-from six.moves import zip
-import tensorflow as tf
-
-from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
-
 from lingvo.core import base_layer
 from lingvo.core import cudnn_rnn_utils
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import summary_utils
+from six.moves import range
+from six.moves import zip
+import tensorflow as tf
+
+from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
 
 
 def _HistogramSummary(p, name, v):

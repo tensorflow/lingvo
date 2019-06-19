@@ -20,9 +20,9 @@ limitations under the License.
 #include <functional>  // std::greater
 #include <vector>
 
+#include "lingvo/core/ops/hyps.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/strings/strcat.h"
-#include "lingvo/core/ops/hyps.pb.h"
 
 namespace tensorflow {
 namespace lingvo {

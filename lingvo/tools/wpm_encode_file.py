@@ -18,13 +18,11 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+from lingvo.core import wpm_encoder
 import numpy as np
 from six import text_type
 from six.moves import zip
 import tensorflow as tf
-
-from lingvo.core import wpm_encoder
 
 tf.flags.DEFINE_string(
     'source_filepaths', '',

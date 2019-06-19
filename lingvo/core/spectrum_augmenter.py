@@ -18,12 +18,10 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-from six.moves import range
-import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import py_utils
+from six.moves import range
+import tensorflow as tf
 
 
 class SpectrumAugmenter(base_layer.BaseLayer):
@@ -211,6 +209,8 @@ class SpectrumAugmenter(base_layer.BaseLayer):
            tf.shape(inputs)[2]],
           stddev=stddev,
           seed=p.random_seed)
+      if p.fprop_dtype is not None and p.fprop_dtype != p.dtype:
+        noise = tf.cast(noise, p.fprop_dtype)
       outputs_mask = tf.einsum(
           'bxy,bx->bxy',
           noise,

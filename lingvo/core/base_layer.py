@@ -20,15 +20,13 @@ from __future__ import division
 from __future__ import print_function
 
 import threading
-
-import six
-from six.moves import zip
-import tensorflow as tf
-
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import symbolic
+import six
+from six.moves import zip
+import tensorflow as tf
 
 
 class _LocalLayerStack(threading.local):

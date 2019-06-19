@@ -18,12 +18,6 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-import numpy as np
-from six.moves import range
-from six.moves import zip
-import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import layers
@@ -31,6 +25,10 @@ from lingvo.core import metrics
 from lingvo.core import plot
 from lingvo.core import py_utils
 from lingvo.core import schedule
+import numpy as np
+from six.moves import range
+from six.moves import zip
+import tensorflow as tf
 
 
 class BaseClassifier(base_model.BaseTask):

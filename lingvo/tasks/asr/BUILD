@@ -11,9 +11,9 @@ py_library(
     srcs = ["frontend.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:py_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -26,11 +26,11 @@ py_test(
     deps = [
         ":frontend",
         # Additional FFT kernels dependency.
-        # Implicit numpy dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -39,12 +39,12 @@ py_library(
     srcs = ["input_generator.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_layer",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -53,10 +53,10 @@ py_test(
     srcs = ["input_generator_test.py"],
     deps = [
         ":input_generator",
+        "//lingvo/core:test_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:test_utils",
     ],
 )
 
@@ -65,8 +65,6 @@ py_library(
     srcs = ["encoder.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:layers",
         "//lingvo/core:model_helper",
@@ -76,6 +74,8 @@ py_library(
         "//lingvo/core:rnn_layers",
         "//lingvo/core:spectrum_augmenter",
         "//lingvo/core:summary_utils",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -84,10 +84,10 @@ py_test(
     srcs = ["encoder_test.py"],
     deps = [
         ":encoder",
-        # Implicit numpy dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -96,11 +96,11 @@ py_library(
     srcs = ["fusion.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:layers",
         "//lingvo/core:py_utils",
         "//lingvo/tasks/lm:layers",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -109,9 +109,9 @@ py_library(
     srcs = ["decoder_utils.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo/core:py_utils",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:py_utils",
     ],
 )
 
@@ -120,8 +120,8 @@ py_test(
     srcs = ["decoder_utils_test.py"],
     deps = [
         ":decoder_utils",
-        # Implicit tensorflow dependency.
         "//lingvo/core:test_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -142,9 +142,6 @@ py_library(
         ":contextualizer_base",
         ":decoder_utils",
         ":fusion",
-        # Implicit matplotlib dependency.
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:attention",
         "//lingvo/core:base_decoder",
         "//lingvo/core:base_layer",
@@ -155,6 +152,9 @@ py_library(
         "//lingvo/core:recurrent",
         "//lingvo/core:rnn_cell",
         "//lingvo/core:summary_utils",
+        # Implicit matplotlib dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -166,14 +166,14 @@ py_test(
     deps = [
         ":decoder",
         # Implicit python proto dependency.
-        # Implicit numpy dependency.
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:cluster_factory",
         "//lingvo/core:layers",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         "//lingvo/core/ops:hyps_py_pb2",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -182,9 +182,9 @@ py_library(
     srcs = ["model_test_input_generator.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:py_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -197,14 +197,14 @@ py_library(
         ":decoder_utils",
         ":encoder",
         ":frontend",
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
         "//lingvo/tools:audio_lib",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -218,9 +218,6 @@ py_test(
         ":input_generator",
         ":model",
         ":model_test_input_generator",
-        # Implicit numpy dependency.
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:py_utils",
@@ -228,6 +225,9 @@ py_test(
         "//lingvo/core:summary_utils",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 

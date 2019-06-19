@@ -23,12 +23,10 @@ import os
 import random
 import re
 import tarfile
-
+from lingvo.tools import audio_lib
 import numpy as np
 from six.moves import range
 import tensorflow as tf
-
-from lingvo.tools import audio_lib
 
 tf.flags.DEFINE_string('input_tarball', '', 'Input .tar.gz file.')
 tf.flags.DEFINE_string('input_text', '', 'Reference text.')

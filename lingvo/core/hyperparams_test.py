@@ -21,11 +21,10 @@ from __future__ import print_function
 
 import os
 import re
-
-from six.moves import zip
-import tensorflow as tf
 from lingvo.core import hyperparams as _params
 from lingvo.core import test_utils
+from six.moves import zip
+import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 

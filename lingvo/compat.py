@@ -1,4 +1,4 @@
-# Copyright 2018 The TensorFlow Authors. All Rights Reserved.
+# Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Test model imports."""
+"""The compatible tensorflow library."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from lingvo import model_imports  # pylint: disable=unused-import
-import tensorflow as tf
+from tensorflow import *  # pylint:disable=wildcard-import
+# Exclude the contrib module.
+del contrib  # pylint:disable=undefined-variable
 
-if __name__ == '__main__':
-  tf.test.main()
+# import absl.flags and absl.logging to overwrite the Tensorflow ones.
+# This is the intended behavior in TF 2.0.
+# pylint:disable=g-bad-import-order, unused-import, g-import-not-at-top
+from absl import flags
+from absl import logging

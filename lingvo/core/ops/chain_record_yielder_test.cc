@@ -14,17 +14,18 @@ limitations under the License.
 ==============================================================================*/
 
 #include "lingvo/core/ops/chain_record_yielder.h"
+
 #include <error.h>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "lingvo/core/ops/input_common.h"
+#include "lingvo/core/ops/record_yielder.h"
+#include "lingvo/core/ops/yielder_test_helper.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/env.h"
-#include "lingvo/core/ops/input_common.h"
-#include "lingvo/core/ops/record_yielder.h"
-#include "lingvo/core/ops/yielder_test_helper.h"
 
 namespace tensorflow {
 namespace lingvo {

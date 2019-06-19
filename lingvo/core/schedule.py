@@ -20,15 +20,14 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-
-from six.moves import zip
-import tensorflow as tf
-
-from tensorflow.python.framework import function
 from lingvo.core import base_layer
 from lingvo.core import early_stop
 from lingvo.core import py_utils
 from lingvo.core.ops import py_x_ops
+from six.moves import zip
+import tensorflow as tf
+
+from tensorflow.python.framework import function
 
 
 class BaseLearningRateSchedule(base_layer.BaseLayer):

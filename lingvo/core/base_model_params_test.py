@@ -17,10 +17,9 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-import tensorflow as tf
 from lingvo.core import base_model_params
 from lingvo.core import test_utils
+import tensorflow as tf
 
 
 class BaseModelParamsTest(test_utils.TestCase):

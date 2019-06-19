@@ -13,10 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/core/platform/env.h"
 #include "lingvo/core/ops/mutex.h"
 #include "lingvo/core/ops/record_batcher.h"
 #include "lingvo/core/ops/record_yielder.h"
+#include "tensorflow/core/platform/env.h"
 
 namespace tensorflow {
 namespace lingvo {

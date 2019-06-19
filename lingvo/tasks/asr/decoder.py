@@ -20,12 +20,6 @@ from __future__ import print_function
 
 import collections
 import math
-
-from matplotlib import font_manager
-import six
-from six.moves import range
-import tensorflow as tf
-
 from lingvo.core import attention
 from lingvo.core import base_decoder
 from lingvo.core import base_layer
@@ -39,6 +33,10 @@ from lingvo.core import summary_utils
 from lingvo.tasks.asr import contextualizer_base
 from lingvo.tasks.asr import decoder_utils
 from lingvo.tasks.asr import fusion
+from matplotlib import font_manager
+import six
+from six.moves import range
+import tensorflow as tf
 
 
 def _ToTensorArray(name, v, max_seq_length, clear_after_read=None):
@@ -693,7 +691,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
   def FProp(self, theta, encoder_outputs, targets):
     with tf.device(self.cluster.WorkerDeviceInModelSplit(0)):
       predictions = self.ComputePredictions(theta, encoder_outputs, targets)
-      return self.ComputeLoss(theta, predictions, targets)[0]
+      metrics, per_sequence = self.ComputeLoss(theta, predictions, targets)
+      return base_decoder.DecoderOutput(
+          metrics=metrics, predictions=predictions, per_sequence=per_sequence)
 
   def FPropWithPredictionsAndPerExampleTensors(self,
                                                theta,

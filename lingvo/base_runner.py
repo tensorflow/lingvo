@@ -23,15 +23,14 @@ import os
 import pickle
 import time
 import traceback
-import tensorflow as tf
-
-from tensorflow.core.framework import summary_pb2
-from tensorflow.core.protobuf import saver_pb2
-
 from lingvo import base_trial
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import py_utils
+import tensorflow as tf
+
+from tensorflow.core.framework import summary_pb2
+from tensorflow.core.protobuf import saver_pb2
 
 
 class BaseRunner(object):

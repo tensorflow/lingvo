@@ -17,11 +17,9 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-import tensorflow as tf
-
 from lingvo.core import py_utils
 from lingvo.tasks.mt import model as mt_model
+import tensorflow as tf
 
 
 class RNMTModel(mt_model.RNMTModel):

@@ -19,11 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-from six.moves import range
-from six.moves import zip
-import tensorflow as tf
-
-from tensorflow.python.ops import inplace_ops
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import model_helper
@@ -33,6 +28,11 @@ from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 from lingvo.core import spectrum_augmenter
 from lingvo.core import summary_utils
+from six.moves import range
+from six.moves import zip
+import tensorflow as tf
+
+from tensorflow.python.ops import inplace_ops
 
 ConvLSTMBlock = collections.namedtuple('ConvLSTMBlock', ('rnn', 'cnn'))
 

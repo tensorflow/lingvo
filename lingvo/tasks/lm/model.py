@@ -18,15 +18,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-from six.moves import zip
-import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.tasks.lm import layers
+from six.moves import zip
+import tensorflow as tf
 
 
 class LanguageModel(base_model.BaseTask):

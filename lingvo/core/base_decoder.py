@@ -19,9 +19,24 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
+
 from lingvo.core import base_layer
 from lingvo.core import beam_search_helper
 from lingvo.core import target_sequence_sampler
+
+# metrics: Dict[Text, Tuple[float, float]] A dict of named metrics, which must
+#   include 'loss'. The value of the dict is (metric_val, count), where
+#   metric_val is the sum of the metric over all examples, and count is the
+#   number of examples seen. The mean value of the metric is metric_val/count.
+#   This is the first output of ComputeLoss.
+# predictions: Union[Tensor, Dict[Text, Tensor], NestedMap] This is the output
+#   of ComputePredictions.
+# per_sequence: Dict[Text, Tensor] This is the second output of ComputeLoss.
+DecoderOutput = collections.namedtuple(
+    'DecoderOutput',
+    ['metrics', 'predictions', 'per_sequence'],
+)
 
 
 class BaseDecoder(base_layer.BaseLayer):
@@ -46,11 +61,12 @@ class BaseDecoder(base_layer.BaseLayer):
         predict.
 
     Returns:
-      A map from metric name (a python string) to a tuple (value, weight).
-      Both value and weight are scalar Tensors.
+      A DecoderOutput namedtuple.
     """
     predictions = self.ComputePredictions(theta, encoder_outputs, targets)
-    return self.ComputeLoss(theta, predictions, targets)[0]
+    metrics, per_sequence = self.ComputeLoss(theta, predictions, targets)
+    return DecoderOutput(
+        metrics=metrics, predictions=predictions, per_sequence=per_sequence)
 
   def ComputePredictions(self, theta, encoder_outputs, targets):
     raise NotImplementedError('Abstract method: %s' % type(self))

@@ -18,17 +18,15 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+from lingvo.core import base_layer
+from lingvo.core import layers
+from lingvo.core import py_utils
+from lingvo.core import quant_utils
 import numpy as np
 import tensorflow as tf
 
 from tensorflow.python.framework import function
 from tensorflow.python.ops import inplace_ops
-
-from lingvo.core import base_layer
-from lingvo.core import layers
-from lingvo.core import py_utils
-from lingvo.core import quant_utils
 
 
 # Currently, quantization statistics cannot be accumulated across arbitrary

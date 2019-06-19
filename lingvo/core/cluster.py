@@ -21,13 +21,11 @@ from __future__ import print_function
 
 import heapq
 import threading
-
+from lingvo.core import hyperparams
+from lingvo.core import py_utils
 import numpy as np
 from six.moves import range
 import tensorflow as tf
-
-from lingvo.core import hyperparams
-from lingvo.core import py_utils
 
 
 class _LocalClusterStack(threading.local):

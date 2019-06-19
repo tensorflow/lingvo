@@ -22,13 +22,12 @@ from __future__ import print_function
 import os
 import shutil
 import tempfile
-
+from lingvo.core import base_input_generator
+from lingvo.core import test_utils
 import numpy as np
 
 from six.moves import range
 import tensorflow as tf
-from lingvo.core import base_input_generator
-from lingvo.core import test_utils
 
 
 def _CreateFakeTFRecordFiles(record_count=10):

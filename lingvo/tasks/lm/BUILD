@@ -10,7 +10,6 @@ licenses(["notice"])  # Apache 2.0
 load(
     "//lingvo:lingvo.bzl",
     "lingvo_cuda_py2and3_test",
-    "lingvo_cuda_py_test",
 )
 
 py_library(
@@ -18,11 +17,11 @@ py_library(
     srcs = ["input_generator.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
         "//lingvo/core:tokenizers",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -34,9 +33,9 @@ py_test(
     ],
     deps = [
         ":input_generator",
-        # Implicit tensorflow dependency.
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -45,8 +44,6 @@ py_library(
     srcs = ["layers.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
@@ -54,6 +51,8 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/core:rnn_cell",
         "//lingvo/core:rnn_layers",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -64,11 +63,11 @@ lingvo_cuda_py2and3_test(
     tags = ["noasan"],
     deps = [
         ":layers",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:test_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:py_utils",
-        "//lingvo/core:test_utils",
     ],
 )
 
@@ -78,12 +77,12 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":layers",
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -97,10 +96,10 @@ py_test(
     deps = [
         ":input_generator",
         ":model",
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         "//lingvo/core:tokenizers",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )

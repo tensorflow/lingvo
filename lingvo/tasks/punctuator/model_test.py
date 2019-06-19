@@ -18,14 +18,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-import numpy as np
-from six.moves import range
-import tensorflow as tf
 from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.tasks.punctuator import input_generator
 from lingvo.tasks.punctuator import model
+import numpy as np
+from six.moves import range
+import tensorflow as tf
 
 _TF_RANDOM_SEED = 93820986
 

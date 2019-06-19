@@ -18,12 +18,11 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-import tensorflow as tf
 from lingvo.core import base_layer
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import test_utils
+import tensorflow as tf
 
 
 class AddingAccumulator(base_layer.Accumulator):

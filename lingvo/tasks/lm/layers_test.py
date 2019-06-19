@@ -18,14 +18,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+from lingvo.core import py_utils
+from lingvo.core import test_utils
+from lingvo.tasks.lm import layers as lm_layers
 import numpy as np
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
-from lingvo.core import py_utils
-from lingvo.core import test_utils
-from lingvo.tasks.lm import layers as lm_layers
 
 FLAGS = tf.flags.FLAGS
 
@@ -885,88 +884,18 @@ class TransformerLmTest(test_utils.TestCase):
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
 
 
-class GPipeTransformerLmNoEmbeddingTest(test_utils.TestCase):
-
-  def _testParams(self, dtype=tf.float32):
-    model_dim, hidden_dim, vocab_size = 4, 6, 8
-    p = lm_layers.GPipeTransformerLmNoEmbedding.Params()
-    p.name = 'xformerlm'
-    p.random_seed = 93820986
-    p.dtype = dtype
-    p.vocab_size = vocab_size
-    p.model_dim = model_dim
-    p.stack.num_encoder_layers = 4
-    trans_tpl = p.stack.encoder_tpl
-    trans_tpl.tr_atten_tpl.num_attention_heads = 2
-    trans_tpl.tr_fflayer_tpl.hidden_dim = hidden_dim
-    p.softmax.num_classes = vocab_size
-    return p
-
-  def _testInputs(self, dtype=tf.float32, last_padding=1.0):
-    time, batch, model_dim, vocab_size = 5, 3, 4, 8
-    np.random.seed(12345)
-    inputs = np.random.normal(size=[time, batch, model_dim])
-    inputs = tf.constant(inputs, dtype)
-    paddings = np.zeros([time, batch])
-    paddings[-1] = last_padding
-    paddings = tf.constant(paddings, dtype)
-    targets = tf.constant(
-        np.random.randint(vocab_size, size=(time, batch)), tf.int32)
-    return inputs, paddings, targets
-
-  def testBasic(self):
-    p = self._testParams(dtype=tf.float32)
-    with self.session(use_gpu=True) as sess:
-      lm = p.Instantiate()
-      assert p.stack.encoder_tpl.tr_atten_tpl.is_masked
-      inputs, paddings, targets = self._testInputs(dtype=tf.float32)
-      sess.run(tf.global_variables_initializer())
-      xent_output, _ = lm.FPropDefaultTheta(
-          inputs=inputs,
-          paddings=paddings,
-          labels=py_utils.NestedMap(
-              class_weights=1 - paddings, class_ids=targets))
-      xent_output_val = sess.run(xent_output)
-      print('xformer xent_output_val.avg_xent', xent_output_val.avg_xent)
-      test_utils.CompareToGoldenSingleFloat(self, 1.9776554,
-                                            xent_output_val.avg_xent)
-      self.assertAllEqual(xent_output_val.per_example_argmax,
-                          np.argmax(xent_output_val.logits, axis=-1))
-
-  def testBasicGrad(self):
-    p = self._testParams(dtype=tf.float64)
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      lm = p.Instantiate()
-      inputs, paddings, targets = self._testInputs(dtype=tf.float64)
-      xent_output, _ = lm.FPropDefaultTheta(
-          inputs=inputs,
-          paddings=paddings,
-          labels=py_utils.NestedMap(
-              class_weights=1 - paddings, class_ids=targets))
-
-      lm_vars = lm.vars.Flatten()
-      # Now add the backward graph.
-      grads = tf.gradients(xent_output.avg_xent, lm_vars)
-
-      sess.run(tf.global_variables_initializer())
-      self.assertEqual(len(lm_vars), len(grads))
-      for x, grad_x in zip(lm_vars, grads):
-        grad_symbolic = sess.run(grad_x)
-        grad_numeric = test_utils.ComputeNumericGradient(
-            sess, xent_output.avg_xent, x, delta=1e-6)
-        self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
-
-
 class GPipeTransformerLmTest(test_utils.TestCase):
 
   def _testParams(self, batch, dims, hidden_dim, vocab):
     p = lm_layers.GPipeTransformerLm.Params()
     p.name = 'transformerlm'
     p.vocab_size = vocab
-    p.emb.vocab_size = vocab
-    p.emb.embedding_dim = dims
-    p.model_dim = dims
     p.stack.num_encoder_layers = 4
+    p.stack.emb_tpl.token_emb.vocab_size = vocab
+    p.stack.emb_tpl.token_emb.embedding_dim = dims
+    p.stack.emb_tpl.position_emb.embedding_dim = dims
+    p.stack.model_dim = dims
+    p.softmax.input_dim = dims
     trans_tpl = p.stack.encoder_tpl
     trans_tpl.tr_atten_tpl.num_attention_heads = 2
     trans_tpl.tr_fflayer_tpl.hidden_dim = hidden_dim
@@ -1011,7 +940,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
       xent_output_val = sess.run(xent_output)
 
       print('xent_output_val', xent_output_val)
-      test_utils.CompareToGoldenSingleFloat(self, 3.06884766,
+      test_utils.CompareToGoldenSingleFloat(self, 3.15886855,
                                             xent_output_val.avg_xent)
       self.assertAllEqual(xent_output_val.per_example_argmax,
                           np.argmax(xent_output_val.logits, axis=-1))

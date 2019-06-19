@@ -14,16 +14,17 @@ limitations under the License.
 ==============================================================================*/
 
 #include "lingvo/core/ops/weighted_mix_record_yielder.h"
+
 #include <error.h>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "tensorflow/core/lib/core/stringpiece.h"
-#include "tensorflow/core/lib/io/path.h"
-#include "tensorflow/core/platform/env.h"
 #include "lingvo/core/ops/input_common.h"
 #include "lingvo/core/ops/record_yielder.h"
 #include "lingvo/core/ops/yielder_test_helper.h"
+#include "tensorflow/core/lib/core/stringpiece.h"
+#include "tensorflow/core/lib/io/path.h"
+#include "tensorflow/core/platform/env.h"
 
 namespace tensorflow {
 namespace lingvo {

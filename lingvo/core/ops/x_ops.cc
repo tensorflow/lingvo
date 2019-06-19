@@ -16,7 +16,7 @@ limitations under the License.
 #include "tensorflow/core/framework/common_shape_fns.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
-#include "lingvo/core/ops/x_ops_helper.h"
+#include "x_ops_helper.h"
 
 namespace tensorflow {
 namespace {

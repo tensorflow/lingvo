@@ -18,13 +18,11 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import learner
 from lingvo.core import optimizer
 from lingvo.core import py_utils
+import tensorflow as tf
 
 
 class TestLayer(base_layer.BaseLayer):

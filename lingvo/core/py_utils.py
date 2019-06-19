@@ -29,11 +29,16 @@ import threading
 import traceback
 import zlib
 
+import lingvo.compat as tf
+from lingvo.core import hyperparams
+from lingvo.core import retry
+from lingvo.core import symbolic
+from lingvo.core import tshape
+from lingvo.core.ops import py_x_ops
 import numpy as np
 import six
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
 
 from tensorflow.contrib.model_pruning.python.layers import core_layers as pruning_layers
 from tensorflow.contrib.tpu.python.tpu import tpu
@@ -42,11 +47,6 @@ from tensorflow.core.framework import node_def_pb2
 from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.framework import function
 from tensorflow.python.util import deprecation
-from lingvo.core import hyperparams
-from lingvo.core import retry
-from lingvo.core import symbolic
-from lingvo.core import tshape
-from lingvo.core.ops import py_x_ops
 
 tf.flags.DEFINE_bool('enable_asserts', True,
                      'If False, we disable all asserts.')
@@ -1315,6 +1315,9 @@ def GetOrCreateGlobalStepVar():
   """Return the global_step variable, creating it if it does not exist.
 
   Prefer GetGlobalStep if a tensor rather than a tf.Variable is sufficient.
+
+  Returns:
+    The global_step variable, or a new created one if it does not exist.
   """
   with tf.variable_scope(
       global_variable_scope, use_resource=use_resource_variables()):

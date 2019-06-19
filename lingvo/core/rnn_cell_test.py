@@ -17,17 +17,15 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-import numpy as np
-import tensorflow as tf
-from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
-from tensorflow.python.ops import gen_cudnn_rnn_ops
-
 from lingvo.core import cudnn_rnn_utils
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import rnn_cell
 from lingvo.core import test_utils
+import numpy as np
+import tensorflow as tf
+from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
+from tensorflow.python.ops import gen_cudnn_rnn_ops
 
 UNI_RNN = cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION
 BI_RNN = cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION

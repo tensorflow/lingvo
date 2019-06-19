@@ -69,8 +69,11 @@ intersphinx_mapping = {
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
+
+
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
+from docutils.transforms import Transform
 from recommonmark.parser import CommonMarkParser
 source_parsers = {
     '.md': CommonMarkParser,
@@ -197,9 +200,6 @@ epub_exclude_files = ['search.html']
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
-
-
-from docutils.transforms import Transform
 
 
 class ResetFlags(Transform):

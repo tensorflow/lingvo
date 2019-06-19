@@ -18,13 +18,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from lingvo.core import base_layer
+from lingvo.core import py_utils
+from lingvo.core import summary_utils
 from six.moves import range
 import tensorflow as tf
 
 from tensorflow.contrib.tpu.python.tpu import tpu_function
-from lingvo.core import base_layer
-from lingvo.core import py_utils
-from lingvo.core import summary_utils
 
 _BN_FLOPS_PER_ELEMENT = 10
 

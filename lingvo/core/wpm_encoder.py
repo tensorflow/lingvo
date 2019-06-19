@@ -31,11 +31,9 @@ from __future__ import division
 from __future__ import print_function
 
 import sys
-
+from lingvo.core.ops import py_x_ops
 import six
 import tensorflow as tf
-
-from lingvo.core.ops import py_x_ops
 
 # Must be a large ID.
 NO_TOKEN = 1 << 31 - 1

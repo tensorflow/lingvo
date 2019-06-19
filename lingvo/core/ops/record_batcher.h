@@ -19,14 +19,14 @@ limitations under the License.
 #include <cstddef>
 #include <vector>
 
+#include "lingvo/core/ops/mutex.h"
+#include "lingvo/core/ops/record_yielder.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/core/threadpool.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/thread_annotations.h"
-#include "lingvo/core/ops/mutex.h"
-#include "lingvo/core/ops/record_yielder.h"
 
 namespace tensorflow {
 namespace lingvo {

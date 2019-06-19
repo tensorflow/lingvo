@@ -86,8 +86,8 @@ py_test(
     srcs = ["simple_vocab_test.py"],
     deps = [
         ":py_x_ops",
-        # Implicit tensorflow dependency.
         "//lingvo/core:test_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -188,8 +188,8 @@ py_test(
     srcs = ["assert_ops_test.py"],
     deps = [
         ":py_x_ops",
-        # Implicit tensorflow dependency.
         "//lingvo/core:test_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -204,6 +204,14 @@ custom_kernel_library(
     ],
 )
 
+lingvo_cc_test(
+    name = "beam_search_step_op_top_k_test",
+    srcs = ["beam_search_step_op_top_k_test.cc"],
+    deps = [
+        ":beam_search_step_op_kernels",
+    ],
+)
+
 py_test(
     name = "beam_search_step_op_test",
     srcs = ["beam_search_step_op_test.py"],
@@ -211,18 +219,10 @@ py_test(
         ":hyps_py_pb2",
         ":py_x_ops",
         # Implicit python proto dependency.
+        "//lingvo/core:test_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:test_utils",
-    ],
-)
-
-lingvo_cc_test(
-    name = "beam_search_step_op_top_k_test",
-    srcs = ["beam_search_step_op_top_k_test.cc"],
-    deps = [
-        ":beam_search_step_op_kernels",
     ],
 )
 
@@ -243,9 +243,9 @@ py_test(
     ],
     deps = [
         ":py_x_ops",
-        # Implicit tensorflow dependency.
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -263,11 +263,11 @@ py_test(
     srcs = ["functional_ops_test.py"],
     deps = [
         ":py_x_ops",
+        "//lingvo/core:test_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
         # Implicit tensorflow python framework_for_generated_wrappers dependency.
-        "//lingvo/core:test_utils",
     ],
 )
 
@@ -282,12 +282,12 @@ py_test(
     name = "generic_input_op_test",
     srcs = ["generic_input_op_test.py"],
     deps = [
-        # Implicit numpy dependency.
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -305,9 +305,9 @@ py_test(
     srcs = ["random_ops_test.py"],
     deps = [
         ":py_x_ops",
+        "//lingvo/core:test_utils",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:test_utils",
     ],
 )
 
@@ -338,9 +338,9 @@ py_test(
     ],
     deps = [
         ":py_x_ops",
-        # Implicit tensorflow dependency.
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 

@@ -21,15 +21,10 @@ from __future__ import print_function
 
 import copy
 import itertools
-import numpy as np
-import six
-from six.moves import range
-from six.moves import zip
-import tensorflow as tf
 
-from tensorflow.python.framework import function
-from tensorflow.python.ops import functional_ops
-from lingvo import model_registry
+import lingvo.compat as tf
+
+from lingvo import model_registry  # pylint: disable=g-bad-import-order
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
@@ -37,6 +32,13 @@ from lingvo.core import recurrent
 from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.tasks.image.params import mnist  # pylint: disable=unused-import
+import numpy as np
+import six
+from six.moves import range
+from six.moves import zip
+
+from tensorflow.python.framework import function
+from tensorflow.python.ops import functional_ops
 
 FLAGS = tf.flags.FLAGS
 

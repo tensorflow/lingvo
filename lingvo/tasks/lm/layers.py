@@ -19,11 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-
-from six.moves import range
-from six.moves import zip
-import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
@@ -31,6 +26,9 @@ from lingvo.core import layers_with_gpipe
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
+from six.moves import range
+from six.moves import zip
+import tensorflow as tf
 
 
 class BaseLanguageModel(base_layer.BaseLayer):
@@ -1184,30 +1182,14 @@ class TransformerLm(TransformerLmNoEmbedding):
         theta, activation, paddings, labels=labels)
 
 
-class GPipeTransformerLmNoEmbedding(BaseLanguageModel):
-  """GPipe Transformer language model."""
+class GPipeTransformerLm(BaseLanguageModel):
+  """GPipe Transformer based language model layer."""
 
   @classmethod
   def Params(cls):
-    p = super(GPipeTransformerLmNoEmbedding, cls).Params()
-    p.Define('position_emb', layers.PositionalEmbeddingLayer.Params(),
-             'Position embedding layer params.')
-    p.Define(
-        'model_dim', 512, 'Model dimension that applies to embedding '
-        'layers and all Transformer layers.')
+    p = super(GPipeTransformerLm, cls).Params()
     p.Define('stack', layers_with_gpipe.GPipeTransformerStack.Params(),
              'GPipeTransformerStack Layer params.')
-    p.Define('input_dropout_prob', 0.0, 'Prob at which we do input dropout.')
-    p.Define(
-        'residual_dropout_prob', 0.0, 'Dropout prob to the output of '
-        'each sub-layer before it is added to the sub-layer input.')
-    p.Define(
-        'atten_dropout_prob', 0.0, 'Dropout prob to the attention '
-        'weights in each Transformer attention sub-layer.')
-    p.Define(
-        'relu_dropout_prob', 0.0, 'Dropout prob to the inner layer '
-        'output (ReLU activation) in each Transformer feed-forward '
-        'sub-layer.')
     p.Define('label_smoother', None, 'Label smoothing class.')
     p.Define('softmax', layers.SimpleFullSoftmax.Params(),
              'The softmax layer params.')
@@ -1221,95 +1203,6 @@ class GPipeTransformerLmNoEmbedding(BaseLanguageModel):
     trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_pre_proj = True
     trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_post_proj = True
     trans_tpl.tr_fflayer_tpl.hidden_dim = 2048
-    return p
-
-  @base_layer.initializer
-  def __init__(self, params):
-    super(GPipeTransformerLmNoEmbedding, self).__init__(params)
-    p = self.params
-    p.position_emb.embedding_dim = p.model_dim
-    p.stack.name = p.name
-    p.stack.model_dim = p.model_dim
-    p.softmax.input_dim = p.model_dim
-    p.softmax.num_classes = p.vocab_size
-    trans_tpl = p.stack.encoder_tpl
-    trans_tpl.tr_atten_tpl.residual_dropout_prob = p.residual_dropout_prob
-    trans_tpl.tr_atten_tpl.atten_dropout_prob = p.atten_dropout_prob
-    trans_tpl.tr_fflayer_tpl.residual_dropout_prob = p.residual_dropout_prob
-    trans_tpl.tr_fflayer_tpl.relu_dropout_prob = p.relu_dropout_prob
-
-    with tf.variable_scope(p.name):
-      self.CreateChild('position_emb', p.position_emb)
-
-      dropout_tpl = layers.DropoutLayer.Params().Set(
-          keep_prob=(1.0 - p.input_dropout_prob))
-      self.CreateChild('input_dropout', dropout_tpl)
-      self.CreateChild('stack', p.stack)
-      self.CreateChild('softmax', p.softmax)
-      if p.label_smoother is not None:
-        self.CreateChild('smoother', p.label_smoother)
-
-  def FProp(self, theta, inputs, paddings, state0=None, labels=None):
-    """Computes xent loss given the language model input activations.
-
-    Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
-      inputs: Input activation. A tensor of shape [time, batch, model_dim].
-      paddings: A 0/1 tensor of shape [time, batch].
-      state0: Not used for Transformer.
-      labels: If not None, a `.NestedMap` containing the following fields: -
-        class_weights, a tensor with shape [time, batch] containing the weights
-        for each target word. - class_ids, a tensor with shape [time, batch] of
-        int32 dtype containing the target class labels. - class_probabilities, a
-        tensor with shape [time, batch, vocab_size] of float values indicating
-        class-membership probabilities.
-
-    Returns:
-      If `labels` is not None, returns (xent_output, None), where
-      `xent_output` is a `.NestedMap` as defined by `SoftmaxLayer`'s return
-      value. Otherwise, `xent_output` only contains the softmax logits.
-    """
-    p = self.params
-    inputs = py_utils.HasRank(inputs, 3)
-    tf.logging.info('input shape = {}'.format(inputs.shape))
-    seqlen, batch, _ = tf.unstack(tf.shape(inputs), num=3)
-    inputs = py_utils.HasShape(inputs, [seqlen, batch, p.model_dim])
-    paddings = py_utils.HasShape(paddings, [seqlen, batch])
-
-    # [time, 1, model_dim]
-    posit_embs = tf.expand_dims(
-        self.position_emb.FProp(theta.position_emb, seqlen), 1)
-    # [time, batch, model_dim]
-    input_embs = inputs + posit_embs
-    input_embs = self.input_dropout.FProp(theta.input_dropout, input_embs)
-    tf.logging.info('input_embs shape = {}'.format(input_embs.shape))
-
-    layer_out = self.stack.FProp(theta.stack, input_embs, paddings)
-    tf.logging.info('layer_out shape = {}'.format(layer_out.shape))
-
-    if not (p.label_smoother is None or p.is_eval):
-      # [time, batch, num_classes]
-      labels.class_probabilities = self.smoother.FProp(
-          theta.smoother, paddings, labels.class_ids, target_ids=None)
-      labels.pop('class_ids', None)
-    xent_output = ComputeXentOutput(self.softmax, theta.softmax, layer_out,
-                                    labels)
-    xent_output.last_hidden = layer_out
-    return xent_output, None
-
-  def zero_state(self, theta, batch_size):
-    return py_utils.NestedMap()
-
-
-class GPipeTransformerLm(GPipeTransformerLmNoEmbedding):
-  """GPipe Transformer based language model layer."""
-
-  @classmethod
-  def Params(cls):
-    p = super(GPipeTransformerLm, cls).Params()
-    p.Define('emb', layers.SimpleEmbeddingLayer.Params(),
-             'The embedding layer params.')
     return p
 
   @classmethod
@@ -1355,27 +1248,21 @@ class GPipeTransformerLm(GPipeTransformerLmNoEmbedding):
     """
     p = cls.Params()
     p.name = 'transformerlm'
-
-    p.model_dim = model_dim
     p.vocab_size = vocab_size
-    p.input_dropout_prob = input_dropout_prob
-    p.residual_dropout_prob = residual_dropout_prob
-    p.atten_dropout_prob = atten_dropout_prob
-    p.relu_dropout_prob = relu_dropout_prob
-
-    emb_params_init = py_utils.WeightInit.Gaussian(1.0 / math.sqrt(p.model_dim))
-    p.emb.Set(
+    p.stack.splits = splits
+    p.stack.model_dim = model_dim
+    p.stack.num_micro_batches = num_micro_batches
+    p.stack.num_encoder_layers = num_layers
+    emb_params_init = py_utils.WeightInit.Gaussian(1.0 / math.sqrt(model_dim))
+    p.stack.emb_tpl.token_emb.Set(
         use_matmul=False,
         use_3d_weight_tensor=False,
         vocab_size=vocab_size,
-        embedding_dim=p.model_dim,
+        embedding_dim=model_dim,
         params_init=emb_params_init)
-
-    p.position_emb.Set(embedding_dim=p.model_dim, trainable_scaling=False)
-
-    p.stack.splits = splits
-    p.stack.num_micro_batches = num_micro_batches
-    p.stack.num_encoder_layers = num_layers
+    p.stack.emb_tpl.position_emb.Set(
+        embedding_dim=model_dim, trainable_scaling=False)
+    p.stack.emb_tpl.input_dropout_prob = input_dropout_prob
     trans_tpl = p.stack.encoder_tpl
 
     trans_tpl.is_decoder = False
@@ -1386,8 +1273,8 @@ class GPipeTransformerLm(GPipeTransformerLmNoEmbedding):
     trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_pre_proj = True
     trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_post_proj = True
     trans_tpl.tr_fflayer_tpl.hidden_dim = hidden_dim
-    p.softmax.Set(num_classes=vocab_size, num_shards=num_shards)
-
+    p.softmax.Set(
+        num_classes=vocab_size, input_dim=model_dim, num_shards=num_shards)
     if softmax_max_alloc:
       # If the vocab is very large, computes the softmax chunk-by-chunk.
       p.softmax.chunk_size = max(1, int(softmax_max_alloc / vocab_size))
@@ -1397,17 +1284,13 @@ class GPipeTransformerLm(GPipeTransformerLmNoEmbedding):
   def __init__(self, params):
     super(GPipeTransformerLm, self).__init__(params)
     p = self.params
-    p.emb.embedding_dim = p.model_dim
-
-    assert p.emb.vocab_size == p.vocab_size, ('{} vs. {}'.format(
-        p.emb.vocab_size, p.vocab_size))
-    assert p.emb.embedding_dim == p.position_emb.embedding_dim, (
-        '{} vs. {}'.format(p.emb.embedding_dim, p.position_emb.embedding_dim))
-    assert p.emb.embedding_dim == p.model_dim, ('{} vs. {}'.format(
-        p.emb.embedding_dim, p.model_dim))
+    p.stack.name = p.name
 
     with tf.variable_scope(p.name):
-      self.CreateChild('emb', p.emb)
+      self.CreateChild('stack', p.stack)
+      self.CreateChild('softmax', p.softmax)
+      if p.label_smoother is not None:
+        self.CreateChild('smoother', p.label_smoother)
 
   def FProp(self, theta, inputs, paddings, state0=None, labels=None):
     """Computes xent loss given the language model input activations.
@@ -1431,8 +1314,18 @@ class GPipeTransformerLm(GPipeTransformerLmNoEmbedding):
       value and `state1` is the next recurrent state. Otherwise,
       `xent_output` only contains the softmax logits.
     """
+    p = self.params
     ids = py_utils.HasRank(inputs, 2)
     paddings = py_utils.HasShape(paddings, tf.shape(ids))
-    activation = self.emb.EmbLookup(theta.emb, ids)
-    return super(GPipeTransformerLm, self).FProp(
-        theta, activation, paddings, labels=labels)
+    layer_out = self.stack.FProp(theta.stack, ids, paddings)
+    tf.logging.info('layer_out shape = {}'.format(layer_out.shape))
+
+    if not (p.label_smoother is None or p.is_eval):
+      # [time, batch, num_classes]
+      labels.class_probabilities = self.smoother.FProp(
+          theta.smoother, paddings, labels.class_ids, target_ids=None)
+      labels.pop('class_ids', None)
+    xent_output = ComputeXentOutput(self.softmax, theta.softmax, layer_out,
+                                    labels)
+    xent_output.last_hidden = layer_out
+    return xent_output, None

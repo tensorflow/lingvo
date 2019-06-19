@@ -24,10 +24,9 @@ from __future__ import print_function
 
 import importlib
 import re
+from lingvo import model_registry
 import six
 import tensorflow as tf
-
-from lingvo import model_registry
 
 _TASK_ROOT = 'lingvo.tasks'
 

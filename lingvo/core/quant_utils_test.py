@@ -21,15 +21,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-import numpy as np
-import tensorflow as tf
-from tensorflow.python.framework import function
-
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import test_utils
+import numpy as np
+import tensorflow as tf
+from tensorflow.python.framework import function
 
 
 class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):

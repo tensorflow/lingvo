@@ -29,11 +29,11 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_trial",
-        # Implicit tensorflow dependency.
-        # Implicit tensorflow py proto dependency.
         "//lingvo/core:cluster_factory",
         "//lingvo/core:early_stop",
         "//lingvo/core:py_utils",
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow py proto dependency.
     ],
 )
 
@@ -43,6 +43,25 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//lingvo/core:hyperparams",
+    ],
+)
+
+py_library(
+    name = "compat",
+    srcs = ["compat.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        # Implicit absl.flags dependency.
+        # Implicit absl.logging dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "compat_test",
+    srcs = ["compat_test.py"],
+    deps = [
+        ":compat",
     ],
 )
 
@@ -83,11 +102,11 @@ py_library(
     srcs = ["models_test_helper.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -99,8 +118,8 @@ py_test(
         ":model_registry",
         ":model_registry_test_lib",
         ":models_test_helper",
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_model_params",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -109,8 +128,8 @@ py_library(
     srcs = ["model_registry.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_model_params",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -122,16 +141,16 @@ py_test(
 
 py_library(
     name = "model_registry_test_lib",
-    testonly = True,
+    testonly = 1,
     srcs = ["model_registry_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":model_registry",
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
         "//lingvo/core:test_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -146,17 +165,17 @@ py_library(
         # Implicit network file system dependency.
         "//lingvo:base_runner",
         # Implicit IPython dependency.
-        # Implicit numpy dependency.
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
-        # Implicit tensorflow py proto dependency.
-        # Implicit tensorflow grpc dependency.
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:inference_graph_exporter",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow py proto dependency.
+        # Implicit tensorflow grpc dependency.
     ],
 )
 
@@ -186,9 +205,6 @@ py_test(
         ":base_trial",
         ":model_registry",
         ":trainer_lib",
-        # Implicit numpy dependency.
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
@@ -198,12 +214,15 @@ py_test(
         "//lingvo/tasks/image:input_generator",
         "//lingvo/tasks/image/params:mnist",
         "//lingvo/tasks/punctuator/params:codelab",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
 py_library(
     name = "trainer_test_lib",
-    testonly = True,
+    testonly = 1,
     srcs = ["trainer_test.py"],
     srcs_version = "PY2AND3",
     tags = [
@@ -216,9 +235,6 @@ py_library(
         ":base_trial",
         ":model_registry",
         ":trainer_lib",
-        # Implicit numpy dependency.
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
@@ -228,6 +244,9 @@ py_library(
         "//lingvo/tasks/image:input_generator",
         "//lingvo/tasks/image/params:mnist",
         "//lingvo/tasks/punctuator/params:codelab",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 

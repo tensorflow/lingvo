@@ -24,12 +24,12 @@ from __future__ import division
 from __future__ import print_function
 
 import re
-import tensorflow as tf
 from lingvo.core import base_layer
 from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import summary_utils
+import tensorflow as tf
 
 
 class Learner(base_layer.BaseLayer):
@@ -104,6 +104,27 @@ class Learner(base_layer.BaseLayer):
   def GetVarGrads(self):
     return self._var_grads
 
+  def GetTrainableVariables(self, vmap):
+    p = self.params
+    pos = re.compile(
+        p.bprop_variable_filter) if p.bprop_variable_filter else None
+    neg = re.compile(
+        p.bprop_variable_exclusion) if p.bprop_variable_exclusion else None
+
+    def VariableFilter(v):
+      """Returns True if variable v should be optimized by this learner."""
+      if pos and not pos.search(v.name):
+        tf.logging.info('%s: disabled by bprop_variable_filter: %s', p.name,
+                        v.name)
+        return False
+      if neg and neg.search(v.name):
+        tf.logging.info('%s: disabled by bprop_variable_exclusion: %s', p.name,
+                        v.name)
+        return False
+      return True
+
+    return vmap.Filter(VariableFilter)
+
   def Apply(self, loss, vmap, gradient_mask=None, gradient_adjuster=None):
     """Computes updates on 'vmap' to optimize 'loss'.
 
@@ -123,24 +144,8 @@ class Learner(base_layer.BaseLayer):
     # compatibility on variables created by self.optimizer.Apply().
     p = self.params
 
-    pos = re.compile(
-        p.bprop_variable_filter) if p.bprop_variable_filter else None
-    neg = re.compile(
-        p.bprop_variable_exclusion) if p.bprop_variable_exclusion else None
+    vmap = self.GetTrainableVariables(vmap)
 
-    def VariableFilter(v):
-      """Returns True if variable v should be optimized by this learner."""
-      if pos and not pos.search(v.name):
-        tf.logging.info('%s: disabled by bprop_variable_filter: %s', p.name,
-                        v.name)
-        return False
-      if neg and neg.search(v.name):
-        tf.logging.info('%s: disabled by bprop_variable_exclusion: %s', p.name,
-                        v.name)
-        return False
-      return True
-
-    vmap = vmap.Filter(VariableFilter)
     for v in vmap.Flatten():
       tf.logging.info('%s: bprop variable: %s', p.name, v.name)
 
@@ -314,17 +319,18 @@ _LEGACY_LEARNER_PARAMS = [
 ]
 
 
-def ExtractLearnerFromLegacyParams(tp):
+def ExtractLearnerFromLegacyParams(tp, cls=Learner):
   """Extracts legacy learner params from 'tp' to a Learner params.
 
   Args:
     tp: BaseTask training params (p.train). Its legacy params will be cleared to
       be None after the conversion.
+    cls: Learner class where we set the params.
 
   Returns:
     A params for Learner.
   """
-  lp = Learner.Params()
+  lp = cls.Params()
   lp.name = 'loss'
   for k, v in tp.IterParams():
     if k not in _LEGACY_LEARNER_PARAMS:

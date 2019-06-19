@@ -9,7 +9,6 @@ licenses(["notice"])  # Apache 2.0
 load(
     "//lingvo:lingvo.bzl",
     "lingvo_cuda_py2and3_test",
-    "lingvo_cuda_py_test",
     "lingvo_proto_cc",
     "lingvo_proto_py",
     "lingvo_py_binary",
@@ -64,9 +63,9 @@ py_library(
     deps = [
         ":base_layer",
         ":py_utils",
+        "//lingvo/core/ops:py_x_ops",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core/ops:py_x_ops",
     ],
 )
 
@@ -136,9 +135,9 @@ py_library(
         ":input_generator_helper",
         ":py_utils",
         ":tokenizers",
+        "//lingvo/core/ops:py_x_ops",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core/ops:py_x_ops",
     ],
 )
 
@@ -332,8 +331,8 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":hyperparams",
-        # Implicit tensorflow dependency.
         "//lingvo/core/ops:py_x_ops",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -351,6 +350,17 @@ py_test(
         ":test_utils",
         # Implicit tensorflow dependency.
     ],
+)
+
+lingvo_proto_cc(
+    name = "inference_graph_proto",
+    src = "inference_graph.proto",
+)
+
+lingvo_proto_py(
+    name = "inference_graph_py_pb2",
+    src = "inference_graph.proto",
+    deps = [":inference_graph_proto"],
 )
 
 py_library(
@@ -372,17 +382,6 @@ py_test(
         # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
-)
-
-lingvo_proto_cc(
-    name = "inference_graph_proto",
-    src = "inference_graph.proto",
-)
-
-lingvo_proto_py(
-    name = "inference_graph_py_pb2",
-    src = "inference_graph.proto",
-    deps = [":inference_graph_proto"],
 )
 
 py_library(
@@ -412,8 +411,8 @@ py_test(
         ":predictor_lib",
         ":py_utils",
         ":test_utils",
-        # Implicit tensorflow dependency.
         "//lingvo:model_registry",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -480,6 +479,7 @@ py_test(
     deps = [
         ":base_layer",
         ":learner",
+        ":optimizer",
         ":py_utils",
         # Implicit tensorflow dependency.
     ],
@@ -519,7 +519,7 @@ lingvo_cuda_py2and3_test(
 
 py_library(
     name = "layers_test_lib",
-    testonly = True,
+    testonly = 1,
     srcs = ["layers_test.py"],
     srcs_version = "PY2AND3",
     deps = [
@@ -528,7 +528,7 @@ py_library(
         ":py_utils",
         ":quant_utils",
         ":test_utils",
-        # Implicit parameterized dependency.
+        # Implicit absl.testing.parameterized dependency.
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
@@ -543,9 +543,9 @@ py_library(
         ":base_layer",
         ":early_stop",
         ":py_utils",
+        "//lingvo/core/ops:py_x_ops",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core/ops:py_x_ops",
     ],
 )
 
@@ -677,10 +677,10 @@ py_library(
         ":py_utils",
         # Implicit python proto dependency.
         # Implicit IPython dependency.
+        "//lingvo:model_imports_no_params",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
         # Implicit tensorflow py proto dependency.
-        "//lingvo:model_imports_no_params",
     ],
 )
 
@@ -691,7 +691,11 @@ lingvo_py_binary(
     srcs_version = "PY2AND3",
     deps = [
         ":predictor_lib",
+        ":py_utils",
+        "//lingvo:model_imports_no_params",
         # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow py proto dependency.
     ],
 )
 
@@ -704,11 +708,11 @@ py_library(
         ":retry",
         ":symbolic",
         ":tshape",
+        "//lingvo:compat",
+        "//lingvo/core/ops:py_x_ops",
         # Implicit numpy dependency.
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
         # Implicit tensorflow py proto dependency.
-        "//lingvo/core/ops:py_x_ops",
     ],
 )
 
@@ -726,11 +730,11 @@ py_test(
         ":recurrent",
         ":test_helper",
         ":test_utils",
-        # Implicit numpy dependency.
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
+        "//lingvo:compat",
         "//lingvo:model_registry",
         "//lingvo/tasks/image/params:mnist",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -787,7 +791,7 @@ py_test(
         ":layers_with_gpipe",
         ":py_utils",
         ":test_utils",
-        # Implicit parameterized dependency.
+        # Implicit absl.testing.parameterized dependency.
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
@@ -824,9 +828,10 @@ py_library(
     srcs = ["generic_input.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":py_utils",
+        "//lingvo/core/ops:py_x_ops",
         # Implicit tensorflow dependency.
         # Implicit tensorflow python framework_for_generated_wrappers dependency.
-        "//lingvo/core/ops:py_x_ops",
     ],
 )
 
@@ -877,13 +882,12 @@ py_test(
     shard_count = 6,
     deps = [
         ":recurrent_test_lib",
-        # Implicit six dependency.
     ],
 )
 
 py_library(
     name = "recurrent_test_lib",
-    testonly = True,
+    testonly = 1,
     srcs = ["recurrent_test.py"],
     srcs_version = "PY2AND3",
     deps = [
@@ -935,7 +939,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         # Implicit python proto dependency.
-        # Implicit tensorflow dependency.
+        # Implicit tensorflow py proto dependency.
     ],
 )
 
@@ -1036,9 +1040,9 @@ py_library(
     srcs = ["wpm_encoder.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo/core/ops:py_x_ops",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core/ops:py_x_ops",
     ],
 )
 
@@ -1060,9 +1064,9 @@ py_library(
         ":base_layer",
         ":py_utils",
         ":wpm_encoder",
+        "//lingvo/core/ops:py_x_ops",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core/ops:py_x_ops",
     ],
 )
 
@@ -1177,7 +1181,7 @@ lingvo_cuda_py2and3_test(
 
 py_library(
     name = "rnn_layers_test_lib",
-    testonly = True,
+    testonly = 1,
     srcs = ["rnn_layers_test.py"],
     srcs_version = "PY2AND3",
     deps = [
@@ -1222,6 +1226,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":rnn_layers",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -1232,6 +1237,7 @@ py_library(
     deps = [
         # Implicit six dependency.
         # Implicit sympy dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -1241,6 +1247,7 @@ py_test(
     deps = [
         ":test_utils",
         ":tshape",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -1271,6 +1278,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_layer",
+        ":py_utils",
         # Implicit tensorflow dependency.
     ],
 )

@@ -13,10 +13,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "lingvo/core/ops/sequential_record_yielder.h"
+
 #include <algorithm>
 
 #include "lingvo/core/ops/record_yielder.h"
-#include "lingvo/core/ops/sequential_record_yielder.h"
 
 namespace tensorflow {
 namespace lingvo {

@@ -20,9 +20,6 @@ from __future__ import division
 from __future__ import print_function
 
 import shutil
-
-import numpy as np
-import tensorflow as tf
 from lingvo import model_registry
 from lingvo.core import cluster_factory
 from lingvo.core import layers
@@ -32,6 +29,8 @@ from lingvo.core.test_utils import CompareToGoldenSingleFloat
 from lingvo.tasks.image import classifier
 from lingvo.tasks.image import input_generator
 from lingvo.tasks.image.params import mnist
+import numpy as np
+import tensorflow as tf
 
 
 @model_registry.RegisterSingleTaskModel

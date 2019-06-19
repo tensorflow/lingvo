@@ -15,10 +15,10 @@ limitations under the License.
 
 #include <vector>
 
+#include "lingvo/core/ops/mutex.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
-#include "lingvo/core/ops/mutex.h"
 
 namespace tensorflow {
 namespace lingvo {

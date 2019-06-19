@@ -16,16 +16,14 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-
-import numpy as np
-from six.moves import range
-from six.moves import zip
-import tensorflow as tf
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.tasks.mt import layers as mt_layers
+import numpy as np
+from six.moves import range
+from six.moves import zip
+import tensorflow as tf
 
 
 NUMPY_RANDOM_SEED = 505837249

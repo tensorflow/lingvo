@@ -13,22 +13,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "lingvo/core/ops/record_yielder.h"
+
 #include <string>
 #include <unordered_map>
 
+#include "lingvo/core/ops/mutex.h"
 #include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/lib/io/compression.h"
-#include "lingvo/core/ops/record_yielder.h"
-
 #include "tensorflow/core/lib/hash/hash.h"
 #include "tensorflow/core/lib/io/buffered_inputstream.h"
+#include "tensorflow/core/lib/io/compression.h"
 #include "tensorflow/core/lib/io/random_inputstream.h"
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/env.h"
-#include "lingvo/core/ops/mutex.h"
 
 namespace tensorflow {
 namespace lingvo {

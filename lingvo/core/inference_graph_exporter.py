@@ -22,15 +22,14 @@ from __future__ import print_function
 import collections
 import contextlib
 import re
-
-import six
-import tensorflow as tf
-
-from google.protobuf import text_format
 from lingvo.core import base_model
 from lingvo.core import bfloat16_variables
 from lingvo.core import inference_graph_pb2
 from lingvo.core import py_utils
+import six
+import tensorflow as tf
+
+from google.protobuf import text_format
 
 FLAGS = tf.flags.FLAGS
 

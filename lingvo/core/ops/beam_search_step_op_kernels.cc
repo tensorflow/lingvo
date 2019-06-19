@@ -16,13 +16,14 @@ limitations under the License.
 #include "lingvo/core/ops/beam_search_step_op_kernels.h"
 
 #include <cmath>
+
+#include "lingvo/core/ops/hyps.pb.h"
+#include "lingvo/core/ops/simple_vocab.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/util/work_sharder.h"
-#include "lingvo/core/ops/hyps.pb.h"
-#include "lingvo/core/ops/simple_vocab.h"
 
 namespace tensorflow {
 namespace lingvo {

@@ -12,14 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Test model imports."""
+"""Tests for compat.py."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from lingvo import model_imports  # pylint: disable=unused-import
-import tensorflow as tf
+import lingvo.compat as tf
+
+
+class CompatTest(tf.test.TestCase):
+
+  def testSomeTFSymbols(self):
+    self.assertIsNotNone(tf.logging)
+    self.assertIsNotNone(tf.flags)
+
 
 if __name__ == '__main__':
   tf.test.main()

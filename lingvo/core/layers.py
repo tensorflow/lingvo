@@ -19,9 +19,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import math
 import numbers
+from lingvo.core import base_layer
+from lingvo.core import bn_layers
+from lingvo.core import conv_layers_with_time_padding
+from lingvo.core import py_utils
+from lingvo.core import quant_utils
+from lingvo.core import recurrent
+from lingvo.core import summary_utils
+from lingvo.core import tshape
 import numpy as np
 import six
 from six.moves import range
@@ -33,14 +40,6 @@ from tensorflow.python.framework import function
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
-from lingvo.core import base_layer
-from lingvo.core import bn_layers
-from lingvo.core import conv_layers_with_time_padding
-from lingvo.core import py_utils
-from lingvo.core import quant_utils
-from lingvo.core import recurrent
-from lingvo.core import summary_utils
-from lingvo.core import tshape
 
 
 def Gelu(input_tensor):
@@ -1556,7 +1555,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
 
     """
     p = self.params
-    rets = collections.OrderedDict()
+    rets = py_utils.NestedMap()
     if self.max_sequence_length > 0:
       # "Sequence embedding", no combiner case
       for k, ids in ids_map.items():
@@ -1588,8 +1587,8 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         # Explicitly pad results to maintain dim0=batch.
         dim0_padlen = tf.cast(batch_size, tf.int32) - tf.shape(embs)[0]
         embs = tf.pad(embs, [[0, dim0_padlen], [0, 0]])
-        embs = py_utils.HasShape(embs, [batch_size], ndims=1)
         # [batch, 1, embedding_dim]
+        embs = py_utils.HasShape(embs, [batch_size], ndims=1)
         rets[k] = tf.expand_dims(embs, 1)
     return rets
 
@@ -1609,13 +1608,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super(TPUEmbeddingLayer, cls).Params()
     p.Define('tables', None, 'TPUEmbeddingTables')
-    p.Define('vocab_size', 0, 'Depth of the input.')
     p.Define('pipeline_execution_with_tensor_core', False,
              'Set to True to be faster. See tpu_embedding.py for details.')
     p.Define('batch_size', 0, 'Per-core batch size.')
-    p.Define('initial_accumulator', None, 'Initial value of accumulator.')
     p.Define('learning_rate', None, 'Learning rate.')
-    p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
     return p
 
   @base_layer.initializer
@@ -1626,12 +1622,16 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     assert p.tables
     assert p.batch_size > 0
     assert p.learning_rate > 0
-    assert p.initial_accumulator > 0
     assert p.name
-    assert p.num_tpu_hosts > 0
+
+    initial_accumulator = p.tables[0].initial_accumulator
+    assert initial_accumulator > 0
+    assert np.all(
+        [t.initial_accumulator == initial_accumulator for t in p.tables])
+    num_tpu_hosts = p.tables[0].num_tpu_hosts
+    assert np.all([t.num_tpu_hosts == num_tpu_hosts for t in p.tables])
 
     cluster = self.cluster
-    num_hosts = p.num_tpu_hosts
 
     self.CreateChildren('tables', p.tables)
     load_op_list = []
@@ -1658,10 +1658,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
               table.table_name, max_sequence_length=table.max_sequence_length)
       mode = tpu_embedding_lib.TRAINING
       optimization_parameters = tpu_embedding_lib.AdagradParameters(
-          p.learning_rate, p.initial_accumulator)
+          p.learning_rate, initial_accumulator)
       device_config = tpu_embedding_lib.DeviceConfig(
           num_cores=num_cores,
-          num_hosts=num_hosts,
+          num_hosts=num_tpu_hosts,
           job_name=cluster.params.worker.name)
       self._tpu_embedding = tpu_embedding_lib.TPUEmbedding(
           table_to_config_dict,
@@ -1709,7 +1709,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       del ids_map
       activations = self._tpu_embedding.get_activations()
       tf.add_to_collection(py_utils.TPU_EMBEDDING_ACTIVATIONS, activations)
-      ret = collections.OrderedDict()
+      ret = py_utils.NestedMap()
       for k, v in activations.items():
         if k in self._sequence_features:
           ret[k] = v
@@ -1720,7 +1720,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
 
     def CpuEmbLookup(ids_map):
       """CPU evaluation embedding lookup."""
-      rets = collections.OrderedDict()
+      rets = py_utils.NestedMap()
       for table in self.tables:
         table_id_map = {}
         for key in table.input_keys:

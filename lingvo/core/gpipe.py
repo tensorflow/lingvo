@@ -34,14 +34,13 @@ from __future__ import division
 from __future__ import print_function
 
 import contextlib
-from six.moves import range
-
-import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import tshape
+from six.moves import range
+
+import tensorflow as tf
 
 _MICRO_BATCH_STATE_NAME = 'micro_batch_state'
 _OVERWRITE_GLOBAL_STEP_COLLECTION = 'lingvo__OVERWRITE_GLOBAL_STEP_COLLECTION'

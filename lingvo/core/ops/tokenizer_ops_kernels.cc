@@ -12,20 +12,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include "lingvo/core/ops/tokenizer_op_headers.h"
-
 #include <algorithm>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "lingvo/core/ops/ascii_tokenizer.h"
+#include "lingvo/core/ops/simple_vocab.h"
+#include "lingvo/core/ops/tokenizer_op_headers.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/env.h"
-#include "lingvo/core/ops/ascii_tokenizer.h"
-#include "lingvo/core/ops/simple_vocab.h"
 
 namespace tensorflow {
 namespace lingvo {

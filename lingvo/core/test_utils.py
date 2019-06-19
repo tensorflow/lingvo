@@ -21,11 +21,10 @@ from __future__ import print_function
 
 import inspect
 import re
-
+from lingvo.core import py_utils
 import numpy as np
 from six.moves import range
 import tensorflow as tf
-from lingvo.core import py_utils
 
 tf.flags.DEFINE_boolean(
     'update_goldens', False,

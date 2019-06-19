@@ -21,11 +21,10 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-
-import tensorflow as tf
 from lingvo.core import test_utils
 
 from lingvo.core import wpm_encoder
+import tensorflow as tf
 
 
 class WpmEncoderTest(test_utils.TestCase):

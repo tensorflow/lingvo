@@ -21,11 +21,10 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-
-import tensorflow as tf
 from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.tools import audio_lib
+import tensorflow as tf
 
 # The testdata contains: (soxi .../gan_or_vae.wav)
 # Channels       : 1

@@ -15,6 +15,7 @@ limitations under the License.
 
 #include <functional>
 
+#include "lingvo/core/ops/input_common.h"
 #include "tensorflow/core/common_runtime/function.h"
 #include "tensorflow/core/framework/function.h"
 #include "tensorflow/core/framework/op_kernel.h"
@@ -24,7 +25,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/threadpool.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/util/work_sharder.h"
-#include "lingvo/core/ops/input_common.h"
 
 namespace tensorflow {
 namespace lingvo {

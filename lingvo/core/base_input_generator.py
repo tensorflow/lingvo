@@ -18,7 +18,11 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+from lingvo.core import base_layer
+from lingvo.core import input_generator_helper as ig_helper
+from lingvo.core import py_utils
+from lingvo.core import tokenizers
+from lingvo.core.ops import py_x_ops
 import six
 from six.moves import map
 from six.moves import range
@@ -29,11 +33,6 @@ from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.python.framework import function
 from tensorflow.python.ops import io_ops
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
-from lingvo.core import base_layer
-from lingvo.core import input_generator_helper as ig_helper
-from lingvo.core import py_utils
-from lingvo.core import tokenizers
-from lingvo.core.ops import py_x_ops
 
 
 class BaseInputGenerator(base_layer.BaseLayer):
@@ -274,8 +273,9 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         # simple string pattern.
         'file_pattern',
         '',
-        'A single file pattern string, a list of <file_pattern, weight> pairs'
-        'or a list of  <file_pattern, weight, bprop_variable_filter> tuples.'
+        'A single file pattern string, a list of file pattern strings or a list'
+        ' of <file_pattern, weight> pairs or a list of  <file_pattern, weight, '
+        'bprop_variable_filter> tuples.'
         'In the later 2 cases, probablistic samples are from the inputs '
         'proportional to their weights. Typically, values are binary '
         'protocol buffers containing train/eval samples. Keys are not used.')
@@ -308,6 +308,15 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'different input sources within batch or across batches (the '
         'default option). This option only takes effect when file_pattern'
         ' is a list of file patterns with weights.')
+    p.Define(
+        'use_chaining', False, 'Whether to output records from '
+        'different input sources one after another, i.e., first all records '
+        'from a first input source, then all records from a second one, etc. '
+        'use_chaining does not guarantee that records from subsequent input '
+        'sources are placed in separate input batches. '
+        'This option only takes effect when file_pattern is a list of file '
+        'patterns.')
+
     return p
 
   @base_layer.initializer
@@ -329,6 +338,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'flush_every_n': p.flush_every_n,
         'num_threads': p.num_batcher_threads,
         'require_sequential_order': p.require_sequential_order,
+        'use_chaining': p.use_chaining,
     })
     args.update(self._InputOpBucketingArgs())
     return args
@@ -392,6 +402,39 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
       raise NotImplementedError(
           'The function may not be fully implemented. Have you added ' +
           'input_source_weights as params? Original exception: %s' % e)
+
+  def _BuildChainingDataSource(self):
+    """Read and return input batch from a p.file_pattern list.
+
+    `p.file_pattern` should be a list of file_patterns. file_patterns will
+    be consumed consequtively.
+
+    Returns:
+      A tf.Tensor or `.NestedMap` of tf.Tensor same as
+      `self._DataSourceFromFilePattern()`.
+
+    Raises:
+      ValueError: If unknown token type.
+    """
+    p = self.params
+    if not isinstance(p.file_pattern, list):
+      raise ValueError('Expected a list, got %s' % (p.file_pattern,))
+    if not all(isinstance(x, six.string_types) for x in p.file_pattern):
+      # Chaining doesn't work with weights or backprop filters, i.e. when
+      # file_pattern param contains a list of
+      # <file_pattern, weight, [bprop_variable_filter]> tuples.
+      raise ValueError('Expected a list of strings, got %s' % (p.file_pattern,))
+
+    file_patterns = p.file_pattern
+    self._bprop_variable_filters = [''] * len(file_patterns)
+    weights = [1.0] * len(file_patterns)
+    for file_pattern in file_patterns:
+      if ',' in file_pattern:
+        raise ValueError('Can not use commas in file_pattern when chaining '
+                         'is used. file_pattern: %s' % (file_pattern,))
+
+    # Do not set self._bprop_onehot as it shouldn't be used later on.
+    return self._DataSourceFromFilePattern(','.join(file_patterns), weights)
 
   def _BuildCrossBatchMixingDataSource(self):
     """Read and return input batch from a p.file_pattern list.
@@ -462,7 +505,10 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
           input_file_pattern), None
     elif isinstance(input_file_pattern, list):
       if p.use_within_batch_mixing:
+        assert not p.use_chaining, "Can't both use chaining and mixing"
         data, source_selected = self._BuildWithinBatchMixingDataSource(), None
+      elif p.use_chaining:
+        data, source_selected = self._BuildChainingDataSource(), None
       else:
         # Otherwise fall back to MixByWeight-based approach.
         data, source_selected = self._BuildCrossBatchMixingDataSource()

@@ -18,16 +18,15 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-import numpy as np
-from six.moves import range
-import tensorflow as tf
 from lingvo.core import attention
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core.test_utils import CompareToGoldenSingleFloat
+import numpy as np
+from six.moves import range
+import tensorflow as tf
 
 
 class LayersWithAttentionTest(test_utils.TestCase):

@@ -16,10 +16,10 @@ limitations under the License.
 #include "lingvo/core/ops/record_batcher.h"
 
 #include <gtest/gtest.h>
+#include "lingvo/core/ops/input_common.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/record_writer.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
-#include "lingvo/core/ops/input_common.h"
 
 namespace tensorflow {
 namespace lingvo {

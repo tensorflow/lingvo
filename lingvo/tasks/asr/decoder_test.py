@@ -19,20 +19,18 @@ from __future__ import print_function
 
 import os
 import re
-
-import numpy as np
-from six.moves import range
-from six.moves import zip
-
-import tensorflow as tf
-from google.protobuf import text_format
-
 from lingvo.core import cluster_factory
 from lingvo.core import layers as lingvo_layers
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core.ops.hyps_pb2 import Hypothesis
 from lingvo.tasks.asr import decoder
+import numpy as np
+from six.moves import range
+from six.moves import zip
+
+import tensorflow as tf
+from google.protobuf import text_format
 
 FLAGS = tf.flags.FLAGS
 
@@ -170,7 +168,7 @@ class DecoderTest(test_utils.TestCase):
           'paddings': target_paddings,
           'transcripts': target_transcripts,
       })
-      metrics = dec.FPropDefaultTheta(encoder_outputs, targets)
+      metrics = dec.FPropDefaultTheta(encoder_outputs, targets).metrics
       loss = metrics['loss'][0]
       correct_predicts = metrics['fraction_of_correct_next_step_preds'][0]
       summaries = tf.summary.merge(tf.get_collection(tf.GraphKeys.SUMMARIES))
@@ -383,7 +381,7 @@ class DecoderTest(test_utils.TestCase):
       })
       encoder_outputs = py_utils.NestedMap(
           encoded=src_enc, padding=src_enc_padding)
-      metrics = dec.FPropDefaultTheta(encoder_outputs, targets)
+      metrics = dec.FPropDefaultTheta(encoder_outputs, targets).metrics
       loss = metrics['loss'][0]
 
       tf.global_variables_initializer().run()
@@ -435,7 +433,7 @@ class DecoderTest(test_utils.TestCase):
           'paddings': target_paddings,
           'transcripts': target_transcripts,
       })
-      metrics = dec.FPropDefaultTheta(encoder_outputs, targets)
+      metrics = dec.FPropDefaultTheta(encoder_outputs, targets).metrics
       loss = metrics['loss'][0]
       all_vars = tf.trainable_variables()
       grads = tf.gradients(loss, all_vars)

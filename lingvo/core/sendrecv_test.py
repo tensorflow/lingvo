@@ -18,12 +18,11 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+from lingvo.core import sendrecv
+from lingvo.core import test_utils
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import function
-from lingvo.core import sendrecv
-from lingvo.core import test_utils
 
 
 def _ListDevices(target):

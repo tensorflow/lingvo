@@ -18,17 +18,15 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-from six.moves import range
-from six.moves import zip
-import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.tasks.mt import decoder
 from lingvo.tasks.mt import encoder
+from six.moves import range
+from six.moves import zip
+import tensorflow as tf
 
 
 class MTBaseModel(base_model.BaseTask):

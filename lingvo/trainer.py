@@ -38,7 +38,14 @@ import os
 import re
 import threading
 import time
-
+from lingvo import base_trial
+from lingvo import model_registry
+from lingvo.core import base_model
+from lingvo.core import base_model_params
+from lingvo.core import cluster_factory
+from lingvo.core import inference_graph_exporter
+from lingvo.core import metrics
+from lingvo.core import py_utils
 import numpy as np
 import six
 from six.moves import range
@@ -49,14 +56,6 @@ from lingvo import base_runner
 from tensorflow.contrib.tpu.python.tpu import device_assignment as device_assignment_lib
 from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.core.protobuf import config_pb2
-from lingvo import base_trial
-from lingvo import model_registry
-from lingvo.core import base_model
-from lingvo.core import base_model_params
-from lingvo.core import cluster_factory
-from lingvo.core import inference_graph_exporter
-from lingvo.core import metrics
-from lingvo.core import py_utils
 
 tf.flags.DEFINE_string(
     'model', '', 'Name of the model class to train.'
@@ -776,8 +775,7 @@ class TrainerTpu(base_runner.BaseRunner):
 
   def _InfeedLoop(self, sess):
     tf.logging.info('_InfeedLoop start')
-    for i in range(self._steps_per_loop):
-      tf.logging.info('_InfeedLoop %d', i)
+    for _ in range(self._steps_per_loop):
       sess.run(self.enqueue_ops)
 
   def StartEnqueueOp(self, op):

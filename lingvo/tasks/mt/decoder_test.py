@@ -17,12 +17,6 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-import numpy as np
-from six.moves import range
-from six.moves import zip
-import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import input_generator_helper as ig_helper
 from lingvo.core import layers
@@ -31,6 +25,10 @@ from lingvo.core import test_utils
 from lingvo.core.ops.hyps_pb2 import Hypothesis
 from lingvo.core.test_utils import CompareToGoldenSingleFloat
 from lingvo.tasks.mt import decoder
+import numpy as np
+from six.moves import range
+from six.moves import zip
+import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 
@@ -103,7 +101,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = p.Instantiate()
       encoder_outputs, targets = self._Inputs(dtype=dtype)
-      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
 
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
@@ -122,7 +120,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = p.Instantiate()
       encoder_outputs, targets = self._Inputs(dtype=tf.float64)
-      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
       all_vars = tf.trainable_variables()
       grads = tf.gradients(loss, all_vars)
       print('num of vars ', len(all_vars))
@@ -162,7 +160,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = p.Instantiate()
       encoder_outputs, targets = self._Inputs()
-      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
@@ -186,7 +184,7 @@ class DecoderTest(DecoderTestCaseBase):
       p.attention.params_init = py_utils.WeightInit.Gaussian(0.1, 12345)
       dec = decoder.MTDecoderV1(p)
       encoder_outputs, targets = self._Inputs(dtype=dtype)
-      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
 
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
@@ -499,13 +497,14 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
          src_segment_id, target_packed) = self._testPackedInputs()
         encoder_outputs = py_utils.NestedMap(
             encoded=src_enc, padding=paddings, segment_id=None)
-        loss, _ = dec.FProp(dec.theta, encoder_outputs, tgts)['loss']
+        loss, _ = dec.FProp(dec.theta, encoder_outputs, tgts).metrics['loss']
         encoder_outputs_packed = py_utils.NestedMap(
             encoded=src_enc_packed,
             padding=src_enc_padding_packed,
             segment_id=src_segment_id)
-        loss_packed, _ = dec_packed.FProp(
-            dec_packed.theta, encoder_outputs_packed, target_packed)['loss']
+        loss_packed, _ = dec_packed.FProp(dec_packed.theta,
+                                          encoder_outputs_packed,
+                                          target_packed).metrics['loss']
         tf.global_variables_initializer().run()
         actual_loss, packed_loss = sess.run([loss, loss_packed])
         self.assertAlmostEqual(
@@ -517,7 +516,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, _ = self._testTransparentInputs(dtype=dtype)
-      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
@@ -665,13 +664,15 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
           'paddings': tf.concat([tgts[1]['paddings'], tgts[3]['paddings']], 0)
       })
 
-      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
       encoder_outputs1 = py_utils.NestedMap(
           encoded=src_enc1, padding=src_paddings1, segment_id=None)
-      loss1, _ = dec.FPropDefaultTheta(encoder_outputs1, targets1)['loss']
+      loss1, _ = dec.FPropDefaultTheta(encoder_outputs1,
+                                       targets1).metrics['loss']
       encoder_outputs2 = py_utils.NestedMap(
           encoded=src_enc2, padding=src_paddings2, segment_id=None)
-      loss2, _ = dec.FPropDefaultTheta(encoder_outputs2, targets2)['loss']
+      loss2, _ = dec.FPropDefaultTheta(encoder_outputs2,
+                                       targets2).metrics['loss']
 
       tf.global_variables_initializer().run()
       actual_loss, actual_loss1, actual_loss2 = sess.run([loss, loss1, loss2])

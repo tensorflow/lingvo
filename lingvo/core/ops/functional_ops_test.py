@@ -18,13 +18,12 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+from lingvo.core import test_utils
+from lingvo.core.ops import py_x_ops
 import numpy as np
 from six.moves import range
 import tensorflow as tf
 from tensorflow.python.framework import function
-from lingvo.core import test_utils
-from lingvo.core.ops import py_x_ops
 
 
 class FunctionalOpsTest(test_utils.TestCase):

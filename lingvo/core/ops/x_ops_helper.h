@@ -28,6 +28,7 @@ limitations under the License.
       .Attr("flush_every_n: int = 0")                 \
       .Attr("num_threads: int = 1")                   \
       .Attr("require_sequential_order: bool = False") \
+      .Attr("use_chaining: bool = False")             \
       .SetIsStateful()
 
 #define INPUT_DOCS \
@@ -55,6 +56,10 @@ require_sequential_order: If true, the input op is required to process the file\
   glob as well as the contents of each file in a deterministic sequential order.\
   Setting this automatically disables file_random_seed, file_buffer_size,\
   file_parallelism, num_threads, and requires a single file_pattern.\
+use_chaining: If true, the input op is outputing records from file patterns in \
+  order. That is, first all records from first file pattern will be yielded, \
+  then all records from the second file pattern and so on. If false, the \
+  records from different file patterns will be mixed.\
 )"
 
 #endif  // LINGVO_CORE_OPS_X_OPS_HELPER_H_

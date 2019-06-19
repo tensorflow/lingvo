@@ -18,8 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
-
 from lingvo import model_imports  # pylint: disable=unused-import
 from lingvo import model_registry
 # pylint: disable=unused-import
@@ -28,6 +26,7 @@ from lingvo import model_registry_test
 # pylint: enable=unused-import
 from lingvo import models_test_helper
 from lingvo.core import base_model_params
+import tensorflow as tf
 
 
 class ModelsTest(models_test_helper.BaseModelsTest):

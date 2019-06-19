@@ -21,13 +21,6 @@ from __future__ import print_function
 import os
 import types
 import unittest
-
-import numpy as np
-from six.moves import range
-from six.moves import zip
-import tensorflow as tf
-
-from tensorflow.python.ops import inplace_ops
 from lingvo.core import attention
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
@@ -36,6 +29,12 @@ from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 from lingvo.core import test_utils
+import numpy as np
+from six.moves import range
+from six.moves import zip
+import tensorflow as tf
+
+from tensorflow.python.ops import inplace_ops
 
 FLAGS = tf.flags.FLAGS
 

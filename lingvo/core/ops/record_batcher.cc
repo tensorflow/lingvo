@@ -63,10 +63,10 @@ limitations under the License.
 #include <algorithm>
 #include <utility>
 
+#include "lingvo/core/ops/mutex.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/env.h"
-#include "lingvo/core/ops/mutex.h"
 
 namespace tensorflow {
 namespace lingvo {
