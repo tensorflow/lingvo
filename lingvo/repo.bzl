@@ -32,18 +32,18 @@ def _find_tf_lib_path(repo_ctx):
 
 def _eigen_archive_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)
-    repo_ctx.symlink(
-        tf_include_path + "/external/eigen_archive",
-        "eigen_archive",
-    )
+    repo_ctx.symlink(tf_include_path, "tf_includes")
     repo_ctx.file(
         "BUILD",
         content = """
 cc_library(
     name = "includes",
-    hdrs = glob(["eigen_archive/**/*.h", "eigen_archive/**"]),
+    hdrs = glob(["tf_includes/Eigen/**/*.h",
+                 "tf_includes/Eigen/**",
+                 "tf_includes/unsupported/Eigen/**/*.h",
+                 "tf_includes/unsupported/Eigen/**"]),
     # https://groups.google.com/forum/#!topic/bazel-discuss/HyyuuqTxKok
-    includes = ["eigen_archive"],
+    includes = ["tf_includes"],
     visibility = ["//visibility:public"],
 )
 """,
@@ -69,17 +69,17 @@ cc_library(
 def _absl_includes_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)
     repo_ctx.symlink(
-        tf_include_path + "/external/com_google_absl",
-        "com_google_absl",
+        tf_include_path + "/absl",
+        "absl",
     )
     repo_ctx.file(
         "BUILD",
         content = """
 cc_library(
     name = "includes",
-    hdrs = glob(["com_google_absl/absl/**/*.h",
-                 "com_google_absl/absl/**/*.inc"]),
-    includes = ["com_google_absl"],
+    hdrs = glob(["absl/**/*.h",
+                 "absl/**/*.inc"]),
+    includes = ["absl"],
     visibility = ["//visibility:public"],
 )
 """,
@@ -88,18 +88,17 @@ cc_library(
 
 def _protobuf_includes_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)
-    repo_ctx.symlink(
-        tf_include_path + "/external/protobuf_archive/src",
-        "protobuf_archive",
-    )
+    repo_ctx.symlink(tf_include_path, "tf_includes")
     repo_ctx.file(
         "BUILD",
         content = """
 cc_library(
     name = "includes",
-    hdrs = glob(["protobuf_archive/**/*.h",
-                 "protobuf_archive/**/*.inc"]),
-    includes = ["protobuf_archive"],
+    hdrs = glob(["tf_includes/google/protobuf/*.h",
+                 "tf_includes/google/protobuf/*.inc",
+                 "tf_includes/google/protobuf/**/*.h",
+                 "tf_includes/google/protobuf/**/*.inc"]),
+    includes = ["tf_includes"],
     visibility = ["//visibility:public"],
 )
 """,
