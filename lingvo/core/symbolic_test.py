@@ -34,26 +34,31 @@ class SymbolicTest(test_utils.TestCase):
     y = symbolic.NewSymbol('y')
     xy = x * y
 
-    a = tf.placeholder(tf.float32)
-    b = tf.placeholder(tf.float32)
-
-    with symbolic.SymbolToValueMap({x: 2, y: 3}):
-      self.assertEqual(symbolic.EvalExpr(xy), 6)
+    with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES, {x: 2, y: 3}):
+      self.assertEqual(symbolic.EvalExpr(symbolic.STATIC_VALUES, xy), 6)
       # The inner map overrides the outer map.
-      with symbolic.SymbolToValueMap({x: a, y: b}):
-        ab = symbolic.EvalExpr(xy)
-      self.assertEqual(symbolic.EvalExpr(xy), 6)
+      with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES, {x: 5, y: 6}):
+        self.assertEqual(symbolic.EvalExpr(symbolic.STATIC_VALUES, xy), 30)
+      # Back to the outer map.
+      self.assertEqual(symbolic.EvalExpr(symbolic.STATIC_VALUES, xy), 6)
 
     # EvalExpr can also evaluate a symbolic expression to a
     # Tensor.
-    self.assertIsInstance(ab, tf.Tensor)
-    with self.session() as sess:
-      self.assertEqual(12, sess.run(ab, {a: 3, b: 4}))
+    a = tf.placeholder(tf.float32)
+    b = tf.placeholder(tf.float32)
+    with symbolic.SymbolToValueMap(symbolic.TENSOR_VALUES, {x: a, y: b}):
+      with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES, {x: 2, y: 3}):
+        # Value maps of different types do not affect each other.
+        self.assertEqual(symbolic.EvalExpr(symbolic.STATIC_VALUES, xy), 6)
+        ab = symbolic.EvalExpr(symbolic.TENSOR_VALUES, xy)
+        self.assertIsInstance(ab, tf.Tensor)
+        with self.session() as sess:
+          self.assertEqual(12, sess.run(ab, {a: 3, b: 4}))
 
     with self.assertRaises(Exception):
       # EvalExpr does not support partial evaluation.
-      with symbolic.SymbolToValueMap({y: 3}):
-        symbolic.EvalExpr(xy)
+      with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES, {y: 3}):
+        symbolic.EvalExpr(symbolic.STATIC_VALUES, xy)
 
 
 if __name__ == '__main__':

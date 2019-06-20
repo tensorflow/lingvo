@@ -40,12 +40,19 @@ def IsExpr(x):
   return isinstance(x, sympy.Expr)
 
 
+STATIC_VALUES = 'static'
+TENSOR_VALUES = 'tensor'
+VALUE_TYPES = (STATIC_VALUES, TENSOR_VALUES)
+
+
 class _LocalSymbolToValueStack(threading.local):
   """A thread-local stack of symbol-to-value dicts."""
 
   def __init__(self):
     super(_LocalSymbolToValueStack, self).__init__()
-    self.stack = [{}]
+    self.stack = {}
+    for value_type in VALUE_TYPES:
+      self.stack[value_type] = [{}]
 
 
 class SymbolToValueMap(object):
@@ -53,8 +60,9 @@ class SymbolToValueMap(object):
 
   Usage:
 
-  with SymbolToValueMap({symbol1: value1, symbol2: value2, ...}):
-    ... = EvalExpr(symbolic_expr)
+  with SymbolToValueMap('static', {symbol1: value1, symbol2: value2, ...}):
+    with SymbolToValueMap('tensor', {symbol1: value1, symbol2: value2, ...}):
+      ... = EvalExpr(value_type, symbolic_expr)
 
   Multiple SymbolToValueMap context can be nested inside one another. The inner
   contexts take precedence over outer ones when multiple contexts provide
@@ -63,50 +71,54 @@ class SymbolToValueMap(object):
 
   _local_stack = _LocalSymbolToValueStack()
 
-  def __init__(self, symbol_to_value_map):
+  def __init__(self, value_type, symbol_to_value_map):
     """Creates a new symbol to value map.
 
     Args:
+      value_type: the type of values in 'symbol_to_value_map'.
       symbol_to_value_map: a dict from _Symbol to values.
     """
-    self.merged = dict(self.Stack()[-1])
+    assert value_type in VALUE_TYPES
+    self.value_type = value_type
+    self.merged = dict(self.Stack(value_type)[-1])
     self.merged.update(symbol_to_value_map)
 
   @staticmethod
-  def Stack():
-    return SymbolToValueMap._local_stack.stack
+  def Stack(value_type):
+    return SymbolToValueMap._local_stack.stack[value_type]
 
   def __enter__(self):
-    self.Stack().append(self.merged)
+    self.Stack(self.value_type).append(self.merged)
 
   def __exit__(self, type_arg, value_arg, traceback_arg):
-    stack = self.Stack()
+    stack = self.Stack(self.value_type)
     assert stack
     assert stack[-1] is self.merged
     stack.pop()
 
   @staticmethod
-  def Get():
+  def Get(value_type):
     """Returns a symbol-to-value mapping merged from Stack()."""
-    return SymbolToValueMap.Stack()[-1]
+    return SymbolToValueMap.Stack(value_type)[-1]
 
 
-def EvalExpr(x):
+def EvalExpr(value_type, x):
   """Evaluates x with symbol_to_value_map within the current context.
 
   Args:
+    value_type: the target value type (see VALUE_TYPE).
     x: a sympy.Expr, an object, or a list/tuple of Exprs and objects.
 
   Returns:
     Evaluation result of 'x'.
   """
   if isinstance(x, (list, tuple)):
-    return type(x)(EvalExpr(y) for y in x)
+    return type(x)(EvalExpr(value_type, y) for y in x)
   elif isinstance(x, sympy.Expr):
     # In theory the below should be equivalent to:
     #   y = x.subs(symbol_to_value_map).
     # In practice subs() doesn't work for when values are Tensors.
-    k, v = list(zip(*(list(SymbolToValueMap.Get().items()))))
+    k, v = list(zip(*(list(SymbolToValueMap.Get(value_type).items()))))
     y = sympy.lambdify(k, x)(*v)
     return y
   else:

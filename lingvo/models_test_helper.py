@@ -41,6 +41,7 @@ def _StubOutCreateVariable(variable_cache):
     """Return a zero tensor of the right shape instead of creating variable."""
     del reuse
     dtype = params.dtype
+    shape = py_utils.ToStaticShape(params.shape)
     if init_wrapper:
       var = init_wrapper(dtype, tf.constant_initializer(0, dtype=dtype))
     # For total samples counters we have to actually create variables so that
@@ -48,18 +49,18 @@ def _StubOutCreateVariable(variable_cache):
     elif 'total_samples' in name:
       var = tf.get_variable(
           name,
-          params.shape,
+          shape,
           dtype,
           tf.constant_initializer(0, dtype=dtype),
           collections=collections,
           trainable=trainable,
           validate_shape=True)
     else:
-      key = hash(tuple(params.shape))
+      key = hash(tuple(shape))
       if key in variable_cache:
         var = variable_cache[key]
       else:
-        var = tf.zeros(params.shape, dtype)
+        var = tf.zeros(shape, dtype)
         variable_cache[key] = var
     return var, var
 

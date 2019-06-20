@@ -23,7 +23,6 @@ import threading
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
-from lingvo.core import symbolic
 import six
 from six.moves import zip
 import tensorflow as tf
@@ -610,9 +609,6 @@ class BaseLayer(object):
           collections=(var_params.collections +
                        [py_utils.SKIP_LP_REGULARIZATION]))
     self._var_symbolic_shape_map[name] = var_params.shape
-    if (var_params.shape and
-        any(symbolic.IsExpr(dim) for dim in var_params.shape)):
-      var_params.shape = symbolic.EvalExpr(var_params.shape)
     value, var = py_utils.CreateVariable(name, var_params, *args, **kwargs)
     self._private_vars[name] = var
     if theta_fn is not None:

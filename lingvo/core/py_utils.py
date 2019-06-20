@@ -714,6 +714,14 @@ def ReadOnlyAttrDictView(backing):
   return Wrapper()
 
 
+def ToStaticShape(shape):
+  if (isinstance(shape, (list, tuple)) and
+      any(symbolic.IsExpr(dim) for dim in shape)):
+    return symbolic.EvalExpr(symbolic.STATIC_VALUES, shape)
+  else:
+    return shape
+
+
 class RNNCellStateInit(object):
   """State initialization functions for RNN cell init state."""
 
@@ -756,9 +764,7 @@ def InitRNNCellState(shape, init=None, dtype=None, name=None, is_eval=False):
     A Tensor of the specified shape, and sampled from the distribution as
     defined by the init parameters.
   """
-  if (isinstance(shape, (list, tuple)) and
-      any(symbolic.IsExpr(dim) for dim in shape)):
-    shape = symbolic.EvalExpr(shape)
+  shape = ToStaticShape(shape)
 
   if init is None:
     init = DefaultRNNCellStateInit()
@@ -1108,7 +1114,7 @@ def CreateVariable(name,
   p = params.Copy()
   assert isinstance(p, hyperparams.Params)
   dtype = p.dtype
-  shape = p.shape
+  shape = ToStaticShape(p.shape)
   dim0 = 1
   if shape:
     assert all([dim_size > 0 for dim_size in shape]), ('%s' % shape)
