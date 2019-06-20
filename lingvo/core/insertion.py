@@ -156,7 +156,12 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
   def __init__(self, params):
     super(SymbolInsertionLayer, self).__init__(params)
 
-  def FProp(self, theta, x, x_paddings=None):
+  def FProp(self,
+            theta,
+            x,
+            x_paddings=None,
+            eos_id=1,
+            force_sample_last_token=True):
     """Applies SymbolInsertionLayer.
 
     We take in a `x`, which represents the groundtruth sequence (i.e., English
@@ -169,6 +174,8 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
       x: The symbol ids of shape `[batch_size, time_dim]`.
       x_paddings: The paddings (1 or 0) of shape `[batch_size, time_dim]` where
         0 is valid and 1 is invalid.
+      eos_id: The <eos> token id to represent end-of-slot.
+      force_sample_last_token: Set True to force sample the last token of `x`.
 
     Returns:
       A `NestedMap`.
@@ -211,8 +218,12 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
 
     # Compute the desired length per example in the batch.
     ratio = tf.random.uniform([batch_size], 0.0, 1.0)
-    c_len = tf.minimum(
-        tf.cast(ratio * tf.cast(x_len + 1, tf.float32), tf.int32), x_len)
+    if force_sample_last_token:
+      c_len = tf.minimum(
+          tf.cast(ratio * tf.cast(x_len, tf.float32), tf.int32), x_len - 1) + 1
+    else:
+      c_len = tf.minimum(
+          tf.cast(ratio * tf.cast(x_len + 1, tf.float32), tf.int32), x_len)
     # Compute the maximum length across the batch.
     c_len_max = tf.reduce_max(c_len)
 
@@ -220,10 +231,17 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
     z_logits = tf.cast(
         tf.expand_dims(tf.range(time_dim), 0) >= tf.expand_dims(x_len, 1),
         tf.float32) * -1e9
+    if force_sample_last_token:
+      # Force sample the last token -- i.e., as indexed by `x_len - 1`. We can
+      # accomplish this by add +LARGE_NUMBER to the logits.
+      z_logits += tf.cast(
+          tf.equal(
+              tf.expand_dims(tf.range(time_dim), 0), tf.expand_dims(
+                  x_len - 1, 1)), tf.float32) * 1e9
     # Gumbel-max trick to sample (we only sample valid positions per sample in
     # the batch).
     z = -tf.math.log(-tf.math.log(tf.random.uniform([batch_size, time_dim])))
-    unused_c_values, c_indices = tf.nn.top_k(z_logits + z, time_dim, True)
+    unused_c_values, c_indices = tf.nn.top_k(z_logits + z, time_dim)
 
     # Trim everything > c_len_max.
     c_indices = c_indices[:, :c_len_max]
@@ -236,9 +254,16 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
 
     # Materialize the canvas.
     c_indices = tf.sort(c_indices)
-    c = tf.reshape(
-        tf.gather(tf.reshape(x, [-1]), tf.reshape(c_indices, [-1])),
-        [batch_size, c_len_max])
+    c = tf.gather_nd(
+        x,
+        tf.stack([
+            tf.reshape(
+                tf.tile(
+                    tf.expand_dims(tf.range(batch_size), 1), [1, c_len_max]),
+                [-1]),
+            tf.reshape(c_indices, [-1])
+        ], 1))
+    c = tf.reshape(c, [batch_size, c_len_max])
 
     # Compute the paddings.
     c_paddings = 1 - tf.sequence_mask(c_len, c_len_max, dtype=x_paddings.dtype)
@@ -255,25 +280,46 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
         py_utils.GetShape(x))
     # `x_segments` captures which slot each `x` belongs to (both observed and
     # tokens that need to be observed).
-    x_segments = tf.cumsum(x_token_is_observed, 1)
+    x_segments = tf.cumsum(x_token_is_observed, 1, exclusive=True)
 
-    # The target indices (to tf.gather_nd the log-probs).
+    x_token_is_observed = tf.cast(x_token_is_observed, tf.bool)
+    prev_x_token_is_observed = tf.pad(
+        x_token_is_observed[:, :-1], [[0, 0], [1, 0]], constant_values=True)
+    x_token_is_observed = tf.reshape(x_token_is_observed, [-1])
+    prev_x_token_is_observed = tf.reshape(prev_x_token_is_observed, [-1])
+    x_is_valid = tf.cast(1 - x_paddings, tf.bool)
+    x_is_valid = tf.reshape(x_is_valid, [-1])
+
+    # Remap all the observed to <eos>, note some of these need a zero weight
+    # (or else there would be <eos> and valid token in the same slot).
+    target_indices = tf.cast(tf.reshape(x, [-1, 1]), tf.int32)
+    target_indices = tf.where(
+        x_token_is_observed, tf.fill(py_utils.GetShape(target_indices), eos_id),
+        target_indices)
+
+    # TODO(williamchan): We give uniform 1.0 weight, however, math suggests
+    # we may want to weigh this term by the original sequence length.
+    target_weights = tf.ones_like(target_indices, tf.float32)
+
+    # We need to set all the weights for <eos> which actually have valid tokens
+    # in the slot to zero.
+    target_weights = tf.where(x_token_is_observed & ~prev_x_token_is_observed,
+                              tf.zeros_like(target_weights), target_weights)
+
+    # TODO(williamchan): Consider dropping the entries w/ weight zero.
+
+    # Add the batch and slot indices.
     target_indices = tf.concat([
         tf.reshape(
             tf.tile(tf.expand_dims(tf.range(batch_size), 1), [1, time_dim]),
             [batch_size * time_dim, 1]),
-        tf.reshape(x_segments, [-1, 1]),
-        tf.cast(tf.reshape(x, [-1, 1]), tf.int32)
+        tf.reshape(x_segments, [-1, 1]), target_indices
     ], 1)
-    # TODO(williamchan): We give uniform 1.0 weight, however, math suggests
-    # we may want to weigh this term by the original sequence length.
-    target_weights = tf.ones([batch_size * time_dim], tf.float32)
 
-    x_token_is_observed = tf.reshape(
-        tf.cast(x_token_is_observed, tf.bool), [-1])
-    x_is_valid = tf.reshape(tf.cast(1 - x_paddings, tf.bool), [-1])
-    target_indices = target_indices[~x_token_is_observed & x_is_valid]
-    target_weights = target_weights[~x_token_is_observed & x_is_valid]
+    # Select only the valid indices. The selected valid ones include slots w/
+    # <eos>.
+    target_indices = target_indices[x_is_valid]
+    target_weights = target_weights[x_is_valid]
 
     return py_utils.NestedMap(
         canvas=c,

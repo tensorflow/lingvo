@@ -152,7 +152,7 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
       time_dim = 10
 
       inputs = tf.tile(tf.expand_dims(tf.range(time_dim), 0), [batch_size, 1])
-      spec = insertion_layer.FProp(None, inputs)
+      spec = insertion_layer.FProp(None, inputs, force_sample_last_token=False)
 
       canvas, canvas_indices, canvas_paddings = sess.run(
           [spec.canvas, spec.canvas_indices, spec.canvas_paddings])
@@ -182,7 +182,8 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
       inputs = tf.tile(tf.expand_dims(tf.range(time_dim), 0), [batch_size, 1])
       inputs_len = tf.random.uniform([batch_size], 0, time_dim, tf.int32)
       paddings = 1 - tf.sequence_mask(inputs_len, time_dim, tf.int32)
-      spec = insertion_layer.FProp(None, inputs, paddings)
+      spec = insertion_layer.FProp(
+          None, inputs, paddings, force_sample_last_token=False)
 
       canvas_with_max_length = False
       for _ in range(1000):
@@ -202,8 +203,8 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
       # of the same size as the maximum canvas size.
       self.assertEqual(canvas_with_max_length, True)
 
-  def testGetValidCanvasAndTargetsUnderUniformOraclePolicy(self):
-    """Tests for valid canvas+targets under uniform (rollin+oracle) policy."""
+  def testContiguousCanvasUnderUniformRollinPolicy(self):
+    """Tests for valid canvas size."""
     with self.session(use_gpu=True) as sess:
       params = insertion.SymbolInsertionLayer.Params()
       params.name = 'insertion'
@@ -212,52 +213,129 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
 
       insertion_layer = insertion.SymbolInsertionLayer(params)
 
-      batch_size = 8
+      batch_size = 4
       time_dim = 10
 
-      inputs = np.tile(np.arange(time_dim, dtype=np.int32), [batch_size, 1])
-      inputs_len = np.random.randint(0, time_dim, [batch_size], np.int32)
-      inputs_len[0] = 0
-      inputs_len[1] = 1
-      inputs_len[2] = time_dim - 1
-      inputs_len[3] = time_dim - 2
-      inputs_paddings = 1 - tf.sequence_mask(inputs_len, time_dim, tf.int32)
-      spec = insertion_layer.FProp(None, inputs, inputs_paddings)
+      inputs = tf.tile(
+          tf.expand_dims(tf.range(time_dim), 0) + 100, [batch_size, 1])
+      inputs_len = tf.random.uniform([batch_size], 0, time_dim, tf.int32)
+      paddings = 1 - tf.sequence_mask(inputs_len, time_dim, tf.int32)
+      spec = insertion_layer.FProp(
+          None, inputs, paddings, force_sample_last_token=False)
 
-      (canvas_indices, canvas_paddings, target_indices,
+      for _ in range(1000):
+        canvas, canvas_paddings = sess.run([spec.canvas, spec.canvas_paddings])
+
+        for b in range(batch_size):
+          length = np.sum(1 - canvas_paddings[b, :]).astype(np.int32)
+          # Check for valid part of the canvas and padding.
+          for l in range(length):
+            self.assertEqual(canvas_paddings[b, l], 0)
+            self.assertNotEqual(canvas[b, l], 0)
+          # Check for invalid part of the canvas and padding.
+          for l in range(length, canvas.shape[1]):
+            self.assertEqual(canvas_paddings[b, l], 1)
+            self.assertEqual(canvas[b, l], 0)
+
+  def testGetValidCanvasAndTargetsUnderUniformOraclePolicyWithoutForcedSample(
+      self):
+    """Tests for canvas+targets under uniform (rollin+oracle) policy."""
+    with self.session(use_gpu=True) as sess:
+      params = insertion.SymbolInsertionLayer.Params()
+      params.name = 'insertion'
+      params.rollin_policy = 'oracle'
+      params.oracle_policy = 'uniform'
+
+      insertion_layer = insertion.SymbolInsertionLayer(params)
+
+      x = np.asarray(
+          [[10, 11, 12, 13, 14, 15, 16], [10, 11, 12, 13, 14, 15, 16],
+           [10, 0, 0, 0, 0, 0, 0], [10, 11, 12, 13, 14, 15, 0]], np.int32)
+      x_paddings = np.asarray([[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0],
+                               [0, 1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 1]],
+                              np.float32)
+
+      spec = insertion_layer.FProp(
+          None,
+          tf.convert_to_tensor(x),
+          tf.convert_to_tensor(x_paddings),
+          force_sample_last_token=False)
+
+      (canvas, canvas_paddings, target_indices, target_weights) = sess.run([
+          spec.canvas, spec.canvas_paddings, spec.target_indices,
+          spec.target_weights
+      ])
+
+      canvas_gold = np.asarray(
+          [[10, 14, 16], [11, 13, 14], [10, 0, 0], [0, 0, 0]], np.int32)
+      canvas_paddings_gold = np.asarray(
+          [[0, 0, 0], [0, 0, 0], [0, 1, 1], [1, 1, 1]], np.float32)
+      target_indices_gold = np.asarray(
+          [[0, 0, 1], [0, 1, 11], [0, 1, 12], [0, 1, 13], [0, 1, 1], [0, 2, 15],
+           [0, 2, 1], [1, 0, 10], [1, 0, 1], [1, 1, 12], [1, 1, 1], [1, 2, 1],
+           [1, 3, 15], [1, 3, 16], [2, 0, 1], [3, 0, 10], [3, 0, 11],
+           [3, 0, 12], [3, 0, 13], [3, 0, 14], [3, 0, 15]], np.int32)
+      target_weights_gold = np.asarray([1, 1, 1, 1, 0, 1, 0] +
+                                       [1, 0, 1, 0, 1, 1, 1] + [1] +
+                                       [1, 1, 1, 1, 1, 1], np.float32)
+      target_weights_gold = np.reshape(target_weights_gold,
+                                       [target_weights_gold.shape[0], 1])
+
+      self.assertAllEqual(canvas, canvas_gold)
+      self.assertAllEqual(canvas_paddings, canvas_paddings_gold)
+      self.assertAllEqual(target_indices, target_indices_gold)
+      self.assertAllEqual(target_weights, target_weights_gold)
+
+  def testGetValidCanvasAndTargetsUnderUniformOraclePolicyForcedSample(self):
+    """Tests for canvas+targets under uniform (rollin+oracle) policy."""
+    with self.session(use_gpu=True) as sess:
+      params = insertion.SymbolInsertionLayer.Params()
+      params.name = 'insertion'
+      params.rollin_policy = 'oracle'
+      params.oracle_policy = 'uniform'
+
+      insertion_layer = insertion.SymbolInsertionLayer(params)
+
+      x = np.asarray(
+          [[10, 11, 12, 13, 14, 15, 16, 1], [10, 11, 12, 13, 14, 15, 16, 1],
+           [10, 1, 0, 0, 0, 0, 0, 0], [10, 11, 12, 13, 14, 15, 1, 0]], np.int32)
+      x_paddings = np.asarray(
+          [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0],
+           [0, 0, 1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 0, 1]], np.float32)
+
+      spec = insertion_layer.FProp(None, tf.convert_to_tensor(x),
+                                   tf.convert_to_tensor(x_paddings))
+
+      (canvas, canvas_indices, canvas_paddings, target_indices,
        target_weights) = sess.run([
-           spec.canvas_indices, spec.canvas_paddings, spec.target_indices,
-           spec.target_weights
+           spec.canvas, spec.canvas_indices, spec.canvas_paddings,
+           spec.target_indices, spec.target_weights
        ])
 
-      target_index = 0
-      for b in range(batch_size):
-        canvas_length = np.sum(1 - canvas_paddings[b, :]).astype(np.int32)
+      canvas_gold = np.asarray(
+          [[10, 15, 16, 1], [12, 14, 16, 1], [10, 1, 0, 0], [1, 0, 0, 0]],
+          np.int32)
+      canvas_indices_gold = np.asarray(
+          [[0, 5, 6, 7], [2, 4, 6, 7], [0, 1, 7, 7], [6, 7, 7, 7]], np.int32)
+      canvas_paddings_gold = np.asarray(
+          [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 1], [0, 1, 1, 1]], np.float32)
+      target_indices_gold = np.asarray(
+          [[0, 0, 1], [0, 1, 11], [0, 1, 12], [0, 1, 13], [0, 1, 14], [0, 1, 1],
+           [0, 2, 1], [0, 3, 1], [1, 0, 10], [1, 0, 11], [1, 0, 1], [1, 1, 13],
+           [1, 1, 1], [1, 2, 15], [1, 2, 1], [1, 3, 1], [2, 0, 1], [2, 1, 1],
+           [3, 0, 10], [3, 0, 11], [3, 0, 12], [3, 0, 13], [3, 0, 14],
+           [3, 0, 15], [3, 0, 1]], np.int32)
+      target_weights_gold = np.asarray([1, 1, 1, 1, 1, 0, 1, 1] +
+                                       [1, 1, 0, 1, 0, 1, 0, 1] + [1, 1] +
+                                       [1, 1, 1, 1, 1, 1, 0], np.float32)
+      target_weights_gold = np.reshape(target_weights_gold,
+                                       [target_weights_gold.shape[0], 1])
 
-        canvas_index = 0
-
-        # Loop through the original `inputs` length.
-        for l in range(inputs_len[b]):
-          if (canvas_index < canvas_length and
-              canvas_indices[b, canvas_index] == l):
-            canvas_index += 1
-          elif target_indices[target_index, 2] == l:
-            self.assertEqual(target_indices[target_index, 0], b,
-                             'Mismatch in batch index.')
-            self.assertEqual(target_indices[target_index, 1], canvas_index,
-                             'Mismatch in slot index.')
-            self.assertEqual(target_indices[target_index, 2], inputs[b, l],
-                             'Mismatch in content index.')
-            target_index += 1
-          else:
-            raise ValueError(
-                'Mismatch between canvas_indices and target_indices!\n%s\n%s' %
-                (str(canvas_indices), str(target_indices)))
-
-      # Make sure we consume all the targets.
-      self.assertEqual(target_index, target_indices.shape[0])
-      self.assertAllEqual(target_weights,
-                          np.ones([target_indices.shape[0]], np.int32))
+      self.assertAllEqual(canvas, canvas_gold)
+      self.assertAllEqual(canvas_indices, canvas_indices_gold)
+      self.assertAllEqual(canvas_paddings, canvas_paddings_gold)
+      self.assertAllEqual(target_indices, target_indices_gold)
+      self.assertAllEqual(target_weights, target_weights_gold)
 
 
 if __name__ == '__main__':
