@@ -280,7 +280,7 @@ for an insertion-based model.</p>
 
 <dl class="method">
 <dt id="lingvo.core.insertion.SymbolInsertionLayer.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>x</em>, <em>x_paddings=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/insertion.html#SymbolInsertionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.insertion.SymbolInsertionLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>x</em>, <em>x_paddings=None</em>, <em>eos_id=1</em>, <em>force_sample_last_token=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/insertion.html#SymbolInsertionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.insertion.SymbolInsertionLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies SymbolInsertionLayer.</p>
 <p>We take in a <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code>, which represents the groundtruth sequence (i.e., English
 sequence). We return a sampled rollin (observed) canvas (i.e., random subset
@@ -295,6 +295,8 @@ insertion-based model (i.e., the targets given the random observed subset).</p>
 <li><strong>x</strong> – The symbol ids of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch_size,</span> <span class="pre">time_dim]</span></code>.</li>
 <li><strong>x_paddings</strong> – The paddings (1 or 0) of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch_size,</span> <span class="pre">time_dim]</span></code> where
 0 is valid and 1 is invalid.</li>
+<li><strong>eos_id</strong> – The &lt;eos&gt; token id to represent end-of-slot.</li>
+<li><strong>force_sample_last_token</strong> – Set True to force sample the last token of <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code>.</li>
 </ul>
 </td>
 </tr>
