@@ -211,13 +211,17 @@
 
 <dl class="class">
 <dt id="lingvo.core.symbolic.SymbolToValueMap">
-<em class="property">class </em><code class="descclassname">lingvo.core.symbolic.</code><code class="descname">SymbolToValueMap</code><span class="sig-paren">(</span><em>symbol_to_value_map</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/symbolic.html#SymbolToValueMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.symbolic.SymbolToValueMap" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">lingvo.core.symbolic.</code><code class="descname">SymbolToValueMap</code><span class="sig-paren">(</span><em>value_type</em>, <em>symbol_to_value_map</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/symbolic.html#SymbolToValueMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.symbolic.SymbolToValueMap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A symbol-to-value mapping.</p>
 <p>Usage:</p>
 <dl class="docutils">
-<dt>with SymbolToValueMap({symbol1: value1, symbol2: value2, …}):</dt>
-<dd>… = EvalExpr(symbolic_expr)</dd>
+<dt>with SymbolToValueMap(‘static’, {symbol1: value1, symbol2: value2, …}):</dt>
+<dd><dl class="first last docutils">
+<dt>with SymbolToValueMap(‘tensor’, {symbol1: value1, symbol2: value2, …}):</dt>
+<dd>… = EvalExpr(value_type, symbolic_expr)</dd>
+</dl>
+</dd>
 </dl>
 <p>Multiple SymbolToValueMap context can be nested inside one another. The inner
 contexts take precedence over outer ones when multiple contexts provide
@@ -229,12 +233,12 @@ values for the same symbol.</p>
 
 <dl class="staticmethod">
 <dt id="lingvo.core.symbolic.SymbolToValueMap.Stack">
-<em class="property">static </em><code class="descname">Stack</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/symbolic.html#SymbolToValueMap.Stack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.symbolic.SymbolToValueMap.Stack" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">Stack</code><span class="sig-paren">(</span><em>value_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/symbolic.html#SymbolToValueMap.Stack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.symbolic.SymbolToValueMap.Stack" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="staticmethod">
 <dt id="lingvo.core.symbolic.SymbolToValueMap.Get">
-<em class="property">static </em><code class="descname">Get</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/symbolic.html#SymbolToValueMap.Get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.symbolic.SymbolToValueMap.Get" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">Get</code><span class="sig-paren">(</span><em>value_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/symbolic.html#SymbolToValueMap.Get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.symbolic.SymbolToValueMap.Get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a symbol-to-value mapping merged from Stack().</p>
 </dd></dl>
 
@@ -242,15 +246,20 @@ values for the same symbol.</p>
 
 <dl class="function">
 <dt id="lingvo.core.symbolic.EvalExpr">
-<code class="descclassname">lingvo.core.symbolic.</code><code class="descname">EvalExpr</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/symbolic.html#EvalExpr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.symbolic.EvalExpr" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.symbolic.</code><code class="descname">EvalExpr</code><span class="sig-paren">(</span><em>value_type</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/symbolic.html#EvalExpr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.symbolic.EvalExpr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evaluates x with symbol_to_value_map within the current context.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>x</strong> – a sympy.Expr, an object, or a list/tuple of Exprs and objects.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>value_type</strong> – the target value type (see VALUE_TYPE).</li>
+<li><strong>x</strong> – a sympy.Expr, an object, or a list/tuple of Exprs and objects.</li>
+</ul>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Evaluation result of ‘x’.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Evaluation result of ‘x’.</p>
+</td>
 </tr>
 </tbody>
 </table>

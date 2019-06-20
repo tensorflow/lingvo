@@ -185,12 +185,19 @@
   <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">)</span></div>
 
 
+<span class="n">STATIC_VALUES</span> <span class="o">=</span> <span class="s1">&#39;static&#39;</span>
+<span class="n">TENSOR_VALUES</span> <span class="o">=</span> <span class="s1">&#39;tensor&#39;</span>
+<span class="n">VALUE_TYPES</span> <span class="o">=</span> <span class="p">(</span><span class="n">STATIC_VALUES</span><span class="p">,</span> <span class="n">TENSOR_VALUES</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="_LocalSymbolToValueStack"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic._LocalSymbolToValueStack">[docs]</a><span class="k">class</span> <span class="nc">_LocalSymbolToValueStack</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A thread-local stack of symbol-to-value dicts.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">_LocalSymbolToValueStack</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">[{}]</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">value_type</span> <span class="ow">in</span> <span class="n">VALUE_TYPES</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="n">value_type</span><span class="p">]</span> <span class="o">=</span> <span class="p">[{}]</span></div>
 
 
 <div class="viewcode-block" id="SymbolToValueMap"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic.SymbolToValueMap">[docs]</a><span class="k">class</span> <span class="nc">SymbolToValueMap</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -198,8 +205,9 @@
 
 <span class="sd">  Usage:</span>
 
-<span class="sd">  with SymbolToValueMap({symbol1: value1, symbol2: value2, ...}):</span>
-<span class="sd">    ... = EvalExpr(symbolic_expr)</span>
+<span class="sd">  with SymbolToValueMap(&#39;static&#39;, {symbol1: value1, symbol2: value2, ...}):</span>
+<span class="sd">    with SymbolToValueMap(&#39;tensor&#39;, {symbol1: value1, symbol2: value2, ...}):</span>
+<span class="sd">      ... = EvalExpr(value_type, symbolic_expr)</span>
 
 <span class="sd">  Multiple SymbolToValueMap context can be nested inside one another. The inner</span>
 <span class="sd">  contexts take precedence over outer ones when multiple contexts provide</span>
@@ -208,50 +216,54 @@
 
   <span class="n">_local_stack</span> <span class="o">=</span> <span class="n">_LocalSymbolToValueStack</span><span class="p">()</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol_to_value_map</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value_type</span><span class="p">,</span> <span class="n">symbol_to_value_map</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates a new symbol to value map.</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">      value_type: the type of values in &#39;symbol_to_value_map&#39;.</span>
 <span class="sd">      symbol_to_value_map: a dict from _Symbol to values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">merged</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Stack</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">assert</span> <span class="n">value_type</span> <span class="ow">in</span> <span class="n">VALUE_TYPES</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">value_type</span> <span class="o">=</span> <span class="n">value_type</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">merged</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Stack</span><span class="p">(</span><span class="n">value_type</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">merged</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">symbol_to_value_map</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SymbolToValueMap.Stack"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic.SymbolToValueMap.Stack">[docs]</a>  <span class="nd">@staticmethod</span>
-  <span class="k">def</span> <span class="nf">Stack</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">SymbolToValueMap</span><span class="o">.</span><span class="n">_local_stack</span><span class="o">.</span><span class="n">stack</span></div>
+  <span class="k">def</span> <span class="nf">Stack</span><span class="p">(</span><span class="n">value_type</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">SymbolToValueMap</span><span class="o">.</span><span class="n">_local_stack</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="n">value_type</span><span class="p">]</span></div>
 
   <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">Stack</span><span class="p">()</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">merged</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value_type</span><span class="p">)</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">merged</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_arg</span><span class="p">,</span> <span class="n">value_arg</span><span class="p">,</span> <span class="n">traceback_arg</span><span class="p">):</span>
-    <span class="n">stack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Stack</span><span class="p">()</span>
+    <span class="n">stack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value_type</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">stack</span>
     <span class="k">assert</span> <span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">merged</span>
     <span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
 
 <div class="viewcode-block" id="SymbolToValueMap.Get"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic.SymbolToValueMap.Get">[docs]</a>  <span class="nd">@staticmethod</span>
-  <span class="k">def</span> <span class="nf">Get</span><span class="p">():</span>
+  <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="n">value_type</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a symbol-to-value mapping merged from Stack().&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">SymbolToValueMap</span><span class="o">.</span><span class="n">Stack</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div></div>
+    <span class="k">return</span> <span class="n">SymbolToValueMap</span><span class="o">.</span><span class="n">Stack</span><span class="p">(</span><span class="n">value_type</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div></div>
 
 
-<div class="viewcode-block" id="EvalExpr"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic.EvalExpr">[docs]</a><span class="k">def</span> <span class="nf">EvalExpr</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<div class="viewcode-block" id="EvalExpr"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic.EvalExpr">[docs]</a><span class="k">def</span> <span class="nf">EvalExpr</span><span class="p">(</span><span class="n">value_type</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Evaluates x with symbol_to_value_map within the current context.</span>
 
 <span class="sd">  Args:</span>
+<span class="sd">    value_type: the target value type (see VALUE_TYPE).</span>
 <span class="sd">    x: a sympy.Expr, an object, or a list/tuple of Exprs and objects.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    Evaluation result of &#39;x&#39;.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)(</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)(</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">value_type</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span>
   <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">):</span>
     <span class="c1"># In theory the below should be equivalent to:</span>
     <span class="c1">#   y = x.subs(symbol_to_value_map).</span>
     <span class="c1"># In practice subs() doesn&#39;t work for when values are Tensors.</span>
-    <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">SymbolToValueMap</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()))))</span>
+    <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">SymbolToValueMap</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">value_type</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()))))</span>
     <span class="n">y</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">lambdify</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">x</span><span class="p">)(</span><span class="o">*</span><span class="n">v</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">y</span>
   <span class="k">else</span><span class="p">:</span>

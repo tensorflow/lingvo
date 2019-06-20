@@ -186,6 +186,7 @@
     <span class="sd">&quot;&quot;&quot;Return a zero tensor of the right shape instead of creating variable.&quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">reuse</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">init_wrapper</span><span class="p">:</span>
       <span class="n">var</span> <span class="o">=</span> <span class="n">init_wrapper</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant_initializer</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">))</span>
     <span class="c1"># For total samples counters we have to actually create variables so that</span>
@@ -193,18 +194,18 @@
     <span class="k">elif</span> <span class="s1">&#39;total_samples&#39;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
       <span class="n">var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
           <span class="n">name</span><span class="p">,</span>
-          <span class="n">params</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+          <span class="n">shape</span><span class="p">,</span>
           <span class="n">dtype</span><span class="p">,</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">constant_initializer</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
           <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
           <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
           <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">key</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+      <span class="n">key</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
       <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">variable_cache</span><span class="p">:</span>
         <span class="n">var</span> <span class="o">=</span> <span class="n">variable_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
         <span class="n">variable_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
     <span class="k">return</span> <span class="n">var</span><span class="p">,</span> <span class="n">var</span>
 
