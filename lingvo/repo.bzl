@@ -218,7 +218,7 @@ filegroup(
 )
 """,
         urls = [
-            "https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.zip",
+            "https://github.com/protocolbuffers/protobuf/releases/download/v3.8.0/protoc-3.8.0-linux-x86_64.zip",
         ],
-        sha256 = "24ea6924faaf94d4a0c5850fdb278290a326eff9a68f36ee5809654faccd0e10",
+        sha256 = "717903f32653f07cd895cfe89ca18ff4ca35f825afa7fe17bcb5cb13bf628be0",
     )
