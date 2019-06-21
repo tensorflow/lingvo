@@ -751,5 +751,14 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     self.assertAlmostEqual(hyp.normalized_score, -4.21591472626, places=4)
 
 
+class InsertionDecoderTest(TransformerDecoderTestCaseBase):
+
+  def testDecoderConstruction(self):
+    p = decoder.InsertionDecoder.Params()
+    p.name = 'insertion_decoder'
+    dec = p.Instantiate()
+    self.assertIsInstance(dec, decoder.InsertionDecoder)
+
+
 if __name__ == '__main__':
   tf.test.main()

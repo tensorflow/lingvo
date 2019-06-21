@@ -565,5 +565,153 @@ class RNMTModelTest(test_utils.TestCase):
       self.assertEqual(mdl.input_generator.scaled_bucket_batch_limit, [40])
 
 
+class InsertionModelTest(test_utils.TestCase):
+
+  def _InputParams(self):
+    p = input_generator.NmtInput.Params()
+    input_file = test_helper.test_src_dir_path(
+        'tasks/mt/testdata/wmt14_ende_wpm_32k_test.tfrecord')
+    vocab_file = test_helper.test_src_dir_path(
+        'tasks/mt/testdata/wmt14_ende_wpm_32k_test.vocab')
+    p.file_pattern = 'tfrecord:' + input_file
+    p.file_random_seed = 31415
+    p.file_parallelism = 1
+    p.bucket_upper_bound = [40]
+    p.bucket_batch_limit = [8]
+    p.source_max_length = 200
+    p.target_max_length = 200
+
+    p.tokenizer.token_vocab_filepath = vocab_file
+    p.tokenizer.vocab_size = 32000
+    return p
+
+  def _DecoderParams(self):
+    p = decoder.InsertionDecoder.Params()
+    p.name = 'decoder'
+    return p
+
+  def _testParams(self):
+    p = model.InsertionModel.Params()
+    p.name = 'insertion'
+    p.input = self._InputParams()
+    p.decoder = self._DecoderParams()
+    return p
+
+  def testSampleCanvasAndTargets(self):
+    with self.session() as sess:
+      tf.set_random_seed(_TF_RANDOM_SEED)
+
+      x = np.asarray([[10, 11, 12, 13, 14, 15, 2], [10, 11, 12, 13, 14, 15, 2],
+                      [2, 0, 0, 0, 0, 0, 0], [10, 11, 12, 13, 14, 2, 0]],
+                     np.int32)
+      x_paddings = np.asarray([[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0],
+                               [0, 1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 1]],
+                              np.float32)
+
+      p = self._testParams()
+      mdl = p.Instantiate()
+
+      descriptor = mdl._SampleCanvasAndTargets(
+          tf.convert_to_tensor(x), tf.convert_to_tensor(x_paddings))
+
+      canvas, canvas_paddings, target_indices, target_weights = sess.run([
+          descriptor.canvas, descriptor.canvas_paddings,
+          descriptor.target_indices, descriptor.target_weights
+      ])
+
+      canvas_gold = np.asarray([[11, 13, 14, 15, 2], [10, 12, 13, 15, 2],
+                                [2, 0, 0, 0, 0], [11, 12, 13, 2, 0]], np.int32)
+      canvas_paddings_gold = np.asarray(
+          [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 1, 1, 1, 1], [0, 0, 0, 0, 1]],
+          np.float32)
+      target_indices_gold = np.asarray(
+          [[0, 0, 10], [0, 0, 2], [0, 1, 12], [0, 1, 2], [0, 2, 2], [0, 3, 2],
+           [0, 4, 2], [1, 0, 2], [1, 1, 11], [1, 1, 2], [1, 2, 2], [1, 3, 14],
+           [1, 3, 2], [1, 4, 2], [2, 0, 2], [3, 0, 10], [3, 0, 2], [3, 1, 2],
+           [3, 2, 2], [3, 3, 14], [3, 3, 2]], np.int32)
+      target_weights_gold = np.asarray([1, 0, 1, 0, 1, 1, 1] +
+                                       [1, 1, 0, 1, 1, 0, 1] + [1] +
+                                       [1, 0, 1, 1, 1, 0], np.float32)
+      target_weights_gold = np.reshape(target_weights_gold,
+                                       [target_weights_gold.shape[0], 1])
+
+      self.assertAllEqual(canvas, canvas_gold)
+      self.assertAllEqual(canvas_paddings, canvas_paddings_gold)
+      self.assertAllEqual(target_indices, target_indices_gold)
+      self.assertAllEqual(target_weights, target_weights_gold)
+
+  def testCreateCanvasAndTargets(self):
+    with self.session() as sess:
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      batch = py_utils.NestedMap(
+          src=py_utils.NestedMap(
+              ids=tf.convert_to_tensor(
+                  np.asarray([
+                      [10, 11, 12, 14, 2, 0],
+                      [20, 21, 22, 24, 25, 2],
+                  ], np.int32)),
+              paddings=tf.convert_to_tensor(
+                  np.asarray([[0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0]],
+                             np.float32))),
+          tgt=py_utils.NestedMap(
+              ids=tf.convert_to_tensor(
+                  np.asarray([[100, 101, 102, 104, 2, 0],
+                              [200, 201, 202, 204, 205, 2]], np.int32)),
+              paddings=tf.convert_to_tensor(
+                  np.asarray([[0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0]],
+                             np.float32))))
+
+      p = self._testParams()
+      mdl = p.Instantiate()
+
+      descriptor = mdl._CreateCanvasAndTargets(batch)
+
+      canvas, canvas_paddings, target_indices, target_weights = sess.run([
+          descriptor.canvas, descriptor.canvas_paddings,
+          descriptor.target_indices, descriptor.target_weights
+      ])
+
+      canvas_gold = np.asarray([[
+          32010, 32012, 32002, 2, 0, 0, 0, 0, 0, 0, 0, 0
+      ], [32020, 32021, 32022, 32024, 32025, 32002, 200, 201, 202, 204, 205, 2]
+                               ], np.int32)
+      canvas_paddings_gold = np.asarray([[0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+                                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+                                        np.float32)
+      target_indices_gold = np.asarray(
+          [[0, 0, 2], [0, 1, 11], [0, 1, 2], [0, 2, 14], [0, 2, 2], [1, 0, 2],
+           [1, 1, 2], [1, 2, 2], [1, 3, 2], [1, 4, 2], [1, 5, 2], [0, 3, 100],
+           [0, 3, 101], [0, 3, 102], [0, 3, 104], [0, 3, 2], [1, 6, 2],
+           [1, 7, 2], [1, 8, 2], [1, 9, 2], [1, 10, 2], [1, 11, 2]], np.int32)
+      target_weights_gold = np.asarray([1, 1, 0, 1, 0] + [1, 1, 1, 1, 1, 1] +
+                                       [1, 1, 1, 1, 0] + [1, 1, 1, 1, 1, 1],
+                                       np.float32)
+      target_weights_gold = np.reshape(target_weights_gold,
+                                       [target_weights_gold.shape[0], 1])
+
+      self.assertAllEqual(canvas, canvas_gold)
+      self.assertAllEqual(canvas_paddings, canvas_paddings_gold)
+      self.assertAllEqual(target_indices, target_indices_gold)
+      self.assertAllEqual(target_weights, target_weights_gold)
+
+  def testConstruction(self):
+    with self.session():
+      p = self._testParams()
+      mdl = p.Instantiate()
+      flatten_vars = mdl.vars.Flatten()
+      self.assertEqual(len(flatten_vars), 122)
+      self.assertEqual(len(tf.trainable_variables()), len(flatten_vars))
+
+  def testFPropGraph(self):
+    """Test the construction of the fprop graph, then fprop the graph."""
+    with self.session() as sess:
+      p = self._testParams()
+      mdl = p.Instantiate()
+      mdl.FPropDefaultTheta()
+
+      tf.global_variables_initializer().run()
+      sess.run(mdl.loss)
+
+
 if __name__ == '__main__':
   tf.test.main()

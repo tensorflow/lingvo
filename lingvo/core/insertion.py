@@ -16,6 +16,7 @@
 """Insertion-based Framework.
 
 References:
+  KERMIT: https://arxiv.org/pdf/1906.01604.pdf
   Insertion Transformer: https://arxiv.org/pdf/1902.03249.pdf
 """
 
@@ -180,7 +181,8 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
     Returns:
       A `NestedMap`.
         - canvas: The canvas (based off of the `rollin_policy`) of shape
-          [batch_size, c_dim].
+          [batch_size, c_dim]. Note that, `c_dim` <= `time_dim` but need not be
+          equal.
         - canvas_indices: The canvas indices (into `x`).
         - canvas_paddings: The paddings of `canvas_indices`.
         - target_indices: The target indices of shape [num_targets, 3].

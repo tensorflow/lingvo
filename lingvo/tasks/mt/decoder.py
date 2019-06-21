@@ -1470,3 +1470,191 @@ class TransformerDecoder(MTBaseDecoder):
           self)._AddAttenProbsSummary(source_paddings, targets, atten_probs)
     if self.cluster.add_summary and self.params.add_multiheaded_attention_scalar_summary:
       self._AddAttenProbsScalarSummary(source_paddings, targets, atten_probs)
+
+
+class InsertionDecoder(base_decoder.BaseBeamSearchDecoder):
+  """Basic Insertion decoder for MT (or any symbol based sequence).
+
+  References:
+    KERMIT: https://arxiv.org/pdf/1906.01604.pdf
+    Insertion Transformer: https://arxiv.org/pdf/1902.03249.pdf
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(InsertionDecoder, cls).Params()
+    p.Define('token_emb', layers.EmbeddingLayer.Params(),
+             'Token embedding layer params.')
+    p.Define('position_emb', layers.PositionalEmbeddingLayer.Params(),
+             'Position embedding layer params.')
+    p.Define(
+        'model_dim', 1024, 'Model dimension that applies to embedding '
+        'layers and all Transformer layers.')
+    p.Define('num_trans_layers', 6, 'Number of Transformer layers.')
+    p.Define('trans_tpl', layers_with_attention.TransformerLayer.Params(),
+             'Transformer layer params.')
+    p.Define('softmax', layers.SimpleFullSoftmax.Params(), 'Softmax params.')
+    p.Define('input_dropout_prob', 0.0, 'Prob at which we do input dropout.')
+
+    # Default config for the token embeddings.
+    p.token_emb.vocab_size = 32000 * 2
+    p.token_emb.embedding_dim = p.model_dim
+    p.token_emb.max_num_shards = 16
+    p.token_emb.params_init = py_utils.WeightInit.Gaussian(
+        1.0 / math.sqrt(p.token_emb.embedding_dim))
+    p.token_emb.scale_sqrt_depth = True
+
+    # Default config for the position embeddings.
+    p.position_emb.embedding_dim = p.model_dim
+
+    # Default config for the transformer layers.
+    p.trans_tpl.source_dim = p.model_dim
+    p.trans_tpl.tr_atten_tpl.source_dim = p.model_dim
+    p.trans_tpl.tr_atten_tpl.num_attention_heads = 8
+    p.trans_tpl.tr_fflayer_tpl.input_dim = p.model_dim
+    p.trans_tpl.tr_fflayer_tpl.hidden_dim = 4096
+
+    # Default config for the softmax.
+    p.softmax.num_classes = 32000
+    p.softmax.num_shards = 8
+
+    p.target_seq_len = 300
+
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(InsertionDecoder, self).__init__(params)
+    p = self.params
+    assert p.token_emb.vocab_size % p.softmax.num_classes == 0
+    assert p.token_emb.embedding_dim == p.position_emb.embedding_dim
+    assert p.token_emb.embedding_dim == p.model_dim
+
+    with tf.variable_scope(p.name):
+      self.CreateChild('token_emb', p.token_emb)
+      self.CreateChild('position_emb', p.position_emb)
+
+      dropout_tpl = layers.DropoutLayer.Params()
+      dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
+      self.CreateChild('input_dropout', dropout_tpl)
+
+      params_trans_layers = []
+      for i in range(p.num_trans_layers):
+        params = p.trans_tpl.Copy()
+        params.name = 'trans_layer_%d' % i
+        params.packed_input = p.packed_input
+        params.has_aux_atten = False
+        params.mask_self_atten = True
+        params_trans_layers.append(params)
+      self.CreateChildren('trans', params_trans_layers)
+
+      p.softmax.input_dim = p.model_dim
+      self.CreateChild('softmax', p.softmax)
+
+  def ComputePredictions(self, theta, encoder_outputs, targets):
+    """Compute 1-step of the insertion iteration.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      encoder_outputs: This should be None.
+      targets: A `.NestedMap`.
+        - ids: The target ids of shape [batch_size, time_dim].
+        - paddings: The target paddings of shape [batch_size, time_dim].
+
+    Returns:
+      A `.NestedMap`.
+        - outputs: The contextualized output vectors of shape
+          [batch_size, time_dim, model_dim].
+    """
+    p = self.params
+
+    # TODO(williamchan): Enable cross-attention.
+    assert encoder_outputs is None
+
+    with tf.name_scope(p.name):
+      # [batch, time]
+      target_ids = targets.ids
+      # [time, batch]
+      target_paddings = tf.transpose(targets.paddings)
+
+      # Embedding layer
+      # [batch, time, model_dim]
+      token_embs = self.token_emb.EmbLookup(theta.token_emb, target_ids)
+      target_time = py_utils.GetShape(target_ids)[1]
+
+      # [1, time, model_dim]
+      posit_embs = tf.expand_dims(
+          self.position_emb.FProp(theta.position_emb, target_time), 0)
+
+      # [time, batch, model_dim]
+      input_embs = token_embs + posit_embs
+
+      input_embs = tf.transpose(input_embs, [1, 0, 2])
+      input_embs = self.input_dropout.FProp(theta.input_dropout, input_embs)
+
+      layer_in = input_embs
+      for layer, layer_theta in zip(self.trans, theta.trans):
+        # [time, batch, model_dim]
+        layer_out, _ = layer.FProp(layer_theta, layer_in, target_paddings)
+        layer_in = layer_out
+
+      return py_utils.NestedMap(outputs=layer_out)
+
+  def ComputeLoss(self, theta, predictions, targets):
+    # pyformat: disable
+    """Returns the insertion loss.
+
+    Args:
+      theta: A `.NestedMap` object capturing decoder model parameters.
+      predictions: A `.NestedMap` describing the decoding process, requiring
+        .outputs: Tensor of shape [time, batch, params.softmax.input_dim].
+      targets: A `.NestedMap`.
+
+        - target_indices: A Tensor capturing the relevant insertion tokens to
+          tf.gather_nd the log-probs.
+
+        - target_weights: A Tensor capturing the relevant insertion tokens'
+          weights.
+
+    Returns:
+      Two dicts.
+        - A map from metric name (a python string) to a tuple (value, weight).
+          Both value and weight are scalar Tensors.
+        - A map from name to arbitrary tensors, where the first dimension must
+          be the batch index.
+    """
+    # pyformat: enable
+    p = self.params
+
+    batch_size = py_utils.GetShape(predictions.outputs)[0]
+
+    state = tf.reshape(predictions.outputs, [-1, p.softmax.input_dim])
+    logits = self.softmax.Logits(theta.softmax, state)
+    logits = tf.reshape(
+        logits,
+        tf.concat([
+            py_utils.GetShape(predictions.outputs)[:-1],
+            [p.softmax.num_classes]
+        ], 0))
+    log_probs = tf.nn.log_softmax(logits)
+
+    # `target_indices` are in the form [batch, time, vocab], where as `logits`
+    # are in the form [time, batch, vocab]. We need to swap the columns.
+    target_indices = tf.concat([
+        predictions.tgt.target_indices[:, 1:2],
+        predictions.tgt.target_indices[:, 0:1],
+        predictions.tgt.target_indices[:, 2:3],
+    ], 1)
+
+    loss = tf.reduce_sum(
+        tf.gather_nd(log_probs, target_indices) *
+        predictions.tgt.target_weights)
+    loss_weight = tf.cast(batch_size, tf.float32)
+
+    return ({
+        'loss': (loss, loss_weight)
+    }, {
+        'log_probs': log_probs,
+        'logits': logits
+    })
