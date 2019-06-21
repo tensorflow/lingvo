@@ -165,6 +165,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">insertion</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">metrics</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">decoder</span>
@@ -198,13 +199,17 @@
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderDevice</span><span class="p">():</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;enc&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;enc&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="p">)</span>
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderDevice</span><span class="p">():</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dec&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MTBaseModel.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderDevice</span><span class="p">():</span>
-      <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">enc</span><span class="p">,</span> <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="p">)</span>
+      <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">enc</span><span class="p">,</span> <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderDevice</span><span class="p">():</span>
       <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
                                                 <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">)</span>
@@ -346,6 +351,183 @@
     <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderBiRNN</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">MTDecoderV1</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="InsertionModel"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.InsertionModel">[docs]</a><span class="k">class</span> <span class="nc">InsertionModel</span><span class="p">(</span><span class="n">MTBaseModel</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Insertion-based model.</span>
+
+<span class="sd">  References:</span>
+<span class="sd">    KERMIT: https://arxiv.org/pdf/1906.01604.pdf</span>
+<span class="sd">    Insertion Transformer: https://arxiv.org/pdf/1902.03249.pdf</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="InsertionModel.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.InsertionModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">InsertionModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">InsertionDecoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;insertion&#39;</span><span class="p">,</span> <span class="n">insertion</span><span class="o">.</span><span class="n">SymbolInsertionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Insertion specifications (i.e., rollin and oracle policy).&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">InsertionModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;insertion&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">insertion</span><span class="p">)</span>
+
+<div class="viewcode-block" id="InsertionModel._SampleCanvasAndTargets"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.InsertionModel._SampleCanvasAndTargets">[docs]</a>  <span class="k">def</span> <span class="nf">_SampleCanvasAndTargets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_paddings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sample a canvas and its corresponding targets.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      x: A Tensor representing the canvas.</span>
+<span class="sd">      x_paddings: A Tensor representing the canvas paddings.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `NestedMap` capturing the new sampled canvas and its targets.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># TODO(williamchan): Consider grabbing `eos_id` from `x` instead of `p`.</span>
+    <span class="n">eos_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">target_eos_id</span>
+
+    <span class="c1"># Sample a canvas (and it&#39;s corresponding targets).</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">insertion</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_paddings</span><span class="p">,</span> <span class="n">eos_id</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="InsertionModel._CreateCanvasAndTargets"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.InsertionModel._CreateCanvasAndTargets">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateCanvasAndTargets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="sd">&quot;&quot;&quot;Create the canvas and targets.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      batch: A `.NestedMap`.</span>
+
+<span class="sd">        - src: A `.NestedMap`.</span>
+<span class="sd">          - ids: The source ids, ends in &lt;eos&gt;.</span>
+<span class="sd">          - paddings: The source paddings.</span>
+
+<span class="sd">        - tgt: A `.NestedMap`.</span>
+<span class="sd">          - ids: The target ids, ends in &lt;eos&gt;.</span>
+<span class="sd">          - paddings: The target paddings.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `NestedMap`.</span>
+<span class="sd">        - canvas: The canvas (based off of the `rollin_policy`) of shape</span>
+<span class="sd">          [batch_size, c_dim].</span>
+<span class="sd">        - canvas_paddings: The paddings of `canvas_indices`.</span>
+<span class="sd">        - target_indices: The target indices (i.e., use these indices to</span>
+<span class="sd">          tf.gather_nd the log-probs). Optional, only during training.</span>
+<span class="sd">        - target_weights: The target weights. Optional, only during training.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># pyformat: enable</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="c1"># Sample our src and tgt canvas.</span>
+      <span class="n">src_descriptor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SampleCanvasAndTargets</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
+                                                    <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span><span class="p">)</span>
+      <span class="n">tgt_descriptor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SampleCanvasAndTargets</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
+                                                    <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">)</span>
+
+      <span class="c1"># Offset the src ids (to unshare embeddings between src/tgt). Note, we</span>
+      <span class="c1"># only offset the canvas ids, but we do not offset the vocab ids. This</span>
+      <span class="c1"># will result in unshared embeddings, but shared softmax. This is due to</span>
+      <span class="c1"># GPU/TPU memory limitations, empirically it is known that unsharing</span>
+      <span class="c1"># everything results in better performance.</span>
+      <span class="n">vocab_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span>
+      <span class="n">src_descriptor</span><span class="o">.</span><span class="n">canvas</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">src_descriptor</span><span class="o">.</span><span class="n">canvas_paddings</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="n">src_descriptor</span><span class="o">.</span><span class="n">canvas</span> <span class="o">+</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">src_descriptor</span><span class="o">.</span><span class="n">canvas</span><span class="p">)</span>
+
+      <span class="c1"># Offset the tgt indices (need shift according to src length).</span>
+      <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="c1"># `target_batch` is a [num_targets, batch_size] tensor where each row</span>
+      <span class="c1"># identifies which batch the target belongs to. Note the observation that,</span>
+      <span class="c1"># tf.reduce_sum(target_batch, 1) == 1 \forall rows.</span>
+      <span class="n">target_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tgt_descriptor</span><span class="o">.</span><span class="n">target_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="n">src_lens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">src_descriptor</span><span class="o">.</span><span class="n">canvas_paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="c1"># `tgt_offset` is shape [num_targets] where each entry corresponds to the</span>
+      <span class="c1"># offset needed for that target (due to the source length).</span>
+      <span class="n">tgt_offset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">target_batch</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">src_lens</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+      <span class="c1"># We shift the tgt slot without touching the batch or vocab.</span>
+      <span class="n">tgt_descriptor</span><span class="o">.</span><span class="n">target_indices</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">tgt_offset</span><span class="p">),</span> <span class="n">tgt_offset</span><span class="p">,</span>
+           <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">tgt_offset</span><span class="p">)],</span> <span class="mi">1</span><span class="p">)</span>
+
+      <span class="c1"># The canvas is simply the sequence-level concat of the src and tgt.</span>
+      <span class="n">canvas</span><span class="p">,</span> <span class="n">canvas_paddings</span> <span class="o">=</span> <span class="n">insertion</span><span class="o">.</span><span class="n">SequenceConcat</span><span class="p">(</span>
+          <span class="n">src_descriptor</span><span class="o">.</span><span class="n">canvas</span><span class="p">,</span> <span class="n">src_descriptor</span><span class="o">.</span><span class="n">canvas_paddings</span><span class="p">,</span>
+          <span class="n">tgt_descriptor</span><span class="o">.</span><span class="n">canvas</span><span class="p">,</span> <span class="n">tgt_descriptor</span><span class="o">.</span><span class="n">canvas_paddings</span><span class="p">)</span>
+      <span class="n">target_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">src_descriptor</span><span class="o">.</span><span class="n">target_indices</span><span class="p">,</span> <span class="n">tgt_descriptor</span><span class="o">.</span><span class="n">target_indices</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">target_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">src_descriptor</span><span class="o">.</span><span class="n">target_weights</span><span class="p">,</span> <span class="n">tgt_descriptor</span><span class="o">.</span><span class="n">target_weights</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">canvas</span><span class="o">=</span><span class="n">canvas</span><span class="p">,</span>
+          <span class="n">canvas_paddings</span><span class="o">=</span><span class="n">canvas_paddings</span><span class="p">,</span>
+          <span class="n">target_indices</span><span class="o">=</span><span class="n">target_indices</span><span class="p">,</span>
+          <span class="n">target_weights</span><span class="o">=</span><span class="n">target_weights</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="InsertionModel.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.InsertionModel.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="sd">&quot;&quot;&quot;Compute the model predictions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      batch: A `.NestedMap`.</span>
+
+<span class="sd">        - src: A `.NestedMap`.</span>
+<span class="sd">          - ids: The source ids, ends in &lt;eos&gt;.</span>
+<span class="sd">          - paddings: The source paddings.</span>
+
+<span class="sd">        - tgt: A `.NestedMap`.</span>
+<span class="sd">          - ids: The target ids, ends in &lt;eos&gt;.</span>
+<span class="sd">          - paddings: The target paddings.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `.NestedMap`.</span>
+<span class="sd">        - outputs: The contextualized output vectors of shape</span>
+<span class="sd">          [batch_size, time_dim, model_dim].</span>
+<span class="sd">        - tgt: A `.NestedMap` (optional, only during training).</span>
+<span class="sd">          - ids: The canvas ids.</span>
+<span class="sd">          - paddings: The canvas paddings.</span>
+<span class="sd">          - target_indices: The target indices.</span>
+<span class="sd">          - target_weights: The target weights.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># pyformat: enable</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># TODO(williamchan): Currently, we only support KERMIT mode (i.e., no</span>
+    <span class="c1"># encoder, unified architecture).</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span>
+
+    <span class="c1"># Sometimes src and tgt have different types. We reconcile here and use</span>
+    <span class="c1"># int32.</span>
+    <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="n">canvas_and_targets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateCanvasAndTargets</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">tgt</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">ids</span><span class="o">=</span><span class="n">canvas_and_targets</span><span class="o">.</span><span class="n">canvas</span><span class="p">,</span>
+            <span class="n">paddings</span><span class="o">=</span><span class="n">canvas_and_targets</span><span class="o">.</span><span class="n">canvas_paddings</span><span class="p">))</span>
+
+    <span class="n">predictions</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">InsertionModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="n">predictions</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">ids</span><span class="o">=</span><span class="n">canvas_and_targets</span><span class="o">.</span><span class="n">canvas</span><span class="p">,</span>
+          <span class="n">paddings</span><span class="o">=</span><span class="n">canvas_and_targets</span><span class="o">.</span><span class="n">canvas_paddings</span><span class="p">,</span>
+          <span class="n">target_indices</span><span class="o">=</span><span class="n">canvas_and_targets</span><span class="o">.</span><span class="n">target_indices</span><span class="p">,</span>
+          <span class="n">target_weights</span><span class="o">=</span><span class="n">canvas_and_targets</span><span class="o">.</span><span class="n">target_weights</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">predictions</span></div></div>
 </pre></div>
 
            </div>

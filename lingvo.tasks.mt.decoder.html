@@ -844,6 +844,95 @@ tgt_batch, src_len].</li>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.tasks.mt.decoder.InsertionDecoder">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.mt.decoder.</code><code class="descname">InsertionDecoder</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder" title="lingvo.core.base_decoder.BaseBeamSearchDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_decoder.BaseBeamSearchDecoder</span></code></a></p>
+<p>Basic Insertion decoder for MT (or any symbol based sequence).</p>
+<p class="rubric">References</p>
+<p>KERMIT: <a class="reference external" href="https://arxiv.org/pdf/1906.01604.pdf">https://arxiv.org/pdf/1906.01604.pdf</a>
+Insertion Transformer: <a class="reference external" href="https://arxiv.org/pdf/1902.03249.pdf">https://arxiv.org/pdf/1902.03249.pdf</a></p>
+<dl class="classmethod">
+<dt id="lingvo.tasks.mt.decoder.InsertionDecoder.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.mt.decoder.InsertionDecoder.ComputePredictions">
+<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute 1-step of the insertion iteration.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
+<li><strong>encoder_outputs</strong> – This should be None.</li>
+<li><strong>targets</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.
+- ids: The target ids of shape [batch_size, time_dim].
+- paddings: The target paddings of shape [batch_size, time_dim].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</dt>
+<dd><ul class="first last simple">
+<li>outputs: The contextualized output vectors of shape
+[batch_size, time_dim, model_dim].</li>
+</ul>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.mt.decoder.InsertionDecoder.ComputeLoss">
+<code class="descname">ComputeLoss</code><span class="sig-paren">(</span><em>theta</em>, <em>predictions</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the insertion loss.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object capturing decoder model parameters.</li>
+<li><strong>predictions</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> describing the decoding process, requiring
+.outputs: Tensor of shape [time, batch, params.softmax.input_dim].</li>
+<li><strong>targets</strong> – <p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+<ul>
+<li>target_indices: A Tensor capturing the relevant insertion tokens to
+tf.gather_nd the log-probs.</li>
+<li>target_weights: A Tensor capturing the relevant insertion tokens’
+weights.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>Two dicts.</dt>
+<dd><ul class="first last simple">
+<li>A map from metric name (a python string) to a tuple (value, weight).
+Both value and weight are scalar Tensors.</li>
+<li>A map from name to arbitrary tensors, where the first dimension must
+be the batch index.</li>
+</ul>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

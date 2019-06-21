@@ -326,6 +326,124 @@ object as created by <a class="reference internal" href="#lingvo.tasks.mt.model.
 
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.tasks.mt.model.InsertionModel">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.mt.model.</code><code class="descname">InsertionModel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/model.html#InsertionModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.model.InsertionModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.model.MTBaseModel" title="lingvo.tasks.mt.model.MTBaseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.mt.model.MTBaseModel</span></code></a></p>
+<p>Insertion-based model.</p>
+<p class="rubric">References</p>
+<p>KERMIT: <a class="reference external" href="https://arxiv.org/pdf/1906.01604.pdf">https://arxiv.org/pdf/1906.01604.pdf</a>
+Insertion Transformer: <a class="reference external" href="https://arxiv.org/pdf/1902.03249.pdf">https://arxiv.org/pdf/1902.03249.pdf</a></p>
+<dl class="classmethod">
+<dt id="lingvo.tasks.mt.model.InsertionModel.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/model.html#InsertionModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.model.InsertionModel.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.mt.model.InsertionModel._SampleCanvasAndTargets">
+<code class="descname">_SampleCanvasAndTargets</code><span class="sig-paren">(</span><em>x</em>, <em>x_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/model.html#InsertionModel._SampleCanvasAndTargets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.model.InsertionModel._SampleCanvasAndTargets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sample a canvas and its corresponding targets.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – A Tensor representing the canvas.</li>
+<li><strong>x_paddings</strong> – A Tensor representing the canvas paddings.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> capturing the new sampled canvas and its targets.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.mt.model.InsertionModel._CreateCanvasAndTargets">
+<code class="descname">_CreateCanvasAndTargets</code><span class="sig-paren">(</span><em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/model.html#InsertionModel._CreateCanvasAndTargets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.model.InsertionModel._CreateCanvasAndTargets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the canvas and targets.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>batch</strong> – <p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+<ul class="simple">
+<li>src: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.
+- ids: The source ids, ends in &lt;eos&gt;.
+- paddings: The source paddings.</li>
+<li>tgt: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.
+- ids: The target ids, ends in &lt;eos&gt;.
+- paddings: The target paddings.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code>.</dt>
+<dd><ul class="first last simple">
+<li>canvas: The canvas (based off of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">rollin_policy</span></code>) of shape
+[batch_size, c_dim].</li>
+<li>canvas_paddings: The paddings of <code class="xref py py-obj docutils literal notranslate"><span class="pre">canvas_indices</span></code>.</li>
+<li>target_indices: The target indices (i.e., use these indices to
+tf.gather_nd the log-probs). Optional, only during training.</li>
+<li>target_weights: The target weights. Optional, only during training.</li>
+</ul>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.mt.model.InsertionModel.ComputePredictions">
+<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/model.html#InsertionModel.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.model.InsertionModel.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the model predictions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
+<li><strong>batch</strong> – <p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+<ul>
+<li>src: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.
+- ids: The source ids, ends in &lt;eos&gt;.
+- paddings: The source paddings.</li>
+<li>tgt: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.
+- ids: The target ids, ends in &lt;eos&gt;.
+- paddings: The target paddings.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</dt>
+<dd><ul class="first last simple">
+<li>outputs: The contextualized output vectors of shape
+[batch_size, time_dim, model_dim].</li>
+<li>tgt: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> (optional, only during training).
+- ids: The canvas ids.
+- paddings: The canvas paddings.
+- target_indices: The target indices.
+- target_weights: The target weights.</li>
+</ul>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

@@ -167,7 +167,8 @@
 <span id="lingvo-core-insertion-module"></span><h1>lingvo.core.insertion module<a class="headerlink" href="#module-lingvo.core.insertion" title="Permalink to this headline">¶</a></h1>
 <p>Insertion-based Framework.</p>
 <p class="rubric">References</p>
-<p>Insertion Transformer: <a class="reference external" href="https://arxiv.org/pdf/1902.03249.pdf">https://arxiv.org/pdf/1902.03249.pdf</a></p>
+<p>KERMIT: <a class="reference external" href="https://arxiv.org/pdf/1906.01604.pdf">https://arxiv.org/pdf/1906.01604.pdf</a>
+Insertion Transformer: <a class="reference external" href="https://arxiv.org/pdf/1902.03249.pdf">https://arxiv.org/pdf/1902.03249.pdf</a></p>
 <dl class="function">
 <dt id="lingvo.core.insertion.SequenceTrimLastToken">
 <code class="descclassname">lingvo.core.insertion.</code><code class="descname">SequenceTrimLastToken</code><span class="sig-paren">(</span><em>x</em>, <em>x_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/insertion.html#SequenceTrimLastToken"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.insertion.SequenceTrimLastToken" title="Permalink to this definition">¶</a></dt>
@@ -304,7 +305,8 @@ insertion-based model (i.e., the targets given the random observed subset).</p>
 <dt>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code>.</dt>
 <dd><ul class="first last simple">
 <li>canvas: The canvas (based off of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">rollin_policy</span></code>) of shape
-[batch_size, c_dim].</li>
+[batch_size, c_dim]. Note that, <code class="xref py py-obj docutils literal notranslate"><span class="pre">c_dim</span></code> &lt;= <code class="xref py py-obj docutils literal notranslate"><span class="pre">time_dim</span></code> but need not be
+equal.</li>
 <li>canvas_indices: The canvas indices (into <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code>).</li>
 <li>canvas_paddings: The paddings of <code class="xref py py-obj docutils literal notranslate"><span class="pre">canvas_indices</span></code>.</li>
 <li>target_indices: The target indices of shape [num_targets, 3].
