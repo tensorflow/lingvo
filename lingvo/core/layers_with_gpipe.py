@@ -36,62 +36,55 @@ def _common_gpipe_transformer_params(p):
       'is_transparent', False,
       'If set, encoder outputs a list of layer outputs while decoder '
       'expects a list of source input vectors.')
-  p.Define(
-      'num_transparent_outputs', 0,
-      'Number of transparent outputs. Only positive if this is the '
-      'last encoder')
   p.Define('transparent_merger_tpl', None,
-           'Merger op for layer outputs. Not none if this is the last encoder')
+           'Creates weights for transparent combination.')
+  p.Define(
+      'final_enc_layer', False,
+      'True for final encoder layer. To be used for final transparent merger.')
   return p
 
 
 def _common_gpipe_transformer_init(layer):
   """Initialize a GPipe layer."""
   p = layer.params
-  if p.is_transparent and p.num_transparent_outputs > 0:
-    transparent_params = []
-    for i in range(p.num_transparent_outputs):
-      transparent_param = p.transparent_merger_tpl.Copy()
-      transparent_param.name = 'transparent_%d' % i
-      transparent_params.append(transparent_param)
-    layer.CreateChildren('transparent_merger', transparent_params)
+
+  if p.is_transparent and p.transparent_merger_tpl is not None:
+    transparent_param = p.transparent_merger_tpl.Copy()
+    transparent_param.name = 'transparent_0'
+    layer.CreateChild('transparent_merger', transparent_param)
   assert p.name
 
 
-def _common_gpipe_transformer_encoder_fprop(layer, layer_class, theta,
-                                            source_vecs, source_paddings,
-                                            target_vecs, target_paddings,
-                                            source_segment_id,
-                                            target_segment_id, labels,
-                                            label_weights, *more_source_vecs):
+def _common_gpipe_transformer_encoder_fprop(
+    layer, layer_class, theta, source_vecs, source_paddings, target_vecs,
+    target_paddings, source_segment_id, target_segment_id, labels,
+    label_weights, transparent_acc, transparent_acc_helper):
   """GPipe encoder FProp."""
   p = layer.params
   h, _ = super(layer_class, layer).FProp(
       theta, source_vecs, source_paddings, source_segment_id=source_segment_id)
   h.set_shape(source_vecs.shape)
   if p.is_transparent:
-    more_source_vecs += (source_vecs,)
-    if p.num_transparent_outputs > 0:  # Merger layer.
-      transformer_output = []
-      for i in range(p.num_transparent_outputs):
-        merged_outputs = layer.transparent_merger[i].FProp(
-            theta.transparent_merger[i], list(more_source_vecs + (h,)))
-        transformer_output.append(merged_outputs)
-      h = transformer_output[0]
-      if p.num_transparent_outputs == 1:
-        more_source_vecs = ()
-      else:
-        more_source_vecs = tuple(transformer_output[1:])
+    if p.transparent_merger_tpl is not None:
+      transparent_acc_helper = layer.transparent_merger.FProp(
+          theta.transparent_merger)
+      transparent_acc = tf.zeros_like(source_vecs)
+    transparent_acc = transparent_acc + transparent_acc_helper[0] * source_vecs
+    if p.final_enc_layer:
+      h = transparent_acc + h * transparent_acc_helper[-1]
+      transparent_acc = None
+      transparent_acc_helper = None
+    else:
+      transparent_acc_helper = transparent_acc_helper[1:]
   return (h, source_paddings, target_vecs, target_paddings, source_segment_id,
-          target_segment_id, labels, label_weights) + more_source_vecs
+          target_segment_id, labels, label_weights, transparent_acc,
+          transparent_acc_helper)
 
 
-def _common_gpipe_transformer_decoder_fprop(layer, layer_class, params, theta,
-                                            source_vecs, source_paddings,
-                                            target_vecs, target_paddings,
-                                            source_segment_id,
-                                            target_segment_id, labels,
-                                            label_weights, *more_source_vecs):
+def _common_gpipe_transformer_decoder_fprop(
+    layer, layer_class, theta, source_vecs, source_paddings, target_vecs,
+    target_paddings, source_segment_id, target_segment_id, labels,
+    label_weights, transparent_acc, transparent_acc_helper):
   """GPipe decoder FProp."""
   assert target_vecs is not None
   assert target_paddings is not None
@@ -104,11 +97,9 @@ def _common_gpipe_transformer_decoder_fprop(layer, layer_class, params, theta,
       source_segment_id=target_segment_id,
       aux_segment_id=source_segment_id)
   h.set_shape(target_vecs.shape)
-  if params.is_transparent and more_source_vecs:
-    source_vecs = more_source_vecs[0]
-    more_source_vecs = more_source_vecs[1:]
   return (source_vecs, source_paddings, h, target_paddings, source_segment_id,
-          target_segment_id, labels, label_weights) + more_source_vecs
+          target_segment_id, labels, label_weights, transparent_acc,
+          transparent_acc_helper)
 
 
 def _common_gpipe_transformer_fprop_meta(p, inputs, *args):
@@ -119,17 +110,13 @@ def _common_gpipe_transformer_fprop_meta(p, inputs, *args):
   src_time, source_batch, dim = inputs
   flops = flops_per_element * src_time * src_time * source_batch * dim
   args = args if isinstance(args, tuple) else (args,)
-  if p.is_transparent:
-    if p.has_aux_atten:  # Decoder FPropMeta
-      args = args[:-1] if len(args) > 7 else args
-    else:
-      if p.num_transparent_outputs == 0:
-        args += (inputs,)
-      elif p.num_transparent_outputs == 1:
-        # Switch back to non-transparent mode for decoder.
-        args = args[:7]
-      else:
-        args += (inputs,) * (p.num_transparent_outputs - len(args) + 6)
+  if not p.has_aux_atten and p.is_transparent:  # Transparent Encoder FPropMeta
+    if p.transparent_merger_tpl is not None:
+      args = args[:7] + (
+          inputs, tshape.Shape([p.transparent_merger_tpl.num_sources - 1]))
+    args = args[:8] + (tshape.Shape([args[8][0] - 1]),)
+    if p.final_enc_layer:
+      args = args[:7] + (None, None)
   return py_utils.NestedMap(flops=flops, out_shapes=(inputs,) + args)
 
 
@@ -149,19 +136,19 @@ class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
 
   def FProp(self, theta, source_vecs, source_paddings, target_vecs,
             target_paddings, source_segment_id, target_segment_id, labels,
-            label_weights, *more_source_vecs):
+            label_weights, transparent_acc, transparent_acc_helper):
     p = self.params
     with tf.name_scope(p.name):
       if p.has_aux_atten:  # Decoder FProp
         return _common_gpipe_transformer_decoder_fprop(
-            self, GPipeTransformerLayer, p, theta, source_vecs, source_paddings,
+            self, GPipeTransformerLayer, theta, source_vecs, source_paddings,
             target_vecs, target_paddings, source_segment_id, target_segment_id,
-            labels, label_weights, *more_source_vecs)
+            labels, label_weights, transparent_acc, transparent_acc_helper)
       else:  # Encoder FProp
         return _common_gpipe_transformer_encoder_fprop(
             self, GPipeTransformerLayer, theta, source_vecs, source_paddings,
             target_vecs, target_paddings, source_segment_id, target_segment_id,
-            labels, label_weights, *more_source_vecs)
+            labels, label_weights, transparent_acc, transparent_acc_helper)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -182,13 +169,14 @@ class GPipeEvolvedTransformerEncoderLayer(
     super(GPipeEvolvedTransformerEncoderLayer, self).__init__(params)
     _common_gpipe_transformer_init(self)
 
-  def FProp(self, theta, source_vecs, source_paddings, source_segment_id,
-            labels, label_weights, *more_source_vecs):
+  def FProp(self, theta, source_vecs, source_paddings, target_vecs,
+            target_paddings, source_segment_id, target_segment_id, labels,
+            label_weights, transparent_acc, transparent_acc_helper):
     with tf.name_scope(self.params.name):
       return _common_gpipe_transformer_encoder_fprop(
           self, GPipeEvolvedTransformerEncoderLayer, theta, source_vecs,
           source_paddings, None, None, source_segment_id, None, labels,
-          label_weights, *more_source_vecs)
+          label_weights, None, None)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -211,13 +199,13 @@ class GPipeEvolvedTransformerDecoderLayer(
 
   def FProp(self, theta, source_vecs, source_paddings, target_vecs,
             target_paddings, source_segment_id, target_segment_id, labels,
-            label_weights, *more_source_vecs):
+            label_weights, transparent_acc, transparent_acc_helper):
     with tf.name_scope(self.params.name):
       return _common_gpipe_transformer_decoder_fprop(
-          self, GPipeEvolvedTransformerDecoderLayer, self.params, theta,
-          source_vecs, source_paddings, target_vecs, target_paddings,
-          source_segment_id, target_segment_id, labels, label_weights,
-          *more_source_vecs)
+          self, GPipeEvolvedTransformerDecoderLayer, theta, source_vecs,
+          source_paddings, target_vecs, target_paddings, source_segment_id,
+          target_segment_id, labels, label_weights, transparent_acc,
+          transparent_acc_helper)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -249,14 +237,12 @@ class GPipeTransformerSoftmaxLayer(base_layer.BaseLayer):
 
   def FProp(self, theta, source_vecs, source_paddings, target_vecs,
             target_paddings, source_segment_id, target_segment_id, labels,
-            label_weights, *more_source_vecs):
+            label_weights, transparent_acc, transparent_acc_helper):
     p = self.params
     if p.inputs_from_decoder:
       transformer_output = target_vecs
     else:
       transformer_output = source_vecs
-      if more_source_vecs:
-        transformer_output = more_source_vecs + (source_vecs,)
     return self._FPropSoftmax(theta, transformer_output, labels, label_weights,
                               target_paddings)
 
@@ -426,7 +412,8 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
                                          self.tgt_dropout, target_id,
                                          target_pos_id)
       return (source_vecs, source_paddings, target_vecs, target_paddings,
-              source_segment_id, target_segment_id, labels, label_weights)
+              source_segment_id, target_segment_id, labels, label_weights, None,
+              None)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -443,7 +430,7 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
     if p.add_tgt_embedding_layer:
       tgt_time, tgt_batch = args[1]
       new_args[1] = tshape.Shape([tgt_time, tgt_batch, dim])
-    new_args = tuple(new_args[:7])
+    new_args = tuple(new_args[:7]) + (None, None)
     return py_utils.NestedMap(flops=flops, out_shapes=(new_inputs,) + new_args)
 
 
@@ -486,13 +473,10 @@ class GPipeTransformerStack(PipeliningLayer):
         'is_transparent', False,
         'If set, encoder outputs a merger of embeddings and '
         'layer outputs.')
-    p.Define(
-        'num_transparent_outputs', 0,
-        'If set, the transparent merger outputs this number of weighted sums. '
-        'Defaults to number of decoder layers if transparent.')
+    p.Define('transparent_merger_tpl', DeterministicWeightsLayer.Params(),
+             'Creates weights for transparent combination.')
     p.Define('packed_input', False,
              'If True, assumes multiple training samples per input.')
-    p.Define('apply_dropout_every_n', 1, 'Deprecated')
     p.encoder_tpl.has_aux_atten = False
     p.decoder_tpl.has_aux_atten = True
     p.decoder_tpl.mask_self_atten = True
@@ -521,6 +505,11 @@ class GPipeTransformerStack(PipeliningLayer):
       p.decoder_tpl.source_dim = p.model_dim
       transformers = []
 
+      if p.is_transparent:
+        p.transparent_merger_tpl.num_sources = p.num_encoder_layers + 1
+        p.transparent_merger_tpl.dropout_tpl.keep_prob = (
+            1 - p.transparent_merger_dropout_prob)
+
       # Encoder Embedding layer.
       if len(p.splits) > 1 or p.num_micro_batches > 1:
         p.emb_tpl.dropout_tpl = layers.DeterministicDropoutLayer.Params()
@@ -537,19 +526,14 @@ class GPipeTransformerStack(PipeliningLayer):
         params = p.encoder_tpl.Copy()
         params.name = 'encoder_%d' % (i)
         params.is_transparent = p.is_transparent
+        params.final_enc_layer = (i == (p.num_encoder_layers - 1))
         params.packed_input = p.packed_input
         # Use DeterministicDropoutLayer when used in temp graphs.
         if len(p.splits) > 1 or p.num_micro_batches > 1:
           params = self.SetupDeterministicDropout(params)
         assert not params.has_aux_atten
-        last_layer = (i == p.num_encoder_layers - 1)
-        if p.is_transparent and last_layer:
-          transparent_merger_tpl = DeterministicWeightedSumLayer.Params()
-          transparent_merger_tpl.num_sources = p.num_encoder_layers + 1
-          transparent_merger_tpl.dropout_tpl.keep_prob = (
-              1 - p.transparent_merger_dropout_prob)
-          params.transparent_merger_tpl = transparent_merger_tpl
-          params.num_transparent_outputs = p.num_transparent_outputs
+        if p.is_transparent and i == 0:
+          params.transparent_merger_tpl = p.transparent_merger_tpl.Copy()
         transformers.append(params)
 
       # Decoder layers.
@@ -558,8 +542,6 @@ class GPipeTransformerStack(PipeliningLayer):
         params.name = 'decoder_%d' % (i)
         params.mask_self_atten = True
         params.packed_input = p.packed_input
-        params.is_transparent = p.is_transparent and (
-            p.num_transparent_outputs == p.num_decoder_layers)
         if len(p.splits) > 1 or p.num_micro_batches > 1:
           params = self.SetupDeterministicDropout(params)
         assert params.has_aux_atten
@@ -641,20 +623,17 @@ class GPipeTransformerStack(PipeliningLayer):
                                source_paddings,
                                source_segment_id=None):
     p = self.params
-    more_source_vecs = ()
+    transparent_acc = None
+    transparent_weights = None
     for encoder_l in self.GetEncoders():
       encoder_outs = encoder_l.FProp(encoder_l.theta, source_vecs,
                                      source_paddings, None, None, None, None,
-                                     None, None, *more_source_vecs)
+                                     None, None, transparent_acc,
+                                     transparent_weights)
       source_vecs = encoder_outs[0]
-      more_source_vecs = encoder_outs[8:]
-
-    assert p.is_transparent or not more_source_vecs
-
-    if p.is_transparent and p.num_transparent_outputs > 1:
-      source_vecs = more_source_vecs + (source_vecs,)
-      if p.is_eval:
-        source_vecs = tf.stack(list(source_vecs), 3)
+      if p.is_transparent and len(encoder_outs) == 10:
+        transparent_acc = encoder_outs[8]
+        transparent_weights = encoder_outs[9]
     return source_vecs
 
   def FProp(self,
@@ -703,6 +682,8 @@ class GPipeTransformerStack(PipeliningLayer):
     if p.packed_input:
       assert source_segment_id is not None, (
           'Need to specify src_segment_id if packed input is supported.')
+      assert source_pos_id is not None, (
+          'Need to specify src_pos_id for packed input and embeddings.')
 
     gpipe_outputs = super(GPipeTransformerStack,
                           self).FProp(theta, source_input, source_paddings,
@@ -713,13 +694,13 @@ class GPipeTransformerStack(PipeliningLayer):
     return gpipe_outputs
 
 
-class DeterministicWeightedSumLayer(base_layer.BaseLayer):
+class DeterministicWeightsLayer(base_layer.BaseLayer):
   """WeightedSumLayer with deterministic dropout."""
 
   @classmethod
   def Params(cls):
     """Params for this MergerLayer class."""
-    p = super(DeterministicWeightedSumLayer, cls).Params()
+    p = super(DeterministicWeightsLayer, cls).Params()
     p.Define('num_sources', 0, 'Number of input sources to combine.')
     p.Define('weighted_merger_dropout_prob', 0.0,
              'Applies dropout to the weights.')
@@ -734,7 +715,7 @@ class DeterministicWeightedSumLayer(base_layer.BaseLayer):
 
   @base_layer.initializer
   def __init__(self, params):
-    super(DeterministicWeightedSumLayer, self).__init__(params)
+    super(DeterministicWeightsLayer, self).__init__(params)
     p = self.params
     if not p.name:
       raise ValueError('Layer must have a specified name!')
@@ -752,27 +733,17 @@ class DeterministicWeightedSumLayer(base_layer.BaseLayer):
     p.dropout_tpl.name = 'dropout'
     self.CreateChild('weighted_merger_dropout', p.dropout_tpl)
 
-  def FProp(self, theta, inputs):
+  def FProp(self, theta):
     """Combines the list of input tensors into a single tensor.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      inputs: A list of tensors of shape [time, batch, hidden_dim]
 
     Returns:
-      A tensor of the same shape with input tensors.
+      A tensor of weights with dropout applied with shape [num_sources].
     """
     p = self.params
-    n_sources = len(inputs)
-
-    if n_sources == 1:
-      return inputs[0]
-
-    # Weighted sum of all sources, all dims must match.
-    # For weighted_sum, assume input is a list of rank 3 tensors
-    inputs = tf.stack(inputs)
-    inputs = py_utils.HasRank(inputs, 4)
 
     # The constant factor is just meant to support the non-normalized scenario.
     # If softmax is applied, this factor will cancel out.
@@ -784,8 +755,4 @@ class DeterministicWeightedSumLayer(base_layer.BaseLayer):
       assert residual_weights >= 0.0
       assert residual_weights < 1.0
       w = tf.nn.softmax(w, axis=0) * (1.0 - residual_weights) + p.minimal_prob
-
-    w = tf.reshape(w, [p.num_sources, 1, 1, 1])
-    output = tf.reduce_sum(inputs * w, axis=0)
-
-    return output
+    return w

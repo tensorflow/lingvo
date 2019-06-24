@@ -72,7 +72,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       softmax_inputs = transformer.FPropDefaultTheta(source_vecs,
                                                      source_padding, None, None,
                                                      None, None, labels,
-                                                     label_weights)
+                                                     label_weights, None, None)
       softmax_outputs = softmax.FPropDefaultTheta(*softmax_inputs)
       self.assertEqual([5, 2], softmax_outputs[0].shape)
       self.assertEqual([5, 2, 2], softmax_outputs[1].shape)
@@ -102,7 +102,8 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       softmax_inputs = transformer.FPropDefaultTheta(aux_vecs, aux_paddings,
                                                      source_vecs,
                                                      source_padding, None, None,
-                                                     labels, label_weights)
+                                                     labels, label_weights,
+                                                     None, None)
       softmax_outputs = softmax.FPropDefaultTheta(*softmax_inputs)
       self.assertEqual([5, 2], softmax_outputs[0].shape)
       self.assertEqual([5, 2, 2], softmax_outputs[1].shape)
@@ -125,7 +126,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
 
       output1 = transformer.FPropDefaultTheta(aux_vecs, aux_paddings,
                                               source_vecs, source_padding, None,
-                                              None, None, None)
+                                              None, None, None, None, None)
       h1 = output1[2]
 
       h2 = []
@@ -169,7 +170,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       (source_vecs, source_padding, _, _) = self._testInputs(depth=depth)
 
       h = transformer.FPropDefaultTheta(source_vecs, source_padding, None, None,
-                                        None)[0]
+                                        None, None, None, None, None, None)[0]
 
       tf.global_variables_initializer().run()
       actual_layer_output = sess.run([h])[0]
@@ -218,8 +219,8 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
        aux_paddings) = self._testInputs(depth=depth)
 
       h = transformer.FPropDefaultTheta(aux_vecs, aux_paddings, source_vecs,
-                                        source_padding, None, None, None,
-                                        None)[0]
+                                        source_padding, None, None, None, None,
+                                        None, None)[0]
 
       tf.global_variables_initializer().run()
       actual_layer_output = sess.run([h])[0]
@@ -263,8 +264,8 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       source_padding = tf.zeros([5, 2])
 
       h1 = et_decoder.FPropDefaultTheta(aux_vecs, aux_paddings, source_vecs,
-                                        source_padding, None, None, None,
-                                        None)[2]
+                                        source_padding, None, None, None, None,
+                                        None, None)[2]
       h2 = []
 
       double_head_attention_states = py_utils.NestedMap(
@@ -450,7 +451,6 @@ class GPipeTransformerStackTest(test_utils.TestCase, parameterized.TestCase):
           num_decoder_layers=3,
           num_encoder_layers=1)
       params.is_transparent = True
-      params.num_transparent_outputs = 3
       params.transparent_merger_dropout_prob = 0.0
       xformer = GPipeTransformerStack(params)
 
@@ -462,10 +462,8 @@ class GPipeTransformerStackTest(test_utils.TestCase, parameterized.TestCase):
       enc_outputs = xformer.EncoderFPropDefaultTheta(inputs, paddings)
       dec_output = xformer.FProp(xformer.theta, input_ids, id_paddings,
                                  tgt_inputs, tgt_paddings)[2]
-      enc_out_1, enc_out_2, enc_out_3 = sess.run(enc_outputs)
+      enc_out_1 = sess.run(enc_outputs)
       dec_out = sess.run(dec_output)
-      self.assertAllClose(enc_out_1, enc_out_2)
-      self.assertAllClose(enc_out_2, enc_out_3)
       self.assertAllClose(
           [[[0.68660116, 0.947429, 0.78953624, -1.20142817]] * batch,
            [[0.57919669, 1.12979364, 4.29336643, 0.45106331]] * batch],
