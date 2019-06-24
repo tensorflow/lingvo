@@ -180,13 +180,13 @@
 
 <dl class="function">
 <dt id="lingvo.core.layers_with_gpipe._common_gpipe_transformer_encoder_fprop">
-<code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">_common_gpipe_transformer_encoder_fprop</code><span class="sig-paren">(</span><em>layer</em>, <em>layer_class</em>, <em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>*more_source_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#_common_gpipe_transformer_encoder_fprop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe._common_gpipe_transformer_encoder_fprop" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">_common_gpipe_transformer_encoder_fprop</code><span class="sig-paren">(</span><em>layer</em>, <em>layer_class</em>, <em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>transparent_acc</em>, <em>transparent_acc_helper</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#_common_gpipe_transformer_encoder_fprop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe._common_gpipe_transformer_encoder_fprop" title="Permalink to this definition">¶</a></dt>
 <dd><p>GPipe encoder FProp.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.layers_with_gpipe._common_gpipe_transformer_decoder_fprop">
-<code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">_common_gpipe_transformer_decoder_fprop</code><span class="sig-paren">(</span><em>layer</em>, <em>layer_class</em>, <em>params</em>, <em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>*more_source_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#_common_gpipe_transformer_decoder_fprop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe._common_gpipe_transformer_decoder_fprop" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">_common_gpipe_transformer_decoder_fprop</code><span class="sig-paren">(</span><em>layer</em>, <em>layer_class</em>, <em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>transparent_acc</em>, <em>transparent_acc_helper</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#_common_gpipe_transformer_decoder_fprop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe._common_gpipe_transformer_decoder_fprop" title="Permalink to this definition">¶</a></dt>
 <dd><p>GPipe decoder FProp.</p>
 </dd></dl>
 
@@ -209,7 +209,7 @@
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>*more_source_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>transparent_acc</em>, <em>transparent_acc_helper</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Layer.</p>
 <p>Transformer layer has the naming scheme as follows: <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code> and
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_paddings</span></code> are all assumed to be coming from the activations of the
@@ -307,7 +307,7 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>source_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>*more_source_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerEncoderLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>transparent_acc</em>, <em>transparent_acc_helper</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerEncoderLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
 calls <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
@@ -397,7 +397,7 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>*more_source_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerDecoderLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>transparent_acc</em>, <em>transparent_acc_helper</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerDecoderLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
 calls <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
@@ -487,7 +487,7 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_gpipe.GPipeTransformerSoftmaxLayer.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>*more_source_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerSoftmaxLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerSoftmaxLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>labels</em>, <em>label_weights</em>, <em>transparent_acc</em>, <em>transparent_acc_helper</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerSoftmaxLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerSoftmaxLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
 calls <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeTransformerSoftmaxLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeTransformerSoftmaxLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
@@ -790,33 +790,28 @@ batch] shape.</li>
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer">
-<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">DeterministicWeightedSumLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#DeterministicWeightedSumLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers_with_gpipe.DeterministicWeightsLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">DeterministicWeightsLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#DeterministicWeightsLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.DeterministicWeightsLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>WeightedSumLayer with deterministic dropout.</p>
 <dl class="classmethod">
-<dt id="lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#DeterministicWeightedSumLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers_with_gpipe.DeterministicWeightsLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#DeterministicWeightsLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.DeterministicWeightsLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Params for this MergerLayer class.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#DeterministicWeightedSumLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers_with_gpipe.DeterministicWeightsLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#DeterministicWeightsLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.DeterministicWeightsLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Combines the list of input tensors into a single tensor.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</li>
-<li><strong>inputs</strong> – A list of tensors of shape [time, batch, hidden_dim]</li>
-</ul>
-</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tensor of the same shape with input tensors.</p>
-</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A tensor of weights with dropout applied with shape [num_sources].</td>
 </tr>
 </tbody>
 </table>

@@ -181,62 +181,55 @@
       <span class="s1">&#39;is_transparent&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
       <span class="s1">&#39;If set, encoder outputs a list of layer outputs while decoder &#39;</span>
       <span class="s1">&#39;expects a list of source input vectors.&#39;</span><span class="p">)</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-      <span class="s1">&#39;num_transparent_outputs&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
-      <span class="s1">&#39;Number of transparent outputs. Only positive if this is the &#39;</span>
-      <span class="s1">&#39;last encoder&#39;</span><span class="p">)</span>
   <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;transparent_merger_tpl&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-           <span class="s1">&#39;Merger op for layer outputs. Not none if this is the last encoder&#39;</span><span class="p">)</span>
+           <span class="s1">&#39;Creates weights for transparent combination.&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+      <span class="s1">&#39;final_enc_layer&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+      <span class="s1">&#39;True for final encoder layer. To be used for final transparent merger.&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">p</span></div>
 
 
 <div class="viewcode-block" id="_common_gpipe_transformer_init"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe._common_gpipe_transformer_init">[docs]</a><span class="k">def</span> <span class="nf">_common_gpipe_transformer_init</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Initialize a GPipe layer.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">params</span>
-  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-    <span class="n">transparent_params</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span><span class="p">):</span>
-      <span class="n">transparent_param</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">transparent_param</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;transparent_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-      <span class="n">transparent_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transparent_param</span><span class="p">)</span>
-    <span class="n">layer</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;transparent_merger&#39;</span><span class="p">,</span> <span class="n">transparent_params</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">transparent_param</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">transparent_param</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;transparent_0&#39;</span>
+    <span class="n">layer</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transparent_merger&#39;</span><span class="p">,</span> <span class="n">transparent_param</span><span class="p">)</span>
   <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span></div>
 
 
-<div class="viewcode-block" id="_common_gpipe_transformer_encoder_fprop"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe._common_gpipe_transformer_encoder_fprop">[docs]</a><span class="k">def</span> <span class="nf">_common_gpipe_transformer_encoder_fprop</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_class</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span>
-                                            <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
-                                            <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
-                                            <span class="n">source_segment_id</span><span class="p">,</span>
-                                            <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
-                                            <span class="n">label_weights</span><span class="p">,</span> <span class="o">*</span><span class="n">more_source_vecs</span><span class="p">):</span>
+<div class="viewcode-block" id="_common_gpipe_transformer_encoder_fprop"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe._common_gpipe_transformer_encoder_fprop">[docs]</a><span class="k">def</span> <span class="nf">_common_gpipe_transformer_encoder_fprop</span><span class="p">(</span>
+    <span class="n">layer</span><span class="p">,</span> <span class="n">layer_class</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span>
+    <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
+    <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span> <span class="n">transparent_acc_helper</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;GPipe encoder FProp.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">params</span>
   <span class="n">h</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">layer_class</span><span class="p">,</span> <span class="n">layer</span><span class="p">)</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
       <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="o">=</span><span class="n">source_segment_id</span><span class="p">)</span>
   <span class="n">h</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">source_vecs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span><span class="p">:</span>
-    <span class="n">more_source_vecs</span> <span class="o">+=</span> <span class="p">(</span><span class="n">source_vecs</span><span class="p">,)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Merger layer.</span>
-      <span class="n">transformer_output</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span><span class="p">):</span>
-        <span class="n">merged_outputs</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">transparent_merger</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">.</span><span class="n">transparent_merger</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">list</span><span class="p">(</span><span class="n">more_source_vecs</span> <span class="o">+</span> <span class="p">(</span><span class="n">h</span><span class="p">,)))</span>
-        <span class="n">transformer_output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">merged_outputs</span><span class="p">)</span>
-      <span class="n">h</span> <span class="o">=</span> <span class="n">transformer_output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">more_source_vecs</span> <span class="o">=</span> <span class="p">()</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">more_source_vecs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">transformer_output</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">transparent_acc_helper</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">transparent_merger</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">transparent_merger</span><span class="p">)</span>
+      <span class="n">transparent_acc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">)</span>
+    <span class="n">transparent_acc</span> <span class="o">=</span> <span class="n">transparent_acc</span> <span class="o">+</span> <span class="n">transparent_acc_helper</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">source_vecs</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_enc_layer</span><span class="p">:</span>
+      <span class="n">h</span> <span class="o">=</span> <span class="n">transparent_acc</span> <span class="o">+</span> <span class="n">h</span> <span class="o">*</span> <span class="n">transparent_acc_helper</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">transparent_acc</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="n">transparent_acc_helper</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">transparent_acc_helper</span> <span class="o">=</span> <span class="n">transparent_acc_helper</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
   <span class="k">return</span> <span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
-          <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">)</span> <span class="o">+</span> <span class="n">more_source_vecs</span></div>
+          <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span>
+          <span class="n">transparent_acc_helper</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="_common_gpipe_transformer_decoder_fprop"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe._common_gpipe_transformer_decoder_fprop">[docs]</a><span class="k">def</span> <span class="nf">_common_gpipe_transformer_decoder_fprop</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_class</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span>
-                                            <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
-                                            <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
-                                            <span class="n">source_segment_id</span><span class="p">,</span>
-                                            <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
-                                            <span class="n">label_weights</span><span class="p">,</span> <span class="o">*</span><span class="n">more_source_vecs</span><span class="p">):</span>
+<div class="viewcode-block" id="_common_gpipe_transformer_decoder_fprop"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe._common_gpipe_transformer_decoder_fprop">[docs]</a><span class="k">def</span> <span class="nf">_common_gpipe_transformer_decoder_fprop</span><span class="p">(</span>
+    <span class="n">layer</span><span class="p">,</span> <span class="n">layer_class</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span>
+    <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
+    <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span> <span class="n">transparent_acc_helper</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;GPipe decoder FProp.&quot;&quot;&quot;</span>
   <span class="k">assert</span> <span class="n">target_vecs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
   <span class="k">assert</span> <span class="n">target_paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -249,11 +242,9 @@
       <span class="n">source_segment_id</span><span class="o">=</span><span class="n">target_segment_id</span><span class="p">,</span>
       <span class="n">aux_segment_id</span><span class="o">=</span><span class="n">source_segment_id</span><span class="p">)</span>
   <span class="n">h</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">target_vecs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-  <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">is_transparent</span> <span class="ow">and</span> <span class="n">more_source_vecs</span><span class="p">:</span>
-    <span class="n">source_vecs</span> <span class="o">=</span> <span class="n">more_source_vecs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">more_source_vecs</span> <span class="o">=</span> <span class="n">more_source_vecs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
   <span class="k">return</span> <span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
-          <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">)</span> <span class="o">+</span> <span class="n">more_source_vecs</span></div>
+          <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span>
+          <span class="n">transparent_acc_helper</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_common_gpipe_transformer_fprop_meta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe._common_gpipe_transformer_fprop_meta">[docs]</a><span class="k">def</span> <span class="nf">_common_gpipe_transformer_fprop_meta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -264,17 +255,13 @@
   <span class="n">src_time</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="n">inputs</span>
   <span class="n">flops</span> <span class="o">=</span> <span class="n">flops_per_element</span> <span class="o">*</span> <span class="n">src_time</span> <span class="o">*</span> <span class="n">src_time</span> <span class="o">*</span> <span class="n">source_batch</span> <span class="o">*</span> <span class="n">dim</span>
   <span class="n">args</span> <span class="o">=</span> <span class="n">args</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">args</span><span class="p">,)</span>
-  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>  <span class="c1"># Decoder FPropMeta</span>
-      <span class="n">args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">7</span> <span class="k">else</span> <span class="n">args</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">args</span> <span class="o">+=</span> <span class="p">(</span><span class="n">inputs</span><span class="p">,)</span>
-      <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="c1"># Switch back to non-transparent mode for decoder.</span>
-        <span class="n">args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="mi">7</span><span class="p">]</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">args</span> <span class="o">+=</span> <span class="p">(</span><span class="n">inputs</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">+</span> <span class="mi">6</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span><span class="p">:</span>  <span class="c1"># Transparent Encoder FPropMeta</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="mi">7</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span>
+          <span class="n">inputs</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]))</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="n">args</span><span class="p">[</span><span class="mi">8</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]),)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_enc_layer</span><span class="p">:</span>
+      <span class="n">args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="mi">7</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,)</span> <span class="o">+</span> <span class="n">args</span><span class="p">)</span></div>
 
 
@@ -294,19 +281,19 @@
 
 <div class="viewcode-block" id="GPipeTransformerLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span>
             <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
-            <span class="n">label_weights</span><span class="p">,</span> <span class="o">*</span><span class="n">more_source_vecs</span><span class="p">):</span>
+            <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span> <span class="n">transparent_acc_helper</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>  <span class="c1"># Decoder FProp</span>
         <span class="k">return</span> <span class="n">_common_gpipe_transformer_decoder_fprop</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">GPipeTransformerLayer</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">GPipeTransformerLayer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
             <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span>
-            <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="o">*</span><span class="n">more_source_vecs</span><span class="p">)</span>
+            <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span> <span class="n">transparent_acc_helper</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>  <span class="c1"># Encoder FProp</span>
         <span class="k">return</span> <span class="n">_common_gpipe_transformer_encoder_fprop</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="n">GPipeTransformerLayer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
             <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span>
-            <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="o">*</span><span class="n">more_source_vecs</span><span class="p">)</span></div>
+            <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span> <span class="n">transparent_acc_helper</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GPipeTransformerLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -327,13 +314,14 @@
     <span class="nb">super</span><span class="p">(</span><span class="n">GPipeEvolvedTransformerEncoderLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">_common_gpipe_transformer_init</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-<div class="viewcode-block" id="GPipeEvolvedTransformerEncoderLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
-            <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="o">*</span><span class="n">more_source_vecs</span><span class="p">):</span>
+<div class="viewcode-block" id="GPipeEvolvedTransformerEncoderLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span>
+            <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
+            <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span> <span class="n">transparent_acc_helper</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">_common_gpipe_transformer_encoder_fprop</span><span class="p">(</span>
           <span class="bp">self</span><span class="p">,</span> <span class="n">GPipeEvolvedTransformerEncoderLayer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span>
           <span class="n">source_paddings</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
-          <span class="n">label_weights</span><span class="p">,</span> <span class="o">*</span><span class="n">more_source_vecs</span><span class="p">)</span></div>
+          <span class="n">label_weights</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GPipeEvolvedTransformerEncoderLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -356,13 +344,13 @@
 
 <div class="viewcode-block" id="GPipeEvolvedTransformerDecoderLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span>
             <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
-            <span class="n">label_weights</span><span class="p">,</span> <span class="o">*</span><span class="n">more_source_vecs</span><span class="p">):</span>
+            <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span> <span class="n">transparent_acc_helper</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">_common_gpipe_transformer_decoder_fprop</span><span class="p">(</span>
-          <span class="bp">self</span><span class="p">,</span> <span class="n">GPipeEvolvedTransformerDecoderLayer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span>
-          <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
-          <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span>
-          <span class="o">*</span><span class="n">more_source_vecs</span><span class="p">)</span></div>
+          <span class="bp">self</span><span class="p">,</span> <span class="n">GPipeEvolvedTransformerDecoderLayer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span>
+          <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
+          <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span>
+          <span class="n">transparent_acc_helper</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GPipeEvolvedTransformerDecoderLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -394,14 +382,12 @@
 
 <div class="viewcode-block" id="GPipeTransformerSoftmaxLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerSoftmaxLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span>
             <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
-            <span class="n">label_weights</span><span class="p">,</span> <span class="o">*</span><span class="n">more_source_vecs</span><span class="p">):</span>
+            <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span> <span class="n">transparent_acc_helper</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">inputs_from_decoder</span><span class="p">:</span>
       <span class="n">transformer_output</span> <span class="o">=</span> <span class="n">target_vecs</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">transformer_output</span> <span class="o">=</span> <span class="n">source_vecs</span>
-      <span class="k">if</span> <span class="n">more_source_vecs</span><span class="p">:</span>
-        <span class="n">transformer_output</span> <span class="o">=</span> <span class="n">more_source_vecs</span> <span class="o">+</span> <span class="p">(</span><span class="n">source_vecs</span><span class="p">,)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropSoftmax</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">transformer_output</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span>
                               <span class="n">target_paddings</span><span class="p">)</span></div>
 
@@ -571,7 +557,8 @@
                                          <span class="bp">self</span><span class="o">.</span><span class="n">tgt_dropout</span><span class="p">,</span> <span class="n">target_id</span><span class="p">,</span>
                                          <span class="n">target_pos_id</span><span class="p">)</span>
       <span class="k">return</span> <span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
-              <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">)</span></div>
+              <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="kc">None</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GPipeTransformerEmbeddingLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -588,7 +575,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_tgt_embedding_layer</span><span class="p">:</span>
       <span class="n">tgt_time</span><span class="p">,</span> <span class="n">tgt_batch</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">new_args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="n">tgt_time</span><span class="p">,</span> <span class="n">tgt_batch</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
-    <span class="n">new_args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">new_args</span><span class="p">[:</span><span class="mi">7</span><span class="p">])</span>
+    <span class="n">new_args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">new_args</span><span class="p">[:</span><span class="mi">7</span><span class="p">])</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">new_inputs</span><span class="p">,)</span> <span class="o">+</span> <span class="n">new_args</span><span class="p">)</span></div></div>
 
 
@@ -631,13 +618,10 @@
         <span class="s1">&#39;is_transparent&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;If set, encoder outputs a merger of embeddings and &#39;</span>
         <span class="s1">&#39;layer outputs.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;num_transparent_outputs&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
-        <span class="s1">&#39;If set, the transparent merger outputs this number of weighted sums. &#39;</span>
-        <span class="s1">&#39;Defaults to number of decoder layers if transparent.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;transparent_merger_tpl&#39;</span><span class="p">,</span> <span class="n">DeterministicWeightsLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Creates weights for transparent combination.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;If True, assumes multiple training samples per input.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;apply_dropout_every_n&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Deprecated&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">encoder_tpl</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">p</span><span class="o">.</span><span class="n">decoder_tpl</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">decoder_tpl</span><span class="o">.</span><span class="n">mask_self_atten</span> <span class="o">=</span> <span class="kc">True</span>
@@ -666,6 +650,11 @@
       <span class="n">p</span><span class="o">.</span><span class="n">decoder_tpl</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
       <span class="n">transformers</span> <span class="o">=</span> <span class="p">[]</span>
 
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_dropout_prob</span><span class="p">)</span>
+
       <span class="c1"># Encoder Embedding layer.</span>
       <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">p</span><span class="o">.</span><span class="n">emb_tpl</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
@@ -682,19 +671,14 @@
         <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
         <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;encoder_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="n">params</span><span class="o">.</span><span class="n">is_transparent</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">final_enc_layer</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
         <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
         <span class="c1"># Use DeterministicDropoutLayer when used in temp graphs.</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
           <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SetupDeterministicDropout</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">has_aux_atten</span>
-        <span class="n">last_layer</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span> <span class="ow">and</span> <span class="n">last_layer</span><span class="p">:</span>
-          <span class="n">transparent_merger_tpl</span> <span class="o">=</span> <span class="n">DeterministicWeightedSumLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-          <span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span> <span class="o">+</span> <span class="mi">1</span>
-          <span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_dropout_prob</span><span class="p">)</span>
-          <span class="n">params</span><span class="o">.</span><span class="n">transparent_merger_tpl</span> <span class="o">=</span> <span class="n">transparent_merger_tpl</span>
-          <span class="n">params</span><span class="o">.</span><span class="n">num_transparent_outputs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">params</span><span class="o">.</span><span class="n">transparent_merger_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
         <span class="n">transformers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
       <span class="c1"># Decoder layers.</span>
@@ -703,8 +687,6 @@
         <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;decoder_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="n">params</span><span class="o">.</span><span class="n">mask_self_atten</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">is_transparent</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span> <span class="ow">and</span> <span class="p">(</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_decoder_layers</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
           <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SetupDeterministicDropout</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">has_aux_atten</span>
@@ -786,20 +768,17 @@
                                <span class="n">source_paddings</span><span class="p">,</span>
                                <span class="n">source_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">more_source_vecs</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">transparent_acc</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">transparent_weights</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">for</span> <span class="n">encoder_l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetEncoders</span><span class="p">():</span>
       <span class="n">encoder_outs</span> <span class="o">=</span> <span class="n">encoder_l</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">encoder_l</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span>
                                      <span class="n">source_paddings</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-                                     <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">more_source_vecs</span><span class="p">)</span>
+                                     <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span>
+                                     <span class="n">transparent_weights</span><span class="p">)</span>
       <span class="n">source_vecs</span> <span class="o">=</span> <span class="n">encoder_outs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">more_source_vecs</span> <span class="o">=</span> <span class="n">encoder_outs</span><span class="p">[</span><span class="mi">8</span><span class="p">:]</span>
-
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">more_source_vecs</span>
-
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="n">source_vecs</span> <span class="o">=</span> <span class="n">more_source_vecs</span> <span class="o">+</span> <span class="p">(</span><span class="n">source_vecs</span><span class="p">,)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
-        <span class="n">source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">encoder_outs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">10</span><span class="p">:</span>
+        <span class="n">transparent_acc</span> <span class="o">=</span> <span class="n">encoder_outs</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span>
+        <span class="n">transparent_weights</span> <span class="o">=</span> <span class="n">encoder_outs</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">source_vecs</span></div>
 
 <div class="viewcode-block" id="GPipeTransformerStack.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerStack.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -848,6 +827,8 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">source_segment_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
           <span class="s1">&#39;Need to specify src_segment_id if packed input is supported.&#39;</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">source_pos_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;Need to specify src_pos_id for packed input and embeddings.&#39;</span><span class="p">)</span>
 
     <span class="n">gpipe_outputs</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GPipeTransformerStack</span><span class="p">,</span>
                           <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_input</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
@@ -858,13 +839,13 @@
     <span class="k">return</span> <span class="n">gpipe_outputs</span></div></div>
 
 
-<div class="viewcode-block" id="DeterministicWeightedSumLayer"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer">[docs]</a><span class="k">class</span> <span class="nc">DeterministicWeightedSumLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+<div class="viewcode-block" id="DeterministicWeightsLayer"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.DeterministicWeightsLayer">[docs]</a><span class="k">class</span> <span class="nc">DeterministicWeightsLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;WeightedSumLayer with deterministic dropout.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="DeterministicWeightedSumLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="DeterministicWeightsLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.DeterministicWeightsLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Params for this MergerLayer class.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DeterministicWeightedSumLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DeterministicWeightsLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_sources&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of input sources to combine.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weighted_merger_dropout_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
              <span class="s1">&#39;Applies dropout to the weights.&#39;</span><span class="p">)</span>
@@ -879,7 +860,7 @@
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">DeterministicWeightedSumLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">DeterministicWeightsLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Layer must have a specified name!&#39;</span><span class="p">)</span>
@@ -897,27 +878,17 @@
     <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;dropout&#39;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;weighted_merger_dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DeterministicWeightedSumLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="DeterministicWeightsLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.DeterministicWeightsLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Combines the list of input tensors into a single tensor.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">        its children layers.</span>
-<span class="sd">      inputs: A list of tensors of shape [time, batch, hidden_dim]</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A tensor of the same shape with input tensors.</span>
+<span class="sd">      A tensor of weights with dropout applied with shape [num_sources].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">n_sources</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">n_sources</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-    <span class="c1"># Weighted sum of all sources, all dims must match.</span>
-    <span class="c1"># For weighted_sum, assume input is a list of rank 3 tensors</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
 
     <span class="c1"># The constant factor is just meant to support the non-normalized scenario.</span>
     <span class="c1"># If softmax is applied, this factor will cancel out.</span>
@@ -929,11 +900,7 @@
       <span class="k">assert</span> <span class="n">residual_weights</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
       <span class="k">assert</span> <span class="n">residual_weights</span> <span class="o">&lt;</span> <span class="mf">1.0</span>
       <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">residual_weights</span><span class="p">)</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">minimal_prob</span>
-
-    <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_sources</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-    <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">inputs</span> <span class="o">*</span> <span class="n">w</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">output</span></div></div>
+    <span class="k">return</span> <span class="n">w</span></div></div>
 </pre></div>
 
            </div>
