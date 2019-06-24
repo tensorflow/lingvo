@@ -1543,7 +1543,7 @@ def _ComputeGradientsTpu(loss, all_vars, grad_aggregation_method,
   for g in all_grads:
     if g is not None:
       with tf.colocate_with(g):
-        aggregated_grads.append(tf.compat.v1.tpu.cross_replica_sum(g))
+        aggregated_grads.append(tf.tpu.cross_replica_sum(g))
     else:
       aggregated_grads.append(None)
   return aggregated_grads
@@ -1598,9 +1598,8 @@ def _ComputeGradientsTpuNas(loss, all_vars, grad_aggregation_method,
         zero_threashold = 1e-8
         g_is_non_zero = tf.cast(
             tf.reduce_sum(tf.math.abs(g)) > zero_threashold, g.dtype)
-        num_updates = tf.maximum(
-            tf.compat.v1.tpu.cross_replica_sum(g_is_non_zero), 1.0)
-        normalized_g = tf.compat.v1.tpu.cross_replica_sum(g) / num_updates
+        num_updates = tf.maximum(tf.tpu.cross_replica_sum(g_is_non_zero), 1.0)
+        normalized_g = tf.tpu.cross_replica_sum(g) / num_updates
         aggregated_grads.append(normalized_g)
     else:
       aggregated_grads.append(None)

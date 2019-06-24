@@ -18,11 +18,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensorflow import *  # pylint:disable=wildcard-import
-# Exclude the contrib module.
-del contrib  # pylint:disable=undefined-variable
+from tensorflow.compat.v1 import *  # pylint:disable=wildcard-import
 
-# import absl.flags and absl.logging to overwrite the Tensorflow ones.
+# Import absl.flags and absl.logging to overwrite the Tensorflow ones.
 # This is the intended behavior in TF 2.0.
 # pylint:disable=g-bad-import-order, unused-import, g-import-not-at-top
 from absl import flags

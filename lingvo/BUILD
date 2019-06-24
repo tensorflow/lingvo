@@ -29,10 +29,10 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_trial",
+        ":compat",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:early_stop",
         "//lingvo/core:py_utils",
-        # Implicit tensorflow dependency.
         # Implicit tensorflow py proto dependency.
     ],
 )
@@ -70,9 +70,9 @@ py_library(
     srcs = ["model_imports.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":compat",
         ":model_registry",
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -91,8 +91,8 @@ py_test(
     name = "model_import_test",
     srcs = ["model_import_test.py"],
     deps = [
+        ":compat",
         ":model_imports_no_params",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -102,11 +102,11 @@ py_library(
     srcs = ["models_test_helper.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":compat",
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -114,12 +114,12 @@ py_test(
     name = "models_test",
     srcs = ["models_test.py"],
     deps = [
+        ":compat",
         ":model_imports",
         ":model_registry",
         ":model_registry_test_lib",
         ":models_test_helper",
         "//lingvo/core:base_model_params",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -128,8 +128,8 @@ py_library(
     srcs = ["model_registry.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":compat",
         "//lingvo/core:base_model_params",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -145,12 +145,12 @@ py_library(
     srcs = ["model_registry_test.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":compat",
         ":model_registry",
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
         "//lingvo/core:test_utils",
-        # Implicit tensorflow dependency.
     ],
 )
 

@@ -24,8 +24,8 @@ from __future__ import division
 from __future__ import print_function
 
 import inspect
+import lingvo.compat as tf
 from lingvo.core import base_model_params
-import tensorflow as tf
 
 tf.flags.DEFINE_string(
     'model_params_override', '', 'Optional text specifying'

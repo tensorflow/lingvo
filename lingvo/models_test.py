@@ -25,8 +25,8 @@ from lingvo import model_registry
 from lingvo import model_registry_test
 # pylint: enable=unused-import
 from lingvo import models_test_helper
+import lingvo.compat as tf
 from lingvo.core import base_model_params
-import tensorflow as tf
 
 
 class ModelsTest(models_test_helper.BaseModelsTest):

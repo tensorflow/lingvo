@@ -40,6 +40,7 @@ import threading
 import time
 from lingvo import base_trial
 from lingvo import model_registry
+import lingvo.compat as tf
 from lingvo.core import base_model
 from lingvo.core import base_model_params
 from lingvo.core import cluster_factory
@@ -50,12 +51,13 @@ import numpy as np
 import six
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
 
 from lingvo import base_runner
 from tensorflow.contrib.tpu.python.tpu import device_assignment as device_assignment_lib
 from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.core.protobuf import config_pb2
+from tensorflow.python.tpu import training_loop as tpu_training_loop  # pylint:disable=g-direct-tensorflow-import
+from tensorflow.python.tpu.ops import tpu_ops  # pylint:disable=g-direct-tensorflow-import
 
 tf.flags.DEFINE_string(
     'model', '', 'Name of the model class to train.'
@@ -602,7 +604,7 @@ class TrainerTpu(base_runner.BaseRunner):
         # here.
         dummy_graph = tf.Graph()
         with dummy_graph.as_default():
-          tpu_initialize_system_op = tf.compat.v1.tpu.initialize_system(
+          tpu_initialize_system_op = tf.tpu.initialize_system(
               embedding_config=None, job=None)
 
         with self._GetSession(graph=dummy_graph) as sess:
@@ -657,7 +659,7 @@ class TrainerTpu(base_runner.BaseRunner):
 
         @tpu_function.on_device_training_loop
         def TpuTrain():
-          loop_result = tf.contrib.tpu.repeat(
+          loop_result = tpu_training_loop.repeat(
               self._steps_per_loop,
               TpuTrainStep,
               inputs=self._eval_metrics.initial_values,
@@ -665,7 +667,7 @@ class TrainerTpu(base_runner.BaseRunner):
           # Final metrics are the avg across self._steps_per_loop steps.
           return self._eval_metrics.FinalizeMetrics(loop_result)
 
-        batch_parallel_res = tf.contrib.tpu.batch_parallel(
+        batch_parallel_res = tf.tpu.batch_parallel(
             TpuTrain,
             num_shards=data_parallelism,
             device_assignment=py_utils.GetTpuDeviceAssignment())
@@ -693,7 +695,7 @@ class TrainerTpu(base_runner.BaseRunner):
     if not per_example_tensors:
       return tf.no_op()
     per_example_tensors = py_utils.NestedMap(per_example_tensors)
-    return tf.contrib.tpu.outfeed_enqueue_tuple(per_example_tensors.Flatten())
+    return tpu_ops.outfeed_enqueue_tuple(per_example_tensors.Flatten())
 
   def _OutfeedDequeueLoop(self, per_example_tensors, num_loops, num_devices):
     """Process all per-example tensor outfeed data for a TPU sess.run.
@@ -737,7 +739,7 @@ class TrainerTpu(base_runner.BaseRunner):
         for core in range(device_assignment.num_cores_per_replica):
           with tf.device(device_assignment.host_device(replica, core)):
             outfeed_devices.append(
-                tf.contrib.tpu.outfeed_dequeue_tuple(
+                tpu_ops.outfeed_dequeue_tuple(
                     tensor_types,
                     tensor_shapes,
                     device_ordinal=device_assignment.tpu_ordinal(replica,
@@ -815,8 +817,7 @@ class TrainerTpu(base_runner.BaseRunner):
           self._tpu_embedding.config_proto
           if self._tpu_embedding is not None else None)
       sess.run(
-          tf.compat.v1.tpu.initialize_system(
-              embedding_config=config_proto, job=None))
+          tf.tpu.initialize_system(embedding_config=config_proto, job=None))
       sess.run(self.initialize_tables)
       sess.run(self._initialize_local_vars)
       if FLAGS.run_locally == 'tpu':

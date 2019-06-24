@@ -27,6 +27,7 @@ import shutil
 from lingvo import base_trial
 from lingvo import model_registry
 from lingvo import trainer
+import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import base_model
@@ -38,7 +39,6 @@ import lingvo.tasks.image.params.mnist  # pylint: disable=unused-import
 import lingvo.tasks.punctuator.params.codelab  # pylint: disable=unused-import
 import numpy as np
 from six.moves import range
-import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 
