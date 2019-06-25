@@ -2667,6 +2667,19 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
       in_dim = out_dim
     return layer_in
 
+  @classmethod
+  def FPropMeta(cls, p, inputs, paddings=None):
+    py_utils.CheckShapes((inputs,))
+    assert inputs[-1] == p.input_dim
+    flops = 0
+    in_dim = inputs[-1]
+    other_dims = inputs.num_elements() / in_dim
+    for out_dim in p.hidden_layer_dims:
+      flops += 5 * other_dims * in_dim * out_dim
+      in_dim = out_dim
+    out_shape = tshape.Shape(inputs[:-1] + [p.hidden_layer_dims[-1]])
+    return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
+
 
 class DropoutLayer(base_layer.BaseLayer):
   """Apply dropout during trainig."""
