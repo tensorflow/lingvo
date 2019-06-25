@@ -186,12 +186,23 @@
   <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
       <span class="s1">&#39;final_enc_layer&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
       <span class="s1">&#39;True for final encoder layer. To be used for final transparent merger.&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+      <span class="s1">&#39;normalize_output&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+      <span class="s1">&#39;If set, encoder outputs a list of layer outputs while decoder &#39;</span>
+      <span class="s1">&#39;expects a list of source input vectors.&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">p</span></div>
 
 
 <div class="viewcode-block" id="_common_gpipe_transformer_init"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe._common_gpipe_transformer_init">[docs]</a><span class="k">def</span> <span class="nf">_common_gpipe_transformer_init</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Initialize a GPipe layer.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">params</span>
+
+  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">normalize_output</span><span class="p">:</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;encoder_ln&#39;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+    <span class="n">layer</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">transparent_param</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
@@ -221,6 +232,8 @@
       <span class="n">transparent_acc_helper</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">transparent_acc_helper</span> <span class="o">=</span> <span class="n">transparent_acc_helper</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">normalize_output</span><span class="p">:</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
   <span class="k">return</span> <span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
           <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span>
           <span class="n">transparent_acc_helper</span><span class="p">)</span></div>
@@ -622,6 +635,8 @@
              <span class="s1">&#39;Creates weights for transparent combination.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;If True, assumes multiple training samples per input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;normalize_encoder&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If True, layer-normalizes final encoder layer output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">encoder_tpl</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">p</span><span class="o">.</span><span class="n">decoder_tpl</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">decoder_tpl</span><span class="o">.</span><span class="n">mask_self_atten</span> <span class="o">=</span> <span class="kc">True</span>
@@ -670,6 +685,9 @@
         <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;encoder_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span><span class="p">:</span>
           <span class="n">params</span><span class="o">.</span><span class="n">is_transparent</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span>
+          <span class="n">params</span><span class="o">.</span><span class="n">final_enc_layer</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">normalize_encoder</span> <span class="ow">and</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)):</span>
+          <span class="n">params</span><span class="o">.</span><span class="n">normalize_output</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">normalize_encoder</span>
           <span class="n">params</span><span class="o">.</span><span class="n">final_enc_layer</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
           <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
