@@ -816,6 +816,15 @@ class WeightInit(object):
     return WeightInit._Params('xavier', scale, seed)
 
   @staticmethod
+  def XavierWithFixupParams(scale=1.0,
+                            depth=1.0,
+                            layers_per_residual_block=1.0,
+                            seed=None):
+    """Xavier initialization with Fixup."""
+    scale = scale * math.pow(depth, (-1.0 / (2 * layers_per_residual_block)))
+    return WeightInit._Params('xavier', scale, seed)
+
+  @staticmethod
   def GeoMeanXavier(scale=1.0, seed=None):
     """A variant of Xavier (x = sqrt(3. / sqrt(in * out)); [-x, x])."""
     return WeightInit._Params('geo_mean_xavier', scale, seed)

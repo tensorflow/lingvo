@@ -41,12 +41,23 @@ def _common_gpipe_transformer_params(p):
   p.Define(
       'final_enc_layer', False,
       'True for final encoder layer. To be used for final transparent merger.')
+  p.Define(
+      'normalize_output', False,
+      'If set, encoder outputs a list of layer outputs while decoder '
+      'expects a list of source input vectors.')
+  p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
   return p
 
 
 def _common_gpipe_transformer_init(layer):
   """Initialize a GPipe layer."""
   p = layer.params
+
+  if p.normalize_output:
+    params = p.ln_tpl.Copy()
+    params.name = 'encoder_ln'
+    params.input_dim = p.source_dim
+    layer.CreateChild('layer_norm', params)
 
   if p.is_transparent and p.transparent_merger_tpl is not None:
     transparent_param = p.transparent_merger_tpl.Copy()
@@ -76,6 +87,8 @@ def _common_gpipe_transformer_encoder_fprop(
       transparent_acc_helper = None
     else:
       transparent_acc_helper = transparent_acc_helper[1:]
+  if p.normalize_output:
+    h = layer.layer_norm.FProp(theta.layer_norm, h)
   return (h, source_paddings, target_vecs, target_paddings, source_segment_id,
           target_segment_id, labels, label_weights, transparent_acc,
           transparent_acc_helper)
@@ -477,6 +490,8 @@ class GPipeTransformerStack(PipeliningLayer):
              'Creates weights for transparent combination.')
     p.Define('packed_input', False,
              'If True, assumes multiple training samples per input.')
+    p.Define('normalize_encoder', False,
+             'If True, layer-normalizes final encoder layer output.')
     p.encoder_tpl.has_aux_atten = False
     p.decoder_tpl.has_aux_atten = True
     p.decoder_tpl.mask_self_atten = True
@@ -525,6 +540,9 @@ class GPipeTransformerStack(PipeliningLayer):
         params.name = 'encoder_%d' % (i)
         if p.is_transparent:
           params.is_transparent = p.is_transparent
+          params.final_enc_layer = (i == (p.num_encoder_layers - 1))
+        if p.normalize_encoder and (i == (p.num_encoder_layers - 1)):
+          params.normalize_output = p.normalize_encoder
           params.final_enc_layer = (i == (p.num_encoder_layers - 1))
         if p.packed_input:
           params.packed_input = p.packed_input
