@@ -2810,7 +2810,20 @@
       <span class="n">layer_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dropout</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">layer_out</span><span class="p">)</span>
       <span class="n">layer_in</span> <span class="o">=</span> <span class="n">layer_out</span>
       <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
-    <span class="k">return</span> <span class="n">layer_in</span></div></div>
+    <span class="k">return</span> <span class="n">layer_in</span></div>
+
+<div class="viewcode-block" id="FeedForwardNet.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FeedForwardNet.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
+    <span class="k">assert</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="n">flops</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">in_dim</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">other_dims</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">/</span> <span class="n">in_dim</span>
+    <span class="k">for</span> <span class="n">out_dim</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">:</span>
+      <span class="n">flops</span> <span class="o">+=</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="n">out_dim</span>
+      <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
+    <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_shape</span><span class="p">,))</span></div></div>
 
 
 <div class="viewcode-block" id="DropoutLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DropoutLayer">[docs]</a><span class="k">class</span> <span class="nc">DropoutLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
