@@ -33,6 +33,12 @@ In total, `250MB` of free space are required. The location is configured in
 `/tmp/wmtm16/wpm`, stored in `tfrecord` format, which is described
 in detail under the Full Machine translation task.
 
+To install aria2c, run:
+
+```shell
+sudo apt-get install aria2
+```
+
 ## Training a toy system
 
 MT training is most naturally run on a cluster with many parallel processes, but
