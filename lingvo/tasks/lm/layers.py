@@ -1264,6 +1264,7 @@ class GPipeTransformerLm(BaseLanguageModel):
         embedding_dim=model_dim, trainable_scaling=False)
     p.stack.emb_tpl.input_dropout_prob = input_dropout_prob
     trans_tpl = p.stack.encoder_tpl
+    trans_tpl.source_dim = model_dim
 
     trans_tpl.is_decoder = False
     trans_tpl.has_aux_atten = False

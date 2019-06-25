@@ -501,8 +501,6 @@ class GPipeTransformerStack(PipeliningLayer):
       p.splits[-1] = num_layers
 
     with tf.variable_scope(p.name):
-      p.encoder_tpl.source_dim = p.model_dim
-      p.decoder_tpl.source_dim = p.model_dim
       transformers = []
 
       if p.is_transparent:
@@ -525,9 +523,11 @@ class GPipeTransformerStack(PipeliningLayer):
       for i in range(p.num_encoder_layers):
         params = p.encoder_tpl.Copy()
         params.name = 'encoder_%d' % (i)
-        params.is_transparent = p.is_transparent
-        params.final_enc_layer = (i == (p.num_encoder_layers - 1))
-        params.packed_input = p.packed_input
+        if p.is_transparent:
+          params.is_transparent = p.is_transparent
+          params.final_enc_layer = (i == (p.num_encoder_layers - 1))
+        if p.packed_input:
+          params.packed_input = p.packed_input
         # Use DeterministicDropoutLayer when used in temp graphs.
         if len(p.splits) > 1 or p.num_micro_batches > 1:
           params = self.SetupDeterministicDropout(params)
@@ -541,7 +541,8 @@ class GPipeTransformerStack(PipeliningLayer):
         params = p.decoder_tpl.Copy()
         params.name = 'decoder_%d' % (i)
         params.mask_self_atten = True
-        params.packed_input = p.packed_input
+        if p.packed_input:
+          params.packed_input = p.packed_input
         if len(p.splits) > 1 or p.num_micro_batches > 1:
           params = self.SetupDeterministicDropout(params)
         assert params.has_aux_atten

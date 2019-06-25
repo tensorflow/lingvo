@@ -898,6 +898,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     p.stack.softmax_tpl.softmax.input_dim = dims
     p.stack.softmax_tpl.softmax.num_classes = vocab
     trans_tpl = p.stack.encoder_tpl
+    trans_tpl.source_dim = dims
     trans_tpl.tr_atten_tpl.num_attention_heads = 2
     trans_tpl.tr_fflayer_tpl.hidden_dim = hidden_dim
     return p

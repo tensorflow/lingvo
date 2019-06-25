@@ -306,9 +306,11 @@ class GPipeTransformerStackTest(test_utils.TestCase, parameterized.TestCase):
     params.name = 'transformer'
     params.model_dim = model_dim
     params.num_decoder_layers = num_decoder_layers
+    params.decoder_tpl.source_dim = model_dim
     params.decoder_tpl.tr_atten_tpl.num_attention_heads = 1
     params.decoder_tpl.tr_fflayer_tpl.hidden_dim = model_dim
     params.num_encoder_layers = num_encoder_layers
+    params.encoder_tpl.source_dim = model_dim
     params.encoder_tpl.tr_atten_tpl.num_attention_heads = 1
     params.encoder_tpl.tr_fflayer_tpl.hidden_dim = model_dim
     params.num_micro_batches = num_micro_batches
