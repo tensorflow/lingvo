@@ -3744,3 +3744,147 @@ class GluLayer(base_layer.BaseLayer):
     if self.params.apply_residual:
       return inputs + glu_output
     return glu_output
+
+
+class MultitaskAdapterLayer(base_layer.BaseLayer):
+  """Residual adapter layer for multilingual models.
+
+  Residual adapters can be used to fine-tune a single model to multiple
+  domains, tasks, or languages: https://arxiv.org/pdf/1902.00751.pdf
+  For simplicity we refer only to languages here.
+
+  Each adapter consists of a "down" projection to a smaller dimension followed
+  by an "up" projection, the result of which is added back to the input
+  activation.  The projection weights and biases are language-specific.
+
+  Whereas lingvo_layers.ResidualAdapterLayer learns and applies the parameters
+  for a single language, this layer learns and applies the parameters for
+  multiple languages so that we have a single model serving the different
+  languages. The parameters can be trained for all languages at the same time,
+  or in one-off per-language training jobs.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(MultitaskAdapterLayer, cls).Params()
+    p.Define('num_langs', 0, 'Number of languages.')
+    p.Define('input_dim', 0, 'Dimension of the input to the adapter.')
+    p.Define('bottleneck_dim', 0, 'Dimension of the bottleneck.')
+    p.Define('layer_norm_tpl', LayerNorm.Params(), 'Layer norm default params.')
+    p.Define(
+        'projection_params_init', None,
+        'Weight initialization for up and down projections. Only used for '
+        'weights, not biases.  If None, uses default weight init, which is '
+        'typically Xavier with scale of 1.0.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(MultitaskAdapterLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    with tf.variable_scope(p.name):
+      base_emb_params = EmbeddingLayer.Params().Set(
+          vocab_size=p.num_langs, max_num_shards=1)
+      down_proj_w_params = base_emb_params.Copy()
+      down_proj_w_params.Set(
+          embedding_dim=p.input_dim * p.bottleneck_dim, name='down_proj_w')
+      if p.projection_params_init:
+        down_proj_w_params.params_init = p.projection_params_init
+      down_proj_b_params = base_emb_params.Copy()
+      down_proj_b_params.Set(embedding_dim=p.bottleneck_dim, name='down_proj_b')
+      up_proj_w_params = base_emb_params.Copy()
+      up_proj_w_params.Set(
+          embedding_dim=p.bottleneck_dim * p.input_dim, name='up_proj_w')
+      if p.projection_params_init:
+        up_proj_w_params.params_init = p.projection_params_init
+      up_proj_b_params = base_emb_params.Copy()
+      up_proj_b_params.Set(embedding_dim=p.input_dim, name='up_proj_b')
+    with tf.variable_scope(p.name):
+      self.CreateChild('down_proj_w', down_proj_w_params)
+      self.CreateChild('down_proj_b', down_proj_b_params)
+      self.CreateChild('up_proj_w', up_proj_w_params)
+      self.CreateChild('up_proj_b', up_proj_b_params)
+      params = p.layer_norm_tpl.Copy()
+      params.name = 'adapter_ln'
+      params.input_dim = p.input_dim
+      self.CreateChild('layer_norm', params)
+
+  def FProp(self, theta, inputs, langs):
+    """Fprop for multilingual adapter.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      inputs: A tensor containing the activations from the previous layer of
+        shape [time, batch, input_dim].
+      langs: An int32 tensor containing the language ID for each input.  If
+        'langs' is of rank 2, we assume it to be of shape [time, batch],
+        indicating a different language for each timestep.  In this case we look
+        up adapter params for each timestep.  If 'langs' is of rank 1, we assume
+        it to be of shape [batch], indicating a single language for all
+        timesteps of a sequence.  This latter setup uses substantially less
+        memory and is generally preferred.
+
+    Returns:
+      output: A tensor containing the adapted activations with shape
+        [time, batch, input_dim].
+    """
+    p = self.params
+    inputs_shape = tf.shape(inputs)
+    inputs = py_utils.with_dependencies(
+        [
+            # Checks that inputs has 3 dimensions, last is hidden dim.
+            py_utils.assert_shape_match(inputs_shape, [-1, -1, p.input_dim]),
+            # Checks that inputs and langs have same batch dimension.
+            py_utils.assert_shape_match([inputs_shape[1]],
+                                        [tf.shape(langs)[-1]])
+        ],
+        inputs)
+
+    # To support different language for each timetstep, flatten inputs and
+    # langs.  Below, 'batch' now refers to flattened batch size, time * batch.
+    per_timestep_lang = (langs.shape.ndims == 2)
+    if per_timestep_lang:
+      langs = py_utils.with_dependencies(
+          [
+              # Checks that inputs and langs have same time dimension.
+              py_utils.assert_shape_match(inputs_shape[:1],
+                                          tf.shape(langs)[:1])
+          ],
+          langs)
+      langs = tf.reshape(langs, [-1])
+      inputs = tf.reshape(inputs, [1, -1, p.input_dim])
+
+    # Lookup all weights and biases
+    # [batch] -> [batch, hidden * k] -> [batch, hidden, k]
+    down_weights = tf.reshape(
+        self.down_proj_w.EmbLookup(theta.down_proj_w, langs),
+        [-1, p.input_dim, p.bottleneck_dim])
+    # [batch] -> [batch, k] -> [1, batch, k]
+    down_biases = tf.expand_dims(
+        self.down_proj_b.EmbLookup(theta.down_proj_b, langs), 0)
+    # [batch] -> [batch, k * hidden] -> [batch, k, hidden]
+    up_weights = tf.reshape(
+        self.up_proj_w.EmbLookup(theta.up_proj_w, langs),
+        [-1, p.bottleneck_dim, p.input_dim])
+    # [batch] -> [batch, h] -> [1, batch, h]
+    up_biases = tf.expand_dims(
+        self.up_proj_b.EmbLookup(theta.up_proj_b, langs), 0)
+
+    # Layer norm -> down-projection -> non-linearity -> up-projection
+    norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
+    # If per_timestep_lang, t = 1, b = time * batch.
+    # Otherwise, t = time, b = batch.
+    down_projected = tf.einsum('tbh,bhk->tbk', norm_inputs, down_weights)
+    down_projected += down_biases
+    down_projected = tf.nn.relu(down_projected)
+    up_projected = tf.einsum('tbk,bkh->tbh', down_projected, up_weights)
+    up_projected += up_biases
+    output = inputs + up_projected
+
+    # Unflatten output: [1, time * batch, hidden] -> [time, batch, hidden]
+    if per_timestep_lang:
+      output = tf.reshape(output, inputs_shape)
+
+    return output

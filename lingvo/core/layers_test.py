@@ -3878,5 +3878,138 @@ class GluLayerTest(test_utils.TestCase):
       self.assertAllClose(actual_layer_output, expected_output)
 
 
+class MultitaskAdapterLayerTest(test_utils.TestCase):
+
+  def _MultitaskAdapterParams(self):
+    return layers.MultitaskAdapterLayer.Params().Set(
+        name='multi_adapter',
+        input_dim=4,
+        bottleneck_dim=2,
+        num_langs=3,
+        random_seed=505837249)
+
+  def testSingleStepFProp(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(1234567)
+      # Inputs are of shape [1, batch, input_dim] (single time step)
+      # Batch elements 0, 2, and 3 are identical, but 0 and 2 have the same
+      # lang ID where as 3 has a different lang ID.
+      inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0],
+                             [0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
+                           dtype=tf.float32)
+      langs = tf.constant([1, 0, 1, 0], dtype=tf.int32)
+      p = self._MultitaskAdapterParams()
+      adapter = p.Instantiate()
+      output = adapter.FProp(adapter.theta, inputs, langs)
+      tf.global_variables_initializer().run()
+      actual = sess.run(output)
+      expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
+                   [0.262231, 0.667873, -0.92701, 2.246897],
+                   [-0.674434, -0.331616, 0.066886, 0.388049],
+                   [0.737031, 0.330693, -0.227962, 0.138892]]]
+      self.assertEqual(actual.shape, (1, 4, 4))
+      # Batch elements 0 and 2 are equal because they had the same input
+      # and the same lang ID.
+      self.assertAllClose(actual[0][0], actual[0][2], rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
+
+  def testMultiStepFProp(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(1234567)
+      # Inputs are same as above but of shape [time, batch, input_dim]
+      inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0]],
+                            [[0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
+                           dtype=tf.float32)
+      # langs is of shape [batch] indicating one language for each sequence.
+      langs = tf.constant([1, 0], dtype=tf.int32)
+      p = self._MultitaskAdapterParams()
+      adapter = p.Instantiate()
+      output = adapter.FProp(adapter.theta, inputs, langs)
+      tf.global_variables_initializer().run()
+      actual = sess.run(output)
+      # Output is same as above but with shape same as input.
+      expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
+                   [0.262231, 0.667873, -0.92701, 2.246897]],
+                  [[-0.674434, -0.331616, 0.066886, 0.388049],
+                   [0.737031, 0.330693, -0.227962, 0.138892]]]
+      self.assertEqual(actual.shape, (2, 2, 4))
+      self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
+
+  def testSpecifyLangPerTimestepFProp(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(1234567)
+      inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0]],
+                            [[0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
+                           dtype=tf.float32)
+      # langs are same as above but of shape [time, batch] indicating that
+      # we should look up adapter params per timestep.  In this example we
+      # still have the lang ID consistent across timesteps in order to
+      # replicate the previous test's output.
+      langs = tf.constant([[1, 0], [1, 0]], dtype=tf.int32)
+      p = self._MultitaskAdapterParams()
+      adapter = p.Instantiate()
+      output = adapter.FProp(adapter.theta, inputs, langs)
+      tf.global_variables_initializer().run()
+      actual = sess.run(output)
+      # Output is same as above.
+      expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
+                   [0.262231, 0.667873, -0.92701, 2.246897]],
+                  [[-0.674434, -0.331616, 0.066886, 0.388049],
+                   [0.737031, 0.330693, -0.227962, 0.138892]]]
+      self.assertEqual(actual.shape, (2, 2, 4))
+      self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
+
+  def testDifferentLangPerTimestepFProp(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(1234567)
+      inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0]],
+                            [[0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
+                           dtype=tf.float32)
+      # langs are again of shape [time, batch] but with different languages
+      # for each timestep.
+      langs = tf.constant([[1, 0], [2, 1]], dtype=tf.int32)
+      p = self._MultitaskAdapterParams()
+      adapter = p.Instantiate()
+      output = adapter.FProp(adapter.theta, inputs, langs)
+      tf.global_variables_initializer().run()
+      actual = sess.run(output)
+      expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
+                   [0.262231, 0.667873, -0.92701, 2.246897]],
+                  [[0.181782, 0.928383, -0.307064, 0.560411],
+                   [-0.674434, -0.331616, 0.066886, 0.388049]]]
+      self.assertEqual(actual.shape, (2, 2, 4))
+      self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
+
+  def testGradientChecker(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(1234567)
+      inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0]],
+                            [[0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
+                           dtype=tf.float32)
+      langs = tf.constant([1, 0], dtype=tf.int32)
+      p = self._MultitaskAdapterParams()
+      adapter = p.Instantiate()
+      output = adapter.FProp(adapter.theta, inputs, langs)
+      loss = tf.reduce_sum(output)
+      tf.global_variables_initializer().run()
+      all_vars = tf.trainable_variables()
+      grads = tf.gradients(loss, all_vars)
+
+      def DenseGrad(var, grad):
+        if isinstance(grad, tf.Tensor):
+          return grad
+        elif isinstance(grad, tf.IndexedSlices):
+          return tf.unsorted_segment_sum(grad.values, grad.indices,
+                                         tf.shape(var)[0])
+
+      dense_grads = [DenseGrad(x, y) for (x, y) in zip(all_vars, grads)]
+      dense_grad_sums = [tf.reduce_sum(g) for g in dense_grads]
+      grad_vs = sess.run(dense_grad_sums)
+      self.assertAllClose([0., -0.239046, 12.765231, 16.0, 0.342786, -1.191779],
+                          grad_vs,
+                          rtol=1e-05,
+                          atol=1e-05)
+
+
 if __name__ == '__main__':
   tf.test.main()
