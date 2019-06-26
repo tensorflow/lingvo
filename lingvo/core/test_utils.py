@@ -50,11 +50,13 @@ class TestCase(tf.test.TestCase):
 
 
 def _ReplaceOneLineInFile(fpath, linenum, old, new):
+  """Replaces a line for the input file."""
   lines = []
   lines = open(fpath).readlines()
   assert lines[linenum] == old, (
       'Expected "%s" at line %d in file %s, but got "%s"' %
       (lines[linenum], linenum + 1, fpath, old))
+  tf.logging.info('Replacing {}:{}.'.format(fpath, linenum))
   lines[linenum] = new
   with open(fpath, 'w') as f:
     for l in lines:
@@ -90,6 +92,25 @@ def ReplaceGoldenStackAnalysis(new_float_value):
 
 
 def CompareToGoldenSingleFloat(testobj, v1, v2, *args, **kwargs):
+  """Compare golden value with real value.
+
+  When running the bazel tests with FLAGS.update_goldens to be True, this
+  function automatically updates the golden value in the test file if there is a
+  mismatch and the calling site of CompareToGoldenSingleFloat is a 1-liner. E.g.
+  Code:
+    test_utils.CompareToGoldenSingleFloat(self, 0.3232, input_batch.label)
+  works but this will not.
+    test_utils.CompareToGoldenSingleFloat(self,
+                                          0.3232,
+                                          input_batch.label)
+
+  Args:
+    testobj: A test object, such as tf.test.TestCase or test_utils.TestCase.
+    v1: the golden value to compare against.
+    v2: the returned value.
+    *args: extra args
+    **kwargs: extra args
+  """
   if not FLAGS.update_goldens:
     testobj.assertAllClose(v1, v2, *args, **kwargs)
   else:
