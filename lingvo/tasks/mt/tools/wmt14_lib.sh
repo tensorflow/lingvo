@@ -14,6 +14,8 @@
 # limitations under the License.
 # ==============================================================================
 
+source lingvo/shell_utils.sh
+
 ROOT=/tmp/wmt14
 
 SRC=en
@@ -38,8 +40,8 @@ function tokenize {
     "${output_base}.${lang}"
 }
 
-WPM_BINARY=./bazel-bin/lingvo/tools/wpm_encode_file
-WPM_VOC=./lingvo/tasks/mt/wpm-${SRC}${TGT}.voc
+WPM_BINARY="$(wheres-the-bin //lingvo/tools:wpm_encode_file)"
+WPM_VOC=lingvo/tasks/mt/wpm-${SRC}${TGT}.voc
 
 function wpm_encode {
   local source_files="$1"

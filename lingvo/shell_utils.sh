@@ -13,22 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+# Common shell utils.
 
-source lingvo/shell_utils.sh
-
-set -eu
-
-. lingvo/tasks/asr/tools/librispeech_lib.sh
-
-mkdir -p "${ROOT}/devtest"
-
-for subset in {dev,test}-{clean,other}; do
-  set -x
-  "$(wheres-the-bin //lingvo/tools:create_asr_features)" \
-    --logtostderr \
-    --input_tarball="${ROOT}/raw/${subset}.tar.gz" --generate_tfrecords \
-    --shard_id=0 --num_shards=1 --num_output_shards=1 \
-    --output_range_begin=0 --output_range_end=1 \
-    --output_template="${ROOT}/devtest/${subset}.tfrecords-%5.5d-of-%5.5d"
-  set +x
-done
+wheres-the-bin() {
+  local target=${1:?} query
+  query=$(bazel query --output=build -- "$target") || return
+  printf "%s/%s\n" \
+    "$(bazel info -c opt bazel-bin \
+      $(grep python_version <<<"$query" \
+        | sed -e 's/.*python_version.*\(PY[23]\).*/--python_version=\1/'))" \
+    "$(bazel query "$target" | sed -e 's!:!/!g' -e 's!^//!!' )"
+}
