@@ -188,7 +188,8 @@
 <dl class="function">
 <dt id="lingvo.core.test_utils._ReplaceOneLineInFile">
 <code class="descclassname">lingvo.core.test_utils.</code><code class="descname">_ReplaceOneLineInFile</code><span class="sig-paren">(</span><em>fpath</em>, <em>linenum</em>, <em>old</em>, <em>new</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#_ReplaceOneLineInFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_utils._ReplaceOneLineInFile" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Replaces a line for the input file.</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.test_utils.ReplaceGoldenSingleFloat">
@@ -204,7 +205,38 @@
 <dl class="function">
 <dt id="lingvo.core.test_utils.CompareToGoldenSingleFloat">
 <code class="descclassname">lingvo.core.test_utils.</code><code class="descname">CompareToGoldenSingleFloat</code><span class="sig-paren">(</span><em>testobj</em>, <em>v1</em>, <em>v2</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#CompareToGoldenSingleFloat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_utils.CompareToGoldenSingleFloat" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Compare golden value with real value.</p>
+<p>When running the bazel tests with FLAGS.update_goldens to be True, this
+function automatically updates the golden value in the test file if there is a
+mismatch and the calling site of CompareToGoldenSingleFloat is a 1-liner. E.g.
+Code:</p>
+<blockquote>
+<div>test_utils.CompareToGoldenSingleFloat(self, 0.3232, input_batch.label)</div></blockquote>
+<dl class="docutils">
+<dt>works but this will not.</dt>
+<dd><dl class="first last docutils">
+<dt>test_utils.CompareToGoldenSingleFloat(self,</dt>
+<dd>0.3232,
+input_batch.label)</dd>
+</dl>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>testobj</strong> – A test object, such as tf.test.TestCase or test_utils.TestCase.</li>
+<li><strong>v1</strong> – the golden value to compare against.</li>
+<li><strong>v2</strong> – the returned value.</li>
+<li><strong>*args</strong> – extra args</li>
+<li><strong>**kwargs</strong> – extra args</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.test_utils.PickEveryN">

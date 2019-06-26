@@ -195,11 +195,13 @@
 
 
 <div class="viewcode-block" id="_ReplaceOneLineInFile"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils._ReplaceOneLineInFile">[docs]</a><span class="k">def</span> <span class="nf">_ReplaceOneLineInFile</span><span class="p">(</span><span class="n">fpath</span><span class="p">,</span> <span class="n">linenum</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Replaces a line for the input file.&quot;&quot;&quot;</span>
   <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="n">lines</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fpath</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
   <span class="k">assert</span> <span class="n">lines</span><span class="p">[</span><span class="n">linenum</span><span class="p">]</span> <span class="o">==</span> <span class="n">old</span><span class="p">,</span> <span class="p">(</span>
       <span class="s1">&#39;Expected &quot;</span><span class="si">%s</span><span class="s1">&quot; at line </span><span class="si">%d</span><span class="s1"> in file </span><span class="si">%s</span><span class="s1">, but got &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span>
       <span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">linenum</span><span class="p">],</span> <span class="n">linenum</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">fpath</span><span class="p">,</span> <span class="n">old</span><span class="p">))</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Replacing </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fpath</span><span class="p">,</span> <span class="n">linenum</span><span class="p">))</span>
   <span class="n">lines</span><span class="p">[</span><span class="n">linenum</span><span class="p">]</span> <span class="o">=</span> <span class="n">new</span>
   <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fpath</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
@@ -235,6 +237,25 @@
 
 
 <div class="viewcode-block" id="CompareToGoldenSingleFloat"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.CompareToGoldenSingleFloat">[docs]</a><span class="k">def</span> <span class="nf">CompareToGoldenSingleFloat</span><span class="p">(</span><span class="n">testobj</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compare golden value with real value.</span>
+
+<span class="sd">  When running the bazel tests with FLAGS.update_goldens to be True, this</span>
+<span class="sd">  function automatically updates the golden value in the test file if there is a</span>
+<span class="sd">  mismatch and the calling site of CompareToGoldenSingleFloat is a 1-liner. E.g.</span>
+<span class="sd">  Code:</span>
+<span class="sd">    test_utils.CompareToGoldenSingleFloat(self, 0.3232, input_batch.label)</span>
+<span class="sd">  works but this will not.</span>
+<span class="sd">    test_utils.CompareToGoldenSingleFloat(self,</span>
+<span class="sd">                                          0.3232,</span>
+<span class="sd">                                          input_batch.label)</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    testobj: A test object, such as tf.test.TestCase or test_utils.TestCase.</span>
+<span class="sd">    v1: the golden value to compare against.</span>
+<span class="sd">    v2: the returned value.</span>
+<span class="sd">    *args: extra args</span>
+<span class="sd">    **kwargs: extra args</span>
+<span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">update_goldens</span><span class="p">:</span>
     <span class="n">testobj</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
