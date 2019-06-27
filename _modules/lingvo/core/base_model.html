@@ -766,10 +766,24 @@
                                  <span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;moving_average&#39;</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span> <span class="o">=</span> <span class="n">ema</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">all_vars</span><span class="p">)</span></div>
 
+  <span class="c1"># TODO(blee): Rename Decode-&gt;DecodeWithDefaultTheta, DecodeWithTheta-&gt;Decode.</span>
 <div class="viewcode-block" id="BaseTask.Decode"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructs the inference graph for eval decoding.</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">      input_batch: The input batch. A `NestedMap` of tensors. Or, if input batch</span>
+<span class="sd">        spiltting is used, a list of `NestedMap`, one for each split.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      a dict of Tensors as decoder output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeWithTheta</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask.DecodeWithTheta"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.DecodeWithTheta">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeWithTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the inference graph for eval decoding with theta.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
 <span class="sd">      input_batch: The input batch. A `NestedMap` of tensors. Or, if input batch</span>
 <span class="sd">        spiltting is used, a list of `NestedMap`, one for each split.</span>
 
