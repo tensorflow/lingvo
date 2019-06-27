@@ -115,10 +115,13 @@ def EvalExpr(value_type, x):
   if isinstance(x, (list, tuple)):
     return type(x)(EvalExpr(value_type, y) for y in x)
   elif isinstance(x, sympy.Expr):
+    symbol_to_value_map = SymbolToValueMap.Get(value_type)
+    if not symbol_to_value_map:
+      raise ValueError('Empty symbol_to_value_map for %s' % x)
     # In theory the below should be equivalent to:
     #   y = x.subs(symbol_to_value_map).
     # In practice subs() doesn't work for when values are Tensors.
-    k, v = list(zip(*(list(SymbolToValueMap.Get(value_type).items()))))
+    k, v = list(zip(*(list(symbol_to_value_map.items()))))
     y = sympy.lambdify(k, x)(*v)
     return y
   else:

@@ -29,6 +29,7 @@ from tensorflow.contrib.tpu.python.tpu import tpu_function
 _BN_FLOPS_PER_ELEMENT = 10
 
 
+# TODO(rpang): move AddingAccumulator to a separate library.
 class AddingAccumulator(base_layer.Accumulator):
   """Accumulator for the sufficient statistics."""
 

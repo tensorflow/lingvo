@@ -23,11 +23,13 @@ import math
 import numbers
 from lingvo.core import base_layer
 from lingvo.core import bn_layers
+from lingvo.core import computation_cost
 from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import recurrent
 from lingvo.core import summary_utils
+from lingvo.core import symbolic
 from lingvo.core import tshape
 import numpy as np
 import six
@@ -3529,6 +3531,36 @@ class ResidualAdapterLayer(base_layer.BaseLayer):
     return x + bottleneck_x
 
 
+def Conv2DFlops(inputs, filter_shape, stride, padding):
+  """Returns number of float operations (mult/adds) for a Conv2D op.
+
+  Args:
+    inputs: the input shape. Must have four elements.
+    filter_shape: the convolution filter shape. Must have four elements.
+    stride: the strides along height and width, respectively.
+    padding: 'SAME' or 'VALID'.
+
+  Returns:
+    Number of multiplications and additions.
+  """
+  b, h, w = inputs[0], inputs[1], inputs[2]
+  fh, fw, ic, oc = filter_shape
+  sh, sw = stride
+
+  def _CeilDiv(x, y):
+    return tf.floordiv(x + y - 1, y)
+
+  if padding == 'SAME':
+    oh = _CeilDiv(h, sh)
+    ow = _CeilDiv(w, sw)
+  else:
+    assert padding == 'VALID'
+    oh = _CeilDiv(h - fh + 1, sh)
+    ow = _CeilDiv(w - fw + 1, sw)
+  # Mul/add counts as 2 flops.
+  return tf.to_int64(b * oh * ow) * tf.to_int64(fh * fw * ic * oc) * 2
+
+
 class Conv2DLayerNoPadding(base_layer.BaseLayer):
   """2-D Convolution layer w/o padding.
 
@@ -3593,6 +3625,14 @@ class Conv2DLayerNoPadding(base_layer.BaseLayer):
     """
     p = self.params
     with tf.name_scope(p.name):
+      computation_cost.Add(
+          self, 'flops',
+          Conv2DFlops(
+              tf.shape(x),
+              filter_shape=symbolic.EvalExpr(symbolic.TENSOR_VALUES,
+                                             p.filter_shape),
+              stride=p.filter_stride,
+              padding=p.padding))
       return tf.nn.conv2d(
           input=x,
           filter=theta.w,

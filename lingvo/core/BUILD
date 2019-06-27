@@ -446,11 +446,13 @@ py_library(
     deps = [
         ":base_layer",
         ":bn_layers",
+        ":computation_cost",
         ":conv_layers_with_time_padding",
         ":py_utils",
         ":quant_utils",
         ":recurrent",
         ":summary_utils",
+        ":symbolic",
         ":tshape",
         # Implicit numpy dependency.
         # Implicit six dependency.
@@ -1290,5 +1292,14 @@ lingvo_cuda_py2and3_test(
         ":insertion",
         ":test_utils",
         # Implicit six dependency.
+    ],
+)
+
+py_library(
+    name = "computation_cost",
+    srcs = ["computation_cost.py"],
+    deps = [
+        ":bn_layers",
+        # Implicit tensorflow dependency.
     ],
 )
