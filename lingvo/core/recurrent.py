@@ -1083,7 +1083,7 @@ def _DecorateCellGrad(cell_grad, accumulator_layer):
 def _IsSingleTimeStep(inputs):
   """Returns True only if the time dimension of inputs is 1."""
   for x in inputs.Flatten():
-    if x.shape.dims is None or x.shape[0].value != 1:
+    if x.shape.dims is None or x.shape.as_list()[0] != 1:
       return False
   return True
 
