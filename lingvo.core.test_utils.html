@@ -210,17 +210,15 @@
 function automatically updates the golden value in the test file if there is a
 mismatch and the calling site of CompareToGoldenSingleFloat is a 1-liner. E.g.
 Code:</p>
-<blockquote>
-<div>test_utils.CompareToGoldenSingleFloat(self, 0.3232, input_batch.label)</div></blockquote>
-<dl class="docutils">
-<dt>works but this will not.</dt>
-<dd><dl class="first last docutils">
-<dt>test_utils.CompareToGoldenSingleFloat(self,</dt>
-<dd>0.3232,
-input_batch.label)</dd>
-</dl>
-</dd>
-</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">test_utils</span><span class="o">.</span><span class="n">CompareToGoldenSingleFloat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mf">0.3232</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>works but this will not:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">test_utils</span><span class="o">.</span><span class="n">CompareToGoldenSingleFloat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                      <span class="mf">0.3232</span><span class="p">,</span>
+                                      <span class="n">input_batch</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+</pre></div>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
