@@ -156,7 +156,7 @@ class BaseTask(base_layer.BaseLayer):
               'How often to keep a checkpoint.')
 
     tp.Define('summary_interval_steps', 100,
-              'Generates a checkpoint roughly once every this many steps.')
+              'Generates a summary roughly once every this many steps.')
     # The following params must mirror those in Learner.Params().
     # TODO(rpang): migrate existing params to use learner and
     # delete legacy params.
