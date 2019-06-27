@@ -1906,6 +1906,44 @@ class RNNCellTest(test_utils.TestCase):
       self.assertAllClose(m_expected, m_v)
       self.assertAllClose(c_expected, c_v)
 
+  def testSRUCellWithNonZeroBiasInit(self):
+    with self.session(use_gpu=False):
+      params = rnn_cell.SRUCell.Params()
+      params.name = 'sru'
+      params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+      params.num_input_nodes = 2
+      params.num_hidden_nodes = 3
+      params.num_output_nodes = 2
+      params.zo_prob = 0.0
+      params.random_seed = _RANDOM_SEED
+      params.bias_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+
+      sru = rnn_cell.SRUCell(params)
+
+      np.random.seed(_NUMPY_RANDOM_SEED)
+      inputs = py_utils.NestedMap(
+          act=[tf.constant(np.random.uniform(size=(3, 2)), tf.float32)],
+          padding=tf.zeros([3, 1]))
+      state0 = py_utils.NestedMap(
+          c=tf.constant(np.random.uniform(size=(3, 3)), tf.float32),
+          m=tf.constant(np.random.uniform(size=(3, 2)), tf.float32))
+      state1, _ = sru.FPropDefaultTheta(state0, inputs)
+
+      # Initialize all the variables, and then run one step.
+      tf.global_variables_initializer().run()
+
+      m_expected = [[-0.012749, 0.788564], [-0.215866, 0.891125],
+                    [-0.420648, 0.713777]]
+      c_expected = [[-0.30021, 0.728136, 0.751739],
+                    [0.211836, 0.665222, 0.755629],
+                    [0.112793, 0.281477, 0.44823]]
+      m_v = state1.m.eval()
+      c_v = state1.c.eval()
+      print('m_v', np.array_repr(m_v))
+      print('c_v', np.array_repr(c_v))
+      self.assertAllClose(m_expected, m_v)
+      self.assertAllClose(c_expected, c_v)
+
   def testSRUCellWithLayerNormalization(self):
     with self.session(use_gpu=False):
       params = rnn_cell.SRUCell.Params()

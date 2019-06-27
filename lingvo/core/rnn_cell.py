@@ -1843,6 +1843,8 @@ class SRUCell(RNNCell):
              'training')
     p.Define('apply_pruning_to_projection', False,
              'Whether to prune the weights in the projection layer')
+    p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
+             'Initialization parameters for bias')
     return p
 
   @base_layer.initializer
@@ -1879,7 +1881,7 @@ class SRUCell(RNNCell):
 
       bias_pc = py_utils.WeightParams(
           shape=[self.num_gates * self.hidden_size],
-          init=py_utils.WeightInit.Constant(0.0),
+          init=p.bias_init,
           dtype=p.dtype,
           collections=self._VariableCollections())
       self.CreateVariable('b', bias_pc, self.AddGlobalVN)
@@ -1907,29 +1909,31 @@ class SRUCell(RNNCell):
                                            self.vars.proj_mask,
                                            self.vars.proj_threshold)
 
+      # TODO(yuansg): b/136014373 investigate the layer norm initialization and
+      # implementation, try skipping LP regularization on layer norm and bias.
       if p.apply_layer_norm:
         f_t_ln_scale = py_utils.WeightParams(
             shape=[self.hidden_size],
-            init=py_utils.WeightInit.Constant(0.0),
+            init=py_utils.WeightInit.Constant(1.0),
             dtype=p.dtype,
             collections=self._VariableCollections())
         self.CreateVariable('f_t_ln_scale', f_t_ln_scale, self.AddGlobalVN)
         r_t_ln_scale = py_utils.WeightParams(
             shape=[self.hidden_size],
-            init=py_utils.WeightInit.Constant(0.0),
+            init=py_utils.WeightInit.Constant(1.0),
             dtype=p.dtype,
             collections=self._VariableCollections())
         self.CreateVariable('r_t_ln_scale', r_t_ln_scale, self.AddGlobalVN)
         c_t_ln_scale = py_utils.WeightParams(
             shape=[self.hidden_size],
-            init=py_utils.WeightInit.Constant(0.0),
+            init=py_utils.WeightInit.Constant(1.0),
             dtype=p.dtype,
             collections=self._VariableCollections())
         self.CreateVariable('c_t_ln_scale', c_t_ln_scale, self.AddGlobalVN)
         if not p.couple_input_forget_gates:
           i_t_ln_scale = py_utils.WeightParams(
               shape=[self.hidden_size],
-              init=py_utils.WeightInit.Constant(0.0),
+              init=py_utils.WeightInit.Constant(1.0),
               dtype=p.dtype,
               collections=self._VariableCollections())
           self.CreateVariable('i_t_ln_scale', i_t_ln_scale, self.AddGlobalVN)
@@ -2009,27 +2013,41 @@ class SRUCell(RNNCell):
     p = self.params
     if p.couple_input_forget_gates:
       x_t2, resized, f_t, r_t = tf.split(
-          value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=4, axis=1)
+          value=xmw, num_or_size_splits=4, axis=1)
+      b_t2, b_resized, b_f, b_r = tf.split(
+          value=tf.expand_dims(theta.b, 0), num_or_size_splits=4, axis=1)
       if p.apply_layer_norm:
-        f_t = self.LayerNorm(f_t, theta.f_t_ln_scale + 1.0)
+        f_t = self.LayerNorm(f_t, theta.f_t_ln_scale)
+      f_t = tf.add(f_t, b_f)
       f_t = tf.nn.sigmoid(f_t)
       i_t = 1.0 - f_t
     else:
       x_t2, resized, i_t, f_t, r_t = tf.split(
           value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=5, axis=1)
+      b_t2, b_resized, b_i, b_f, b_r = tf.split(
+          value=tf.expand_dims(theta.b, 0), num_or_size_splits=5, axis=1)
+
       if p.apply_layer_norm:
-        f_t = self.LayerNorm(f_t, theta.f_t_ln_scale + 1.0)
+        f_t = self.LayerNorm(f_t, theta.f_t_ln_scale)
+      f_t = tf.add(f_t, b_f)
       f_t = tf.nn.sigmoid(f_t)
       if p.apply_layer_norm:
-        i_t = self.LayerNorm(i_t, theta.i_t_ln_scale + 1.0)
+        i_t = self.LayerNorm(i_t, theta.i_t_ln_scale)
+      i_t = tf.add(i_t, b_i)
       i_t = tf.nn.sigmoid(i_t)
+
     if p.apply_layer_norm:
-      r_t = self.LayerNorm(r_t, theta.r_t_ln_scale + 1.0)
+      r_t = self.LayerNorm(r_t, theta.r_t_ln_scale)
+    r_t = tf.add(r_t, b_r)
     r_t = tf.nn.sigmoid(r_t)
+
     c_t = f_t * state0.c + i_t * x_t2
     if p.apply_layer_norm:
-      c_t = self.LayerNorm(c_t, theta.c_t_ln_scale + 1.0)
+      c_t = self.LayerNorm(c_t, theta.c_t_ln_scale)
 
+    # now it is obvious that these inputs don't use layer norm.
+    resized = tf.add(resized, b_resized)
+    x_t2 = tf.add(x_t2, b_t2)
     # Clip the cell states to reasonable value.
     if p.cell_value_cap is not None:
       c_t = py_utils.clip_by_value(c_t, -p.cell_value_cap, p.cell_value_cap)
