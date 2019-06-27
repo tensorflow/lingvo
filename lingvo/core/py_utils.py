@@ -1257,7 +1257,10 @@ def CreateVariable(name,
   # variable sharing mechanism.
   def GetVar(reuse=reuse):
     """reuse: Whether to reuse the variables."""
-    var_shape = GetVariableShapePrefixes() + list(shape)
+    if shape is not None:
+      var_shape = GetVariableShapePrefixes() + list(shape)
+    else:
+      var_shape = None
     with tf.variable_scope(name) as scope:
       var_name = GetVariableName(scope.name)
       var_scope = tf.VariableScope(
