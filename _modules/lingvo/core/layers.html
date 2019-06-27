@@ -168,11 +168,13 @@
 <span class="kn">import</span> <span class="nn">numbers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">bn_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">computation_cost</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">conv_layers_with_time_padding</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">quant_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">recurrent</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">symbolic</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
@@ -3674,6 +3676,36 @@
     <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">bottleneck_x</span></div></div>
 
 
+<div class="viewcode-block" id="Conv2DFlops"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Conv2DFlops">[docs]</a><span class="k">def</span> <span class="nf">Conv2DFlops</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">padding</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns number of float operations (mult/adds) for a Conv2D op.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    inputs: the input shape. Must have four elements.</span>
+<span class="sd">    filter_shape: the convolution filter shape. Must have four elements.</span>
+<span class="sd">    stride: the strides along height and width, respectively.</span>
+<span class="sd">    padding: &#39;SAME&#39; or &#39;VALID&#39;.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Number of multiplications and additions.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">b</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+  <span class="n">fh</span><span class="p">,</span> <span class="n">fw</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">oc</span> <span class="o">=</span> <span class="n">filter_shape</span>
+  <span class="n">sh</span><span class="p">,</span> <span class="n">sw</span> <span class="o">=</span> <span class="n">stride</span>
+
+  <span class="k">def</span> <span class="nf">_CeilDiv</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">floordiv</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">padding</span> <span class="o">==</span> <span class="s1">&#39;SAME&#39;</span><span class="p">:</span>
+    <span class="n">oh</span> <span class="o">=</span> <span class="n">_CeilDiv</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">sh</span><span class="p">)</span>
+    <span class="n">ow</span> <span class="o">=</span> <span class="n">_CeilDiv</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">sw</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">padding</span> <span class="o">==</span> <span class="s1">&#39;VALID&#39;</span>
+    <span class="n">oh</span> <span class="o">=</span> <span class="n">_CeilDiv</span><span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="n">fh</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">sh</span><span class="p">)</span>
+    <span class="n">ow</span> <span class="o">=</span> <span class="n">_CeilDiv</span><span class="p">(</span><span class="n">w</span> <span class="o">-</span> <span class="n">fw</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">sw</span><span class="p">)</span>
+  <span class="c1"># Mul/add counts as 2 flops.</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int64</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="n">oh</span> <span class="o">*</span> <span class="n">ow</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int64</span><span class="p">(</span><span class="n">fh</span> <span class="o">*</span> <span class="n">fw</span> <span class="o">*</span> <span class="n">ic</span> <span class="o">*</span> <span class="n">oc</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span></div>
+
+
 <div class="viewcode-block" id="Conv2DLayerNoPadding"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Conv2DLayerNoPadding">[docs]</a><span class="k">class</span> <span class="nc">Conv2DLayerNoPadding</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;2-D Convolution layer w/o padding.</span>
 
@@ -3738,6 +3770,14 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">computation_cost</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span>
+          <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;flops&#39;</span><span class="p">,</span>
+          <span class="n">Conv2DFlops</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
+              <span class="n">filter_shape</span><span class="o">=</span><span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">TENSOR_VALUES</span><span class="p">,</span>
+                                             <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">),</span>
+              <span class="n">stride</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">,</span>
+              <span class="n">padding</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">padding</span><span class="p">))</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span>
           <span class="nb">input</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
           <span class="nb">filter</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">,</span>

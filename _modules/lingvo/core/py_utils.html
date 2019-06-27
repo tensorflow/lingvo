@@ -1452,7 +1452,32 @@
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">var</span><span class="p">),</span> <span class="n">var</span></div>
 
 
-<span class="n">global_variable_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
+<span class="n">_global_variable_scope</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="GetGlobalVariableScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetGlobalVariableScope">[docs]</a><span class="k">def</span> <span class="nf">GetGlobalVariableScope</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Gets the global variable scope (as if no variable_scope has been set).</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The VariableScope corresponding to as if no tf.variable_scope is in effect.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">_global_variable_scope</span><span class="p">:</span>
+    <span class="c1"># Each thread gets its own default global variable scope, and we take</span>
+    <span class="c1"># advantage of that in order to get a top-level scope. This avoids the</span>
+    <span class="c1"># need to call tf.get_variable_scope() at the module level, which allows</span>
+    <span class="c1"># this module to be imported without modifying global state (i.e. creating</span>
+    <span class="c1"># the default graph). It is important to not mutate the global state at</span>
+    <span class="c1"># module load time, because it let&#39;s us flip flags after import that affect</span>
+    <span class="c1"># core TensorFlow behavior.</span>
+    <span class="k">def</span> <span class="nf">Initialize</span><span class="p">():</span>
+      <span class="k">global</span> <span class="n">_global_variable_scope</span>
+      <span class="n">_global_variable_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
+
+    <span class="n">t</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">Initialize</span><span class="p">)</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+  <span class="k">return</span> <span class="n">_global_variable_scope</span></div>
+
 
 <span class="n">_GLOBAL_STEP_STACK</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -1480,7 +1505,7 @@
 <span class="sd">    The global_step variable, or a new created one if it does not exist.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
-      <span class="n">global_variable_scope</span><span class="p">,</span> <span class="n">use_resource</span><span class="o">=</span><span class="n">use_resource_variables</span><span class="p">()):</span>
+      <span class="n">GetGlobalVariableScope</span><span class="p">(),</span> <span class="n">use_resource</span><span class="o">=</span><span class="n">use_resource_variables</span><span class="p">()):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_or_create_global_step</span><span class="p">()</span></div>
 
 

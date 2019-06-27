@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.cluster_factory module &mdash; Lingvo  documentation</title>
+  <title>lingvo.core.computation_cost module &mdash; Lingvo  documentation</title>
   
 
   
@@ -35,8 +35,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.core.computation_cost module" href="lingvo.core.computation_cost.html" />
-    <link rel="prev" title="lingvo.core.cluster module" href="lingvo.core.cluster.html" /> 
+    <link rel="next" title="lingvo.core.conv_layers_with_time_padding module" href="lingvo.core.conv_layers_with_time_padding.html" />
+    <link rel="prev" title="lingvo.core.cluster_factory module" href="lingvo.core.cluster_factory.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -144,13 +144,13 @@
         
           <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
         
-      <li>lingvo.core.cluster_factory module</li>
+      <li>lingvo.core.computation_cost module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/lingvo.core.cluster_factory.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/lingvo.core.computation_cost.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -163,25 +163,43 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-lingvo.core.cluster_factory">
-<span id="lingvo-core-cluster-factory-module"></span><h1>lingvo.core.cluster_factory module<a class="headerlink" href="#module-lingvo.core.cluster_factory" title="Permalink to this headline">¶</a></h1>
-<p>Cluster factory.</p>
+  <div class="section" id="module-lingvo.core.computation_cost">
+<span id="lingvo-core-computation-cost-module"></span><h1>lingvo.core.computation_cost module<a class="headerlink" href="#module-lingvo.core.computation_cost" title="Permalink to this headline">¶</a></h1>
+<p>Utilities to estimate computation costs of layers.</p>
 <dl class="function">
-<dt id="lingvo.core.cluster_factory.Current">
-<code class="descclassname">lingvo.core.cluster_factory.</code><code class="descname">Current</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster_factory.html#Current"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster_factory.Current" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the current cluster specification.</p>
-<p>E.g.:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">Cluster</span><span class="p">(</span><span class="n">cluster_params</span><span class="p">)</span> <span class="k">as</span> <span class="n">foo</span><span class="p">:</span>
-  <span class="n">model</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-  <span class="n">model</span><span class="o">.</span><span class="n">FProp</span><span class="p">()</span>  <span class="c1"># FProp can access foo through cluster_factory.Current().</span>
-</pre></div>
-</div>
+<dt id="lingvo.core.computation_cost.Prepare">
+<code class="descclassname">lingvo.core.computation_cost.</code><code class="descname">Prepare</code><span class="sig-paren">(</span><em>layer</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#Prepare"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.computation_cost.Prepare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers cost accumulators for layer and each of its child layers.</p>
+<p>This function should be called before FProp().</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>layer</strong> – the root layer.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.cluster_factory.ForTestingWorker">
-<code class="descclassname">lingvo.core.cluster_factory.</code><code class="descname">ForTestingWorker</code><span class="sig-paren">(</span><em>mode=None</em>, <em>job=None</em>, <em>gpus=None</em>, <em>split_size=None</em>, <em>tpus=None</em>, <em>add_summary=None</em>, <em>cpus=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster_factory.html#ForTestingWorker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster_factory.ForTestingWorker" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a Cluster for unittesting with a worker.</p>
+<dt id="lingvo.core.computation_cost._HasAccumulator">
+<code class="descclassname">lingvo.core.computation_cost.</code><code class="descname">_HasAccumulator</code><span class="sig-paren">(</span><em>layer</em>, <em>cost_metric_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#_HasAccumulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.computation_cost._HasAccumulator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.computation_cost._GetAccumulator">
+<code class="descclassname">lingvo.core.computation_cost.</code><code class="descname">_GetAccumulator</code><span class="sig-paren">(</span><em>layer</em>, <em>cost_metric_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#_GetAccumulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.computation_cost._GetAccumulator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.computation_cost.Add">
+<code class="descclassname">lingvo.core.computation_cost.</code><code class="descname">Add</code><span class="sig-paren">(</span><em>layer</em>, <em>cost_metric_name</em>, <em>cost</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#Add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.computation_cost.Add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.computation_cost.Get">
+<code class="descclassname">lingvo.core.computation_cost.</code><code class="descname">Get</code><span class="sig-paren">(</span><em>layer</em>, <em>cost_metric_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#Get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.computation_cost.Get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the aggregated cost metric.</p>
 </dd></dl>
 
 </div>
@@ -194,10 +212,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.core.computation_cost.html" class="btn btn-neutral float-right" title="lingvo.core.computation_cost module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.core.conv_layers_with_time_padding.html" class="btn btn-neutral float-right" title="lingvo.core.conv_layers_with_time_padding module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.cluster.html" class="btn btn-neutral float-left" title="lingvo.core.cluster module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.cluster_factory.html" class="btn btn-neutral float-left" title="lingvo.core.cluster_factory module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
