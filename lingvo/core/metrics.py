@@ -18,13 +18,14 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import lingvo.compat as tf
 from lingvo.core import plot
 from lingvo.core import py_utils
 from lingvo.core import scorers
 import numpy as np
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
 try:
   # pylint: disable=g-import-not-at-top
   import sklearn.metrics
@@ -245,7 +246,7 @@ class TpuEvalMetrics(object):
     # Each metric has two tensors in the loop carrying result.
     metrics = loop_result[:2 * len(self._metrics.Flatten())]
     # Aggregate across tpu replicas.
-    metrics = [tf.compat.v1.tpu.cross_replica_sum(x) for x in metrics]
+    metrics = [tf.tpu.cross_replica_sum(x) for x in metrics]
     ret = []
     for (value, weight) in self._Zip(metrics):
       value, weight = py_utils.WeightedAvg(value / weight, weight)

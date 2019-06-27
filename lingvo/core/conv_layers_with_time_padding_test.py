@@ -18,12 +18,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import lingvo.compat as tf
 from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 import numpy as np
 from six.moves import zip
-import tensorflow as tf
 
 
 class ConvLayerTest(test_utils.TestCase):

@@ -18,6 +18,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import input_generator_helper as ig_helper
 from lingvo.core import py_utils
@@ -27,12 +29,14 @@ import six
 from six.moves import map
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
 
-from tensorflow.contrib.tpu.python.tpu import tpu_function
+# pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.framework import function
 from tensorflow.python.ops import io_ops
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
+from tensorflow.python.tpu import tpu_feed
+from tensorflow.python.tpu import tpu_function
+# pylint: enable=g-direct-tensorflow-import
 
 
 class BaseInputGenerator(base_layer.BaseLayer):
@@ -192,8 +196,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
                           shapes)
           tf.logging.info('host_device: %s infeed dtypes: %r', host_device,
                           dtypes)
-          q = tf.contrib.tpu.InfeedQueue(
-              tuple_types=dtypes, tuple_shapes=shapes)
+          q = tpu_feed.InfeedQueue(tuple_types=dtypes, tuple_shapes=shapes)
           queues.append(q)
           assert shards is not None
           q.set_number_of_shards(shards)
@@ -228,7 +231,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     for _ in range(p.tpu_infeed_parallelism):
       tf.add_to_collection(py_utils.ENQUEUE_OPS, tpu_infeed_op)
 
-    with tf.device(tf.compat.v1.tpu.core(0)):
+    with tf.device(tf.tpu.core(0)):
       tensors = queues[0].generate_dequeue_op()
     return batch.Pack(tensors)
 

@@ -39,7 +39,7 @@ Usage:
 
       # bfloat16_var is now loaded from the checkpoint.
 """
-import tensorflow as tf
+import lingvo.compat as tf
 from tensorflow.python.training import saver
 
 

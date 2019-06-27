@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 from absl.testing import parameterized
+import lingvo.compat as tf
 from lingvo.core import layers_with_gpipe
 from lingvo.core import py_utils
 from lingvo.core import test_utils
@@ -29,7 +30,6 @@ from lingvo.core.layers_with_gpipe import GPipeTransformerLayer
 from lingvo.core.layers_with_gpipe import GPipeTransformerStack
 import numpy as np
 from six.moves import range
-import tensorflow as tf
 
 
 class GPipeTransformerLayersTest(test_utils.TestCase):

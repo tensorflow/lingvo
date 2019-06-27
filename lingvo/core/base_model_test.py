@@ -18,6 +18,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import lingvo.compat as tf
 from lingvo.core import base_decoder
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
@@ -33,7 +35,6 @@ import numpy as np
 import six
 from six.moves import range
 
-import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 

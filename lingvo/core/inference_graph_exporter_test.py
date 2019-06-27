@@ -18,7 +18,9 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 from lingvo import model_registry
+import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
 from lingvo.core import base_model_params
@@ -27,8 +29,6 @@ from lingvo.core import inference_graph_pb2
 from lingvo.core import predictor
 from lingvo.core import py_utils
 from lingvo.core import test_utils
-import tensorflow as tf
-
 
 
 class DummyLegacyModel(base_model.BaseTask):
@@ -220,7 +220,7 @@ class LinearModelTpu(LinearModel):
       def InferenceFn(x):
         return tf.reduce_sum(self._w * x) + self._b
 
-      y = tf.contrib.tpu.rewrite(InferenceFn, [x])
+      y = tf.tpu.rewrite(InferenceFn, [x])
       return {'tpu': ({'output': y[0]}, {'input': x})}
 
 

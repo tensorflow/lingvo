@@ -24,12 +24,12 @@ from __future__ import division
 from __future__ import print_function
 
 import re
+import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import summary_utils
-import tensorflow as tf
 
 
 class Learner(base_layer.BaseLayer):

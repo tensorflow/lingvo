@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import re
+import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import build_data
@@ -34,7 +35,8 @@ from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
 import six
 from six.moves import range
-import tensorflow as tf
+
+from tensorflow.contrib.model_pruning.python import pruning as contrib_pruning
 
 
 def CreateTaskGlobalStep(task_name):
@@ -796,9 +798,9 @@ class BaseTask(base_layer.BaseLayer):
     mask_update_op = tf.no_op()
     if tp.pruning_hparams_dict:
       assert isinstance(tp.pruning_hparams_dict, dict)
-      pruning_hparams = tf.contrib.model_pruning.get_pruning_hparams(
+      pruning_hparams = contrib_pruning.get_pruning_hparams(
       ).override_from_dict(tp.pruning_hparams_dict)
-      pruning_obj = tf.contrib.model_pruning.Pruning(
+      pruning_obj = contrib_pruning.Pruning(
           pruning_hparams, global_step=self.global_step)
       pruning_obj.add_pruning_summaries()
       mask_update_op = pruning_obj.conditional_mask_update_op()

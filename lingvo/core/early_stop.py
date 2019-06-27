@@ -20,9 +20,9 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core.ops import py_x_ops
-import tensorflow as tf
 
 
 class MetricHistory(object):

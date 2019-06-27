@@ -18,13 +18,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
 from six.moves import range
-import tensorflow as tf
 
-from tensorflow.contrib.tpu.python.tpu import tpu_function
+from tensorflow.python.tpu import tpu_function  # pylint:disable=g-direct-tensorflow-import
 
 _BN_FLOPS_PER_ELEMENT = 10
 
@@ -122,8 +122,8 @@ class BatchNormLayer(base_layer.BaseLayer):
     mask_multiplier = tf.shape(inputs)[:-1] // tf.shape(mask)[:-1]
     count_v *= tf.cast(tf.reduce_prod(mask_multiplier), count_v.dtype)
     if py_utils.use_tpu() and enable_cross_replica_sum_on_tpu:
-      sum_v = tf.contrib.tpu.cross_replica_sum(sum_v)
-      count_v = tf.contrib.tpu.cross_replica_sum(count_v)
+      sum_v = tf.tpu.cross_replica_sum(sum_v)
+      count_v = tf.tpu.cross_replica_sum(count_v)
 
     count_v = tf.maximum(count_v, 1.0)
     mean = sum_v / count_v
@@ -131,7 +131,7 @@ class BatchNormLayer(base_layer.BaseLayer):
                            reduce_over_dims)
 
     if py_utils.use_tpu() and enable_cross_replica_sum_on_tpu:
-      sum_vv = tf.contrib.tpu.cross_replica_sum(sum_vv)
+      sum_vv = tf.tpu.cross_replica_sum(sum_vv)
 
     variance = py_utils.with_dependencies([
         py_utils.assert_greater_equal(sum_vv, tf.zeros_like(sum_vv)),
@@ -398,9 +398,8 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
           replica_ids = [g * group_size + i for i in range(group_size)]
           group_assignment.append(replica_ids)
         counts *= group_size
-      mean_ss = tf.contrib.tpu.cross_replica_sum(mean_ss, group_assignment)
-      variance_ss = tf.contrib.tpu.cross_replica_sum(variance_ss,
-                                                     group_assignment)
+      mean_ss = tf.tpu.cross_replica_sum(mean_ss, group_assignment)
+      variance_ss = tf.tpu.cross_replica_sum(variance_ss, group_assignment)
     # At each micro-step, batch_mean and batch_variance are computed
     # to normalize inputs. But they are not used to update moving_mean and
     # moving_variance variables until the last micro batch.

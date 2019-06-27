@@ -20,9 +20,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import lingvo.compat as tf
 import numpy as np
-
-import tensorflow as tf
 
 from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
 
@@ -296,7 +295,7 @@ class CudNNParamsFormatConverterLSTM(
     return [i_g, f_g, c_g, o_g]
 
 
-class CuDNNLSTMSaveable(tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
+class CuDNNLSTMSaveable(cudnn_rnn_ops.CudnnLSTMSaveable):
   r"""Lingvo CuDNN LSTM opaque params saveable.
 
   Save CuDNN opaque params in lingvo canonical format such that the

@@ -23,11 +23,11 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core.ops import py_x_ops
 import six
-import tensorflow as tf
 
 # TODO(yonghui):
 #   1) Change the tensor shape [max_decoder_time_steps, batch_size *

@@ -24,8 +24,8 @@ import inspect
 import re
 import sys
 
+import lingvo.compat as tf
 import six
-import tensorflow as tf
 
 
 def _QuoteString(s):

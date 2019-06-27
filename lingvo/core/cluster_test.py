@@ -18,13 +18,14 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 import numpy as np
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
 
 
 class ClusterTest(test_utils.TestCase):

@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import math
+import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
@@ -27,7 +28,6 @@ from lingvo.core import test_utils
 import numpy as np
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
 
 
 class AttentionTest(test_utils.TestCase):

@@ -22,6 +22,7 @@ from __future__ import print_function
 import math
 
 from absl.testing import parameterized
+import lingvo.compat as tf
 from lingvo.core import gpipe
 from lingvo.core import layers
 from lingvo.core import py_utils
@@ -30,7 +31,6 @@ from lingvo.core import test_utils
 import numpy as np
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
 
 from tensorflow.python.framework import ops
 

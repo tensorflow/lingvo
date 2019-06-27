@@ -21,10 +21,10 @@ from __future__ import print_function
 
 import itertools
 import os
+import lingvo.compat as tf
 from lingvo.core import cudnn_rnn_utils
 from lingvo.core import test_utils
 from six.moves import zip
-import tensorflow as tf
 from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
 from tensorflow.python.training import saver as saver_lib
 
