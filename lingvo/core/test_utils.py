@@ -97,9 +97,12 @@ def CompareToGoldenSingleFloat(testobj, v1, v2, *args, **kwargs):
   When running the bazel tests with FLAGS.update_goldens to be True, this
   function automatically updates the golden value in the test file if there is a
   mismatch and the calling site of CompareToGoldenSingleFloat is a 1-liner. E.g.
-  Code:
+  Code::
+
     test_utils.CompareToGoldenSingleFloat(self, 0.3232, input_batch.label)
-  works but this will not.
+
+  works but this will not::
+
     test_utils.CompareToGoldenSingleFloat(self,
                                           0.3232,
                                           input_batch.label)
