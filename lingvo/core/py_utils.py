@@ -317,15 +317,25 @@ def GetShape(tensor, ndims=None):
     ndims: If not None, returns the shapes for the first `ndims` dimensions.
   """
   tensor = tf.convert_to_tensor(tensor)
-  shape = tf.shape(tensor)
+  dynamic_shape = tf.shape(tensor)
+
+  # Early exit for unranked tensor.
+  if tensor.shape.ndims is None:
+    if ndims is None:
+      return dynamic_shape
+    else:
+      return [dynamic_shape[x] for x in range(ndims)]
+
+  # Ranked tensor.
   if ndims is None:
     ndims = tensor.shape.ndims
-    if ndims is None:
-      return shape
-  elif tensor.shape.ndims is not None:
+  else:
     ndims = min(ndims, tensor.shape.ndims)
+
+  # Return mixture of static and dynamic dims.
+  static_shape = tensor.shape.as_list()
   shapes = [
-      tensor.shape[x].value if tensor.shape[x].value is not None else shape[x]
+      static_shape[x] if static_shape[x] is not None else dynamic_shape[x]
       for x in range(ndims)
   ]
   return shapes
