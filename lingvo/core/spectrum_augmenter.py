@@ -43,6 +43,10 @@ class SpectrumAugmenter(base_layer.BaseLayer):
              'Number of times we apply masking on the time axis.')
     p.Define('time_mask_max_ratio', 1.0,
              'Maximum portion allowed for time masking.')
+    p.Define(
+        'use_dynamic_time_mask_max_frames', False,
+        'If true, time_mask_max_frames is determined by '
+        'time_mask_max_ratio * utterance_length.')
     p.Define('use_noise', False, 'Whether to noisify the time masked region.')
     p.Define('unstack', False,
              'Whether to unstack features before applying SpecAugment')
@@ -90,12 +94,6 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       [batch_size, seq_len].
     """
     p = self.params
-    # TODO(ngyuzh): should length distribution depend on utterance length?
-    # Choose random masked length
-    max_length = tf.random.uniform((batch_size,),
-                                   maxval=max_length,
-                                   dtype=tf.int32,
-                                   seed=p.random_seed)
     # Make sure the sampled length was smaller than max_ratio * length_bound.
     # Note that sampling in this way was biased
     # (shorter sequence may over-masked.)
@@ -143,11 +141,15 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     p = self.params
     if p.freq_mask_max_bins == 0:
       return inputs
-
+    # Choose random masked length
+    max_length = tf.random.uniform((tf.shape(inputs)[0],),
+                                   maxval=p.freq_mask_max_bins,
+                                   dtype=tf.int32,
+                                   seed=p.random_seed)
     # Create masks in frequency direction and apply
     block_arrays = self._GetMask(
         tf.shape(inputs)[0],
-        p.freq_mask_max_bins,
+        max_length,
         choose_range=num_freq,
         mask_size=num_freq,
         dtype=dtype)
@@ -179,14 +181,27 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     """
     p = self.params
     # If maximum mask length is zero, do nothing
-    if p.time_mask_max_frames == 0:
+    if (p.time_mask_max_frames == 0 and not p.use_dynamic_time_mask_max_frames):
       return inputs
     seq_lengths = tf.cast(seq_lengths, tf.int32)
-
+    batch_size = tf.shape(inputs)[0]
+    # Choose random masked length
+    if p.use_dynamic_time_mask_max_frames:
+      # TODO(ngyuzh): if an utterance is too short, it will never been masked.
+      length_range = tf.cast(seq_lengths, dtype=tf.float32) * max_ratio
+      max_length = tf.cast(
+          tf.random.uniform(
+              (batch_size,), maxval=1.0, seed=p.random_seed) * length_range,
+          tf.int32)
+    else:
+      max_length = tf.random.uniform((batch_size,),
+                                     maxval=p.time_mask_max_frames,
+                                     dtype=tf.int32,
+                                     seed=p.random_seed)
     # Create masks in time direction and apply
     block_arrays = self._GetMask(
-        tf.shape(inputs)[0],
-        p.time_mask_max_frames,
+        batch_size,
+        max_length,
         choose_range=seq_lengths,
         mask_size=time_length,
         dtype=dtype,
@@ -222,7 +237,6 @@ class SpectrumAugmenter(base_layer.BaseLayer):
   def UnstackFeatures(self, src_inputs, src_paddings):
     """Unstacks src_input and src_paddings based off stack height."""
     sh = self.params.stack_height
-    # TODO(ngyuzh) Change to py_utils.GetShape
     bs, old_series_length, _, channels = py_utils.GetShape(src_inputs)
     unstacked_series_length = old_series_length * sh
     src_inputs = tf.reshape(src_inputs,
