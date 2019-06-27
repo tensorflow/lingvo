@@ -290,6 +290,10 @@ void RecordBatcher::ProcessorLoop() {
           log_counter++;
           LOG(WARNING) << s;
         }
+      } else if (errors::IsNotFound(s)) {
+        // Terminates program if an unregistered custome op is used by
+        // the processor.
+        LOG(FATAL) << s;
       } else {
         LOG(WARNING) << s;
       }
