@@ -1307,7 +1307,32 @@ def CreateVariable(name,
       return tf.identity(var), var
 
 
-global_variable_scope = tf.get_variable_scope()
+_global_variable_scope = None
+
+
+def GetGlobalVariableScope():
+  """Gets the global variable scope (as if no variable_scope has been set).
+
+  Returns:
+    The VariableScope corresponding to as if no tf.variable_scope is in effect.
+  """
+  if not _global_variable_scope:
+    # Each thread gets its own default global variable scope, and we take
+    # advantage of that in order to get a top-level scope. This avoids the
+    # need to call tf.get_variable_scope() at the module level, which allows
+    # this module to be imported without modifying global state (i.e. creating
+    # the default graph). It is important to not mutate the global state at
+    # module load time, because it let's us flip flags after import that affect
+    # core TensorFlow behavior.
+    def Initialize():
+      global _global_variable_scope
+      _global_variable_scope = tf.get_variable_scope()
+
+    t = threading.Thread(target=Initialize)
+    t.start()
+    t.join()
+  return _global_variable_scope
+
 
 _GLOBAL_STEP_STACK = []
 
@@ -1335,7 +1360,7 @@ def GetOrCreateGlobalStepVar():
     The global_step variable, or a new created one if it does not exist.
   """
   with tf.variable_scope(
-      global_variable_scope, use_resource=use_resource_variables()):
+      GetGlobalVariableScope(), use_resource=use_resource_variables()):
     return tf.train.get_or_create_global_step()
 
 

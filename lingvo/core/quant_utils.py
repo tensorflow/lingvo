@@ -1123,7 +1123,7 @@ class PassiveAsymQDomain(QDomain):
     name = t_name + '_' + suffix
     assert name not in self._qvars, 'QState var already exists: %s' % (name,)
     var_name = self._qvars_scope.name + '/' + name
-    with tf.variable_scope(py_utils.global_variable_scope):
+    with tf.variable_scope(py_utils.GetGlobalVariableScope()):
       _, v = py_utils.CreateVariable(var_name, params, trainable=False)
     self._qvars[name] = v
     return v

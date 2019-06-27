@@ -39,7 +39,8 @@ import tensorflow as tf
 
 def CreateTaskGlobalStep(task_name):
   """Create if needed and return the global_step."""
-  with tf.name_scope(None), tf.variable_scope(py_utils.global_variable_scope):
+  with tf.name_scope(None), tf.variable_scope(
+      py_utils.GetGlobalVariableScope()):
     graph_collections = [tf.GraphKeys.GLOBAL_VARIABLES, 'TASK_GLOBAL_STEP']
     _, v = py_utils.CreateVariable(
         name=task_name + '_global_step',
@@ -770,7 +771,7 @@ class BaseTask(base_layer.BaseLayer):
     """Updates the total number of NaN/Inf gradients by `value`."""
     if self._total_nans_and_infs is None:
       with tf.variable_scope(
-          py_utils.global_variable_scope, reuse=tf.AUTO_REUSE):
+          py_utils.GetGlobalVariableScope(), reuse=tf.AUTO_REUSE):
         self._total_nans_and_infs = StatsCounter('total_nan_gradients')
     return self._total_nans_and_infs.IncBy(self.params, value)
 
