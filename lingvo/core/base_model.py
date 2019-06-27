@@ -621,10 +621,24 @@ class BaseTask(base_layer.BaseLayer):
                                  ]), tf.name_scope('moving_average'):
       self._train_op = ema.apply(all_vars)
 
+  # TODO(blee): Rename Decode->DecodeWithDefaultTheta, DecodeWithTheta->Decode.
   def Decode(self, input_batch):
     """Constructs the inference graph for eval decoding.
 
     Args:
+      input_batch: The input batch. A `NestedMap` of tensors. Or, if input batch
+        spiltting is used, a list of `NestedMap`, one for each split.
+
+    Returns:
+      a dict of Tensors as decoder output.
+    """
+    return self.DecodeWithTheta(self.theta, input_batch)
+
+  def DecodeWithTheta(self, theta, input_batch):
+    """Constructs the inference graph for eval decoding with theta.
+
+    Args:
+      theta: A `.NestedMap` object containing variable values of this task.
       input_batch: The input batch. A `NestedMap` of tensors. Or, if input batch
         spiltting is used, a list of `NestedMap`, one for each split.
 
