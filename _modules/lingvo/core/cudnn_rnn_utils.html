@@ -165,9 +165,8 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-
-<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.contrib.cudnn_rnn.python.ops</span> <span class="k">import</span> <span class="n">cudnn_rnn_ops</span>
 
@@ -441,7 +440,7 @@
     <span class="k">return</span> <span class="p">[</span><span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">c_g</span><span class="p">,</span> <span class="n">o_g</span><span class="p">]</span></div></div>
 
 
-<div class="viewcode-block" id="CuDNNLSTMSaveable"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable">[docs]</a><span class="k">class</span> <span class="nc">CuDNNLSTMSaveable</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">cudnn_rnn</span><span class="o">.</span><span class="n">CudnnLSTMSaveable</span><span class="p">):</span>
+<div class="viewcode-block" id="CuDNNLSTMSaveable"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable">[docs]</a><span class="k">class</span> <span class="nc">CuDNNLSTMSaveable</span><span class="p">(</span><span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CudnnLSTMSaveable</span><span class="p">):</span>
   <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Lingvo CuDNN LSTM opaque params saveable.</span>
 
 <span class="sd">  Save CuDNN opaque params in lingvo canonical format such that the</span>

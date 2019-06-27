@@ -165,6 +165,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">build_data</span>
@@ -179,7 +180,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">task_scheduler</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
-<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow.contrib.model_pruning.python</span> <span class="k">import</span> <span class="n">pruning</span> <span class="k">as</span> <span class="n">contrib_pruning</span>
 
 
 <div class="viewcode-block" id="CreateTaskGlobalStep"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.CreateTaskGlobalStep">[docs]</a><span class="k">def</span> <span class="nf">CreateTaskGlobalStep</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
@@ -941,9 +943,9 @@
     <span class="n">mask_update_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">:</span>
       <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
-      <span class="n">pruning_hparams</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">model_pruning</span><span class="o">.</span><span class="n">get_pruning_hparams</span><span class="p">(</span>
+      <span class="n">pruning_hparams</span> <span class="o">=</span> <span class="n">contrib_pruning</span><span class="o">.</span><span class="n">get_pruning_hparams</span><span class="p">(</span>
       <span class="p">)</span><span class="o">.</span><span class="n">override_from_dict</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">)</span>
-      <span class="n">pruning_obj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">model_pruning</span><span class="o">.</span><span class="n">Pruning</span><span class="p">(</span>
+      <span class="n">pruning_obj</span> <span class="o">=</span> <span class="n">contrib_pruning</span><span class="o">.</span><span class="n">Pruning</span><span class="p">(</span>
           <span class="n">pruning_hparams</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
       <span class="n">pruning_obj</span><span class="o">.</span><span class="n">add_pruning_summaries</span><span class="p">()</span>
       <span class="n">mask_update_op</span> <span class="o">=</span> <span class="n">pruning_obj</span><span class="o">.</span><span class="n">conditional_mask_update_op</span><span class="p">()</span>
