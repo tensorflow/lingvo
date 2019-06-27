@@ -188,6 +188,10 @@
              <span class="s1">&#39;Number of times we apply masking on the time axis.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;time_mask_max_ratio&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
              <span class="s1">&#39;Maximum portion allowed for time masking.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_dynamic_time_mask_max_frames&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If true, time_mask_max_frames is determined by &#39;</span>
+        <span class="s1">&#39;time_mask_max_ratio * utterance_length.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_noise&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to noisify the time masked region.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;unstack&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to unstack features before applying SpecAugment&#39;</span><span class="p">)</span>
@@ -235,12 +239,6 @@
 <span class="sd">      [batch_size, seq_len].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="c1"># TODO(ngyuzh): should length distribution depend on utterance length?</span>
-    <span class="c1"># Choose random masked length</span>
-    <span class="n">max_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,),</span>
-                                   <span class="n">maxval</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span>
-                                   <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-                                   <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="c1"># Make sure the sampled length was smaller than max_ratio * length_bound.</span>
     <span class="c1"># Note that sampling in this way was biased</span>
     <span class="c1"># (shorter sequence may over-masked.)</span>
@@ -288,11 +286,15 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">inputs</span>
-
+    <span class="c1"># Choose random masked length</span>
+    <span class="n">max_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],),</span>
+                                   <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span><span class="p">,</span>
+                                   <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                                   <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="c1"># Create masks in frequency direction and apply</span>
     <span class="n">block_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetMask</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="p">,</span>
         <span class="n">choose_range</span><span class="o">=</span><span class="n">num_freq</span><span class="p">,</span>
         <span class="n">mask_size</span><span class="o">=</span><span class="n">num_freq</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
@@ -324,14 +326,27 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># If maximum mask length is zero, do nothing</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_dynamic_time_mask_max_frames</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">inputs</span>
     <span class="n">seq_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">seq_lengths</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># Choose random masked length</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_dynamic_time_mask_max_frames</span><span class="p">:</span>
+      <span class="c1"># TODO(ngyuzh): if an utterance is too short, it will never been masked.</span>
+      <span class="n">length_range</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">seq_lengths</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="n">max_ratio</span>
+      <span class="n">max_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
+              <span class="p">(</span><span class="n">batch_size</span><span class="p">,),</span> <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span> <span class="o">*</span> <span class="n">length_range</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">max_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,),</span>
+                                     <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">,</span>
+                                     <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                                     <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="c1"># Create masks in time direction and apply</span>
     <span class="n">block_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetMask</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="p">,</span>
         <span class="n">choose_range</span><span class="o">=</span><span class="n">seq_lengths</span><span class="p">,</span>
         <span class="n">mask_size</span><span class="o">=</span><span class="n">time_length</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
@@ -367,7 +382,6 @@
 <div class="viewcode-block" id="SpectrumAugmenter.UnstackFeatures"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.UnstackFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">UnstackFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_inputs</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Unstacks src_input and src_paddings based off stack height.&quot;&quot;&quot;</span>
     <span class="n">sh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">stack_height</span>
-    <span class="c1"># TODO(ngyuzh) Change to py_utils.GetShape</span>
     <span class="n">bs</span><span class="p">,</span> <span class="n">old_series_length</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">channels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">src_inputs</span><span class="p">)</span>
     <span class="n">unstacked_series_length</span> <span class="o">=</span> <span class="n">old_series_length</span> <span class="o">*</span> <span class="n">sh</span>
     <span class="n">src_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">src_inputs</span><span class="p">,</span>
