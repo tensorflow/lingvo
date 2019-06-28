@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# pylint: disable=line-too-long
 """Predictor does inference using a saved inference graph.
 
 Example::
@@ -25,7 +24,6 @@ Example::
   pred.Load("/tmp/logdir/train/ckpt-00000000")
   [topk_hyps] = pred.Run(["topk_hyps"], src_strings=["Hello World"])
 """
-# pylint: enable=line-too-long
 
 from __future__ import absolute_import
 from __future__ import division

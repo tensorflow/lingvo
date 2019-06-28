@@ -702,6 +702,18 @@ lingvo_py_binary(
 )
 
 py_library(
+    name = "predictor_runner_base",
+    srcs = ["predictor_runner_base.py"],
+    deps = [
+        ":predictor_lib",
+        ":py_utils",
+        # Implicit absl.flags dependency.
+        # Implicit concurrent.futures dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
     name = "py_utils",
     srcs = ["py_utils.py"],
     srcs_version = "PY2AND3",
