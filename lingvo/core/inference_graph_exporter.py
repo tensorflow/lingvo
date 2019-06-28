@@ -371,8 +371,13 @@ class InferenceGraphExporter(object):
           FLAGS.enable_asserts = False
           FLAGS.xla_device = 'tpu'
 
+        # Ensure the global_step variable is created.
+        global_step_var = py_utils.GetOrCreateGlobalStepVar()
+        global_step = tf.identity(global_step_var, name='global_step_tensor')
+
         try:
-          mdl = model_cfg.Instantiate()
+          with py_utils.GlobalStepContext(global_step):
+            mdl = model_cfg.Instantiate()
           variables_to_restore = (
               _MakeVariableDictionary(tf.global_variables())
               if not mdl.ema else mdl.ema.variables_to_restore())
@@ -394,7 +399,8 @@ class InferenceGraphExporter(object):
           model_task = mdl.GetTask(model_task_name)
 
           inference_graph_proto = inference_graph_pb2.InferenceGraph()
-          subgraphs_proto = model_task.Inference()
+          with py_utils.GlobalStepContext(global_step):
+            subgraphs_proto = model_task.Inference()
           if isinstance(subgraphs_proto, dict):
             subgraphs_proto = ConvertSubgraphDictToProto(subgraphs_proto)
           for name, subgraph in subgraphs_proto.subgraphs.items():
