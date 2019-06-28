@@ -36,7 +36,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
   attention layer is combined with the residual connection. And the finally,
   output is normalized using Layer Normalization.
 
-  Layer can be used in three scenarios:
+  Layer can be used in four scenarios:
 
   1. Multi-Headed Self-Attention, where attention keys (source vectors),
      attention values (context vectors) and queries come from the same previous
@@ -52,15 +52,20 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
      and queries `query_vec`, coming from the previous layer outputs (decoder).
      This corresponds to the standard attention mechanism, decoder attending the
      encoder outputs.
+  4. Multi-Headed Attention, where attention values `context_vecs` are coming
+     from a different source than queries and keys, e.g. for positional
+     attention, where keys and queries are positional encodings and values are
+     decoder states.
   """
 
   @classmethod
   def Params(cls):
     p = super(TransformerAttentionLayer, cls).Params()
     p.Define('source_dim', 0, 'Dimension of the transformer block input.')
+    p.Define('context_dim', 0, 'Dimension of the attention contexts.')
     p.Define('atten_hidden_dim', 0, 'Dimension of the attention hidden dim.')
     p.Define('num_attention_heads', 8, 'Number of attention heads.')
-    p.Define('is_masked', False, 'If set, uses masked MultiHededAttention.')
+    p.Define('is_masked', False, 'If set, uses masked MultiHeadedAttention.')
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
     p.Define(
         'atten_tpl',
@@ -95,6 +100,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     if not p.atten_hidden_dim:
       p.atten_hidden_dim = p.source_dim
 
+    if not p.context_dim:
+      p.context_dim = p.source_dim
+
     with tf.variable_scope(p.name):
       # Initialize multi-headed attention
       params = p.atten_tpl.Copy()
@@ -102,7 +110,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       params.source_dim = p.source_dim
       params.query_dim = p.source_dim
       params.hidden_dim = p.atten_hidden_dim
-      params.context_dim = p.source_dim
+      params.context_dim = p.context_dim
       params.ctx_post_proj_dim = p.source_dim
       params.num_attention_heads = p.num_attention_heads
       params.atten_dropout_prob = p.atten_dropout_prob
@@ -125,7 +133,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
             source_paddings,
             source_vecs=None,
             query_segment_id=None,
-            source_segment_id=None):
+            source_segment_id=None,
+            context_vecs=None):
     """Transformer attention, residual and normalization layer.
 
     Args:
@@ -136,19 +145,23 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       source_vecs: [source_time, source_batch, dim].
       query_segment_id: [target_time, target_batch]
       source_segment_id: [source_time, source_batch]
+      context_vecs: [source_time, target_batch, dim]
 
     Returns:
       (output, atten_probs). output is of shape [target_time, target_batch,
-      source_dim], atten_probs is of shape [target_time, target_batch,
+      context_dim], atten_probs is of shape [target_time, target_batch,
       source_time].
     """
     p = self.params
     unnormalized_query_vec = query_vec
     query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
 
-    if source_vecs is None:
+    if source_vecs is None:  # For self-attention: keys = queries.
       source_vecs = query_vec
       source_segment_id = query_segment_id
+
+    if context_vecs is None:  # Inter/self-attention: keys = values/contexts.
+      context_vecs = source_vecs
 
     if p.is_masked:
       assert source_vecs is not None
@@ -172,21 +185,33 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       causal_padding = None
 
     query_dim = tf.shape(query_vec)[-1]
-    packed_src = self.atten.PackSource(theta.atten, source_vecs, source_vecs,
-                                       source_paddings, source_segment_id)
+
+    # Projects keys and values.
+    packed_src = self.atten.PackSource(
+        theta=theta.atten,
+        source_vecs=source_vecs,  # keys
+        source_contexts=context_vecs,  # values
+        source_padding=source_paddings,
+        source_segment_id=source_segment_id)
 
     if query_segment_id is not None:
       query_segment_id = tf.reshape(query_segment_id, [-1])
     ctx_vec, atten_prob, _ = self.atten.ComputeContextVectorWithSource(
-        theta.atten,
-        packed_src,
-        tf.reshape(query_vec, [-1, query_dim]),
+        theta=theta.atten,
+        packed_src=packed_src,
+        query_vec=tf.reshape(query_vec, [-1, query_dim]),
         per_step_source_padding=causal_padding,
         query_segment_id=query_segment_id)
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     input_to_add = (
         unnormalized_query_vec if p.add_unnormalized_input else query_vec)
-    h = input_to_add + tf.reshape(ctx_vec, tf.shape(query_vec))
+    h = input_to_add + tf.reshape(
+        ctx_vec,
+        [
+            tf.shape(query_vec)[0],
+            tf.shape(query_vec)[1],
+            -1  # Either projected or not.
+        ])
     atten_prob = tf.reshape(atten_prob, [
         tf.shape(query_vec)[0],
         tf.shape(query_vec)[1],

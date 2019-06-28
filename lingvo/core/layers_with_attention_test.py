@@ -97,7 +97,10 @@ class LayersWithAttentionTest(test_utils.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
-  def _testTransformerAttentionLayerInputs(self, depth=3, dtype=tf.float32):
+  def _testTransformerAttentionLayerInputs(self,
+                                           depth=3,
+                                           context_depth=3,
+                                           dtype=tf.float32):
     np.random.seed(505837249)
     source_vecs = tf.stack(
         [tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(5)])
@@ -108,7 +111,12 @@ class LayersWithAttentionTest(test_utils.TestCase):
     aux_source_paddings = tf.transpose(
         tf.constant([[0, 1, 0, 1, 0, 1, 0], [1, 0, 1, 0, 1, 0, 1]],
                     dtype=dtype))
-    return (source_vecs, source_padding, aux_source_vecs, aux_source_paddings)
+    context_vecs = tf.stack([
+        tf.constant(np.random.rand(2, context_depth), dtype=dtype)
+        for _ in range(7)
+    ])
+    return (source_vecs, source_padding, aux_source_vecs, aux_source_paddings,
+            context_vecs)
 
   def testTransformerAttentionLayerCase1(self):
     with self.session(use_gpu=True) as sess:
@@ -120,7 +128,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.num_attention_heads = 2
       transformer_atten = layers_with_attention.TransformerAttentionLayer(p)
 
-      (source_vecs, source_padding, _,
+      (source_vecs, source_padding, _, _,
        _) = self._testTransformerAttentionLayerInputs(depth=depth)
 
       ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
@@ -166,7 +174,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.num_attention_heads = 2
       transformer_atten = layers_with_attention.TransformerAttentionLayer(p)
 
-      (source_vecs, source_padding, _,
+      (source_vecs, source_padding, _, _,
        _) = self._testTransformerAttentionLayerInputs(depth=depth)
       ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
                                                        source_padding)
@@ -217,7 +225,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       transformer_atten = layers_with_attention.TransformerAttentionLayer(p)
 
-      (source_vecs, source_padding, _,
+      (source_vecs, source_padding, _, _,
        _) = self._testTransformerAttentionLayerInputs(depth=depth)
 
       ctx, probs = transformer_atten.FProp(transformer_atten.theta, source_vecs,
@@ -270,7 +278,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.num_attention_heads = 2
       x_atten = layers_with_attention.TransformerAttentionLayer(p)
 
-      (source_vecs, _, _,
+      (source_vecs, _, _, _,
        _) = self._testTransformerAttentionLayerInputs(depth=depth)
       source_padding = tf.zeros([5, 2])
 
@@ -312,8 +320,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.num_attention_heads = 2
       transformer_atten = layers_with_attention.TransformerAttentionLayer(p)
 
-      (query_vec, _, aux_vecs,
-       aux_paddings) = self._testTransformerAttentionLayerInputs(depth=depth)
+      (query_vec, _, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
 
       ctx, probs = transformer_atten.FPropDefaultTheta(query_vec, aux_paddings,
                                                        aux_vecs)
@@ -350,6 +358,151 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
       self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
 
+  def testTransformerAttentionLayerSourceContext(self):
+    # Equivalent: Passing no context vecs and source vecs as context vecs.
+    with self.session(use_gpu=True) as sess:
+      depth = 4
+      p = layers_with_attention.TransformerAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = False
+      p.num_attention_heads = 2
+      transformer_atten = layers_with_attention.TransformerAttentionLayer(p)
+
+      (query_vec, _, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(
+           depth=depth, context_depth=depth)
+
+      ctx1, probs1 = transformer_atten.FPropDefaultTheta(
+          query_vec=query_vec,
+          source_paddings=aux_paddings,
+          source_vecs=aux_vecs,
+          context_vecs=aux_vecs)
+
+      ctx2, probs2 = transformer_atten.FPropDefaultTheta(
+          query_vec=query_vec,
+          source_paddings=aux_paddings,
+          source_vecs=aux_vecs)
+
+      tf.global_variables_initializer().run()
+      actual_ctx1, actual_probs1, actual_ctx2, actual_probs2 = sess.run(
+          [ctx1, probs1, ctx2, probs2])
+      self.assertAllEqual(actual_ctx1, actual_ctx2)
+      self.assertAllEqual(actual_probs1, actual_probs2)
+
+  def testTransformerAttentionLayerCase4a(self):
+    # Distinct key and value vectors of the same size.
+    with self.session(use_gpu=True) as sess:
+      depth = 4
+      p = layers_with_attention.TransformerAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = False
+      p.num_attention_heads = 2
+      transformer_atten = layers_with_attention.TransformerAttentionLayer(p)
+
+      (query_vec, _, aux_vecs, aux_paddings,
+       context_vecs) = self._testTransformerAttentionLayerInputs(
+           depth=depth, context_depth=depth)
+
+      ctx, probs = transformer_atten.FPropDefaultTheta(
+          query_vec=query_vec,
+          source_paddings=aux_paddings,
+          source_vecs=aux_vecs,
+          context_vecs=context_vecs)
+
+      tf.global_variables_initializer().run()
+      actual_ctx, actual_probs = sess.run([ctx, probs])
+      tf.logging.info(np.array_repr(actual_ctx))
+      tf.logging.info(np.array_repr(actual_probs))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [[-1.20854747,  1.25685954,  1.39818001,  0.558267  ],
+           [-0.39904317, -0.85738903,  1.45404375,  1.16389585]],
+          [[ 0.27544549,  1.93070388, -0.24477535,  0.12131107],
+           [-0.07007086, -0.53334039, -0.01144788,  2.03883505]],
+          [[ 1.72718525,  0.73558617, -0.45405889,  0.1063388 ],
+           [-0.76255953, -0.52610761,  1.30195093,  1.3571732 ]],
+          [[-0.79346895,  0.03049853,  2.11432981,  0.64747918],
+           [ 1.86823332,  0.3250314 , -0.50979781, -0.40038702]],
+          [[-0.30053592, -0.53348505,  0.41098642,  2.43903708],
+           [-0.75298154,  0.50427407, -0.23542863,  1.89634883]]]
+      expected_probs = [
+          [[ 0.32392544,  0.,  0.27218491,  0.,  0.19574417, 0.,  0.20814548],
+           [ 0.,  0.273045  ,  0.,  0.43572825,  0., 0.2912268 ,  0.]],
+          [[ 0.24094665,  0.,  0.23919825,  0.,  0.26563686, 0.,  0.25421822],
+           [ 0.,  0.21680018,  0.,  0.33962148,  0., 0.44357836,  0.]],
+          [[ 0.20083596,  0.,  0.20683077,  0.,  0.28931937, 0.,  0.30301392],
+           [ 0.,  0.24710923,  0.,  0.45391506,  0., 0.29897574,  0.]],
+          [[ 0.32845187,  0.,  0.26491439,  0.,  0.18304622, 0.,  0.22358751],
+           [ 0.,  0.39426237,  0.,  0.1977444 ,  0., 0.4079932 ,  0.]],
+          [[ 0.23542665,  0.,  0.27910906,  0.,  0.30036426, 0.,  0.18510005],
+           [ 0.,  0.20147583,  0.,  0.37759233,  0., 0.42093182,  0.]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
+
+  def testTransformerAttentionLayerCase4b(self):
+    # Distinct key and value vectors of different sizes.
+    with self.session(use_gpu=True) as sess:
+      depth = 4
+      context_depth = 3
+      p = layers_with_attention.TransformerAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = False
+      print(p)
+      p.num_attention_heads = 2
+      p.atten_tpl.enable_ctx_pre_proj = True  # Project values first.
+      p.context_dim = context_depth
+      transformer_atten = layers_with_attention.TransformerAttentionLayer(p)
+
+      (query_vec, _, aux_vecs, aux_paddings,
+       context_vecs) = self._testTransformerAttentionLayerInputs(
+           depth=depth, context_depth=context_depth)
+
+      ctx, probs = transformer_atten.FPropDefaultTheta(
+          query_vec=query_vec,
+          source_paddings=aux_paddings,
+          source_vecs=aux_vecs,
+          context_vecs=context_vecs)
+
+      tf.global_variables_initializer().run()
+      actual_ctx, actual_probs = sess.run([ctx, probs])
+      tf.logging.info(np.array_repr(actual_ctx))
+      tf.logging.info(np.array_repr(actual_probs))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [[-1.78694427,  0.47923172,  0.89032698,  0.05556235],
+           [-0.91133636, -2.05677342,  1.30821121,  1.17388368]],
+          [[-0.24106422,  1.27436733, -0.84274787, -0.58437365],
+           [-0.58214164, -1.7144506 , -0.21780583,  2.03152227]],
+          [[ 1.22925639,  0.15926462, -1.10279834, -0.69442266],
+           [-1.2955091 , -1.72805309,  1.15411568,  1.39945638]],
+          [[-1.38178754, -0.7436831 ,  1.60785818,  0.16023314],
+           [ 1.5662415 , -0.77094424, -0.63392496, -0.6477108 ]],
+          [[-0.83664525, -1.20021605, -0.15795891,  1.81301379],
+           [-1.27991939, -0.67706013, -0.42443359,  1.92405224]]]
+      # Probabilities are unaffected by change of value vectors.
+      expected_probs = [
+          [[ 0.32392544,  0.,  0.27218491,  0.,  0.19574417, 0.,  0.20814548],
+           [ 0.,  0.273045  ,  0.,  0.43572825,  0., 0.2912268 ,  0.]],
+          [[ 0.24094665,  0.,  0.23919825,  0.,  0.26563686, 0.,  0.25421822],
+           [ 0.,  0.21680018,  0.,  0.33962148,  0., 0.44357836,  0.]],
+          [[ 0.20083596,  0.,  0.20683077,  0.,  0.28931937, 0.,  0.30301392],
+           [ 0.,  0.24710923,  0.,  0.45391506,  0., 0.29897574,  0.]],
+          [[ 0.32845187,  0.,  0.26491439,  0.,  0.18304622, 0.,  0.22358751],
+           [ 0.,  0.39426237,  0.,  0.1977444 ,  0., 0.4079932 ,  0.]],
+          [[ 0.23542665,  0.,  0.27910906,  0.,  0.30036426, 0.,  0.18510005],
+           [ 0.,  0.20147583,  0.,  0.37759233,  0., 0.42093182,  0.]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
+
   def testTransformerLayerConstruction(self):
     p = layers_with_attention.TransformerLayer.Params()
     p.name = 'transformer'
@@ -373,8 +526,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.tr_atten_tpl.num_attention_heads = 2
       transformer = layers_with_attention.TransformerLayer(p)
 
-      (source_vecs, source_padding, aux_vecs,
-       aux_paddings) = self._testTransformerAttentionLayerInputs(depth=depth)
+      (source_vecs, source_padding, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
 
       h, probs = transformer.FPropDefaultTheta(
           source_vecs,
@@ -489,8 +642,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.tr_atten_tpl.num_attention_heads = 2
       transformer = layers_with_attention.TransformerLayer(p)
 
-      (source_vecs, _, aux_vecs,
-       aux_paddings) = self._testTransformerAttentionLayerInputs(depth=depth)
+      (source_vecs, _, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
       source_padding = tf.zeros([5, 2])
 
       h1, probs1 = transformer.FPropDefaultTheta(
@@ -602,8 +755,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
       transformer = layers_with_attention.EvolvedTransformerEncoderLayer(p)
 
-      (source_vecs, source_padding, aux_vecs,
-       aux_paddings) = self._testTransformerAttentionLayerInputs(depth=depth)
+      (source_vecs, source_padding, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
 
       h, probs = transformer.FPropDefaultTheta(
           source_vecs,
@@ -667,8 +820,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
       transformer = layers_with_attention.EvolvedTransformerDecoderLayer(p)
 
-      (source_vecs, source_padding, aux_vecs,
-       aux_paddings) = self._testTransformerAttentionLayerInputs(depth=depth)
+      (source_vecs, source_padding, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
 
       h, probs = transformer.FPropDefaultTheta(
           source_vecs,
@@ -723,8 +876,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
       et_decoder = layers_with_attention.EvolvedTransformerDecoderLayer(p)
 
-      (source_vecs, _, aux_vecs,
-       aux_paddings) = self._testTransformerAttentionLayerInputs(depth=depth)
+      (source_vecs, _, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
       source_padding = tf.zeros([5, 2])
 
       h1, probs1 = et_decoder.FPropDefaultTheta(
