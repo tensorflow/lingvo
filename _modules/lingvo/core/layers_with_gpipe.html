@@ -143,8 +143,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.layers_with_gpipe</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
-<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span></span><span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
 <span class="c1"># you may not use this file except in compliance with the License.</span>
@@ -334,8 +333,8 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">_common_gpipe_transformer_encoder_fprop</span><span class="p">(</span>
           <span class="bp">self</span><span class="p">,</span> <span class="n">GPipeEvolvedTransformerEncoderLayer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span>
-          <span class="n">source_paddings</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
-          <span class="n">label_weights</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+          <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
+          <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GPipeEvolvedTransformerEncoderLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -857,6 +856,51 @@
                                       <span class="n">labels</span><span class="p">,</span> <span class="n">label_weights</span><span class="p">,</span> <span class="n">source_pos_id</span><span class="p">,</span>
                                       <span class="n">target_pos_id</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">gpipe_outputs</span></div></div>
+
+
+<div class="viewcode-block" id="GPipeEvolvedTransformerStack"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerStack">[docs]</a><span class="k">class</span> <span class="nc">GPipeEvolvedTransformerStack</span><span class="p">(</span><span class="n">GPipeTransformerStack</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Evolved Transformer stack for GPipe.</span>
+
+<span class="sd">  With optional layer normalization applied to the final output.</span>
+
+<span class="sd">  See &#39;Evolved Transformer&#39; for more details:</span>
+<span class="sd">  https://arxiv.org/abs/1901.11117 .</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GPipeEvolvedTransformerStack.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerStack.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Configs for EvolvedTransformerStack.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GPipeEvolvedTransformerStack</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">encoder_tpl</span> <span class="o">=</span> <span class="n">GPipeEvolvedTransformerEncoderLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder_tpl</span> <span class="o">=</span> <span class="n">GPipeEvolvedTransformerDecoderLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="GPipeEvolvedTransformerStack._AttentionSetupDeterministicDropout"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerStack._AttentionSetupDeterministicDropout">[docs]</a>  <span class="k">def</span> <span class="nf">_AttentionSetupDeterministicDropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tr_atten_tpl</span><span class="p">):</span>
+    <span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">residual_dropout_tpl</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">atten_dropout_deterministic</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">inner_atten_params</span><span class="o">.</span><span class="n">atten_dropout_deterministic</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="GPipeEvolvedTransformerStack._TransformerSetupDeterministicDropout"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerStack._TransformerSetupDeterministicDropout">[docs]</a>  <span class="k">def</span> <span class="nf">_TransformerSetupDeterministicDropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transformer_tpl</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionSetupDeterministicDropout</span><span class="p">(</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="p">)</span>
+    <span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">residual_dropout_tpl</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="GPipeEvolvedTransformerStack.SetupDeterministicDropout"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerStack.SetupDeterministicDropout">[docs]</a>  <span class="k">def</span> <span class="nf">SetupDeterministicDropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Replaces dropout layers in ET with deterministic ones.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TransformerSetupDeterministicDropout</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">branched_convs_tpl</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> \
+        <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;glu_tpl&#39;</span><span class="p">):</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">glu_tpl</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;tr_atten_tpl&#39;</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionSetupDeterministicDropout</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;tr_double_heads_atten_tpl&#39;</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionSetupDeterministicDropout</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">tr_double_heads_atten_tpl</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">params</span></div></div>
 
 
 <div class="viewcode-block" id="DeterministicWeightsLayer"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.DeterministicWeightsLayer">[docs]</a><span class="k">class</span> <span class="nc">DeterministicWeightsLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
