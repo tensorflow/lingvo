@@ -1,0 +1,466 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.predictor_runner_base &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.predictor_runner_base</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.predictor_runner_base</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Interface for binaries built around predictor.</span>
+
+<span class="sd">To use: subclass PredictorRunnerBase, implement the InputGenerator and RunBatch</span>
+<span class="sd">functions, and call Run().</span>
+
+<span class="sd">To run on TPU, set:</span>
+<span class="sd">  --device_type=tpu</span>
+<span class="sd">  --xla_device=tpu</span>
+<span class="sd">  --tf_master=url/to/tpu/server</span>
+<span class="sd">  --inference_threads=num_tpu_cores</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">concurrent.futures</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">flags</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">predictor</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;checkpoint&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Either a checkpoint file to load,&#39;</span>
+    <span class="s1">&#39; or a directory containing multiple checkpoints, where&#39;</span>
+    <span class="s1">&#39; the latest checkpoint will be loaded.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;inference_graph&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Path to an inference graph. &#39;</span>
+    <span class="s1">&#39;If not specified, will be inferred from the checkpoint path.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;inference_subgraph_name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;The name of the inference subgraph to use. &#39;</span>
+    <span class="s1">&#39;Defaults to the default subgraph.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_enum</span><span class="p">(</span><span class="s1">&#39;device_type&#39;</span><span class="p">,</span> <span class="s1">&#39;gpu&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="s1">&#39;gpu&#39;</span><span class="p">,</span> <span class="s1">&#39;tpu&#39;</span><span class="p">],</span> <span class="s1">&#39;Device type.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;tf_master&#39;</span><span class="p">,</span> <span class="s1">&#39;local&#39;</span><span class="p">,</span> <span class="s1">&#39;tf_master for predictor session.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;inference_threads&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;Number of inference threads.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;batch_size&#39;</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="s1">&#39;Batch size.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
+    <span class="s1">&#39;prediction_step_interval&#39;</span><span class="p">,</span> <span class="mi">3000</span><span class="p">,</span> <span class="s1">&#39;Number of steps between outputs. &#39;</span>
+    <span class="s1">&#39;Only meaningful if FLAGS.checkpoint is a directory.&#39;</span><span class="p">)</span>
+
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;max_inputs&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Only process the first n inputs.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_list</span><span class="p">(</span>
+    <span class="s1">&#39;input_id_filter&#39;</span><span class="p">,</span> <span class="p">[],</span>
+    <span class="s1">&#39;If not empty, only process the input ids in the given list.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;output_dir&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Output directory. &#39;</span>
+    <span class="s1">&#39;If FLAGS.checkpoint is a directory, a subdirectory will be created &#39;</span>
+    <span class="s1">&#39;for each checkpoint evaluated.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
+    <span class="s1">&#39;output_num_shards&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Each replica generates one shard of output &#39;</span>
+    <span class="s1">&#39;according to --output_shard_id.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
+    <span class="s1">&#39;output_shard_id&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;The output shard id in range [0, output_num_shards - 1].&#39;</span><span class="p">)</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+<span class="n">_RETRY_SLEEP_SECONDS</span> <span class="o">=</span> <span class="mi">10</span>
+
+
+<div class="viewcode-block" id="PredictorRunnerBase"><a class="viewcode-back" href="../../../lingvo.core.predictor_runner_base.html#lingvo.core.predictor_runner_base.PredictorRunnerBase">[docs]</a><span class="k">class</span> <span class="nc">PredictorRunnerBase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Manages state for running predictor.</span>
+
+<span class="sd">  Abstract class. Subclasses should override `InputGenerator` and `RunBatch`.</span>
+<span class="sd">  Call `Subclass().Run()` in `main()` function to run.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">checkpoint</span><span class="p">,</span>
+               <span class="n">output_dir</span><span class="p">,</span>
+               <span class="n">inference_graph</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">inference_subgraph_name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+               <span class="n">device_type</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span>
+               <span class="n">output_num_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+               <span class="n">output_shard_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+               <span class="n">max_inputs</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+               <span class="n">input_id_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">tf_master</span><span class="o">=</span><span class="s1">&#39;local&#39;</span><span class="p">,</span>
+               <span class="n">inference_threads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+               <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+               <span class="n">prediction_step_interval</span><span class="o">=</span><span class="mi">3000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      checkpoint: Either a checkpoint file to load, or a directory containing</span>
+<span class="sd">        multiple checkpoints, where the latest checkpoint will be loaded.</span>
+<span class="sd">      output_dir: Output directory. If `checkpoint` is a directory, a</span>
+<span class="sd">        subdirectory will be created for each checkpoint evaluated.</span>
+<span class="sd">      inference_graph: Path to an inference graph. If not specified, will be</span>
+<span class="sd">        inferred from the checkpoint path.</span>
+<span class="sd">      inference_subgraph_name: The name of the inference subgraph to use.</span>
+<span class="sd">        Defaults to the default subgraph.</span>
+<span class="sd">      device_type: Device type, either cpu, gpu, or tpu.</span>
+<span class="sd">      output_num_shards: Each replica generates one shard of output according to</span>
+<span class="sd">        `output_shard_id`.</span>
+<span class="sd">      output_shard_id: The output shard id in range `[0, output_num_shards -</span>
+<span class="sd">        1]`.</span>
+<span class="sd">      max_inputs: Only process the first n inputs. 0 means process all inputs.</span>
+<span class="sd">      input_id_filter: If not empty, only process the input ids in the given</span>
+<span class="sd">        list.</span>
+<span class="sd">      tf_master: tf_master for predictor session.</span>
+<span class="sd">      inference_threads: Number of inference threads.</span>
+<span class="sd">      batch_size: Batch size.</span>
+<span class="sd">      prediction_step_interval: Number of steps between outputs. Only meaningful</span>
+<span class="sd">        if `checkpoint` is a directory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span> <span class="o">=</span> <span class="n">checkpoint</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">output_dir</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_output_num_shards</span> <span class="o">=</span> <span class="n">output_num_shards</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_output_shard_id</span> <span class="o">=</span> <span class="n">output_shard_id</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_max_inputs</span> <span class="o">=</span> <span class="n">max_inputs</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_id_filter</span> <span class="o">=</span> <span class="n">input_id_filter</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_prediction_step_interval</span> <span class="o">=</span> <span class="n">prediction_step_interval</span>
+
+    <span class="k">if</span> <span class="n">device_type</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">!=</span> <span class="s1">&#39;tpu&#39;</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;xla_device=tpu should be set with device_type=tpu!&#39;</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">IsDirectory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span><span class="p">):</span>
+          <span class="k">break</span>
+      <span class="k">elif</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span> <span class="o">+</span> <span class="s1">&#39;.index&#39;</span><span class="p">):</span>
+        <span class="k">break</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">log_first_n</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+                             <span class="s1">&#39;Waiting for checkpoint to be available.&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">_RETRY_SLEEP_SECONDS</span><span class="p">)</span>
+
+    <span class="c1"># Use saved inference graph.</span>
+    <span class="k">if</span> <span class="n">inference_graph</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span> <span class="o">=</span> <span class="n">inference_graph</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">checkpoint_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">IsDirectory</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">):</span>
+        <span class="n">checkpoint_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
+      <span class="n">logdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
+      <span class="n">inference_graph_filename</span> <span class="o">=</span> <span class="s1">&#39;inference.pbtxt&#39;</span>
+      <span class="k">if</span> <span class="n">device_type</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span><span class="p">:</span>
+        <span class="n">inference_graph_filename</span> <span class="o">=</span> <span class="s1">&#39;inference_tpu.pbtxt&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;inference_graphs&#39;</span><span class="p">,</span>
+                                           <span class="n">inference_graph_filename</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_predictor</span> <span class="o">=</span> <span class="n">predictor</span><span class="o">.</span><span class="n">Predictor</span><span class="p">(</span>
+        <span class="n">inference_graph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span><span class="p">,</span>
+        <span class="n">subgraph_name</span><span class="o">=</span><span class="n">inference_subgraph_name</span><span class="p">,</span>
+        <span class="n">device_type</span><span class="o">=</span><span class="n">device_type</span><span class="p">,</span>
+        <span class="n">tf_master</span><span class="o">=</span><span class="n">tf_master</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_threadpool</span> <span class="o">=</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">inference_threads</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_locks</span> <span class="o">=</span> <span class="p">[</span><span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">inference_threads</span><span class="p">)]</span>
+
+<div class="viewcode-block" id="PredictorRunnerBase.FromFlags"><a class="viewcode-back" href="../../../lingvo.core.predictor_runner_base.html#lingvo.core.predictor_runner_base.PredictorRunnerBase.FromFlags">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FromFlags</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs an instance of this class from FLAGS.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+        <span class="n">checkpoint</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">,</span>
+        <span class="n">output_dir</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span>
+        <span class="n">inference_graph</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">inference_graph</span><span class="p">,</span>
+        <span class="n">inference_subgraph_name</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">inference_subgraph_name</span><span class="p">,</span>
+        <span class="n">device_type</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">device_type</span><span class="p">,</span>
+        <span class="n">output_num_shards</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_num_shards</span><span class="p">,</span>
+        <span class="n">output_shard_id</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_shard_id</span><span class="p">,</span>
+        <span class="n">max_inputs</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">max_inputs</span><span class="p">,</span>
+        <span class="n">input_id_filter</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">input_id_filter</span><span class="p">,</span>
+        <span class="n">tf_master</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span>
+        <span class="n">inference_threads</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">inference_threads</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">prediction_step_interval</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">prediction_step_interval</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PredictorRunnerBase._ShouldProcessInputId"><a class="viewcode-back" href="../../../lingvo.core.predictor_runner_base.html#lingvo.core.predictor_runner_base.PredictorRunnerBase._ShouldProcessInputId">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldProcessInputId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_id</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_inputs</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">input_id</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_inputs</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_id_filter</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_id</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_id_filter</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="n">input_id</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_num_shards</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_shard_id</span></div>
+
+<div class="viewcode-block" id="PredictorRunnerBase._OutputFilename"><a class="viewcode-back" href="../../../lingvo.core.predictor_runner_base.html#lingvo.core.predictor_runner_base.PredictorRunnerBase._OutputFilename">[docs]</a>  <span class="k">def</span> <span class="nf">_OutputFilename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_shard_id</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_shard_id</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_num_shards</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%.5d</span><span class="s1">-of-</span><span class="si">%.5d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">output_dir</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_shard_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_num_shards</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PredictorRunnerBase.InputGenerator"><a class="viewcode-back" href="../../../lingvo.core.predictor_runner_base.html#lingvo.core.predictor_runner_base.PredictorRunnerBase.InputGenerator">[docs]</a>  <span class="k">def</span> <span class="nf">InputGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generator that yields the next input.</span>
+
+<span class="sd">    Must yield in a deterministic order or raise an exception when</span>
+<span class="sd">    self._output_num_shards &gt; 1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PredictorRunnerBase.RunBatch"><a class="viewcode-back" href="../../../lingvo.core.predictor_runner_base.html#lingvo.core.predictor_runner_base.PredictorRunnerBase.RunBatch">[docs]</a>  <span class="k">def</span> <span class="nf">RunBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs predictor on a single batch of data.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      output_dir: the output directory.</span>
+<span class="sd">      batch: a list of (input_id, element) pairs, where element is yielded from</span>
+<span class="sd">        InputGenerator and input_id is a unique counter starting from 0.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PredictorRunnerBase._PredictOneCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.predictor_runner_base.html#lingvo.core.predictor_runner_base.PredictorRunnerBase._PredictOneCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">_PredictOneCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs predictor.&quot;&quot;&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Processing checkpoint </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_predictor</span><span class="o">.</span><span class="n">Load</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">LockedRunBatch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;TPU inference runs the i-th batch on the i%num_cores-th core.</span>
+
+<span class="sd">      Make sure that core is available before scheduling the next batch on it.</span>
+
+<span class="sd">      Args:</span>
+<span class="sd">        batch: The input to be passed to RunBatch.</span>
+<span class="sd">        batch_id: The id of this batch, which determins which core it runs on.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_locks</span><span class="p">[</span><span class="n">batch_id</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_locks</span><span class="p">)]:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RunBatch</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+
+    <span class="n">batch_id</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">futures</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Iterate through the input and process it one batch at a time.</span>
+    <span class="k">for</span> <span class="n">next_id</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">InputGenerator</span><span class="p">()):</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldProcessInputId</span><span class="p">(</span><span class="n">next_id</span><span class="p">):</span>
+        <span class="n">batch</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">next_id</span><span class="p">,</span> <span class="n">element</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">:</span>
+          <span class="n">futures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_threadpool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">LockedRunBatch</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">))</span>
+          <span class="n">batch_id</span> <span class="o">+=</span> <span class="mi">1</span>
+          <span class="n">batch</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Last batch.</span>
+    <span class="k">if</span> <span class="n">batch</span><span class="p">:</span>
+      <span class="n">futures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_threadpool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">LockedRunBatch</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">))</span>
+    <span class="c1"># Wait for completion.</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">:</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">result</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PredictorRunnerBase._PredictContinuously"><a class="viewcode-back" href="../../../lingvo.core.predictor_runner_base.html#lingvo.core.predictor_runner_base.PredictorRunnerBase._PredictContinuously">[docs]</a>  <span class="k">def</span> <span class="nf">_PredictContinuously</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Waits for new checkpoints and runs predictor continuously.&quot;&quot;&quot;</span>
+    <span class="n">prev_step</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1000000</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+      <span class="c1"># TODO(jonathanasdf): how to determine when training finished?</span>
+      <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span><span class="p">)</span>
+      <span class="n">step_str</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;ckpt-(\d</span><span class="si">{8}</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">step</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">step_str</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">step</span> <span class="o">-</span> <span class="n">prev_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prediction_step_interval</span><span class="p">:</span>
+        <span class="n">output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="s1">&#39;step_&#39;</span> <span class="o">+</span> <span class="n">step_str</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MakeDirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_PredictOneCheckpoint</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span>
+        <span class="n">prev_step</span> <span class="o">=</span> <span class="n">step</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Waiting for next checkpoint...&#39;</span><span class="p">)</span>
+      <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">_RETRY_SLEEP_SECONDS</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PredictorRunnerBase.Run"><a class="viewcode-back" href="../../../lingvo.core.predictor_runner_base.html#lingvo.core.predictor_runner_base.PredictorRunnerBase.Run">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">RetryOnTransientTfError</span><span class="p">()</span>
+  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Monitor checkpoints and runs predictor.&quot;&quot;&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MakeDirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">IsDirectory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_PredictContinuously</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_PredictOneCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
