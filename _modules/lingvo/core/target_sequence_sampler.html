@@ -167,10 +167,11 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">recurrent</span>
-<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 
 <div class="viewcode-block" id="_ComputePaddings"><a class="viewcode-back" href="../../../lingvo.core.target_sequence_sampler.html#lingvo.core.target_sequence_sampler._ComputePaddings">[docs]</a><span class="k">def</span> <span class="nf">_ComputePaddings</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">eos_id</span><span class="p">):</span>
@@ -259,7 +260,7 @@
         <span class="n">state1</span><span class="o">.</span><span class="n">logits</span> <span class="o">=</span> <span class="n">bs_result</span><span class="o">.</span><span class="n">log_probs</span>
         <span class="c1"># Sample ids from logits. [batch].</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">stateless</span><span class="o">.</span><span class="n">stateless_multinomial</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">stateless_multinomial</span><span class="p">(</span>
                 <span class="n">state1</span><span class="o">.</span><span class="n">logits</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
                 <span class="n">num_samples</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">seed</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">recurrent_theta</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">timestep</span><span class="p">]),</span>
