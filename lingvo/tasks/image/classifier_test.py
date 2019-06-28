@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import shutil
 from lingvo import model_registry
+import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import layers
 from lingvo.core import py_utils
@@ -30,7 +31,6 @@ from lingvo.tasks.image import classifier
 from lingvo.tasks.image import input_generator
 from lingvo.tasks.image.params import mnist
 import numpy as np
-import tensorflow as tf
 
 
 @model_registry.RegisterSingleTaskModel

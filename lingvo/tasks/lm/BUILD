@@ -17,11 +17,11 @@ py_library(
     srcs = ["input_generator.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo:compat",
         "//lingvo/core:base_input_generator",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
         "//lingvo/core:tokenizers",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -33,9 +33,9 @@ py_test(
     ],
     deps = [
         ":input_generator",
+        "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -44,6 +44,7 @@ py_library(
     srcs = ["layers.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo:compat",
         "//lingvo/core:base_layer",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
@@ -52,7 +53,6 @@ py_library(
         "//lingvo/core:rnn_cell",
         "//lingvo/core:rnn_layers",
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -63,11 +63,11 @@ lingvo_cuda_py2and3_test(
     tags = ["noasan"],
     deps = [
         ":layers",
+        "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -77,12 +77,12 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":layers",
+        "//lingvo:compat",
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -96,10 +96,10 @@ py_test(
     deps = [
         ":input_generator",
         ":model",
+        "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         "//lingvo/core:tokenizers",
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )

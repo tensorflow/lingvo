@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import collections
 import math
+import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import base_decoder
 from lingvo.core import base_layer
@@ -36,7 +37,6 @@ from lingvo.tasks.asr import fusion
 from matplotlib import font_manager
 import six
 from six.moves import range
-import tensorflow as tf
 
 
 def _ToTensorArray(name, v, max_seq_length, clear_after_read=None):
@@ -998,8 +998,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       loop_vars = time, decoder_step_state_zero, target_info_tas, seq_out_tas
       # NOTE(skyewm): this could be more specific, but for now don't verify
       # while_loop input/output shapes at all.
-      shape_invariants = tf.contrib.framework.nest.map_structure(
-          lambda t: tf.TensorShape(None), loop_vars)
+      shape_invariants = tf.nest.map_structure(lambda t: tf.TensorShape(None),
+                                               loop_vars)
 
       (time, _, target_info_tas, seq_out_tas) = tf.while_loop(
           _LoopContinue,

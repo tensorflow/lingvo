@@ -19,14 +19,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import math
 import os
 from lingvo import model_registry
+import lingvo.compat as tf
 from lingvo.core import base_model_params
 from lingvo.tasks.mt.params import base_config
 from lingvo.tasks.punctuator import input_generator
 from lingvo.tasks.punctuator import model
-import tensorflow as tf
 
 
 # This base class defines parameters for the input generator for a specific

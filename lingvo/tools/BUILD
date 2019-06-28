@@ -17,7 +17,7 @@ py_binary(
     python_version = "PY3",
     srcs_version = "PY2AND3",
     deps = [
-        # Implicit tensorflow dependency.
+        "//lingvo:compat",
     ],
 )
 
@@ -27,8 +27,8 @@ py_binary(
     python_version = "PY3",
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo:compat",
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -47,10 +47,10 @@ py_library(
     srcs = ["wpm_encode_file.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo:compat",
         "//lingvo/core:wpm_encoder",
         # Implicit numpy dependency.
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -60,8 +60,8 @@ py_binary(
     python_version = "PY3",
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo:compat",
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -71,9 +71,9 @@ py_binary(
     python_version = "PY3",
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo:compat",
         # Implicit numpy dependency.
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -83,9 +83,9 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         # Additional FFT kernels dependency.
+        "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/tasks/asr:frontend",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -97,9 +97,9 @@ py_test(
     ],
     deps = [
         ":audio_lib",
+        "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -110,9 +110,8 @@ py_binary(
     srcs_version = "PY2AND3",
     deps = [
         ":audio_lib",
-        # Implicit numpy dependency.
+        "//lingvo:compat",
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 

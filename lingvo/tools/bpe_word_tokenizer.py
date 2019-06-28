@@ -39,9 +39,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import lingvo.compat as tf
 import six
 from six.moves import map
-import tensorflow as tf
 
 tf.flags.DEFINE_string('encoded_filepath', '',
                        'Path to the BPE encoded corpus file.')

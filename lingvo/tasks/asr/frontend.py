@@ -21,9 +21,9 @@ from __future__ import print_function
 
 import collections
 import math
+import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
-import tensorflow as tf
 
 
 # AsrFrontendConfig which defines characteristics of the frontend that may

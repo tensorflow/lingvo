@@ -19,10 +19,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import lingvo.compat as tf
 import numpy as np
-
 from six.moves import range
-import tensorflow as tf
 
 tf.flags.DEFINE_string('input_filepattern', '',
                        'File pattern of binary tfrecord files.')

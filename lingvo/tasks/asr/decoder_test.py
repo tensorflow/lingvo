@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import os
 import re
+import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import layers as lingvo_layers
 from lingvo.core import py_utils
@@ -29,7 +30,6 @@ import numpy as np
 from six.moves import range
 from six.moves import zip
 
-import tensorflow as tf
 from google.protobuf import text_format
 
 FLAGS = tf.flags.FLAGS

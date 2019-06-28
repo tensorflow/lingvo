@@ -18,11 +18,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
+import lingvo.compat as tf
 from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.tasks.lm import input_generator
-import tensorflow as tf
 
 
 class InputGeneratorTest(test_utils.TestCase):

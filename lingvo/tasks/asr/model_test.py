@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import os
 import re
+import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
@@ -34,8 +35,6 @@ from lingvo.tasks.asr import model_test_input_generator as tig
 import numpy as np
 import six
 from six.moves import range
-
-import tensorflow as tf
 
 
 class DecoderForTest(decoder.AsrDecoder):

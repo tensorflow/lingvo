@@ -22,7 +22,7 @@ py_test(
     srcs = ["simple_wer_test.py"],
     deps = [
         ":simple_wer",
+        "//lingvo:compat",
         "//lingvo/core:test_utils",
-        # Implicit tensorflow dependency.
     ],
 )

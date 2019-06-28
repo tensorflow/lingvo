@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import glob
 import os
-import tensorflow as tf
+import lingvo.compat as tf
 
 tf.flags.DEFINE_string("outdir", "/tmp/lm1b", "The output directory.")
 tf.flags.DEFINE_integer(

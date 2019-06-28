@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import metrics
@@ -32,7 +33,6 @@ from lingvo.tools import audio_lib
 from six.moves import range
 from six.moves import zip
 
-import tensorflow as tf
 
 # hyps: [num_beams, num_hyps_per_beam] of serialized Hypothesis protos.
 # ids: [num_beams * num_hyps_per_beam, max_target_length].

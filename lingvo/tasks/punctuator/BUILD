@@ -12,12 +12,12 @@ py_library(
     srcs = ["input_generator.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo:compat",
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_layer",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
         "//lingvo/core:tokenizers",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -30,11 +30,11 @@ py_test(
     ],
     deps = [
         ":input_generator",
+        "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -43,9 +43,9 @@ py_library(
     srcs = ["model.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/tasks/mt:model",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -61,10 +61,10 @@ py_test(
     deps = [
         ":input_generator",
         ":model",
+        "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )

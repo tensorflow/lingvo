@@ -20,9 +20,9 @@ from __future__ import division
 from __future__ import print_function
 
 import subprocess
+import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.tasks.asr import frontend as asr_frontend
-import tensorflow as tf
 
 from tensorflow.contrib.framework.python.ops import audio_ops as contrib_audio
 

@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import math
+import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import base_decoder
 from lingvo.core import base_layer
@@ -33,7 +34,6 @@ from lingvo.core import rnn_layers
 from lingvo.core import summary_utils
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
 
 from tensorflow.python.framework import function
 

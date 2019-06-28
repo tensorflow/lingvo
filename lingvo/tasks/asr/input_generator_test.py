@@ -19,13 +19,11 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import lingvo.compat as tf
 from lingvo.core import test_utils
-
 from lingvo.tasks.asr import input_generator
 import numpy as np
 from six.moves import range
-
-import tensorflow as tf
 
 
 def _MakeBytesFeature(unicode_array):

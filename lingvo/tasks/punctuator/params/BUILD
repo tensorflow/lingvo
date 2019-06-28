@@ -15,12 +15,12 @@ py_library(
     data = [":brown_corpus_wpm_data"],
     srcs_version = "PY2AND3",
     deps = [
+        "//lingvo:compat",
         "//lingvo:model_registry",
         "//lingvo/core:base_model_params",
         "//lingvo/tasks/mt/params",
         "//lingvo/tasks/punctuator:input_generator",
         "//lingvo/tasks/punctuator:model",
-        # Implicit tensorflow dependency.
     ],
 )
 

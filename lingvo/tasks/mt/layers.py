@@ -17,11 +17,12 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from six.moves import range
-import tensorflow as tf
 
 
 class TransformerStack(base_layer.BaseLayer):

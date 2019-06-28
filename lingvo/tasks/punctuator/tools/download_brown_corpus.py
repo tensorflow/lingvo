@@ -23,7 +23,7 @@ import os
 import random
 import string
 from xml.etree import ElementTree
-import tensorflow as tf
+import lingvo.compat as tf
 
 tf.flags.DEFINE_string("outdir", "/tmp/punctuator_data",
                        "The output directory.")
