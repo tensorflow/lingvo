@@ -165,6 +165,7 @@
 
 <span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_decoder</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
@@ -181,7 +182,6 @@
 <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="k">import</span> <span class="n">font_manager</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
-<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 
 <div class="viewcode-block" id="_ToTensorArray"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder._ToTensorArray">[docs]</a><span class="k">def</span> <span class="nf">_ToTensorArray</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">max_seq_length</span><span class="p">,</span> <span class="n">clear_after_read</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1143,8 +1143,8 @@
       <span class="n">loop_vars</span> <span class="o">=</span> <span class="n">time</span><span class="p">,</span> <span class="n">decoder_step_state_zero</span><span class="p">,</span> <span class="n">target_info_tas</span><span class="p">,</span> <span class="n">seq_out_tas</span>
       <span class="c1"># NOTE(skyewm): this could be more specific, but for now don&#39;t verify</span>
       <span class="c1"># while_loop input/output shapes at all.</span>
-      <span class="n">shape_invariants</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">framework</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
-          <span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">loop_vars</span><span class="p">)</span>
+      <span class="n">shape_invariants</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
+                                               <span class="n">loop_vars</span><span class="p">)</span>
 
       <span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">target_info_tas</span><span class="p">,</span> <span class="n">seq_out_tas</span><span class="p">)</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
           <span class="n">_LoopContinue</span><span class="p">,</span>
