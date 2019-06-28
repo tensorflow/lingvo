@@ -1,4 +1,3 @@
-# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -802,7 +801,23 @@ class EvolvedTransformerDecoderBranchedConvsLayer(base_layer.BaseLayer):
     return hidden_state + inputs
 
 
-class EvolvedTransformerEncoderLayer(base_layer.BaseLayer):
+class EvolvedTransformerBaseLayer(base_layer.BaseLayer):
+  """Base layer for the Evolved Transformer."""
+
+  @classmethod
+  def Params(cls):
+    p = super(EvolvedTransformerBaseLayer, cls).Params()
+    p.Define('source_dim', 0, 'Dimension of the transformer block input.')
+    p.Define(
+        'has_aux_atten', False,
+        'If set, introduces a second attention layer, which attends to'
+        ' the auxiliary source contexts.')
+    p.Define('packed_input', False,
+             'If True, each training example may pack multiple sequences.')
+    return p
+
+
+class EvolvedTransformerEncoderLayer(EvolvedTransformerBaseLayer):
   """Evolved Transformer encoder layer.
 
   An Evolved Transformer encoder layer as described in
@@ -812,7 +827,6 @@ class EvolvedTransformerEncoderLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super(EvolvedTransformerEncoderLayer, cls).Params()
-    p.Define('source_dim', 0, 'Dimension of the transformer block input.')
     p.Define('glu_tpl', layers.GluLayer.Params(), 'Glu layer.')
     p.Define('branched_convs_tpl',
              EvolvedTransformerEncoderBranchedConvsLayer.Params(),
@@ -826,6 +840,9 @@ class EvolvedTransformerEncoderLayer(base_layer.BaseLayer):
     p = self.params
     assert p.name
     assert p.source_dim
+    # Auxiliary attention not supported.
+    if p.has_aux_atten:
+      raise ValueError('Auxiliary attention not supported.')
 
     with tf.variable_scope(p.name):
 
@@ -852,6 +869,7 @@ class EvolvedTransformerEncoderLayer(base_layer.BaseLayer):
       params.tr_aux_atten_tpl = None
       params.mask_self_atten = False
       params.is_decoder = False
+      params.packed_input = p.packed_input
       self.CreateChild('transformer_layer', params)
 
   def FProp(self,
@@ -865,8 +883,12 @@ class EvolvedTransformerEncoderLayer(base_layer.BaseLayer):
     hidden_state = self.glu_layer.FProp(theta.glu_layer, source_vecs,
                                         source_paddings)
 
+    hidden_state = tf.transpose(hidden_state, [1, 0, 2])
+    source_paddings = tf.transpose(source_paddings, [1, 0])
     hidden_state = self.branched_convs_layer.FProp(
         theta.branched_convs_layer, hidden_state, source_paddings)
+    hidden_state = tf.transpose(hidden_state, [1, 0, 2])
+    source_paddings = tf.transpose(source_paddings, [1, 0])
 
     hidden_state, atten_prob = self.transformer_layer.FProp(
         theta.transformer_layer, hidden_state, source_paddings, aux_vecs,
@@ -875,7 +897,7 @@ class EvolvedTransformerEncoderLayer(base_layer.BaseLayer):
     return hidden_state, atten_prob
 
 
-class EvolvedTransformerDecoderLayer(base_layer.BaseLayer):
+class EvolvedTransformerDecoderLayer(EvolvedTransformerBaseLayer):
   """Evolved Transformer decoder layer.
 
   An Evolved Transformer decoder layer as described in
@@ -885,7 +907,6 @@ class EvolvedTransformerDecoderLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super(EvolvedTransformerDecoderLayer, cls).Params()
-    p.Define('source_dim', 0, 'Dimension of the transformer block input.')
     p.Define('tr_atten_tpl',
              TransformerAttentionLayer.Params().Set(num_attention_heads=8),
              'Transformer attention layer params.')
@@ -896,12 +917,9 @@ class EvolvedTransformerDecoderLayer(base_layer.BaseLayer):
              EvolvedTransformerDecoderBranchedConvsLayer.Params(),
              'Evolved Transformer branched convolutional layers.')
     p.Define('transformer_tpl', TransformerLayer.Params(), 'Transformer layer.')
-    p.Define(
-        'has_aux_atten', True,
-        'If set, introduces a second attention layer, which attends to'
-        ' the auxiliary source contexts.')
     p.Define('tr_aux_atten_tpl', None, 'Transformer Attention Layer params.')
     p.Define('mask_self_atten', False, 'If True, use masked self-attention.')
+    p.has_aux_atten = True
     return p
 
   @base_layer.initializer
@@ -919,7 +937,7 @@ class EvolvedTransformerDecoderLayer(base_layer.BaseLayer):
       params.source_dim = p.source_dim
       params.is_masked = p.mask_self_atten
       # Packed input is not supported.
-      params.packed_input = False
+      params.packed_input = p.packed_input
       self.CreateChild('self_atten_double_heads', params)
 
       if p.has_aux_atten:
@@ -930,7 +948,7 @@ class EvolvedTransformerDecoderLayer(base_layer.BaseLayer):
         params.name = 'attend_to_encoder'
         params.source_dim = p.source_dim
         # Packed input is not supported.
-        params.packed_input = False
+        params.packed_input = p.packed_input
         self.CreateChild('attend_to_encoder', params)
 
       # Initialize branched convolutional layers.
@@ -950,7 +968,7 @@ class EvolvedTransformerDecoderLayer(base_layer.BaseLayer):
       params.mask_self_atten = p.mask_self_atten
       params.tr_fflayer_tpl.activation = 'SWISH'
       # Packed input is not supported.
-      params.packed_input = False
+      params.packed_input = p.packed_input
       self.CreateChild('transformer_layer', params)
 
   def FProp(self,
@@ -984,8 +1002,12 @@ class EvolvedTransformerDecoderLayer(base_layer.BaseLayer):
     else:
       hidden_state = left_branch + source_vecs
 
+    hidden_state = tf.transpose(hidden_state, [1, 0, 2])
+    source_paddings = tf.transpose(source_paddings, [1, 0])
     hidden_state = self.branched_convs.FProp(theta.branched_convs, hidden_state,
                                              source_paddings)
+    hidden_state = tf.transpose(hidden_state, [1, 0, 2])
+    source_paddings = tf.transpose(source_paddings, [1, 0])
 
     hidden_state, atten_prob = self.transformer_layer.FProp(
         theta.transformer_layer, hidden_state, source_paddings, aux_vecs,
@@ -1057,8 +1079,10 @@ class EvolvedTransformerDecoderLayer(base_layer.BaseLayer):
     # more efficient.
     inputs_length = tf.minimum(tf.shape(branched_convs_input)[0], 17)
     branched_convs_input = branched_convs_input[-inputs_length:, :, :]
+    branched_convs_input = tf.transpose(branched_convs_input, [1, 0, 2])
     hidden_state = self.branched_convs.FProp(theta.branched_convs,
                                              branched_convs_input, None)
+    hidden_state = tf.transpose(hidden_state, [1, 0, 2])
 
     transformer_layer_input = tf.squeeze(hidden_state[-1, :, :])
     transformer_layer_states = prefix_states.transformer_layer_states

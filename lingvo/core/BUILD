@@ -799,7 +799,7 @@ py_test(
     name = "layers_with_gpipe_test",
     size = "large",
     srcs = ["layers_with_gpipe_test.py"],
-    shard_count = 8,
+    shard_count = 15,
     deps = [
         ":layers_with_gpipe",
         ":py_utils",
@@ -1146,7 +1146,7 @@ py_library(
 
 py_test(
     name = "layers_with_attention_test",
-    size = "medium",
+    size = "large",
     srcs = ["layers_with_attention_test.py"],
     deps = [
         ":attention",

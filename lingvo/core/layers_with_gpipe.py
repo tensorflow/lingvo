@@ -1,4 +1,3 @@
-# Lint as: python2, python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -189,8 +188,8 @@ class GPipeEvolvedTransformerEncoderLayer(
     with tf.name_scope(self.params.name):
       return _common_gpipe_transformer_encoder_fprop(
           self, GPipeEvolvedTransformerEncoderLayer, theta, source_vecs,
-          source_paddings, None, None, source_segment_id, None, labels,
-          label_weights, None, None)
+          source_paddings, target_vecs, target_paddings, source_segment_id,
+          target_segment_id, labels, label_weights, None, None)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -712,6 +711,51 @@ class GPipeTransformerStack(PipeliningLayer):
                                       labels, label_weights, source_pos_id,
                                       target_pos_id)
     return gpipe_outputs
+
+
+class GPipeEvolvedTransformerStack(GPipeTransformerStack):
+  """Evolved Transformer stack for GPipe.
+
+  With optional layer normalization applied to the final output.
+
+  See 'Evolved Transformer' for more details:
+  https://arxiv.org/abs/1901.11117 .
+  """
+
+  @classmethod
+  def Params(cls):
+    """Configs for EvolvedTransformerStack."""
+    p = super(GPipeEvolvedTransformerStack, cls).Params()
+    p.encoder_tpl = GPipeEvolvedTransformerEncoderLayer.Params()
+    p.decoder_tpl = GPipeEvolvedTransformerDecoderLayer.Params()
+    return p
+
+  def _AttentionSetupDeterministicDropout(self, tr_atten_tpl):
+    tr_atten_tpl.residual_dropout_tpl = (
+        layers.DeterministicDropoutLayer.Params())
+    tr_atten_tpl.atten_tpl.atten_dropout_deterministic = True
+    tr_atten_tpl.atten_tpl.inner_atten_params.atten_dropout_deterministic = True
+
+  def _TransformerSetupDeterministicDropout(self, transformer_tpl):
+    self._AttentionSetupDeterministicDropout(transformer_tpl.tr_atten_tpl)
+    transformer_tpl.tr_fflayer_tpl.residual_dropout_tpl = (
+        layers.DeterministicDropoutLayer.Params())
+    transformer_tpl.tr_fflayer_tpl.fflayer_tpl.dropout = (
+        layers.DeterministicDropoutLayer.Params())
+
+  def SetupDeterministicDropout(self, params):
+    """Replaces dropout layers in ET with deterministic ones."""
+    self._TransformerSetupDeterministicDropout(params.transformer_tpl)
+    params.branched_convs_tpl.dropout_tpl = \
+        layers.DeterministicDropoutLayer.Params()
+    if hasattr(params, 'glu_tpl'):
+      params.glu_tpl.dropout_tpl = layers.DeterministicDropoutLayer.Params()
+    if hasattr(params, 'tr_atten_tpl'):
+      self._AttentionSetupDeterministicDropout(params.tr_atten_tpl)
+    if hasattr(params, 'tr_double_heads_atten_tpl'):
+      self._AttentionSetupDeterministicDropout(params.tr_double_heads_atten_tpl)
+
+    return params
 
 
 class DeterministicWeightsLayer(base_layer.BaseLayer):
