@@ -175,7 +175,7 @@
 first processed using a multi-headed (self) attention. Output of the
 attention layer is combined with the residual connection. And the finally,
 output is normalized using Layer Normalization.</p>
-<p>Layer can be used in three scenarios:</p>
+<p>Layer can be used in four scenarios:</p>
 <ol class="arabic simple">
 <li>Multi-Headed Self-Attention, where attention keys (source vectors),
 attention values (context vectors) and queries come from the same previous
@@ -191,6 +191,10 @@ setting is_masked flag of this layer.</li>
 and queries <code class="xref py py-obj docutils literal notranslate"><span class="pre">query_vec</span></code>, coming from the previous layer outputs (decoder).
 This corresponds to the standard attention mechanism, decoder attending the
 encoder outputs.</li>
+<li>Multi-Headed Attention, where attention values <code class="xref py py-obj docutils literal notranslate"><span class="pre">context_vecs</span></code> are coming
+from a different source than queries and keys, e.g. for positional
+attention, where keys and queries are positional encodings and values are
+decoder states.</li>
 </ol>
 <dl class="classmethod">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.Params">
@@ -200,7 +204,7 @@ encoder outputs.</li>
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>query_vec</em>, <em>source_paddings</em>, <em>source_vecs=None</em>, <em>query_segment_id=None</em>, <em>source_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>query_vec</em>, <em>source_paddings</em>, <em>source_vecs=None</em>, <em>query_segment_id=None</em>, <em>source_segment_id=None</em>, <em>context_vecs=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer attention, residual and normalization layer.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -214,11 +218,12 @@ its children layers.</li>
 <li><strong>source_vecs</strong> – [source_time, source_batch, dim].</li>
 <li><strong>query_segment_id</strong> – [target_time, target_batch]</li>
 <li><strong>source_segment_id</strong> – [source_time, source_batch]</li>
+<li><strong>context_vecs</strong> – [source_time, target_batch, dim]</li>
 </ul>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(output, atten_probs). output is of shape [target_time, target_batch,
-source_dim], atten_probs is of shape [target_time, target_batch,
+context_dim], atten_probs is of shape [target_time, target_batch,
 source_time].</p>
 </td>
 </tr>
