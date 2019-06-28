@@ -19,10 +19,11 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import lingvo.compat as tf
 from lingvo.core import plot
 from lingvo.core import test_utils
 import numpy as np
-import tensorflow as tf
 
 
 class PlotTest(test_utils.TestCase):

@@ -18,18 +18,19 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import lingvo.compat as tf
 from lingvo.core import spectrum_augmenter
 from lingvo.core import test_utils
 import numpy as np
 from six.moves import range
-import tensorflow as tf
 
 
 class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterWithTimeMask(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.compat.v1.set_random_seed(127)
+      tf.set_random_seed(127)
       batch_size = 5
       inputs = tf.ones([batch_size, 10, 2, 2], dtype=tf.float32)
       paddings = []
@@ -77,7 +78,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterBasedDynamicTimeMask(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.compat.v1.set_random_seed(127)
+      tf.set_random_seed(127)
       batch_size = 5
       inputs = tf.ones([batch_size, 10, 2, 2], dtype=tf.float32)
       paddings = []
@@ -127,7 +128,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterWithFrequencyMask(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.compat.v1.set_random_seed(1234)
+      tf.set_random_seed(1234)
       inputs = tf.ones([3, 5, 4, 2], dtype=tf.float32)
       paddings = tf.zeros([3, 5])
       p = spectrum_augmenter.SpectrumAugmenter.Params()
@@ -158,7 +159,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterUnstacking(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.compat.v1.set_random_seed(1234)
+      tf.set_random_seed(1234)
       inputs = tf.ones([3, 5, 4, 2], dtype=tf.float32)
       paddings = tf.zeros([3, 5])
       p = spectrum_augmenter.SpectrumAugmenter.Params()

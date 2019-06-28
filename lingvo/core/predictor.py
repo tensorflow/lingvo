@@ -30,10 +30,10 @@ from __future__ import division
 from __future__ import print_function
 
 import threading
+import lingvo.compat as tf
 from lingvo.core import inference_graph_pb2
 from lingvo.core import py_utils
 import six
-import tensorflow as tf
 
 from google.protobuf import text_format
 from tensorflow.core.protobuf import config_pb2

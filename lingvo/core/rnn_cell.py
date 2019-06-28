@@ -17,6 +17,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import cudnn_rnn_utils
 from lingvo.core import hyperparams
@@ -25,9 +27,9 @@ from lingvo.core import quant_utils
 from lingvo.core import summary_utils
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
 
 from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
+from tensorflow.python.util import deprecation as tf_deprecation  # pylint: disable=g-direct-tensorflow-import
 
 
 def _HistogramSummary(p, name, v):
@@ -1089,7 +1091,7 @@ class LayerNormalizedLSTMCell(RNNCell):
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
     return p
 
-  @tf.contrib.framework.deprecated(
+  @tf_deprecation.deprecated(
       date=None,
       instructions='New models should use LayerNormalizedLSTMCellSimple.')
   @base_layer.initializer

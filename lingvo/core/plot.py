@@ -23,13 +23,13 @@ import collections
 import functools
 import traceback
 
+import lingvo.compat as tf
 from matplotlib.backends import backend_agg
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import six
 from six.moves import range
-import tensorflow as tf
 
 
 def ToUnicode(text):

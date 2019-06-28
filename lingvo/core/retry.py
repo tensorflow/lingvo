@@ -26,7 +26,7 @@ import sys
 import time
 import traceback
 
-import tensorflow as tf
+import lingvo.compat as tf
 
 
 def Retry(retry_value=Exception,

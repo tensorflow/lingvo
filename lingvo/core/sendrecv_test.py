@@ -18,10 +18,11 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import lingvo.compat as tf
 from lingvo.core import sendrecv
 from lingvo.core import test_utils
 import numpy as np
-import tensorflow as tf
 from tensorflow.python.framework import function
 
 

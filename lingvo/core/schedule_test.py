@@ -21,13 +21,12 @@ from __future__ import print_function
 
 import math
 import os
+import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import schedule
 from lingvo.core import test_utils
 from six.moves import range
-
-import tensorflow as tf
 
 
 class LearningRateScheduleTest(test_utils.TestCase):

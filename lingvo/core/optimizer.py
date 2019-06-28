@@ -18,11 +18,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import lingvo.compat as tf
 from lingvo.core import base_layer
-from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
-import tensorflow as tf
+
+from tensorflow.contrib.opt.python.training import weight_decay_optimizers
 
 
 class Base(base_layer.BaseLayer):
@@ -227,7 +229,7 @@ class AdamW(Base):
 
   def GetOptimizer(self, lr):
     p = self.params
-    return tf.contrib.opt.AdamWOptimizer(
+    return weight_decay_optimizers.AdamWOptimizer(
         weight_decay=lr * p.weight_decay,
         learning_rate=lr,
         beta1=p.beta1,

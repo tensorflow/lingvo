@@ -20,10 +20,10 @@ from __future__ import division
 from __future__ import print_function
 
 import math
+import lingvo.compat as tf
 from lingvo.core import scorers
 from lingvo.core import test_helper
 from lingvo.core import test_utils
-import tensorflow as tf
 
 
 class BleuScorerTest(test_utils.TestCase):

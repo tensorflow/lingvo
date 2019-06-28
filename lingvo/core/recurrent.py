@@ -46,12 +46,12 @@ from __future__ import print_function
 
 import collections
 import zlib
+import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 from lingvo.core import sendrecv
 from six.moves import range
 from six.moves import zip
-import tensorflow as tf
 
 from tensorflow.python.framework import function
 from tensorflow.python.ops import functional_ops

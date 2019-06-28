@@ -22,9 +22,8 @@ from __future__ import print_function
 import copy
 import itertools
 
+from lingvo import model_registry
 import lingvo.compat as tf
-
-from lingvo import model_registry  # pylint: disable=g-bad-import-order
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils

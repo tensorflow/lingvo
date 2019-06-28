@@ -41,11 +41,10 @@ from six.moves import range
 from six.moves import zip
 
 from tensorflow.contrib.model_pruning.python.layers import core_layers as pruning_layers
-from tensorflow.contrib.tpu.python.tpu import tpu
-from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.core.framework import node_def_pb2
 from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.framework import function
+from tensorflow.python.tpu import tpu_function  # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.util import deprecation
 
 tf.flags.DEFINE_bool('enable_asserts', True,
@@ -385,7 +384,7 @@ def RunOnTpuHost(func, *args, **kwargs):
     The function return value.
   """
   if use_tpu():
-    return tpu.outside_compilation(func, *args, **kwargs)
+    return tf.tpu.outside_compilation(func, *args, **kwargs)
   else:
     return func(*args, **kwargs)
 
