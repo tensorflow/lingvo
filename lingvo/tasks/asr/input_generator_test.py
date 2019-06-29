@@ -110,7 +110,7 @@ class InputTest(test_utils.TestCase):
       batch = inp.GetPreprocessedInputBatch()
       vals = sess.run(batch)
       shapes = vals.Transform(lambda x: x.shape)
-      tf.logging.info('Shapes: %s', shapes.DebugString())
+      shapes.VLog(0, 'shapes: ')
       # sample_ids      (3, 1)
       # src.src_inputs  (3, 1235, 40, 1)
       # src.paddings    (3, 1235)
