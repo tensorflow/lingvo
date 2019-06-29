@@ -781,8 +781,8 @@
 
     <span class="k">return</span> <span class="n">DoCompare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">DebugString</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a debug string for this `.NestedMap`.&quot;&quot;&quot;</span>
+  <span class="k">def</span> <span class="nf">_ToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns debug strings in a list for this `.NestedMap`.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">Print</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Recursively walk value.&quot;&quot;&quot;</span>
@@ -803,8 +803,20 @@
 
     <span class="n">kv</span> <span class="o">=</span> <span class="n">Print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
     <span class="n">maxlen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">kv</span><span class="p">])</span> <span class="k">if</span> <span class="n">kv</span> <span class="k">else</span> <span class="mi">0</span>
-    <span class="n">strs</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">+</span> <span class="n">maxlen</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">))</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kv</span><span class="p">]</span>
-    <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">strs</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">k</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">+</span> <span class="n">maxlen</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">))</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kv</span><span class="p">])</span>
+
+  <span class="k">def</span> <span class="nf">DebugString</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a debug string for this `.NestedMap`.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ToStrings</span><span class="p">())</span>
+
+  <span class="k">def</span> <span class="nf">VLog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Logs the debug string at the level.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">level</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">level</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;nmap: &#39;</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ToStrings</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">_Unique</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -1130,8 +1142,8 @@
 
 <span class="n">_VARIABLE_RENAME_RULES_KEY</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;__lingvo_variable_rename_rules&#39;</span><span class="p">,)</span>
 
-<span class="n">_get_rename_rules_stack</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span>
-    <span class="n">_VARIABLE_RENAME_RULES_KEY</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
+<span class="n">_get_rename_rules_stack</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span><span class="n">_VARIABLE_RENAME_RULES_KEY</span><span class="p">,</span>
+                                            <span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
 
 
 <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
@@ -1909,8 +1921,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">if</span> <span class="n">grad_scale</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">vs_gs_scale</span> <span class="o">=</span> <span class="n">vs_gs_scale</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v_g</span><span class="p">:</span> <span class="p">(</span><span class="n">v_g</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v_g</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">grad_scale</span><span class="p">)</span>
-                                       <span class="p">)</span>
+    <span class="n">vs_gs_scale</span> <span class="o">=</span> <span class="n">vs_gs_scale</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">vg</span><span class="p">:</span> <span class="p">(</span><span class="n">vg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vg</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">grad_scale</span><span class="p">))</span>
 
   <span class="k">def</span> <span class="nf">ScaleOrZero</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
     <span class="n">grad</span> <span class="o">=</span> <span class="n">CheckNumerics</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="s1">&#39;Gradient for </span><span class="si">%s</span><span class="s1"> is not finite.&#39;</span> <span class="o">%</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -2473,8 +2484,8 @@
 <span class="n">BATCH_NORM_UPDATES</span> <span class="o">=</span> <span class="s1">&#39;batch_norm_updates&#39;</span>
 
 <span class="n">_BATCH_NORM_UPDATES_DICT</span> <span class="o">=</span> <span class="s1">&#39;__batch_norm_update_dict&#39;</span>
-<span class="n">_get_batch_norm_updates_dict</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span>
-    <span class="n">_BATCH_NORM_UPDATES_DICT</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="p">{})</span>
+<span class="n">_get_batch_norm_updates_dict</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span><span class="n">_BATCH_NORM_UPDATES_DICT</span><span class="p">,</span>
+                                                 <span class="k">lambda</span><span class="p">:</span> <span class="p">{})</span>
 
 
 <span class="k">def</span> <span class="nf">UpdateBatchNormVars</span><span class="p">(</span><span class="n">batch_norm_var</span><span class="p">,</span> <span class="n">batch_norm_stats</span><span class="p">,</span> <span class="n">decay</span><span class="p">):</span>
@@ -2531,8 +2542,8 @@
 
 
 <span class="n">_MODEL_SPLIT_ID_STACK</span> <span class="o">=</span> <span class="s1">&#39;__model_split_id_stack&#39;</span>
-<span class="n">_get_model_split_id_stack</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span>
-    <span class="n">_MODEL_SPLIT_ID_STACK</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">_get_model_split_id_stack</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span><span class="n">_MODEL_SPLIT_ID_STACK</span><span class="p">,</span>
+                                              <span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 
 <span class="k">def</span> <span class="nf">GetModelSplit</span><span class="p">():</span>
