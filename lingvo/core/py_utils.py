@@ -636,8 +636,8 @@ class NestedMap(dict):
 
     return DoCompare(self, other)
 
-  def DebugString(self):
-    """Returns a debug string for this `.NestedMap`."""
+  def _ToStrings(self):
+    """Returns debug strings in a list for this `.NestedMap`."""
 
     def Print(prefix, value):
       """Recursively walk value."""
@@ -658,8 +658,20 @@ class NestedMap(dict):
 
     kv = Print('', self)
     maxlen = max([len(k) for k, _ in kv]) if kv else 0
-    strs = [k + ' ' * (4 + maxlen - len(k)) + str(v) for k, v in kv]
-    return '\n'.join(sorted(strs))
+    return sorted([k + ' ' * (4 + maxlen - len(k)) + str(v) for k, v in kv])
+
+  def DebugString(self):
+    """Returns a debug string for this `.NestedMap`."""
+    return '\n'.join(self._ToStrings())
+
+  def VLog(self, level=None, prefix=None):
+    """Logs the debug string at the level."""
+    if level is None:
+      level = 0
+    if prefix is None:
+      prefix = 'nmap: '
+    for l in self._ToStrings():
+      tf.logging.vlog(level, '%s %s', prefix, l)
 
 
 class _Unique(object):
@@ -985,8 +997,8 @@ _get_opportunistic_variable_reuse = _CollectionGetter(
 
 _VARIABLE_RENAME_RULES_KEY = ('__lingvo_variable_rename_rules',)
 
-_get_rename_rules_stack = _CollectionGetter(
-    _VARIABLE_RENAME_RULES_KEY, lambda: [])
+_get_rename_rules_stack = _CollectionGetter(_VARIABLE_RENAME_RULES_KEY,
+                                            lambda: [])
 
 
 @contextlib.contextmanager
@@ -1764,8 +1776,7 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
   """
 
   if grad_scale is not None:
-    vs_gs_scale = vs_gs_scale.Transform(lambda v_g: (v_g[0], v_g[1], grad_scale)
-                                       )
+    vs_gs_scale = vs_gs_scale.Transform(lambda vg: (vg[0], vg[1], grad_scale))
 
   def ScaleOrZero(var, grad, scale):
     grad = CheckNumerics(grad, 'Gradient for %s is not finite.' % var.name)
@@ -2328,8 +2339,8 @@ def DeterministicDropout(x, keep_prob, seeds, noise_shape=None, name=None):
 BATCH_NORM_UPDATES = 'batch_norm_updates'
 
 _BATCH_NORM_UPDATES_DICT = '__batch_norm_update_dict'
-_get_batch_norm_updates_dict = _CollectionGetter(
-    _BATCH_NORM_UPDATES_DICT, lambda: {})
+_get_batch_norm_updates_dict = _CollectionGetter(_BATCH_NORM_UPDATES_DICT,
+                                                 lambda: {})
 
 
 def UpdateBatchNormVars(batch_norm_var, batch_norm_stats, decay):
@@ -2386,8 +2397,8 @@ def FindRelevantBatchNormUpdates(loss, batch_norm_updates):
 
 
 _MODEL_SPLIT_ID_STACK = '__model_split_id_stack'
-_get_model_split_id_stack = _CollectionGetter(
-    _MODEL_SPLIT_ID_STACK, lambda: [0])
+_get_model_split_id_stack = _CollectionGetter(_MODEL_SPLIT_ID_STACK,
+                                              lambda: [0])
 
 
 def GetModelSplit():
