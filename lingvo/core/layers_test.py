@@ -3885,7 +3885,7 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
         name='multi_adapter',
         input_dim=4,
         bottleneck_dim=2,
-        num_langs=3,
+        num_tasks=3,
         random_seed=505837249)
 
   def testSingleStepFProp(self):
@@ -3893,14 +3893,14 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
       np.random.seed(1234567)
       # Inputs are of shape [1, batch, input_dim] (single time step)
       # Batch elements 0, 2, and 3 are identical, but 0 and 2 have the same
-      # lang ID where as 3 has a different lang ID.
+      # task ID where as 3 has a different task ID.
       inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0],
                              [0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
                            dtype=tf.float32)
-      langs = tf.constant([1, 0, 1, 0], dtype=tf.int32)
+      tasks = tf.constant([1, 0, 1, 0], dtype=tf.int32)
       p = self._MultitaskAdapterParams()
       adapter = p.Instantiate()
-      output = adapter.FProp(adapter.theta, inputs, langs)
+      output = adapter.FProp(adapter.theta, inputs, tasks)
       tf.global_variables_initializer().run()
       actual = sess.run(output)
       expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
@@ -3909,7 +3909,7 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
                    [0.737031, 0.330693, -0.227962, 0.138892]]]
       self.assertEqual(actual.shape, (1, 4, 4))
       # Batch elements 0 and 2 are equal because they had the same input
-      # and the same lang ID.
+      # and the same task ID.
       self.assertAllClose(actual[0][0], actual[0][2], rtol=1e-05, atol=1e-05)
       self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
 
@@ -3920,11 +3920,11 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
       inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0]],
                             [[0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
                            dtype=tf.float32)
-      # langs is of shape [batch] indicating one language for each sequence.
-      langs = tf.constant([1, 0], dtype=tf.int32)
+      # tasks is of shape [batch] indicating one task for each sequence.
+      tasks = tf.constant([1, 0], dtype=tf.int32)
       p = self._MultitaskAdapterParams()
       adapter = p.Instantiate()
-      output = adapter.FProp(adapter.theta, inputs, langs)
+      output = adapter.FProp(adapter.theta, inputs, tasks)
       tf.global_variables_initializer().run()
       actual = sess.run(output)
       # Output is same as above but with shape same as input.
@@ -3935,20 +3935,20 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
       self.assertEqual(actual.shape, (2, 2, 4))
       self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
 
-  def testSpecifyLangPerTimestepFProp(self):
+  def testSpecifyTaskPerTimestepFProp(self):
     with self.session(use_gpu=True) as sess:
       np.random.seed(1234567)
       inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0]],
                             [[0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
                            dtype=tf.float32)
-      # langs are same as above but of shape [time, batch] indicating that
+      # tasks are same as above but of shape [time, batch] indicating that
       # we should look up adapter params per timestep.  In this example we
-      # still have the lang ID consistent across timesteps in order to
+      # still have the task ID consistent across timesteps in order to
       # replicate the previous test's output.
-      langs = tf.constant([[1, 0], [1, 0]], dtype=tf.int32)
+      tasks = tf.constant([[1, 0], [1, 0]], dtype=tf.int32)
       p = self._MultitaskAdapterParams()
       adapter = p.Instantiate()
-      output = adapter.FProp(adapter.theta, inputs, langs)
+      output = adapter.FProp(adapter.theta, inputs, tasks)
       tf.global_variables_initializer().run()
       actual = sess.run(output)
       # Output is same as above.
@@ -3959,18 +3959,18 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
       self.assertEqual(actual.shape, (2, 2, 4))
       self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
 
-  def testDifferentLangPerTimestepFProp(self):
+  def testDifferentTaskPerTimestepFProp(self):
     with self.session(use_gpu=True) as sess:
       np.random.seed(1234567)
       inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0]],
                             [[0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
                            dtype=tf.float32)
-      # langs are again of shape [time, batch] but with different languages
+      # tasks are again of shape [time, batch] but with different tasks
       # for each timestep.
-      langs = tf.constant([[1, 0], [2, 1]], dtype=tf.int32)
+      tasks = tf.constant([[1, 0], [2, 1]], dtype=tf.int32)
       p = self._MultitaskAdapterParams()
       adapter = p.Instantiate()
-      output = adapter.FProp(adapter.theta, inputs, langs)
+      output = adapter.FProp(adapter.theta, inputs, tasks)
       tf.global_variables_initializer().run()
       actual = sess.run(output)
       expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
@@ -3986,10 +3986,10 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
       inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0]],
                             [[0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
                            dtype=tf.float32)
-      langs = tf.constant([1, 0], dtype=tf.int32)
+      tasks = tf.constant([1, 0], dtype=tf.int32)
       p = self._MultitaskAdapterParams()
       adapter = p.Instantiate()
-      output = adapter.FProp(adapter.theta, inputs, langs)
+      output = adapter.FProp(adapter.theta, inputs, tasks)
       loss = tf.reduce_sum(output)
       tf.global_variables_initializer().run()
       all_vars = tf.trainable_variables()

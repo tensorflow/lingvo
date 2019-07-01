@@ -1253,6 +1253,218 @@ class LayersWithAttentionTest(test_utils.TestCase):
       # Makes sure identical input results in identical style output.
       self.assertAllClose(latent_v[:2], latent_v[2:])
 
+  def _testTransformerMultitaskLayerInputs(self, depth=3, dtype=tf.float32):
+    np.random.seed(505837249)
+    source_vecs = tf.stack(
+        [tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(5)])
+    source_padding = tf.transpose(
+        tf.constant([[0, 0, 1, 1, 0], [1, 0, 0, 0, 1]], dtype=dtype))
+    aux_source_vecs = tf.stack(
+        [tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(7)])
+    aux_source_paddings = tf.transpose(
+        tf.constant([[0, 1, 0, 1, 0, 1, 0], [1, 0, 1, 0, 1, 0, 1]],
+                    dtype=dtype))
+    source_task_id = tf.constant([[2, 3]], dtype=tf.int32)
+    return (source_vecs, source_padding, aux_source_vecs, aux_source_paddings,
+            source_task_id)
+
+  def testTransformerLayerWithMultitaskAdaptersConstruction(self):
+    p = layers_with_attention.TransformerLayerWithMultitaskAdapters.Params()
+    p.name = 'transformer_with_adapters'
+    p.source_dim = 4
+    p.tr_fflayer_tpl.hidden_dim = 7
+    p.tr_atten_tpl.num_attention_heads = 2
+    p.has_aux_atten = True
+    p.mask_self_atten = True
+    p.adapter_tpl.input_dim = 4
+    p.adapter_tpl.num_tasks = 4
+    p.adapter_tpl.bottleneck_dim = 2
+    _ = layers_with_attention.TransformerLayerWithMultitaskAdapters(p)
+
+  def testTransformerLayerWithMultitaskAdaptersFProp(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(6348575)
+      depth = 4
+      p = layers_with_attention.TransformerLayerWithMultitaskAdapters.Params()
+      p.name = 'transformer'
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.mask_self_atten = True
+      p.tr_fflayer_tpl.hidden_dim = 7
+      p.tr_atten_tpl.num_attention_heads = 2
+      p.adapter_tpl.input_dim = 4
+      p.adapter_tpl.num_tasks = 4
+      p.adapter_tpl.bottleneck_dim = 2
+      transformer = layers_with_attention.TransformerLayerWithMultitaskAdapters(
+          p)
+
+      (source_vecs, source_padding, aux_vecs, aux_paddings,
+       source_task_id) = self._testTransformerMultitaskLayerInputs(depth=depth)
+
+      h, probs = transformer.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings,
+          source_task_id=source_task_id)
+
+      tf.global_variables_initializer().run()
+      actual_layer_output, actual_prob_output = sess.run([h, probs])
+      tf.logging.info(np.array_repr(actual_layer_output))
+      tf.logging.info(np.array_repr(actual_prob_output))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_layer_output = [
+          [[ 0.02441728,  0.26923186,  0.68582684,  1.1531992 ],
+           [ 0.69027936, -1.94770098,  2.00558615,  0.17057157]],
+          [[ 1.81022859,  2.37042093,  0.03620988, -0.32401592],
+           [ 1.66707945, -1.95131969,  0.64937419,  0.05853128]],
+          [[ 1.53475547, -0.60239077, -0.05797344, -0.48760295],
+           [ 1.53514266, -2.1231215 ,  0.98074663, -0.5577352 ]],
+          [[-1.32504404, -1.28702664,  2.597996  ,  0.24809647],
+           [ 3.7842629 , -1.46549737,  0.91363102, -2.37071466]],
+          [[ 0.52196532, -0.73371518,  0.86030912,  0.33838278],
+           [ 0.01923725, -0.8887378 ,  1.08245265,  1.19935369]]
+      ]
+      expected_prob_output = [
+          [[ 0.21795765,  0,  0.26612395,  0,  0.31251645, 0,  0.20340192],
+           [ 0,  0.2677784 ,  0,  0.32895881,  0, 0.40326279,  0]],
+          [[ 0.25721508,  0,  0.24116732,  0,  0.25138181, 0,  0.2502358 ],
+           [ 0,  0.25691482,  0,  0.31076014,  0, 0.43232504,  0]],
+          [[ 0.24550268,  0,  0.25128055,  0,  0.25109866, 0,  0.25211811],
+           [ 0,  0.26769164,  0,  0.32481131,  0, 0.40749705,  0]],
+          [[ 0.22675318,  0,  0.26633731,  0,  0.28919035, 0,  0.21771917],
+           [ 0,  0.35955882,  0,  0.36869821,  0, 0.271743  ,  0]],
+          [[ 0.21504655,  0,  0.26958644,  0,  0.30847484, 0,  0.20689213],
+           [ 0,  0.29516917,  0,  0.29359812,  0, 0.41123268,  0]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_layer_output, actual_layer_output)
+      self.assertAllClose(expected_prob_output, actual_prob_output)
+
+  def testTransformerLayerWithMultitaskAdaptersWithInputPackingFProp(self):
+    with self.session(use_gpu=True) as sess:
+      with tf.variable_scope('transformer_packed_test', reuse=tf.AUTO_REUSE):
+        np.random.seed(6348575)
+        depth = 4
+        p = layers_with_attention.TransformerLayerWithMultitaskAdapters.Params()
+        p.name = 'transformer_with_adapters'
+        p.source_dim = depth
+        p.has_aux_atten = True
+        p.mask_self_atten = True
+        p.tr_fflayer_tpl.hidden_dim = 7
+        p.tr_atten_tpl.num_attention_heads = 2
+        p.adapter_tpl.input_dim = 4
+        p.adapter_tpl.num_tasks = 4
+        p.adapter_tpl.bottleneck_dim = 2
+        packed_params = p.Copy()
+        transformer = layers_with_attention.TransformerLayerWithMultitaskAdapters(
+            p)
+        packed_params.packed_input = True
+        transformer_packed = layers_with_attention.TransformerLayerWithMultitaskAdapters(
+            packed_params)
+
+        dtype = tf.float32
+        source_vecs = tf.stack([
+            tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(5)
+        ])
+        source_padding = tf.transpose(
+            tf.constant([[0, 0, 0, 0, 1], [0, 0, 0, 0, 0]], dtype=dtype))
+        aux_vecs = tf.stack([
+            tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(7)
+        ])
+        aux_paddings = tf.transpose(
+            tf.constant([[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 1]],
+                        dtype=dtype))
+        source_task_id = tf.constant([[2, 3]], dtype=tf.int32)
+
+        source_vecs_packed = tf.reshape(source_vecs, [-1, 1, depth])
+        aux_vecs_packed = tf.reshape(aux_vecs, [-1, 1, depth])
+        source_padding_packed = tf.reshape(source_padding, [-1, 1])
+        aux_padding_packed = tf.reshape(aux_paddings, [-1, 1])
+        source_task_id_packed = tf.transpose(
+            tf.constant([[2, 3, 2, 3, 2, 3, 2, 3, 2, 3]], dtype=tf.int32))
+        source_segment_id = tf.transpose(
+            tf.constant([[0, 1, 0, 1, 0, 1, 0, 1, 0, 1]], dtype=tf.float32))
+        aux_segment_id = tf.transpose(
+            tf.constant([[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]],
+                        dtype=tf.float32))
+
+        h, _ = transformer.FPropDefaultTheta(
+            source_vecs,
+            source_padding,
+            aux_vecs=aux_vecs,
+            aux_paddings=aux_paddings,
+            source_segment_id=None,
+            aux_segment_id=None,
+            source_task_id=source_task_id)
+
+        h_packed, _ = transformer_packed.FPropDefaultTheta(
+            source_vecs_packed,
+            source_padding_packed,
+            aux_vecs=aux_vecs_packed,
+            aux_paddings=aux_padding_packed,
+            source_segment_id=source_segment_id,
+            aux_segment_id=aux_segment_id,
+            source_task_id=source_task_id_packed)
+        h_packed = tf.reshape(h_packed, tf.shape(h))
+
+        tf.global_variables_initializer().run()
+        actual_layer, p_layer = sess.run([h, h_packed])
+        self.assertAllClose(actual_layer, p_layer)
+
+  def testTransformerLayerWithMultitaskAdaptersExtendStep(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(6348575)
+      depth = 4
+      p = layers_with_attention.TransformerLayerWithMultitaskAdapters.Params()
+      p.name = 'transformer'
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.mask_self_atten = True
+      p.tr_atten_tpl.num_attention_heads = 2
+      p.adapter_tpl.input_dim = 4
+      p.adapter_tpl.num_tasks = 4
+      p.adapter_tpl.bottleneck_dim = 2
+      transformer = layers_with_attention.TransformerLayerWithMultitaskAdapters(
+          p)
+
+      (source_vecs, _, aux_vecs, aux_paddings,
+       source_task_id) = self._testTransformerMultitaskLayerInputs(depth=depth)
+      source_padding = tf.zeros([5, 2])
+
+      h1, probs1 = transformer.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings,
+          source_task_id=source_task_id)
+
+      h2 = []
+      probs2 = []
+      cached_source_vecs = tf.zeros([0, 2, 4])
+      cached_source_contexts = tf.zeros([0, 2, 4])
+      prefix_states = py_utils.NestedMap(
+          key=cached_source_vecs, value=cached_source_contexts)
+      for i in range(5):
+        h, probs, prefix_states = transformer.ExtendStep(
+            transformer.theta,
+            source_vecs[i, :, :],
+            prefix_states,
+            aux_vecs,
+            aux_paddings,
+            source_task_id=source_task_id[0, :])
+        h2.append(h)
+        probs2.append(probs)
+
+      h2 = tf.stack(h2)
+      probs2 = tf.concat(probs2, 0)
+
+      tf.global_variables_initializer().run()
+      h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
+      self.assertAllClose(h1_v, h2_v)
+      self.assertAllClose(probs1_v, probs2_v)
+
 
 if __name__ == '__main__':
   tf.test.main()

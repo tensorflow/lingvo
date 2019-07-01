@@ -1410,3 +1410,130 @@ class StyleLayer(base_layer.BaseLayer):
         theta.atten, packed_src, inp)
     # TODO(yonghui): Extract and return the attention probabilities.
     return style_emb, probs
+
+
+class TransformerLayerWithMultitaskAdapters(TransformerLayer):
+  """Transformer Layer with multitask residual adapters.
+
+  Applies transformer layer, followed by multitask adapters. Requires an
+  additional input specifying the task_id for each input.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(TransformerLayerWithMultitaskAdapters, cls).Params()
+    p.Define('adapter_tpl', layers.MultitaskAdapterLayer.Params(),
+             'Template to use for multitask adapters.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(TransformerLayerWithMultitaskAdapters, self).__init__(params)
+    p = self.params
+
+    with tf.variable_scope(p.name):
+      params = p.adapter_tpl.Copy()
+      params.name = 'adapters'
+      self.CreateChild('adapters', params)
+
+  def FProp(self,
+            theta,
+            source_vecs,
+            source_paddings,
+            aux_vecs=None,
+            aux_paddings=None,
+            source_segment_id=None,
+            aux_segment_id=None,
+            source_task_id=None):
+    """Transformer Layer with multitask adapters.
+
+    First applies the standard transformer layer. Then applies adapter layers.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      source_vecs: [source_time, source_batch, dim].
+      source_paddings: [source_time, source_batch]
+      aux_vecs: [aux_time, aux_batch, dim]
+      aux_paddings: [aux_time, aux_batch]
+      source_segment_id: [source_time, source_batch]
+      aux_segment_id: [aux_time, aux_batch]
+      source_task_id: [source_time, source_batch]
+
+    Returns:
+      The attention context vector, [source_time, source_batch, dim].
+
+      The attention probability vector, [source_time, source_batch, source_time]
+      if has_aux_atten is False, otherwise [source_time, source_batch,
+      aux_time].
+    """
+    p = self.params
+    hidden, atten_prob = super(TransformerLayerWithMultitaskAdapters,
+                               self).FProp(theta, source_vecs, source_paddings,
+                                           aux_vecs, aux_paddings,
+                                           source_segment_id, aux_segment_id)
+    # Assumes the same task_id for the entire sequence during eval or when
+    # not using packed_input.
+    if not p.packed_input and not p.is_eval:
+      source_task_id = source_task_id[0, :]
+    hidden = self.adapters.FProp(theta.adapters, hidden, source_task_id)
+    return hidden, atten_prob
+
+  def ExtendStep(self,
+                 theta,
+                 source_vecs,
+                 prefix_states,
+                 aux_vecs=None,
+                 aux_paddings=None,
+                 timestep=None,
+                 source_task_id=None):
+    """Transformer Layer with adapters, extend one step in decoding.
+
+    Applies TransformerLayer.ExtendStep, then applies adapters.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      source_vecs: [source_batch, dim].
+      prefix_states: dict, containing tensors which are the results of previous
+        attentions, used for fast decoding.
+      aux_vecs: [aux_time, aux_batch, dim]
+      aux_paddings: [aux_time, aux_batch]
+      timestep: a scalar, the current time step, 0-based.
+      source_task_id: [source_batch]
+
+    Returns:
+      The attention context vector, [target_batch, source_dim]
+
+      The attention probability vector, [source_time, target_batch]
+
+      Updated prefix states
+    """
+    p = self.params
+
+    if p.has_aux_atten:
+      assert aux_vecs is not None
+      assert aux_paddings is not None
+
+    batch_size = tf.shape(source_vecs)[0]
+
+    # First the self-attention layer.
+    atten_vec, atten_prob, new_states = self.self_atten.ExtendStep(
+        theta.self_atten, source_vecs, prefix_states, timestep)
+
+    atten_vec = tf.expand_dims(atten_vec, axis=0)
+    # Next the source attention layer.
+    if p.has_aux_atten:
+      atten_vec, atten_prob = self.atten.FProp(theta.atten, atten_vec,
+                                               aux_paddings, aux_vecs)
+
+    # Finally, the feedforward layer.
+    hidden = self.fflayer.FProp(
+        theta.fflayer, atten_vec,
+        tf.zeros([1, batch_size], dtype=py_utils.FPropDtype(p)))
+
+    # Now adapter layers.
+    hidden = self.adapters.FProp(theta.adapters, hidden, source_task_id)
+
+    hidden = tf.squeeze(hidden, 0)
+    return hidden, atten_prob, new_states
