@@ -769,6 +769,86 @@ embs[indices, :] is the embedding vector for ids[indices].</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_attention.</code><code class="descname">TransformerLayerWithMultitaskAdapters</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayerWithMultitaskAdapters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers_with_attention.TransformerLayer" title="lingvo.core.layers_with_attention.TransformerLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers_with_attention.TransformerLayer</span></code></a></p>
+<p>Transformer Layer with multitask residual adapters.</p>
+<p>Applies transformer layer, followed by multitask adapters. Requires an
+additional input specifying the task_id for each input.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayerWithMultitaskAdapters.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>aux_vecs=None</em>, <em>aux_paddings=None</em>, <em>source_segment_id=None</em>, <em>aux_segment_id=None</em>, <em>source_task_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayerWithMultitaskAdapters.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transformer Layer with multitask adapters.</p>
+<p>First applies the standard transformer layer. Then applies adapter layers.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
+<li><strong>source_vecs</strong> – [source_time, source_batch, dim].</li>
+<li><strong>source_paddings</strong> – [source_time, source_batch]</li>
+<li><strong>aux_vecs</strong> – [aux_time, aux_batch, dim]</li>
+<li><strong>aux_paddings</strong> – [aux_time, aux_batch]</li>
+<li><strong>source_segment_id</strong> – [source_time, source_batch]</li>
+<li><strong>aux_segment_id</strong> – [aux_time, aux_batch]</li>
+<li><strong>source_task_id</strong> – [source_time, source_batch]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>The attention context vector, [source_time, source_batch, dim].</p>
+<p>The attention probability vector, [source_time, source_batch, source_time]
+if has_aux_atten is False, otherwise [source_time, source_batch,
+aux_time].</p>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.ExtendStep">
+<code class="descname">ExtendStep</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>prefix_states</em>, <em>aux_vecs=None</em>, <em>aux_paddings=None</em>, <em>timestep=None</em>, <em>source_task_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayerWithMultitaskAdapters.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transformer Layer with adapters, extend one step in decoding.</p>
+<p>Applies TransformerLayer.ExtendStep, then applies adapters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
+<li><strong>source_vecs</strong> – [source_batch, dim].</li>
+<li><strong>prefix_states</strong> – dict, containing tensors which are the results of previous
+attentions, used for fast decoding.</li>
+<li><strong>aux_vecs</strong> – [aux_time, aux_batch, dim]</li>
+<li><strong>aux_paddings</strong> – [aux_time, aux_batch]</li>
+<li><strong>timestep</strong> – a scalar, the current time step, 0-based.</li>
+<li><strong>source_task_id</strong> – [source_batch]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>The attention context vector, [target_batch, source_dim]</p>
+<p>The attention probability vector, [source_time, target_batch]</p>
+<p>Updated prefix states</p>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

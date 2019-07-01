@@ -1555,6 +1555,133 @@
         <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">,</span> <span class="n">inp</span><span class="p">)</span>
     <span class="c1"># TODO(yonghui): Extract and return the attention probabilities.</span>
     <span class="k">return</span> <span class="n">style_emb</span><span class="p">,</span> <span class="n">probs</span></div></div>
+
+
+<div class="viewcode-block" id="TransformerLayerWithMultitaskAdapters"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters">[docs]</a><span class="k">class</span> <span class="nc">TransformerLayerWithMultitaskAdapters</span><span class="p">(</span><span class="n">TransformerLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Transformer Layer with multitask residual adapters.</span>
+
+<span class="sd">  Applies transformer layer, followed by multitask adapters. Requires an</span>
+<span class="sd">  additional input specifying the task_id for each input.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TransformerLayerWithMultitaskAdapters.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLayerWithMultitaskAdapters</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;adapter_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">MultitaskAdapterLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Template to use for multitask adapters.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLayerWithMultitaskAdapters</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">adapter_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;adapters&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;adapters&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TransformerLayerWithMultitaskAdapters.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">theta</span><span class="p">,</span>
+            <span class="n">source_vecs</span><span class="p">,</span>
+            <span class="n">source_paddings</span><span class="p">,</span>
+            <span class="n">aux_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">aux_paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">source_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">aux_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">source_task_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transformer Layer with multitask adapters.</span>
+
+<span class="sd">    First applies the standard transformer layer. Then applies adapter layers.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      source_vecs: [source_time, source_batch, dim].</span>
+<span class="sd">      source_paddings: [source_time, source_batch]</span>
+<span class="sd">      aux_vecs: [aux_time, aux_batch, dim]</span>
+<span class="sd">      aux_paddings: [aux_time, aux_batch]</span>
+<span class="sd">      source_segment_id: [source_time, source_batch]</span>
+<span class="sd">      aux_segment_id: [aux_time, aux_batch]</span>
+<span class="sd">      source_task_id: [source_time, source_batch]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The attention context vector, [source_time, source_batch, dim].</span>
+
+<span class="sd">      The attention probability vector, [source_time, source_batch, source_time]</span>
+<span class="sd">      if has_aux_atten is False, otherwise [source_time, source_batch,</span>
+<span class="sd">      aux_time].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">hidden</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLayerWithMultitaskAdapters</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
+                                           <span class="n">aux_vecs</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">,</span>
+                                           <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">aux_segment_id</span><span class="p">)</span>
+    <span class="c1"># Assumes the same task_id for the entire sequence during eval or when</span>
+    <span class="c1"># not using packed_input.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="n">source_task_id</span> <span class="o">=</span> <span class="n">source_task_id</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adapters</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">adapters</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">source_task_id</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">atten_prob</span></div>
+
+<div class="viewcode-block" id="TransformerLayerWithMultitaskAdapters.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">theta</span><span class="p">,</span>
+                 <span class="n">source_vecs</span><span class="p">,</span>
+                 <span class="n">prefix_states</span><span class="p">,</span>
+                 <span class="n">aux_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">aux_paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">timestep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">source_task_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transformer Layer with adapters, extend one step in decoding.</span>
+
+<span class="sd">    Applies TransformerLayer.ExtendStep, then applies adapters.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      source_vecs: [source_batch, dim].</span>
+<span class="sd">      prefix_states: dict, containing tensors which are the results of previous</span>
+<span class="sd">        attentions, used for fast decoding.</span>
+<span class="sd">      aux_vecs: [aux_time, aux_batch, dim]</span>
+<span class="sd">      aux_paddings: [aux_time, aux_batch]</span>
+<span class="sd">      timestep: a scalar, the current time step, 0-based.</span>
+<span class="sd">      source_task_id: [source_batch]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The attention context vector, [target_batch, source_dim]</span>
+
+<span class="sd">      The attention probability vector, [source_time, target_batch]</span>
+
+<span class="sd">      Updated prefix states</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">aux_vecs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">aux_paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># First the self-attention layer.</span>
+    <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span><span class="p">,</span> <span class="n">new_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">prefix_states</span><span class="p">,</span> <span class="n">timestep</span><span class="p">)</span>
+
+    <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># Next the source attention layer.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>
+      <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
+                                               <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">aux_vecs</span><span class="p">)</span>
+
+    <span class="c1"># Finally, the feedforward layer.</span>
+    <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)))</span>
+
+    <span class="c1"># Now adapter layers.</span>
+    <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adapters</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">adapters</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">source_task_id</span><span class="p">)</span>
+
+    <span class="n">hidden</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">atten_prob</span><span class="p">,</span> <span class="n">new_states</span></div></div>
 </pre></div>
 
            </div>

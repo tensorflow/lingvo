@@ -2234,16 +2234,14 @@ layer and its children layers.</li>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Residual adapter layer for multilingual models.</p>
 <p>Residual adapters can be used to fine-tune a single model to multiple
-domains, tasks, or languages: <a class="reference external" href="https://arxiv.org/pdf/1902.00751.pdf">https://arxiv.org/pdf/1902.00751.pdf</a>
-For simplicity we refer only to languages here.</p>
+domains, tasks, or languages: <a class="reference external" href="https://arxiv.org/pdf/1902.00751.pdf">https://arxiv.org/pdf/1902.00751.pdf</a></p>
 <p>Each adapter consists of a “down” projection to a smaller dimension followed
 by an “up” projection, the result of which is added back to the input
-activation.  The projection weights and biases are language-specific.</p>
-<p>Whereas lingvo_layers.ResidualAdapterLayer learns and applies the parameters
-for a single language, this layer learns and applies the parameters for
-multiple languages so that we have a single model serving the different
-languages. The parameters can be trained for all languages at the same time,
-or in one-off per-language training jobs.</p>
+activation.  The projection weights and biases are task-specific.</p>
+<p>Whereas ResidualAdapterLayer learns and applies the parameters for a single
+task, this layer learns and applies the parameters for multiple tasks so that
+we have a single model serving the different tasks. The parameters can be
+trained for all tasks at the same time, or in one-off per-task training jobs.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.layers.MultitaskAdapterLayer.Params">
 <em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#MultitaskAdapterLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.MultitaskAdapterLayer.Params" title="Permalink to this definition">¶</a></dt>
@@ -2252,8 +2250,8 @@ or in one-off per-language training jobs.</p>
 
 <dl class="method">
 <dt id="lingvo.core.layers.MultitaskAdapterLayer.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>langs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#MultitaskAdapterLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.MultitaskAdapterLayer.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fprop for multilingual adapter.</p>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>tasks</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#MultitaskAdapterLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.MultitaskAdapterLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fprop for multitask adapter.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -2263,13 +2261,13 @@ or in one-off per-language training jobs.</p>
 children layers.</li>
 <li><strong>inputs</strong> – A tensor containing the activations from the previous layer of
 shape [time, batch, input_dim].</li>
-<li><strong>langs</strong> – An int32 tensor containing the language ID for each input.  If
-‘langs’ is of rank 2, we assume it to be of shape [time, batch],
-indicating a different language for each timestep.  In this case we look
-up adapter params for each timestep.  If ‘langs’ is of rank 1, we assume
-it to be of shape [batch], indicating a single language for all
-timesteps of a sequence.  This latter setup uses substantially less
-memory and is generally preferred.</li>
+<li><strong>tasks</strong> – An int32 tensor containing the task ID for each input.  If ‘tasks’
+is of rank 2, we assume it to be of shape [time, batch], indicating a
+different task for each timestep.  In this case we look up adapter
+params for each timestep.  If ‘tasks’ is of rank 1, we assume it to be
+of shape [batch], indicating a single task for all timesteps of a
+sequence.  This latter setup uses substantially less memory and is
+generally preferred.</li>
 </ul>
 </td>
 </tr>
