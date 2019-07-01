@@ -14,12 +14,17 @@
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="freitag2019text">1</a>]
+[<a name="wu2016google">1</a>]
 </td>
 <td class="bibtexitem">
-M.&nbsp;Freitag, I.&nbsp;Caswell, and S.&nbsp;Roy, &ldquo;Text Repair Model for Neural
-  Machine Translation,&rdquo; <em>arXiv e-prints</em>, 2019.
-[&nbsp;<a href="https://arxiv.org/abs/1904.04790">pdf</a>&nbsp;]
+Y.&nbsp;Wu, M.&nbsp;Schuster, Z.&nbsp;Chen, Q.&nbsp;V. Le, M.&nbsp;Norouzi, W.&nbsp;Macherey, M.&nbsp;Krikun,
+  Y.&nbsp;Cao, Q.&nbsp;Gao, K.&nbsp;Macherey, J.&nbsp;Klingner, A.&nbsp;Shah, M.&nbsp;Johnson, X.&nbsp;Liu,
+  L.&nbsp;Kaiser, S.&nbsp;Gouws, Y.&nbsp;Kato, T.&nbsp;Kudo, H.&nbsp;Kazawa, K.&nbsp;Stevens, G.&nbsp;Kurian,
+  N.&nbsp;Patil, W.&nbsp;Wang, C.&nbsp;Young, J.&nbsp;Smith, J.&nbsp;Riesa, A.&nbsp;Rudnick, O.&nbsp;Vinyals,
+  G.&nbsp;Corrado, M.&nbsp;Hughes, and J.&nbsp;Dean, &ldquo;Google's neural machine translation
+  system: Bridging the gap between human and machine translation,&rdquo; tech. rep.,
+  2016.
+[&nbsp;<a href="https://arxiv.org/abs/1609.08144">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -27,15 +32,16 @@ M.&nbsp;Freitag, I.&nbsp;Caswell, and S.&nbsp;Roy, &ldquo;Text Repair Model for 
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="chen2018best">2</a>]
+[<a name="johnson-etal-2017-googles">2</a>]
 </td>
 <td class="bibtexitem">
-M.&nbsp;X. Chen, O.&nbsp;Firat, A.&nbsp;Bapna, M.&nbsp;Johnson, W.&nbsp;Macherey, G.&nbsp;Foster, L.&nbsp;Jones,
-  M.&nbsp;Schuster, N.&nbsp;Shazeer, N.&nbsp;Parmar, A.&nbsp;Vaswani, J.&nbsp;Uszkoreit, L.&nbsp;Kaiser,
-  Z.&nbsp;Chen, Y.&nbsp;Wu, and M.&nbsp;Hughes, &ldquo;The Best of Both Worlds: Combining Recent
-  Advances in Neural Machine Translation,&rdquo; in <em>Proc. Annual Meeting of
-  the Association for Computational Linguistics (ACL)</em>, 2018.
-[&nbsp;<a href="https://arxiv.org/abs/1804.09849">pdf</a>&nbsp;]
+M.&nbsp;Johnson, M.&nbsp;Schuster, Q.&nbsp;V. Le, M.&nbsp;Krikun, Y.&nbsp;Wu, Z.&nbsp;Chen, N.&nbsp;Thorat,
+  F.&nbsp;Vi&eacute;gas, M.&nbsp;Wattenberg, G.&nbsp;Corrado, M.&nbsp;Hughes, and J.&nbsp;Dean,
+  &ldquo;Google's multilingual neural machine translation system: Enabling
+  zero-shot translation,&rdquo; <em>Transactions of the Association for
+  Computational Linguistics</em>, vol.&nbsp;5, pp.&nbsp;339--351, 2017.
+[&nbsp;<a href="http://dx.doi.org/10.1162/tacl_a_00065">DOI</a>&nbsp;| 
+<a href="https://www.aclweb.org/anthology/Q17-1024">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -43,14 +49,13 @@ M.&nbsp;X. Chen, O.&nbsp;Firat, A.&nbsp;Bapna, M.&nbsp;Johnson, W.&nbsp;Macherey
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="cherry2018revisiting">3</a>]
+[<a name="eriguchi2018zero">3</a>]
 </td>
 <td class="bibtexitem">
-C.&nbsp;Cherry, G.&nbsp;Foster, A.&nbsp;Bapna, O.&nbsp;Firat, and W.&nbsp;Macherey, &ldquo;Revisiting
-  character-based neural machine translation with capacity and compression,&rdquo;
-  in <em>Proc. Conference on Empirical Methods in Natural Language Processing
-  (EMNLP)</em>, 2018.
-[&nbsp;<a href="https://arxiv.org/abs/1808.09943">pdf</a>&nbsp;]
+A.&nbsp;Eriguchi, M.&nbsp;Johnson, O.&nbsp;Firat, H.&nbsp;Kazawa, and W.&nbsp;Macherey, &ldquo;Zero-shot
+  cross-lingual classification using multilingual neural machine translation,&rdquo;
+  <em>arXiv preprint arXiv:1809.04686</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/pdf/1809.04686.pdf">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -73,17 +78,69 @@ A.&nbsp;Bapna, M.&nbsp;X. Chen, O.&nbsp;Firat, Y.&nbsp;Cao, and Y.&nbsp;Wu, &ldq
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="wu2016google">5</a>]
+[<a name="cherry2018revisiting">5</a>]
 </td>
 <td class="bibtexitem">
-Y.&nbsp;Wu, M.&nbsp;Schuster, Z.&nbsp;Chen, Q.&nbsp;V. Le, M.&nbsp;Norouzi, W.&nbsp;Macherey, M.&nbsp;Krikun,
-  Y.&nbsp;Cao, Q.&nbsp;Gao, K.&nbsp;Macherey, J.&nbsp;Klingner, A.&nbsp;Shah, M.&nbsp;Johnson, X.&nbsp;Liu,
-  L.&nbsp;Kaiser, S.&nbsp;Gouws, Y.&nbsp;Kato, T.&nbsp;Kudo, H.&nbsp;Kazawa, K.&nbsp;Stevens, G.&nbsp;Kurian,
-  N.&nbsp;Patil, W.&nbsp;Wang, C.&nbsp;Young, J.&nbsp;Smith, J.&nbsp;Riesa, A.&nbsp;Rudnick, O.&nbsp;Vinyals,
-  G.&nbsp;Corrado, M.&nbsp;Hughes, and J.&nbsp;Dean, &ldquo;Google's neural machine translation
-  system: Bridging the gap between human and machine translation,&rdquo; tech. rep.,
-  2016.
-[&nbsp;<a href="https://arxiv.org/abs/1609.08144">pdf</a>&nbsp;]
+C.&nbsp;Cherry, G.&nbsp;Foster, A.&nbsp;Bapna, O.&nbsp;Firat, and W.&nbsp;Macherey, &ldquo;Revisiting
+  character-based neural machine translation with capacity and compression,&rdquo;
+  in <em>Proc. Conference on Empirical Methods in Natural Language Processing
+  (EMNLP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1808.09943">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="chen2018best">6</a>]
+</td>
+<td class="bibtexitem">
+M.&nbsp;X. Chen, O.&nbsp;Firat, A.&nbsp;Bapna, M.&nbsp;Johnson, W.&nbsp;Macherey, G.&nbsp;Foster, L.&nbsp;Jones,
+  M.&nbsp;Schuster, N.&nbsp;Shazeer, N.&nbsp;Parmar, A.&nbsp;Vaswani, J.&nbsp;Uszkoreit, L.&nbsp;Kaiser,
+  Z.&nbsp;Chen, Y.&nbsp;Wu, and M.&nbsp;Hughes, &ldquo;The Best of Both Worlds: Combining Recent
+  Advances in Neural Machine Translation,&rdquo; in <em>Proc. Annual Meeting of
+  the Association for Computational Linguistics (ACL)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1804.09849">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="kuczmarski2018gender">7</a>]
+</td>
+<td class="bibtexitem">
+J.&nbsp;Kuczmarski and M.&nbsp;Johnson, &ldquo;Gender-aware natural language translation,&rdquo;
+  2018.
+[&nbsp;<a href="https://www.tdcommons.org/dpubs_series/1577/">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="aharoni2019massively">8</a>]
+</td>
+<td class="bibtexitem">
+R.&nbsp;Aharoni, M.&nbsp;Johnson, and O.&nbsp;Firat, &ldquo;Massively multilingual neural machine
+  translation,&rdquo; <em>arXiv preprint arXiv:1903.00089</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/pdf/1903.00089.pdf">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="freitag2019text">9</a>]
+</td>
+<td class="bibtexitem">
+M.&nbsp;Freitag, I.&nbsp;Caswell, and S.&nbsp;Roy, &ldquo;Text Repair Model for Neural
+  Machine Translation,&rdquo; <em>arXiv e-prints</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1904.04790">pdf</a>&nbsp;]
 
 </td>
 </tr>
