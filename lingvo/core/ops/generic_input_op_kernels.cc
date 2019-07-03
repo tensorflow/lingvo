@@ -171,7 +171,7 @@ class GenericInputProcessor : public RecordProcessor {
 
         for (int i = 0; i < samples.size(); ++i) {
           const auto& src = samples[i][j];
-          if (src.dim_size(pad_dim) < max_length) {
+          if (src.dims() > 0 && src.dim_size(pad_dim) < max_length) {
             DataType dtype = src.dtype();
             TensorShape dst_shape(src.shape());
             dst_shape.set_dim(pad_dim, max_length);
