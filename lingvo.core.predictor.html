@@ -264,7 +264,7 @@
 
 <dl class="method">
 <dt id="lingvo.core.predictor.Predictor.Run">
-<code class="descname">Run</code><span class="sig-paren">(</span><em>fetch_keys</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Run" title="Permalink to this definition">¶</a></dt>
+<code class="descname">Run</code><span class="sig-paren">(</span><em>fetch_keys</em>, <em>validate_fetches=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs predictor.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -272,6 +272,8 @@
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>fetch_keys</strong> – a list of keys in the fetch dictionary to fetch.</li>
+<li><strong>validate_fetches</strong> – if True, raises a KeyError if a specified fetch is
+invalid. If False, returns None for invalid fetches instead.</li>
 <li><strong>**kwargs</strong> – a dict of inputs to feed.</li>
 </ul>
 </td>
@@ -280,8 +282,9 @@
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
-<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – the number of inputs does not meet requirements.</li>
-<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code> – a key specified in fetch_keys is invalid.</li>
+<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">InvalidArgumentError</span></code> – the number of inputs does not meet requirements.</li>
+<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code> – a feed specified in kwargs is invalid, or a fetch in fetch_keys
+is invalid and validate_fetches is True.</li>
 </ul>
 </td>
 </tr>
