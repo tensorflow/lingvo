@@ -700,6 +700,21 @@ lingvo_py_binary(
     ],
 )
 
+py_test(
+    name = "predictor_test",
+    size = "medium",
+    srcs = ["predictor_test.py"],
+    deps = [
+        ":base_input_generator",
+        ":base_model",
+        ":inference_graph_exporter",
+        ":inference_graph_py_pb2",
+        ":predictor_lib",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
 py_library(
     name = "predictor_runner_base",
     srcs = ["predictor_runner_base.py"],

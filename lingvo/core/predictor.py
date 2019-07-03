@@ -172,38 +172,48 @@ class Predictor(object):
     self._RunWithValidSession(self._saver.restore, checkpoint)
     self._checkpoint = checkpoint
 
-  def Run(self, fetch_keys, **kwargs):
+  def Run(self, fetch_keys, validate_fetches=True, **kwargs):
     """Runs predictor.
 
     Args:
       fetch_keys: a list of keys in the fetch dictionary to fetch.
+      validate_fetches: if True, raises a KeyError if a specified fetch is
+        invalid. If False, returns None for invalid fetches instead.
       **kwargs: a dict of inputs to feed.
 
     Returns:
       A list of predictions corresponding to the order of fetch_keys.
 
     Raises:
-      ValueError: the number of inputs does not meet requirements.
-      KeyError: a key specified in fetch_keys is invalid.
+      InvalidArgumentError: the number of inputs does not meet requirements.
+      KeyError: a feed specified in kwargs is invalid, or a fetch in fetch_keys
+        is invalid and validate_fetches is True.
     """
-    for x in fetch_keys:
-      if x not in self._fetches:
-        raise KeyError(
-            "Key %s is not in the list of available fetches. Available keys: %s"
-            % (x, list(self._fetches.keys())))
-    fetches = [self._fetches[x] for x in fetch_keys]
+    if validate_fetches:
+      for x in fetch_keys:
+        if x not in self._fetches:
+          raise KeyError(
+              "%s is not in the list of available fetches. Available keys: %s" %
+              (x, list(self._fetches.keys())))
+    valid_fetch_idxs, valid_fetches = zip(*[(i, self._fetches[k])
+                                            for i, k in enumerate(fetch_keys)
+                                            if k in self._fetches.keys()])
 
     for k in kwargs:
       if k not in self._feeds:
         raise KeyError(
-            """kwarg %s is not in the list of available feeds. Available kwargs:
-             %s""" % (k, list(self._feeds.keys())))
+            "%s is not in the list of available feeds. Available keys: %s" %
+            (k, list(self._feeds.keys())))
     feeds = {self._feeds[k]: v for k, v in six.iteritems(kwargs)}
 
     run_options = config_pb2.RunOptions(
         report_tensor_allocations_upon_oom=False)
-    return self._RunWithValidSession(
-        tf.Session.run, fetches, feed_dict=feeds, options=run_options)
+    fetched_results = self._RunWithValidSession(
+        tf.Session.run, valid_fetches, feed_dict=feeds, options=run_options)
+    results = [None] * len(fetch_keys)
+    for i, fetch in zip(valid_fetch_idxs, fetched_results):
+      results[i] = fetch
+    return results
 
 
 def main(_):

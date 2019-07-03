@@ -129,7 +129,8 @@ class PredictorRunnerBase(object):
     self._output_num_shards = output_num_shards
     self._output_shard_id = output_shard_id
     self._max_inputs = max_inputs
-    self._input_id_filter = input_id_filter
+    input_id_filter = input_id_filter or []
+    self._input_id_filter = [str(x) for x in input_id_filter]
     self._batch_size = batch_size
     self._prediction_step_interval = prediction_step_interval
 
