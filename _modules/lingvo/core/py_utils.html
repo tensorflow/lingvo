@@ -1509,8 +1509,12 @@
 <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">GlobalStepContext</span><span class="p">(</span><span class="n">global_step_tensor</span><span class="p">):</span>
   <span class="n">_GLOBAL_STEP_STACK</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">global_step_tensor</span><span class="p">)</span>
-  <span class="k">yield</span>
-  <span class="n">_GLOBAL_STEP_STACK</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">except</span><span class="p">:</span>
+    <span class="k">raise</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_GLOBAL_STEP_STACK</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
 
 
 <span class="k">def</span> <span class="nf">GetGlobalStep</span><span class="p">():</span>
