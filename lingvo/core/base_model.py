@@ -225,6 +225,8 @@ class BaseTask(base_layer.BaseLayer):
         'If not None, specifies a location for the checkpoint that '
         'should be used for eval. One example format is a '
         'checkpoint directory of a training run.')
+    ep.Define('start_eval_after', 0,
+              'Start evaluation after specified number of steps.')
     return p
 
   @base_layer.initializer

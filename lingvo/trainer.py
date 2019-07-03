@@ -996,6 +996,7 @@ class Evaler(base_runner.BaseRunner):
       elif path == last_path:
         tf.logging.info('Latest checkpoint was already evaluated.')
         return
+
       self._EvalOnce(path, sess)
 
   def _EvalOnce(self, path, sess):
@@ -1008,10 +1009,15 @@ class Evaler(base_runner.BaseRunner):
     Returns:
       should_stop.
     """
+
     if not FLAGS.evaler_in_same_address_as_controller:
       self._LoadCheckpointForEval(sess, path)
 
     global_step = sess.run(py_utils.GetGlobalStep())
+    # Check after how many steps checkpoint got saved.
+    # And decide whether to run an evaluation.
+    if global_step < self._model_task.params.eval.start_eval_after:
+      return False
     metrics_dict = {
         name: metrics.AverageMetric() for name in self._model_task.eval_metrics
     }
