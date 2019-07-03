@@ -1364,8 +1364,12 @@ _GLOBAL_STEP_STACK = []
 @contextlib.contextmanager
 def GlobalStepContext(global_step_tensor):
   _GLOBAL_STEP_STACK.append(global_step_tensor)
-  yield
-  _GLOBAL_STEP_STACK.pop()
+  try:
+    yield
+  except:
+    raise
+  finally:
+    _GLOBAL_STEP_STACK.pop()
 
 
 def GetGlobalStep():
