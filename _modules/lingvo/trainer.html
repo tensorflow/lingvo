@@ -1141,6 +1141,7 @@
       <span class="k">elif</span> <span class="n">path</span> <span class="o">==</span> <span class="n">last_path</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Latest checkpoint was already evaluated.&#39;</span><span class="p">)</span>
         <span class="k">return</span>
+
       <span class="bp">self</span><span class="o">.</span><span class="n">_EvalOnce</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Evaler._EvalOnce"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler._EvalOnce">[docs]</a>  <span class="k">def</span> <span class="nf">_EvalOnce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
@@ -1153,10 +1154,15 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      should_stop.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_in_same_address_as_controller</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_LoadCheckpointForEval</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
+    <span class="c1"># Check after how many steps checkpoint got saved.</span>
+    <span class="c1"># And decide whether to run an evaluation.</span>
+    <span class="k">if</span> <span class="n">global_step</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">start_eval_after</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">False</span>
     <span class="n">metrics_dict</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">name</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">eval_metrics</span>
     <span class="p">}</span>
