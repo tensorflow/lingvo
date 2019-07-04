@@ -89,7 +89,7 @@ def GenerateStepSeedPair(p, unused_global_step=None, op_seed=None):
 
 
 @contextlib.contextmanager
-def CellFnFropOpReplacementWrapper():
+def CellFnFPropOpReplacementWrapper():
   """Hacks to replace certain unwanted tensorflow ops."""
   # TODO(zhifengc/huangyp): Consider implementing assert_equal
   # op replacement for lingvo. As assert_equal doesn't support String on GPUs.
@@ -367,21 +367,21 @@ class PipeliningLayer(SeqLayer):
       def CellFn(theta, state0, inputs):
         """A cell fn is exectued inside of StackedRecurrent."""
         del state0
-        frop_inputs = []
+        fprop_inputs = []
         for input_idx in range(len(state_shapes[i])):
           name = 's{}'.format(input_idx)
           if state_shapes[i][input_idx] is not None:
             inputs[name].set_shape(state_shapes[i][input_idx])
-            frop_inputs.append(inputs[name])
+            fprop_inputs.append(inputs[name])
           else:
-            frop_inputs.append(None)
+            fprop_inputs.append(None)
 
-        with CellFnFropOpReplacementWrapper():
-          tf.logging.info('cell {} input {}'.format(i, frop_inputs))
+        with CellFnFPropOpReplacementWrapper():
+          tf.logging.info('cell {} input {}'.format(i, fprop_inputs))
           mb_tensor = inputs[_MICRO_BATCH_STATE_NAME]
           SetOverWriteGlobalStep(mb_tensor)
           _, cell = self._cells[i]
-          outputs = cell.FProp(theta, *frop_inputs)
+          outputs = cell.FProp(theta, *fprop_inputs)
 
         state1 = py_utils.NestedMap()
         state1[_MICRO_BATCH_STATE_NAME] = mb_tensor
