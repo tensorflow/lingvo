@@ -251,17 +251,26 @@
     <span class="n">p</span><span class="o">.</span><span class="n">target_sequence_sampler</span><span class="o">.</span><span class="n">target_eos_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;target_sequence_sampler&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_sequence_sampler</span><span class="p">)</span>
 
-<div class="viewcode-block" id="BaseBeamSearchDecoder.BeamSearchDecode"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">):</span>
-    <span class="c1"># pylint: disable=line-too-long</span>
+<div class="viewcode-block" id="BaseBeamSearchDecoder.BeamSearchDecode"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Performs beam search based decoding.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      encoder_outputs: the outputs of the encoder.</span>
-<span class="sd">    returns:</span>
+<span class="sd">      num_hyps_per_beam_override: If set to a value &lt;= 0, this parameter is</span>
+<span class="sd">        ignored. If set to a value &gt; 0, then this value will be used to override</span>
+<span class="sd">        p.num_hyps_per_beam.</span>
+
+<span class="sd">    Returns:</span>
 <span class="sd">      `.BeamSearchDecodeOutput`, A namedtuple whose elements are tensors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># pylint: enable=line-too-long</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">BeamSearchDecodeWithTheta</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
+                                          <span class="n">num_hyps_per_beam_override</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseBeamSearchDecoder.BeamSearchDecodeWithTheta"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecodeWithTheta">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecodeWithTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                <span class="n">theta</span><span class="p">,</span>
+                                <span class="n">encoder_outputs</span><span class="p">,</span>
+                                <span class="n">num_hyps_per_beam_override</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div></div>
 </pre></div>
 
            </div>

@@ -781,23 +781,15 @@
             <span class="n">decoder_step_zero_state</span><span class="o">.</span><span class="n">fusion_states</span><span class="p">,</span>
             <span class="n">decoder_step_zero_state</span><span class="o">.</span><span class="n">misc_states</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">)</span></div>
 
-  <span class="c1"># TODO(rpang): add &#39;theta&#39; as an arg to BeamSearchDecode().</span>
-<div class="viewcode-block" id="AsrDecoderBase.BeamSearchDecode"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Performs beam-search based decoding.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      encoder_outputs: a NestedMap computed by encoder.</span>
-<span class="sd">      num_hyps_per_beam_override: If set to a value &lt;= 0, this parameter is</span>
-<span class="sd">        ignored. If set to a value &gt; 0, then this value will be used to override</span>
-<span class="sd">        p.num_hyps_per_beam.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      BeamSearchDecodeOutput, a namedtuple containing the decode results</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div>
+<div class="viewcode-block" id="AsrDecoderBase.BeamSearchDecodeWithTheta"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.BeamSearchDecodeWithTheta">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecodeWithTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                <span class="n">theta</span><span class="p">,</span>
+                                <span class="n">encoder_outputs</span><span class="p">,</span>
+                                <span class="n">num_hyps_per_beam_override</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
+                                             <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AsrDecoderBase.SampleTargetSequences"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.SampleTargetSequences">[docs]</a>  <span class="k">def</span> <span class="nf">SampleTargetSequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">random_seed</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Performs target sequence sampling.</span>
