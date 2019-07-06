@@ -131,7 +131,7 @@ class AsrModelTest(test_utils.TestCase):
       p = self._testParams()
       mdl = p.Instantiate()
       input_batch = mdl.input_generator.GetPreprocessedInputBatch()
-      dec_out_dict = mdl.Decode(input_batch)
+      dec_out_dict = mdl.DecodeWithTheta(mdl.theta, input_batch)
       tf.global_variables_initializer().run()
       dec_out = sess.run(dec_out_dict)
       print('dec_out', dec_out)

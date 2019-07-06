@@ -636,23 +636,15 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
             decoder_step_zero_state.fusion_states,
             decoder_step_zero_state.misc_states, packed_src)
 
-  # TODO(rpang): add 'theta' as an arg to BeamSearchDecode().
-  def BeamSearchDecode(self, encoder_outputs, num_hyps_per_beam_override=0):
-    """Performs beam-search based decoding.
-
-    Args:
-      encoder_outputs: a NestedMap computed by encoder.
-      num_hyps_per_beam_override: If set to a value <= 0, this parameter is
-        ignored. If set to a value > 0, then this value will be used to override
-        p.num_hyps_per_beam.
-
-    Returns:
-      BeamSearchDecodeOutput, a namedtuple containing the decode results
-    """
-    return self.beam_search.BeamSearchDecode(
-        self.theta, encoder_outputs, num_hyps_per_beam_override,
-        self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
-        self._PostBeamSearchStepCallback)
+  def BeamSearchDecodeWithTheta(self,
+                                theta,
+                                encoder_outputs,
+                                num_hyps_per_beam_override=0):
+    return self.beam_search.BeamSearchDecode(theta, encoder_outputs,
+                                             num_hyps_per_beam_override,
+                                             self._InitBeamSearchStateCallback,
+                                             self._PreBeamSearchStepCallback,
+                                             self._PostBeamSearchStepCallback)
 
   def SampleTargetSequences(self, theta, encoder_outputs, random_seed):
     """Performs target sequence sampling.

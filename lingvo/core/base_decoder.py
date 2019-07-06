@@ -106,14 +106,23 @@ class BaseBeamSearchDecoder(BaseDecoder):
     p.target_sequence_sampler.target_eos_id = p.target_eos_id
     self.CreateChild('target_sequence_sampler', p.target_sequence_sampler)
 
-  def BeamSearchDecode(self, encoder_outputs):
-    # pylint: disable=line-too-long
+  def BeamSearchDecode(self, encoder_outputs, num_hyps_per_beam_override=0):
     """Performs beam search based decoding.
 
     Args:
       encoder_outputs: the outputs of the encoder.
-    returns:
+      num_hyps_per_beam_override: If set to a value <= 0, this parameter is
+        ignored. If set to a value > 0, then this value will be used to override
+        p.num_hyps_per_beam.
+
+    Returns:
       `.BeamSearchDecodeOutput`, A namedtuple whose elements are tensors.
     """
-    # pylint: enable=line-too-long
-    raise NotImplementedError('Abstract method')
+    return self.BeamSearchDecodeWithTheta(self.theta, encoder_outputs,
+                                          num_hyps_per_beam_override)
+
+  def BeamSearchDecodeWithTheta(self,
+                                theta,
+                                encoder_outputs,
+                                num_hyps_per_beam_override=0):
+    raise NotImplementedError('Abstract method: %s' % type(self))

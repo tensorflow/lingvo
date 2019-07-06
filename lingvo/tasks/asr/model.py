@@ -198,13 +198,13 @@ class AsrModel(base_model.BaseTask):
     # provide their own implementation.
     return {}
 
-  def Decode(self, input_batch):
+  def DecodeWithTheta(self, theta, input_batch):
     """Constructs the inference graph."""
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
-      encoder_outputs = self._FrontendAndEncoderFProp(self.theta,
-                                                      input_batch.src)
-      decoder_outs = self.decoder.BeamSearchDecode(encoder_outputs)
+      encoder_outputs = self._FrontendAndEncoderFProp(theta, input_batch.src)
+      decoder_outs = self.decoder.BeamSearchDecodeWithTheta(
+          theta.decoder, encoder_outputs)
       return self._ComputeDecoderMetrics(decoder_outs, input_batch)
 
   def _GetTargetForDecoderMetrics(self, input_batch):
@@ -307,6 +307,7 @@ class AsrModel(base_model.BaseTask):
   # TODO(prabhavalkar): Add support to save out the decoded hypotheses.
   def PostProcessDecodeOut(self, dec_out_dict, dec_metrics_dict):
     p = self.params
+    assert 'topk_scores' in dec_out_dict, dec_out_dict.keys()
     topk_scores = dec_out_dict['topk_scores']
     topk_decoded = dec_out_dict['topk_decoded']
     transcripts = dec_out_dict['transcripts']
