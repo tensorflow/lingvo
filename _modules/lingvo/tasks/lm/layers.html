@@ -631,6 +631,7 @@
                    <span class="n">rnn_dims</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span>
                    <span class="n">rnn_hidden_dims</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                    <span class="n">residual_start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                   <span class="n">layer_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                    <span class="n">softmax_max_alloc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A LM model parameterized by vocab size, etc.</span>
 
@@ -642,6 +643,8 @@
 <span class="sd">      rnn_hidden_dims: If &gt; 0, each RNN layer has this many hidden nodes.</span>
 <span class="sd">      residual_start: index of the first layer with a residual connection;</span>
 <span class="sd">        higher index layers also have residuals.</span>
+<span class="sd">      layer_norm: If true, use LayerNormalizedLSTMCellSimple otherwise use</span>
+<span class="sd">        LSTMCellSimple.</span>
 <span class="sd">      softmax_max_alloc: If set to a positive integer the soft-max</span>
 <span class="sd">        computation is chunked into allocations of at most</span>
 <span class="sd">        `softmax_max_alloc`; when left to its default value of None no</span>
@@ -665,24 +668,17 @@
     <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">=</span> <span class="n">num_layers</span>
     <span class="c1"># Which layer starts to have the residual connection.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">skip_start</span> <span class="o">=</span> <span class="n">residual_start</span>
+    <span class="n">lstm_cell_tpl</span> <span class="o">=</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LayerNormalizedLSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+    <span class="p">)</span> <span class="k">if</span> <span class="n">layer_norm</span> <span class="k">else</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">lstm_cell_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">num_input_nodes</span><span class="o">=</span><span class="n">rnn_dims</span><span class="p">,</span>
+        <span class="n">num_output_nodes</span><span class="o">=</span><span class="n">rnn_dims</span><span class="p">,</span>
+        <span class="n">num_hidden_nodes</span><span class="o">=</span><span class="n">rnn_hidden_dims</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">num_layers</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-              <span class="n">num_input_nodes</span><span class="o">=</span><span class="n">emb_dim</span><span class="p">,</span>
-              <span class="n">num_output_nodes</span><span class="o">=</span><span class="n">rnn_dims</span><span class="p">,</span>
-              <span class="n">num_hidden_nodes</span><span class="o">=</span><span class="n">rnn_hidden_dims</span><span class="p">),</span>
-          <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-              <span class="n">num_input_nodes</span><span class="o">=</span><span class="n">rnn_dims</span><span class="p">,</span>
-              <span class="n">num_output_nodes</span><span class="o">=</span><span class="n">rnn_dims</span><span class="p">,</span>
-              <span class="n">num_hidden_nodes</span><span class="o">=</span><span class="n">rnn_hidden_dims</span><span class="p">)</span>
-      <span class="p">]</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span> <span class="o">=</span> <span class="p">[</span><span class="n">lstm_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">(),</span> <span class="n">lstm_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()]</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-              <span class="n">num_input_nodes</span><span class="o">=</span><span class="n">emb_dim</span><span class="p">,</span>
-              <span class="n">num_output_nodes</span><span class="o">=</span><span class="n">rnn_dims</span><span class="p">,</span>
-              <span class="n">num_hidden_nodes</span><span class="o">=</span><span class="n">rnn_hidden_dims</span><span class="p">)</span>
-      <span class="p">]</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span> <span class="o">=</span> <span class="p">[</span><span class="n">lstm_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">emb_dim</span>
 
     <span class="c1"># Softmax</span>
     <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">rnn_dims</span>

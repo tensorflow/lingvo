@@ -591,7 +591,7 @@ is false.</li>
 
 <dl class="classmethod">
 <dt id="lingvo.tasks.lm.layers.RnnLm.CommonParams">
-<em class="property">classmethod </em><code class="descname">CommonParams</code><span class="sig-paren">(</span><em>vocab_size</em>, <em>emb_dim=1024</em>, <em>num_layers=2</em>, <em>rnn_dims=2048</em>, <em>rnn_hidden_dims=0</em>, <em>residual_start=1</em>, <em>softmax_max_alloc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLm.CommonParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLm.CommonParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">CommonParams</code><span class="sig-paren">(</span><em>vocab_size</em>, <em>emb_dim=1024</em>, <em>num_layers=2</em>, <em>rnn_dims=2048</em>, <em>rnn_hidden_dims=0</em>, <em>residual_start=1</em>, <em>layer_norm=False</em>, <em>softmax_max_alloc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLm.CommonParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLm.CommonParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>A LM model parameterized by vocab size, etc.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -605,6 +605,8 @@ is false.</li>
 <li><strong>rnn_hidden_dims</strong> – If &gt; 0, each RNN layer has this many hidden nodes.</li>
 <li><strong>residual_start</strong> – index of the first layer with a residual connection;
 higher index layers also have residuals.</li>
+<li><strong>layer_norm</strong> – If true, use LayerNormalizedLSTMCellSimple otherwise use
+LSTMCellSimple.</li>
 <li><strong>softmax_max_alloc</strong> – If set to a positive integer the soft-max
 computation is chunked into allocations of at most
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">softmax_max_alloc</span></code>; when left to its default value of None no
