@@ -34,7 +34,8 @@ limitations under the License.
 #define INPUT_DOCS \
   R"( \
 file_pattern: A comma-separated list of glob patterns or sharded file patterns\
-  for the data files. A sharded file pattern looks like /path/name@100.\
+  for the data files. A sharded file pattern looks like /path/name@100 or \
+  /path/name@*.\
 input_source_weights: A list of input sources weights that control the input\
   example mix. The records will be sampled from inputs proportionally to these\
   weights. When empty list is provided, no mix weighting will be done.\

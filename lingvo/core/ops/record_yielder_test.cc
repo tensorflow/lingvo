@@ -306,6 +306,36 @@ TEST(RecordYielder, MatchShardedFilePattern) {
   yielder->Close();
 }
 
+TEST(RecordYielder, MatchWildcardShardedFilePattern) {
+  const int num_shards = 9;
+  const int records_per_shard = 8;
+  GenerateShardedTfRecordTestData("sharded_data2", num_shards,
+                                  records_per_shard);
+
+  BasicRecordYielder::Options opts;
+  opts.file_pattern = strings::StrCat(
+      "tfrecord:", io::JoinPath("/tmp", "sharded_data2@*"));
+  opts.bufsize = records_per_shard;
+  opts.parallelism = 1;
+  std::vector<Rope> epoch;
+  auto yielder = BasicRecordYielder::New(opts);
+  Rope v;
+  for (int i = 0; i < num_shards * records_per_shard; ++i) {
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    epoch.emplace_back(string(v));
+  }
+  auto new_end = std::unique(epoch.begin(), epoch.end());
+  // If we iterated through all shards (rather than 1 shard twice), there
+  // should be no duplicates, and we should be at the end of the first epoch.
+  EXPECT_EQ(new_end, epoch.end());
+  // End of the 1st epoch | start of the 2nd epoch.
+  EXPECT_TRUE(yielder->current_epoch() == 1 || yielder->current_epoch() == 2);
+  TF_CHECK_OK(yielder->Yield(&v, nullptr));
+  // End of the 2st epoch | start of the 3nd epoch.
+  EXPECT_TRUE(yielder->current_epoch() == 2 || yielder->current_epoch() == 3);
+  yielder->Close();
+}
+
 namespace {
 
 class FakeIterator : public RecordIterator {

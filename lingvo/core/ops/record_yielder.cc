@@ -49,7 +49,8 @@ Factory* GetFactory() {
 
 // A sharded file pattern looks like /path/name@100, which is expanded to
 // a glob pattern /path/name-?????-of-00100 by this function. The number of
-// shards shouldn't exceed 5 digits.
+// shards shouldn't exceed 5 digits. A wildcard is also support for the shards
+// number: /path/name@* is expanded to /path/name-?????-of-?????.
 Status MaybeExpandShardedFilePattern(const string& file_pattern,
                                      string* expanded) {
   const auto pos = file_pattern.find('@');
@@ -62,18 +63,21 @@ Status MaybeExpandShardedFilePattern(const string& file_pattern,
   const string suffix = file_pattern.substr(pos + 1);
 
   uint32 num_shards = 0;
-  if (!strings::safe_strtou32(suffix, &num_shards)) {
+  if (suffix == "*") {
+    *expanded = strings::StrCat(prefix, "-\?\?\?\?\?-of-\?\?\?\?\?");
+    return Status::OK();
+  } else if (strings::safe_strtou32(suffix, &num_shards)) {
+    if (num_shards > 99999) {
+      return errors::InvalidArgument(strings::StrCat(
+          "The number of shards should not exceed 5 digits: ", num_shards));
+    }
+    *expanded =
+        strings::Printf("%s-\?\?\?\?\?-of-%05d", prefix.c_str(), num_shards);
+    return Status::OK();
+  } else {
     return errors::InvalidArgument(
         strings::StrCat("Invalid sharded file pattern: ", file_pattern));
   }
-  if (num_shards > 99999) {
-    return errors::InvalidArgument(strings::StrCat(
-        "The number of shards should not exceed 5 digits: ", num_shards));
-  }
-
-  *expanded =
-      strings::Printf("%s-\?\?\?\?\?-of-%05d", prefix.c_str(), num_shards);
-  return Status::OK();
 }
 
 // ParallelFilePatterns look like this
