@@ -486,6 +486,7 @@ class RnnLm(RnnLmNoEmbedding):
                    rnn_dims=2048,
                    rnn_hidden_dims=0,
                    residual_start=1,
+                   layer_norm=False,
                    softmax_max_alloc=None):
     """A LM model parameterized by vocab size, etc.
 
@@ -497,6 +498,8 @@ class RnnLm(RnnLmNoEmbedding):
       rnn_hidden_dims: If > 0, each RNN layer has this many hidden nodes.
       residual_start: index of the first layer with a residual connection;
         higher index layers also have residuals.
+      layer_norm: If true, use LayerNormalizedLSTMCellSimple otherwise use
+        LSTMCellSimple.
       softmax_max_alloc: If set to a positive integer the soft-max
         computation is chunked into allocations of at most
         `softmax_max_alloc`; when left to its default value of None no
@@ -520,24 +523,17 @@ class RnnLm(RnnLmNoEmbedding):
     p.rnns.num_layers = num_layers
     # Which layer starts to have the residual connection.
     p.rnns.skip_start = residual_start
+    lstm_cell_tpl = rnn_cell.LayerNormalizedLSTMCellSimple.Params(
+    ) if layer_norm else rnn_cell.LSTMCellSimple.Params()
+    lstm_cell_tpl.Set(
+        num_input_nodes=rnn_dims,
+        num_output_nodes=rnn_dims,
+        num_hidden_nodes=rnn_hidden_dims)
     if num_layers > 1:
-      p.rnns.cell_tpl = [
-          rnn_cell.LSTMCellSimple.Params().Set(
-              num_input_nodes=emb_dim,
-              num_output_nodes=rnn_dims,
-              num_hidden_nodes=rnn_hidden_dims),
-          rnn_cell.LSTMCellSimple.Params().Set(
-              num_input_nodes=rnn_dims,
-              num_output_nodes=rnn_dims,
-              num_hidden_nodes=rnn_hidden_dims)
-      ]
+      p.rnns.cell_tpl = [lstm_cell_tpl.Copy(), lstm_cell_tpl.Copy()]
     else:
-      p.rnns.cell_tpl = [
-          rnn_cell.LSTMCellSimple.Params().Set(
-              num_input_nodes=emb_dim,
-              num_output_nodes=rnn_dims,
-              num_hidden_nodes=rnn_hidden_dims)
-      ]
+      p.rnns.cell_tpl = [lstm_cell_tpl.Copy()]
+    p.rnns.cell_tpl[0].num_input_nodes = emb_dim
 
     # Softmax
     p.softmax.input_dim = rnn_dims
