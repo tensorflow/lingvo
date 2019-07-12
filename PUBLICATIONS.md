@@ -674,9 +674,41 @@ W.&nbsp;N. Hsu, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Y.&nbsp;A. Chung, Y.&nbsp;Wang,
 <td class="bibtexitem">
 H.&nbsp;Zen, V.&nbsp;Dang, R.&nbsp;Clark, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Y.&nbsp;Jia, Z.&nbsp;Chen, and Y.&nbsp;Wu,
   &ldquo;LibriTTS: A corpus derived from LibriSpeech for text-to-speech,&rdquo; in
-  <em>submitted to Interspeech</em>, 2019.
+  <em>Proc. Interspeech</em>, 2019.
 [&nbsp;<a href="http://www.openslr.org/60">data</a>&nbsp;| 
 <a href="https://arxiv.org/abs/1904.02882">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="biadsy2019parrotron">7</a>]
+</td>
+<td class="bibtexitem">
+F.&nbsp;Biadsy, R.&nbsp;J. Weiss, P.&nbsp;Moreno, D.&nbsp;Kanvesky, and Y.&nbsp;Jia, &ldquo;Parrotron: An
+  end-to-end speech-to-speech conversion model and its applications to
+  hearing-impaired speech and speech separation,&rdquo; in <em>Proc. Interspeech</em>,
+  2019.
+[&nbsp;<a href="https://google.github.io/tacotron/publications/parrotron">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/1904.04169">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="zhang2019learning">8</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;Zhang, R.&nbsp;J. Weiss, H.&nbsp;Zen, Y.&nbsp;Wu, Z.&nbsp;Chen, R.&nbsp;J. Skerry-Ryan, Y.&nbsp;Jia,
+  A.&nbsp;Rosenberg, and B.&nbsp;Ramabhadran, &ldquo;Learning to speak fluently in a foreign
+  language: Multilingual speech synthesis and cross-language voice cloning,&rdquo;
+  in <em>Proc. Interspeech</em>, 2019.
+[&nbsp;<a href="http://google.github.io/tacotron/publications/multilingual">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/1907.04448">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -716,6 +748,21 @@ Y.&nbsp;Jia, M.&nbsp;Johnson, W.&nbsp;Macherey, R.&nbsp;J. Weiss, Y.&nbsp;Cao, C
   end-to-end speech-to-text translation,&rdquo; in <em>Proc. IEEE International
   Conference on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2019.
 [&nbsp;<a href="https://arxiv.org/abs/1811.02050">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="jia2019direct">3</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;Jia, R.&nbsp;J. Weiss, F.&nbsp;Biadsy, W.&nbsp;Macherey, M.&nbsp;Johnson, Z.&nbsp;Chen, and Y.&nbsp;Wu,
+  &ldquo;Direct speech-to-speech translation with a sequence-to-sequence model,&rdquo; in
+  <em>Proc. Interspeech</em>, 2019.
+[&nbsp;<a href="https://google-research.github.io/lingvo-lab/translatotron">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/1904.06037">pdf</a>&nbsp;]
 
 </td>
 </tr>
