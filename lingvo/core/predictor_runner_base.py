@@ -30,6 +30,7 @@ from __future__ import division
 from __future__ import print_function
 
 import concurrent.futures
+import itertools
 import os
 import re
 import threading
@@ -239,7 +240,10 @@ class PredictorRunnerBase(object):
     batch = []
     futures = []
     # Iterate through the input and process it one batch at a time.
-    for next_id, element in enumerate(self.InputGenerator()):
+    it = self.InputGenerator()
+    if self._max_inputs > 0:
+      it = itertools.islice(it, self._max_inputs)
+    for next_id, element in enumerate(it):
       if self._ShouldProcessInputId(next_id):
         batch.append((next_id, element))
         if len(batch) == self._batch_size:
