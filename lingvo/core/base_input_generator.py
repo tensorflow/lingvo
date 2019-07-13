@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import hyperparams
 from lingvo.core import input_generator_helper as ig_helper
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
@@ -60,6 +61,18 @@ class BaseInputGenerator(base_layer.BaseLayer):
              'Whether run infeed op on each host.')
     p.Define('tpu_infeed_parallelism', 1,
              'Uses these many python threads to drive infeed concurrently.')
+
+    p.Define('remote', hyperparams.Params(),
+             'Params to configure remote input policy.')
+    pp = p.remote
+    pp.Define(
+        'shardable_batch', True,
+        'True if and only if this input generates simple batches whose 1st '
+        'dimension of every tensor in a batch is the batch dimension, and '
+        'other dimensions are always the same.')
+    pp.Define(
+        'max_inflights_per_target', 32, 'The maximum number of '
+        'concurrent inflight remote input fetches per remote target.')
     return p
 
   @base_layer.initializer
@@ -544,6 +557,8 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     """Defaults params for sequence input generators."""
     p = super(BaseSequenceInputGenerator, cls).Params()
     p.Delete('batch_size')
+    p.remote.shardable_batch = False
+
     # How input should be bucketized.
     p.Define(
         'bucket_upper_bound', [2560], 'Bucketing scheme. Required to be'
@@ -777,6 +792,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     p.Define('num_examples', -1, 'Number of examples (-1 for unlimited).')
     p.Define('randomize_shuffle_size', 500,
              'Size of the random shuffle buffer.')
+    p.remote.shardable_batch = False
     return p
 
   def __init__(self, params):
