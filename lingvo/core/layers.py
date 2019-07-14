@@ -3166,7 +3166,7 @@ class GradNormTracker(base_layer.BaseLayer):
         'Distance threshold at which gradients are clipped to 0.0.'
         ' Distance is measured in the number of standard deviations a'
         ' given gradient norm is from the mean gradient norm. The'
-        ' default value of 3.0 means we are throwing away roughly'
+        ' default value of 4.0 means we are throwing away roughly'
         ' 0.15% of steps.')
     p.Define(
         'grad_norm_clip_cap_min', 0.0,
