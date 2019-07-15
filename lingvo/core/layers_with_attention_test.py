@@ -504,6 +504,54 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
       self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
 
+  def testTransformerAttentionLayerCase5(self):
+    with self.session(use_gpu=True) as sess:
+      depth = 4
+      p = layers_with_attention.TransformerAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = True
+      p.mask_type = 'eye'
+      p.num_attention_heads = 2
+      transformer_atten = layers_with_attention.TransformerAttentionLayer(p)
+
+      (source_vecs, source_padding, _, _,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
+      ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
+                                                       source_padding)
+      tf.global_variables_initializer().run()
+      actual_ctx, actual_probs = sess.run([ctx, probs])
+      tf.logging.info(np.array_repr(actual_ctx))
+      tf.logging.info(np.array_repr(actual_probs))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [[-1.89149332,  1.18417633,  0.09695292, -0.83397102],
+           [-1.29514003, -1.08241224,  1.49894726,  2.59358764]],
+          [[ 0.79232693,  2.47633171, -0.90657401, -1.5221628 ],
+           [-0.14457735,  0.09040731, -0.12422991,  2.13300467]],
+          [[ 1.72851753, -0.40323859, -1.19053328, -1.39761829],
+           [-2.15129089, -1.16594994,  1.1004864 ,  3.07194686]],
+          [[-0.88819426,  0.3377606 ,  1.28791749, -0.45082125],
+           [1.97874951,  1.50414598, -1.15547466, -1.18697572]],
+          [[ 0.10235745, -1.51675844,  0.13308235,  1.26194644],
+           [-1.44486666,  0.81801897, -1.03079677,  1.86697078]]]
+      expected_probs = [
+          [[ 0.        ,  0.33807203,  0.        ,  0.        ,  0.661928  ],
+           [ 0.        ,  0.30584112,  0.24723586,  0.44692296,  0.        ]],
+          [[ 0.63300228,  0.        ,  0.        ,  0.        ,  0.36699772],
+           [ 0.        ,  0.        ,  0.70683479,  0.29316518,  0.        ]],
+          [[ 0.38519406,  0.55454367,  0.        ,  0.        ,  0.06026225],
+           [ 0.        ,  0.51602799,  0.        ,  0.48397198,  0.        ]],
+          [[ 0.27139962,  0.12790368,  0.        ,  0.        ,  0.60069668],
+           [ 0.        ,  0.46712866,  0.53287131,  0.        ,  0.        ]],
+          [[ 0.55518425,  0.4448157 ,  0.        ,  0.        ,  0.        ],
+           [ 0.        ,  0.55003977,  0.26049584,  0.18946445,  0.        ]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_ctx, actual_ctx)
+      self.assertAllClose(expected_probs, actual_probs)
+
   def testTransformerLayerConstruction(self):
     p = layers_with_attention.TransformerLayer.Params()
     p.name = 'transformer'

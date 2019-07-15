@@ -35,7 +35,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
   attention layer is combined with the residual connection. And the finally,
   output is normalized using Layer Normalization.
 
-  Layer can be used in four scenarios:
+  Layer can be used in five scenarios:
 
   1. Multi-Headed Self-Attention, where attention keys (source vectors),
      attention values (context vectors) and queries come from the same previous
@@ -45,7 +45,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
      and queries all come from the same previous layer output, but rightward
      activations are masked to prevent information flow from future. This is the
      use case for decoder self-attention Transformer Layers. Can be activated by
-     setting is_masked flag of this layer.
+     setting `is_masked` flag of this layer.
   3. Multi-Headed Attention, where attention keys and attention values
      `source_vecs`, are coming from a different source (output of the encoder)
      and queries `query_vec`, coming from the previous layer outputs (decoder).
@@ -55,6 +55,13 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
      from a different source than queries and keys, e.g. for positional
      attention, where keys and queries are positional encodings and values are
      decoder states.
+  5. Masked Multi-Headed Self-Attention, where attention keys, attention values
+     and queries all come from the same previous layer output, but the
+     activations for the current position are masked to reduce the impact of
+     high self-similarity. This is the use case for non-autoregressive decoder
+     self-attention Transformer Layers. Can be activated by setting `is_masked`
+     flag of this layer and setting `mask_type="eye"`.
+
   """
 
   @classmethod
@@ -65,6 +72,10 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p.Define('atten_hidden_dim', 0, 'Dimension of the attention hidden dim.')
     p.Define('num_attention_heads', 8, 'Number of attention heads.')
     p.Define('is_masked', False, 'If set, uses masked MultiHeadedAttention.')
+    p.Define(
+        'mask_type', 'future', 'Type of attention mask if `is_masked` is'
+        'set. Either "future" for masking out attention to future'
+        'positions or "eye" for masking out the token itself.')
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
     p.Define(
         'atten_tpl',
@@ -101,6 +112,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     if not p.context_dim:
       p.context_dim = p.source_dim
+
+    if p.is_masked:
+      assert p.mask_type in ['future', 'eye']
 
     with tf.variable_scope(p.name):
       # Initialize multi-headed attention
@@ -172,12 +186,16 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       # [time, time]
       target_time = tf.shape(query_vec)[0]
       target_bs = tf.shape(query_vec)[1]
-      triangle_padding = 1.0 - tf.matrix_band_part(
-          tf.ones([target_time, target_time], dtype=py_utils.FPropDtype(p)), -1,
-          0)
+
+      if p.mask_type == 'future':
+        padding = 1.0 - tf.matrix_band_part(
+            tf.ones([target_time, target_time], dtype=py_utils.FPropDtype(p)),
+            -1, 0)
+      elif p.mask_type == 'eye':
+        padding = tf.eye(target_time, target_time, dtype=py_utils.FPropDtype(p))
+
       # [time,  batch, time]
-      causal_padding = tf.tile(
-          tf.expand_dims(triangle_padding, 1), [1, target_bs, 1])
+      causal_padding = tf.tile(tf.expand_dims(padding, 1), [1, target_bs, 1])
 
       causal_padding = tf.reshape(causal_padding, [-1, target_time])
     else:
