@@ -2347,7 +2347,9 @@
   <span class="k">return</span> <span class="n">weights</span>
 
 
-<span class="k">def</span> <span class="nf">VariationalNoiseParams</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">global_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">per_step_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="k">def</span> <span class="nf">VariationalNoiseParams</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span>
+                           <span class="n">global_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="n">per_step_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a hyperparams for variational noise.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
@@ -3231,6 +3233,42 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span> <span class="ow">or</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">_ToPlacerholder</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">ForceSerialExecution</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A context within which all TF operations are executed serially.</span>
+
+<span class="sd">  E.g.::</span>
+
+<span class="sd">    &gt;&gt; with ForceSerialExecution():</span>
+<span class="sd">    &gt;&gt;   x = a + b</span>
+<span class="sd">    &gt;&gt;   y = b + c</span>
+
+<span class="sd">  The resulting graph guarantees that x is computed before y.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+  <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Enters the serial execution context.&quot;&quot;&quot;</span>
+    <span class="c1"># Override the default Graph&#39;s op creation routine.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_create_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">create_op</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">create_op</span> <span class="o">=</span> <span class="bp">self</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_last</span> <span class="o">=</span> <span class="kc">None</span>
+
+  <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Customized op creation routine.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_last</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last</span> <span class="k">else</span> <span class="p">[]):</span>
+      <span class="c1"># Ensures the created op depends on the op created immediately before.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_last</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_op</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last</span>
+
+  <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exits the serial execution context.&quot;&quot;&quot;</span>
+    <span class="c1"># Restores the Graph&#39;s op creation routine.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">create_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_op</span>
 </pre></div>
 
            </div>
