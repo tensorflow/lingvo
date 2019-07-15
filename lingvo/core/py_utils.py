@@ -2202,7 +2202,9 @@ def AddPerStepVN(params, weights, step=None):
   return weights
 
 
-def VariationalNoiseParams(scale, global_vn=False, per_step_vn=False,
+def VariationalNoiseParams(scale,
+                           global_vn=False,
+                           per_step_vn=False,
                            seed=None):
   """Returns a hyperparams for variational noise."""
   p = hyperparams.Params()
@@ -3086,3 +3088,39 @@ def ToPlacerholders(nmap, dtype=None):
     return tf.placeholder(dtype=dtype or x.dtype, shape=shape)
 
   return nmap.Transform(_ToPlacerholder)
+
+
+class ForceSerialExecution(object):
+  """A context within which all TF operations are executed serially.
+
+  E.g.::
+
+    >> with ForceSerialExecution():
+    >>   x = a + b
+    >>   y = b + c
+
+  The resulting graph guarantees that x is computed before y.
+  """
+
+  def __init__(self):
+    pass
+
+  def __enter__(self):
+    """Enters the serial execution context."""
+    # Override the default Graph's op creation routine.
+    self._graph = tf.get_default_graph()
+    self._create_op = self._graph.create_op
+    self._graph.create_op = self
+    self._last = None
+
+  def __call__(self, *args, **kwargs):
+    """Customized op creation routine."""
+    with tf.control_dependencies([self._last] if self._last else []):
+      # Ensures the created op depends on the op created immediately before.
+      self._last = self._create_op(*args, **kwargs)
+    return self._last
+
+  def __exit__(self, exc_type, exc_value, tb):
+    """Exits the serial execution context."""
+    # Restores the Graph's op creation routine.
+    self._graph.create_op = self._create_op

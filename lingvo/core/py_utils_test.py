@@ -67,8 +67,8 @@ class PyUtilsTest(test_utils.TestCase):
       collections = ['col1', 'col2']
 
       all_vars = []
-      for i, (m, dt, sp) in enumerate(
-          itertools.product(methods, dtypes, shapes)):
+      for i, (m, dt,
+              sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt, collections)
         all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
@@ -78,8 +78,8 @@ class PyUtilsTest(test_utils.TestCase):
       self.assertEqual(len(tf.trainable_variables()), len(all_vars))
 
       all_vars_copy = []
-      for i, (m, dt, sp) in enumerate(
-          itertools.product(methods, dtypes, shapes)):
+      for i, (m, dt,
+              sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt, collections)
         all_vars_copy.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
@@ -100,8 +100,8 @@ class PyUtilsTest(test_utils.TestCase):
       dtypes = [tf.float32, tf.complex64]
       shapes = [[2, 3]]
       all_vars = []
-      for i, (dt, m, sp) in enumerate(
-          itertools.product(dtypes, methods, shapes)):
+      for i, (dt, m,
+              sp) in enumerate(itertools.product(dtypes, methods, shapes)):
         pc = py_utils.WeightParams(sp, m(0.1), dt)
         all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
@@ -132,8 +132,8 @@ class PyUtilsTest(test_utils.TestCase):
       dtypes = [tf.float32, tf.complex64]
       shapes = [[2, 3]]
       all_vars = []
-      for i, (dt, m, sp) in enumerate(
-          itertools.product(dtypes, methods, shapes)):
+      for i, (dt, m,
+              sp) in enumerate(itertools.product(dtypes, methods, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt)
         all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
@@ -231,8 +231,8 @@ class PyUtilsTest(test_utils.TestCase):
       dtypes = [tf.float32, tf.float16, tf.complex64]
       shapes = [[2, 3]]
       all_vars = []
-      for i, (m, dt, sp) in enumerate(
-          itertools.product(methods, dtypes, shapes)):
+      for i, (m, dt,
+              sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt)
         all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
@@ -256,8 +256,8 @@ class PyUtilsTest(test_utils.TestCase):
       dtypes = [tf.float32, tf.float16, tf.complex64]
       shapes = [[2]]
       all_vars = []
-      for i, (m, dt, sp) in enumerate(
-          itertools.product(methods, dtypes, shapes)):
+      for i, (m, dt,
+              sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt)
         all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
@@ -274,8 +274,8 @@ class PyUtilsTest(test_utils.TestCase):
       dtypes = [tf.float32, tf.float16, tf.complex64]
       shapes = [[1, 1, 2]]
       all_vars = []
-      for i, (m, dt, sp) in enumerate(
-          itertools.product(methods, dtypes, shapes)):
+      for i, (m, dt,
+              sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt)
         all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
@@ -302,8 +302,8 @@ class PyUtilsTest(test_utils.TestCase):
       dtypes = [tf.float32, tf.float16, tf.complex64]
       shapes = [[2, 3]]
       all_vars = []
-      for i, (m, dt, sp) in enumerate(
-          itertools.product(methods, dtypes, shapes)):
+      for i, (m, dt,
+              sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt)
         all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
@@ -793,8 +793,8 @@ class PyUtilsTest(test_utils.TestCase):
     repeat_inner_dim2 = py_utils.RepeatDim(z, 2, 2)
 
     with self.session(use_gpu=False) as sess:
-      [repeat_inner_dim0, repeat_inner_dim1, repeat_inner_dim2] = sess.run(
-          [repeat_inner_dim0, repeat_inner_dim1, repeat_inner_dim2])
+      [repeat_inner_dim0, repeat_inner_dim1, repeat_inner_dim2
+      ] = sess.run([repeat_inner_dim0, repeat_inner_dim1, repeat_inner_dim2])
       self.assertAllEqual(
           repeat_inner_dim0,
           [[[1, 2, 3], [4, 5, 6]], [[1, 2, 3], [4, 5, 6]],
@@ -821,6 +821,56 @@ class PyUtilsTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       self.assertAllEqual(stacked.x, tf.constant([[1, 2], [3, 4]]))
       self.assertAllEqual(stacked.z.a, tf.constant([[1, 2], [10, 20]]))
+
+  def _RunSumTen(self, run_serial):
+
+    class LoggedNumberGenerator(object):
+
+      def __init__(self):
+        self._n = 0.
+        self.history = []
+
+      def Get(self):
+        k = self._n
+        self._n += 1.
+
+        def Work():
+          self.history += [k]
+          return np.array(k, np.float32)
+
+        return Work
+
+      def PyFunc(self):
+        work = self.Get()
+        return tf.py_func(work, [], tf.float32)
+
+    logger = LoggedNumberGenerator()
+
+    def Compute():
+      return tf.add_n([logger.PyFunc() for _ in range(10)])
+
+    with self.session() as sess:
+      if run_serial:
+        with py_utils.ForceSerialExecution():
+          total = Compute()
+      else:
+        total = Compute()
+      value = sess.run(total)
+
+    self.assertEqual(45.0, value)
+    return logger.history
+
+  def testForceSerialExecution(self):
+    # run_serial=False. 10 PyFunc() will be executed in a random order.
+    print('histo = ', self._RunSumTen(run_serial=False))
+    print('histo = ', self._RunSumTen(run_serial=False))
+    print('histo = ', self._RunSumTen(run_serial=False))
+    print('histo = ', self._RunSumTen(run_serial=False))
+
+    # run_serial=True. 10 PyFunc() will be executed in the same order
+    # in the python program order.
+    self.assertEqual([0., 1., 2., 3., 4., 5., 6., 7., 8., 9.],
+                     self._RunSumTen(run_serial=True))
 
 
 class DeterministicDropoutTest(test_utils.TestCase):
@@ -947,9 +997,10 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
       variable_loading_rules = [('lenet5/conv0/w/var', 'lenet5/conv0/w/var'),
                                 ('lenet5/conv1/w/var', 'lenet5/conv1/w/var')]
       variable_ignore_rules = []
-      py_utils._OverrideVarsFromCheckpoint(
-          sess, tf.all_variables(), checkpoint_path, variable_loading_rules,
-          variable_ignore_rules)
+      py_utils._OverrideVarsFromCheckpoint(sess, tf.all_variables(),
+                                           checkpoint_path,
+                                           variable_loading_rules,
+                                           variable_ignore_rules)
       self.assertAllClose(
           # Now conv weights have been overwritten but fc bias has not.
           self._GetLeNetVarsFirstVal(sess),
@@ -972,9 +1023,10 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
       variable_loading_rules = [('lenet5/conv0/w/var', 'lenet5/conv0/w/var'),
                                 ('lenet5/conv1/w/var', 'lenet5/conv1/w/var')]
       variable_ignore_rules = ['lenet5/conv1/w/var']
-      py_utils._OverrideVarsFromCheckpoint(
-          sess, tf.all_variables(), checkpoint_path, variable_loading_rules,
-          variable_ignore_rules)
+      py_utils._OverrideVarsFromCheckpoint(sess, tf.all_variables(),
+                                           checkpoint_path,
+                                           variable_loading_rules,
+                                           variable_ignore_rules)
       self.assertAllClose(
           # Now only conv0 weights have been overridden.
           self._GetLeNetVarsFirstVal(sess),
@@ -1068,9 +1120,8 @@ class NestedMapTest(test_utils.TestCase):
     x = py_utils.NestedMap(
         a='a', b='b', c=py_utils.NestedMap(d='d', e=[1, 2, 4]))
     flat_x = x.FlattenItems()
-    expected = [('a', 'a'), ('b', 'b'), ('c.d', 'd'), ('c.e_0', 1), ('c.e_1',
-                                                                     2),
-                ('c.e_2', 4)]
+    expected = [('a', 'a'), ('b', 'b'), ('c.d', 'd'), ('c.e_0', 1),
+                ('c.e_1', 2), ('c.e_2', 4)]
     self.assertEqual(expected, flat_x)
 
   def testFilter(self):
@@ -1761,6 +1812,7 @@ class RematerializeFnTest(tf.test.TestCase):
 class StatefulRandomOpsInDefunTest(tf.test.TestCase):
 
   def testFunctionWithStatelessOp(self):
+
     @function.Defun()
     def FunctionWithStatelessOp():
       return tf.constant(42.0)
@@ -1769,6 +1821,7 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
         [], py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessOp))
 
   def testFunctionWithStatefulOp(self):
+
     @function.Defun()
     def FunctionWithStatefulOp():
       return tf.random_uniform([100], maxval=10, dtype=tf.int32)
@@ -1778,6 +1831,7 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulOp))
 
   def testFunctionWithStatelessFunctionCall(self):
+
     @function.Defun()
     def FunctionWithStatelessOp():
       return tf.constant(42.0)
@@ -1791,6 +1845,7 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessFunctionCall))
 
   def testFunctionWithStatefulFunctionCall(self):
+
     @function.Defun()
     def FunctionWithStatefulOp():
       return tf.random_uniform([100], maxval=10, dtype=tf.int32)
@@ -1804,6 +1859,7 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionCall))
 
   def testFunctionWithStatefulFunctionalWhile(self):
+
     @function.Defun()
     def FunctionWithStatefulFunctionalWhile():
 
@@ -1818,11 +1874,12 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
 
       return functional_ops.While([tf.zeros([2, 2]), 0], cond=Cond, body=Body)
 
-    self.assertAllEqual([
-        'RandomUniform'
-    ], py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionalWhile))
+    self.assertAllEqual(
+        ['RandomUniform'],
+        py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionalWhile))
 
   def testFunctionWithStatefulFunctionalIf(self):
+
     @function.Defun()
     def FunctionWithStatefulFunctionalIf():
 
@@ -1842,6 +1899,7 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionalIf))
 
   def testFunctionWithStatefulFunctionalFor(self):
+
     @function.Defun()
     def FunctionWithStatefulFunctionalFor():
 
@@ -1861,14 +1919,15 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
                                 FunctionWithStatefulFunctionalFor)))
 
   def testFunctionWithStatelessFunctionalFor(self):
+
     @function.Defun()
     def FunctionWithStatelessFunctionalFor():
 
       @function.Defun(tf.float32)
       def Body(result):
         return [
-            result + tf.random.stateless_normal(
-                tf.shape(result), seed=tf.stack([0, 1]))
+            result +
+            tf.random.stateless_normal(tf.shape(result), seed=tf.stack([0, 1]))
         ]
 
       return functional_ops.For(
