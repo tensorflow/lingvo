@@ -1582,8 +1582,8 @@ class RunnerManager(object):
 
   def InspectModel(self):
     """Prints out model analysis for the model."""
+    FLAGS.mode = 'sync'
     p = self.GetParamsForDataset('controller', 'Train')
-    p.cluster.mode = 'sync'
     c = cluster_factory.Cluster(p.cluster)
     with tf.Graph().as_default(), c, tf.device(c.GetPlacer()):
       analysis, _ = _ModelAnalysis(p.Instantiate())
