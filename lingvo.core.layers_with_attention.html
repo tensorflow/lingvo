@@ -175,7 +175,7 @@
 first processed using a multi-headed (self) attention. Output of the
 attention layer is combined with the residual connection. And the finally,
 output is normalized using Layer Normalization.</p>
-<p>Layer can be used in four scenarios:</p>
+<p>Layer can be used in five scenarios:</p>
 <ol class="arabic simple">
 <li>Multi-Headed Self-Attention, where attention keys (source vectors),
 attention values (context vectors) and queries come from the same previous
@@ -185,7 +185,7 @@ Transformer Layers.</li>
 and queries all come from the same previous layer output, but rightward
 activations are masked to prevent information flow from future. This is the
 use case for decoder self-attention Transformer Layers. Can be activated by
-setting is_masked flag of this layer.</li>
+setting <code class="xref py py-obj docutils literal notranslate"><span class="pre">is_masked</span></code> flag of this layer.</li>
 <li>Multi-Headed Attention, where attention keys and attention values
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code>, are coming from a different source (output of the encoder)
 and queries <code class="xref py py-obj docutils literal notranslate"><span class="pre">query_vec</span></code>, coming from the previous layer outputs (decoder).
@@ -195,6 +195,12 @@ encoder outputs.</li>
 from a different source than queries and keys, e.g. for positional
 attention, where keys and queries are positional encodings and values are
 decoder states.</li>
+<li>Masked Multi-Headed Self-Attention, where attention keys, attention values
+and queries all come from the same previous layer output, but the
+activations for the current position are masked to reduce the impact of
+high self-similarity. This is the use case for non-autoregressive decoder
+self-attention Transformer Layers. Can be activated by setting <code class="xref py py-obj docutils literal notranslate"><span class="pre">is_masked</span></code>
+flag of this layer and setting <code class="xref py py-obj docutils literal notranslate"><span class="pre">mask_type=&quot;eye&quot;</span></code>.</li>
 </ol>
 <dl class="classmethod">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.Params">

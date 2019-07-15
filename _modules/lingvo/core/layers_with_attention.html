@@ -180,7 +180,7 @@
 <span class="sd">  attention layer is combined with the residual connection. And the finally,</span>
 <span class="sd">  output is normalized using Layer Normalization.</span>
 
-<span class="sd">  Layer can be used in four scenarios:</span>
+<span class="sd">  Layer can be used in five scenarios:</span>
 
 <span class="sd">  1. Multi-Headed Self-Attention, where attention keys (source vectors),</span>
 <span class="sd">     attention values (context vectors) and queries come from the same previous</span>
@@ -190,7 +190,7 @@
 <span class="sd">     and queries all come from the same previous layer output, but rightward</span>
 <span class="sd">     activations are masked to prevent information flow from future. This is the</span>
 <span class="sd">     use case for decoder self-attention Transformer Layers. Can be activated by</span>
-<span class="sd">     setting is_masked flag of this layer.</span>
+<span class="sd">     setting `is_masked` flag of this layer.</span>
 <span class="sd">  3. Multi-Headed Attention, where attention keys and attention values</span>
 <span class="sd">     `source_vecs`, are coming from a different source (output of the encoder)</span>
 <span class="sd">     and queries `query_vec`, coming from the previous layer outputs (decoder).</span>
@@ -200,6 +200,13 @@
 <span class="sd">     from a different source than queries and keys, e.g. for positional</span>
 <span class="sd">     attention, where keys and queries are positional encodings and values are</span>
 <span class="sd">     decoder states.</span>
+<span class="sd">  5. Masked Multi-Headed Self-Attention, where attention keys, attention values</span>
+<span class="sd">     and queries all come from the same previous layer output, but the</span>
+<span class="sd">     activations for the current position are masked to reduce the impact of</span>
+<span class="sd">     high self-similarity. This is the use case for non-autoregressive decoder</span>
+<span class="sd">     self-attention Transformer Layers. Can be activated by setting `is_masked`</span>
+<span class="sd">     flag of this layer and setting `mask_type=&quot;eye&quot;`.</span>
+
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="TransformerAttentionLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerAttentionLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -210,6 +217,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the attention hidden dim.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_attention_heads&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;Number of attention heads.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;is_masked&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set, uses masked MultiHeadedAttention.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;mask_type&#39;</span><span class="p">,</span> <span class="s1">&#39;future&#39;</span><span class="p">,</span> <span class="s1">&#39;Type of attention mask if `is_masked` is&#39;</span>
+        <span class="s1">&#39;set. Either &quot;future&quot; for masking out attention to future&#39;</span>
+        <span class="s1">&#39;positions or &quot;eye&quot; for masking out the token itself.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;atten_tpl&#39;</span><span class="p">,</span>
@@ -246,6 +257,9 @@
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">context_dim</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">context_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;future&#39;</span><span class="p">,</span> <span class="s1">&#39;eye&#39;</span><span class="p">]</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="c1"># Initialize multi-headed attention</span>
@@ -317,12 +331,16 @@
       <span class="c1"># [time, time]</span>
       <span class="n">target_time</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">target_bs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-      <span class="n">triangle_padding</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">matrix_band_part</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_time</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-          <span class="mi">0</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_type</span> <span class="o">==</span> <span class="s1">&#39;future&#39;</span><span class="p">:</span>
+        <span class="n">padding</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">matrix_band_part</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_time</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_type</span> <span class="o">==</span> <span class="s1">&#39;eye&#39;</span><span class="p">:</span>
+        <span class="n">padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_time</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+
       <span class="c1"># [time,  batch, time]</span>
-      <span class="n">causal_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">triangle_padding</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">target_bs</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="n">causal_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">target_bs</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 
       <span class="n">causal_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">causal_padding</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">target_time</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
