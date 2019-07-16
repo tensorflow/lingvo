@@ -3715,6 +3715,37 @@ class WeightedSumLayerTest(test_utils.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
 
+class DeconvLayerTest(test_utils.TestCase):
+
+  def testDeconvLayerFProp(self):
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(398847392)
+      np.random.seed(12345)
+      params = layers.DeconvLayer.Params()
+      params.name = 'deconv'
+      params.filter_shape = [3, 3, 2, 8]
+      params.filter_stride = [2, 2]
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.is_eval = False
+
+      conv_layer = params.Instantiate()
+      inputs = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, 4, 8]), dtype=tf.float32)
+
+      out = conv_layer.FPropDefaultTheta(inputs)
+      out_shape = conv_layer.OutShape(tf.shape(inputs))
+
+      tf.global_variables_initializer().run()
+      out_v, shape_v = sess.run([out, out_shape])
+      self.assertAllEqual(shape_v, [2, 8, 8, 2])
+      self.assertAllEqual(out_v.shape, shape_v)
+
+      summary = np.sum(np.square(out_v), axis=(1, 2, 3))
+      tf.logging.info('testDeconvLaye rFProp actual = %s',
+                      np.array_repr(summary))
+      self.assertAllClose([4.77159977, 5.47860432], summary)
+
+
 class GatedAverageLayerTest(test_utils.TestCase):
 
   def testGatedAverageLayer(self):

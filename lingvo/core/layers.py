@@ -44,6 +44,95 @@ from tensorflow.python.ops import inplace_ops
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
 
 
+class DeconvLayer(base_layer.BaseLayer):
+  """Deconv (transposed conv2d) layer.
+
+  DeconvLayer is different from ConvTransposeLayer in that
+  DeconvLayer does not support padding and biasing. Hence,
+  it's simpler and more basic than ConvTransposeLayer.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(DeconvLayer, cls).Params()
+    p.Define(
+        'filter_shape', (0, 0, 0, 0),
+        'Filter shape. Must be a sequence of length 4. Elements are in'
+        ' the order of height, width, out_channel, in_channel.')
+    p.Define(
+        'filter_stride', (0, 0),
+        'Filter stride to use. Must be a pair of ints. The first int'
+        ' specifies the stride on the height dimension. The second int'
+        ' specifies the stride on the width dimension.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(DeconvLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert len(p.filter_shape) == 4
+    assert len(p.filter_stride) == 2
+    assert all(x > 0 for x in p.filter_shape)
+    assert all(x > 0 for x in p.filter_stride)
+    w_pc = py_utils.WeightParams(
+        shape=p.filter_shape,
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    with tf.variable_scope(p.name):
+      self.CreateVariable('w', w_pc)
+
+  def OutShape(self, in_shape):
+    """Compute the output shape given the input shape."""
+    p = self.params
+    t_stride = p.filter_stride[0]
+    f_stride = p.filter_stride[1]
+    return tf.stack([
+        in_shape[0], in_shape[1] * t_stride, in_shape[2] * f_stride,
+        p.filter_shape[2]
+    ])
+
+  def _ApplyConv(self, theta, inputs):
+    p = self.params
+    w = theta.w
+    strides = [1, p.filter_stride[0], p.filter_stride[1], 1]
+    # TODO(miachen): remove casting once tf.nn.conv2d supports tf.float64.
+    assert inputs.dtype == w.dtype
+    dtype = inputs.dtype
+    if dtype != tf.float32:
+      inputs = tf.cast(inputs, tf.float32)
+      w = tf.cast(w, tf.float32)
+    # TODO(zhifengc): Try some better way to do Deconv. Search for
+    # "resize-convolution".
+    out = tf.nn.conv2d_transpose(
+        inputs,
+        w,
+        output_shape=self.OutShape(tf.shape(inputs)),
+        strides=strides,
+        padding='SAME')
+    if dtype != tf.float32:
+      out = tf.cast(out, dtype)
+    return py_utils.HasShape(out, [-1, -1, -1, p.filter_shape[2]])
+
+  def FProp(self, theta, inputs):
+    """Apply deconvolution to inputs.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      inputs: The inputs tensor. It is expected to be of shape [batch, height,
+        width, channel].
+
+    Returns:
+      outputs. outputs is expected to have shape [batch, height * height_stride,
+      width * width_stride, out_channel].
+    """
+    p = self.params
+    inputs = py_utils.HasShape(inputs, [-1, -1, -1, p.filter_shape[3]])
+    return self._ApplyConv(theta, inputs)
+
+
 def Gelu(input_tensor):
   """Gaussian Error Linear Unit.
 
