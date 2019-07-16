@@ -166,6 +166,57 @@
   <div class="section" id="module-lingvo.core.layers">
 <span id="lingvo-core-layers-module"></span><h1>lingvo.core.layers module<a class="headerlink" href="#module-lingvo.core.layers" title="Permalink to this headline">¶</a></h1>
 <p>Common layers.</p>
+<dl class="class">
+<dt id="lingvo.core.layers.DeconvLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers.</code><code class="descname">DeconvLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#DeconvLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.DeconvLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Deconv (transposed conv2d) layer.</p>
+<p>DeconvLayer is different from ConvTransposeLayer in that
+DeconvLayer does not support padding and biasing. Hence,
+it’s simpler and more basic than ConvTransposeLayer.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers.DeconvLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#DeconvLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.DeconvLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.DeconvLayer.OutShape">
+<code class="descname">OutShape</code><span class="sig-paren">(</span><em>in_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#DeconvLayer.OutShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.DeconvLayer.OutShape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the output shape given the input shape.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.DeconvLayer._ApplyConv">
+<code class="descname">_ApplyConv</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#DeconvLayer._ApplyConv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.DeconvLayer._ApplyConv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.DeconvLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#DeconvLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.DeconvLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply deconvolution to inputs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>inputs</strong> – The inputs tensor. It is expected to be of shape [batch, height,
+width, channel].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">outputs. outputs is expected to have shape [batch, height * height_stride,
+width * width_stride, out_channel].</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="lingvo.core.layers.Gelu">
 <code class="descclassname">lingvo.core.layers.</code><code class="descname">Gelu</code><span class="sig-paren">(</span><em>input_tensor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#Gelu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.Gelu" title="Permalink to this definition">¶</a></dt>

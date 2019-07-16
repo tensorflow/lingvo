@@ -189,6 +189,95 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">tpu_embedding</span> <span class="k">as</span> <span class="n">tpu_embedding_lib</span>
 
 
+<div class="viewcode-block" id="DeconvLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeconvLayer">[docs]</a><span class="k">class</span> <span class="nc">DeconvLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Deconv (transposed conv2d) layer.</span>
+
+<span class="sd">  DeconvLayer is different from ConvTransposeLayer in that</span>
+<span class="sd">  DeconvLayer does not support padding and biasing. Hence,</span>
+<span class="sd">  it&#39;s simpler and more basic than ConvTransposeLayer.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DeconvLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeconvLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DeconvLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;filter_shape&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="s1">&#39;Filter shape. Must be a sequence of length 4. Elements are in&#39;</span>
+        <span class="s1">&#39; the order of height, width, out_channel, in_channel.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;filter_stride&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="s1">&#39;Filter stride to use. Must be a pair of ints. The first int&#39;</span>
+        <span class="s1">&#39; specifies the stride on the height dimension. The second int&#39;</span>
+        <span class="s1">&#39; specifies the stride on the width dimension.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">DeconvLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">)</span>
+    <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DeconvLayer.OutShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeconvLayer.OutShape">[docs]</a>  <span class="k">def</span> <span class="nf">OutShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute the output shape given the input shape.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">t_stride</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">f_stride</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+        <span class="n">in_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">in_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">t_stride</span><span class="p">,</span> <span class="n">in_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">f_stride</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DeconvLayer._ApplyConv"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeconvLayer._ApplyConv">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span>
+    <span class="n">strides</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># TODO(miachen): remove casting once tf.nn.conv2d supports tf.float64.</span>
+    <span class="k">assert</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">w</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">if</span> <span class="n">dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="c1"># TODO(zhifengc): Try some better way to do Deconv. Search for</span>
+    <span class="c1"># &quot;resize-convolution&quot;.</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">conv2d_transpose</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span>
+        <span class="n">w</span><span class="p">,</span>
+        <span class="n">output_shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">OutShape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)),</span>
+        <span class="n">strides</span><span class="o">=</span><span class="n">strides</span><span class="p">,</span>
+        <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;SAME&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]])</span></div>
+
+<div class="viewcode-block" id="DeconvLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeconvLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply deconvolution to inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      inputs: The inputs tensor. It is expected to be of shape [batch, height,</span>
+<span class="sd">        width, channel].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      outputs. outputs is expected to have shape [batch, height * height_stride,</span>
+<span class="sd">      width * width_stride, out_channel].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]])</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span></div></div>
+
+
 <div class="viewcode-block" id="Gelu"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Gelu">[docs]</a><span class="k">def</span> <span class="nf">Gelu</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Gaussian Error Linear Unit.</span>
 
