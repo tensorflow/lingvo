@@ -1,0 +1,1182 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.builder_layers &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.builder_layers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.builder_layers</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Abstractions for composing layers.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">computation_cost</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">recurrent</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">symbolic</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
+
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
+
+
+<div class="viewcode-block" id="FirstNLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.FirstNLayer">[docs]</a><span class="k">class</span> <span class="nc">FirstNLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns the first n args.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FirstNLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.FirstNLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FirstNLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;n&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The number of args to return.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">FirstNLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="FirstNLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.FirstNLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the first n args.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">n</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">args</span><span class="p">[:</span><span class="n">p</span><span class="o">.</span><span class="n">n</span><span class="p">])</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="FirstNLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.FirstNLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">out_shapes</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="n">p</span><span class="o">.</span><span class="n">n</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">out_shapes</span> <span class="o">=</span> <span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">out_shapes</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ArgIndexLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ArgIndexLayer">[docs]</a><span class="k">class</span> <span class="nc">ArgIndexLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Select args with a list of indices.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ArgIndexLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ArgIndexLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ArgIndexLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;The indices of args to return.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ArgIndexLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">idx</span>
+
+<div class="viewcode-block" id="ArgIndexLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ArgIndexLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the indexed args.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">idx</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="_ToTuple"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers._ToTuple">[docs]</a><span class="k">def</span> <span class="nf">_ToTuple</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">x</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">x</span><span class="p">,)</span></div>
+
+
+<div class="viewcode-block" id="_MaybeStackExtraTheta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers._MaybeStackExtraTheta">[docs]</a><span class="k">def</span> <span class="nf">_MaybeStackExtraTheta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">repeat</span><span class="p">):</span>
+  <span class="n">var_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()])</span>
+  <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">theta</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">var_set</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Replicate non-variable theta by p.repeat times.</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">value</span><span class="p">]</span> <span class="o">*</span> <span class="n">repeat</span><span class="p">)</span>
+    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">theta</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RepeatLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.RepeatLayer">[docs]</a><span class="k">class</span> <span class="nc">RepeatLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer which repeats itself sequentially using lingvo Recurrent.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RepeatLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.RepeatLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RepeatLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The param for the main network layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;repeat&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+             <span class="s1">&#39;Repeat layers specified in </span><span class="se">\&#39;</span><span class="s1">body</span><span class="se">\&#39;</span><span class="s1"> this many times.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">RepeatLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RepeatLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.RepeatLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Collects all variable key and values into sets.</span>
+    <span class="n">theta_stack</span> <span class="o">=</span> <span class="n">_MaybeStackExtraTheta</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ArgsToState</span><span class="p">(</span><span class="n">arg_list</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Returns a NestedMap from a list of FProp args.&quot;&quot;&quot;</span>
+      <span class="n">state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="c1"># Maintains a mapping from arg_idx to tensor. states cannot contains</span>
+      <span class="c1"># None tensors.</span>
+      <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">arg_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">state</span><span class="p">[</span><span class="s1">&#39;_s</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span> <span class="o">=</span> <span class="n">arg_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+      <span class="k">return</span> <span class="n">state</span>
+
+    <span class="k">def</span> <span class="nf">_StateToArgs</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Returns a list of FProp args from a NestedMap.&quot;&quot;&quot;</span>
+      <span class="n">arg_list</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)):</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;_s</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="n">arg_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">state</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">arg_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">arg_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">arg_list</span>
+
+    <span class="k">def</span> <span class="nf">_CellFn</span><span class="p">(</span><span class="n">unused_theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">theta_i</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Recurrent cell function wrapper of body.FProp.&quot;&quot;&quot;</span>
+      <span class="c1"># Retrieves fprop arguments from state and sets shapes.</span>
+      <span class="n">frop_inputs</span> <span class="o">=</span> <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">state0</span><span class="p">)</span>
+
+      <span class="c1"># Sets shapes for theta_i as well.</span>
+      <span class="k">for</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">theta_i</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">theta_stack</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="n">src</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">dst</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]))</span>
+
+      <span class="c1"># Runs the actual body.FProp</span>
+      <span class="n">frop_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta_i</span><span class="p">,</span> <span class="o">*</span><span class="n">frop_inputs</span><span class="p">)</span>
+      <span class="n">frop_outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">frop_outputs</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">frop_outputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">frop_inputs</span><span class="p">)</span>
+
+      <span class="c1"># Passes fprop outputs to the next layer through state.</span>
+      <span class="n">state1</span> <span class="o">=</span> <span class="n">_ArgsToState</span><span class="p">(</span><span class="n">frop_outputs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># Add FProp arg list to state0.</span>
+      <span class="n">state0</span> <span class="o">=</span> <span class="n">_ArgsToState</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+      <span class="c1"># Runs body.FProp k times using Recurrent where k = dim 0 of var_nmap.</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(),</span>
+          <span class="n">state0</span><span class="o">=</span><span class="n">state0</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="n">theta_stack</span><span class="p">,</span>  <span class="c1"># Pass cell_fn theta through inputs.</span>
+          <span class="n">cell_fn</span><span class="o">=</span><span class="n">_CellFn</span><span class="p">)</span>
+
+      <span class="c1"># Retrieves fprop outputs from state1 and sets shapes.</span>
+      <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">state1</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">output_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">output_tensors</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RepeatLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.RepeatLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span><span class="p">)</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">flops</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">args</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SoftCondLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SoftCondLayer">[docs]</a><span class="k">class</span> <span class="nc">SoftCondLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A wrapper layer implements soft condition computation.</span>
+
+<span class="sd">  This layer computes</span>
+
+<span class="sd">  output = p.body.FProp( \sum_i w_i theta_i, \*inputs)</span>
+
+<span class="sd">  where the theta passed to p.body is the weighted average over p.num_experts</span>
+<span class="sd">  copies of theta.body, and w_i is the example-dependent coefficient for the</span>
+<span class="sd">  i-th expert (theta_i).</span>
+
+<span class="sd">  Reference:</span>
+<span class="sd">  Soft Conditional Computation, B. Yang, G. Bender, Q.V. Le, J. Ngiam</span>
+<span class="sd">  https://arxiv.org/abs/1904.04971</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SoftCondLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SoftCondLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SoftCondLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The Params for the main network layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_experts&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of experts.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Depth of the input tensor (last dimension). This layer maintains &#39;</span>
+        <span class="s1">&#39;a weight matrix of shape [input_dim, num_experts] to map from &#39;</span>
+        <span class="s1">&#39;input encoding to the expert dimension.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">SoftCondLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_experts</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># Create Variables for task weight mapping.</span>
+      <span class="n">w_p</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_experts</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>  <span class="c1"># TODO(huangyp): try zero init instead.</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_p</span><span class="p">)</span>
+      <span class="c1"># Prepends p.num_experts to the tensor shape of every variable created</span>
+      <span class="c1"># by p.body.</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_experts</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SoftCondLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SoftCondLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+      <span class="c1"># TODO(huangyp): generalize for inputs with arbitrary batch size.</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">per_example_emb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]),</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">task_w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ij-&gt;j&#39;</span><span class="p">,</span> <span class="n">per_example_emb</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">))</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;soft_cond_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scope</span><span class="p">),</span> <span class="n">task_w</span><span class="p">)</span>
+
+      <span class="c1"># Excludes non-variable extra_theta like global_step.</span>
+      <span class="n">var_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()])</span>
+      <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">var_set</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="c1"># Weighted average for all variables created in the body layer.</span>
+          <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i...-&gt;...&#39;</span><span class="p">,</span> <span class="n">task_w</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+      <span class="n">weighted_theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">weighted_theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ParallelRepeatLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ParallelRepeatLayer">[docs]</a><span class="k">class</span> <span class="nc">ParallelRepeatLayer</span><span class="p">(</span><span class="n">RepeatLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer that connects identical sublayers in parallel.</span>
+
+<span class="sd">  This layer consists of p.repeat copies of sub-layers, each of which</span>
+<span class="sd">  shares the same structure but with different weights. Conceptually it</span>
+<span class="sd">  computes:</span>
+
+<span class="sd">  output= [f(theta[i], input[i]) for i in range(p.repeat)]</span>
+
+<span class="sd">  where f is the fprop function of the sublayer, theta[i] and input[i] are</span>
+<span class="sd">  the weights and inputs of the i-th sublayer.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ParallelRepeatLayer._InferOutShapes"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ParallelRepeatLayer._InferOutShapes">[docs]</a>  <span class="k">def</span> <span class="nf">_InferOutShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">input_shapes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="kc">None</span> <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span>
+    <span class="p">]</span>
+    <span class="n">out_shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">input_shapes</span><span class="p">)</span><span class="o">.</span><span class="n">out_shapes</span>
+    <span class="k">return</span> <span class="p">[</span><span class="kc">None</span> <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">s</span><span class="o">.</span><span class="n">ToTensorShape</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">out_shapes</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ParallelRepeatLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ParallelRepeatLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs p.repeat copies of self.body.FProp independently.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: Layer model parameters. The shape of each variable in theta is</span>
+<span class="sd">        always [p.repeat, ...]. And the i-th slice theta[i] becomes theta of the</span>
+<span class="sd">        i-th copy of self.body.</span>
+<span class="sd">      *args: Input arguments. The shape of each tensor in args is always</span>
+<span class="sd">        [p.repeat, ....]. And the list [arg[i] for arg in args] becomes inputs</span>
+<span class="sd">        to the i-th copy of self.body.FProp.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The accumulated output_tenors. Each tensor t in the return has the shape</span>
+<span class="sd">      [p.repeat, ....] and the tuple (t[i] for i in output_tensors) is the</span>
+<span class="sd">      return tuple of the i-th self.body.FProp.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arg</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">],</span> <span class="n">ndims</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">theta_stack</span> <span class="o">=</span> <span class="n">_MaybeStackExtraTheta</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta_stack</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+    <span class="c1"># Infer out_shapes from FPropMeta.</span>
+    <span class="n">out_shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InferOutShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_CellFn</span><span class="p">(</span><span class="n">unused_theta</span><span class="p">,</span> <span class="n">unused_state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Recurrent cell function wrapper of body.FProp.&quot;&quot;&quot;</span>
+      <span class="c1"># Sets shapes for both theta and inputs to self.body.FProp.</span>
+      <span class="k">for</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">args</span> <span class="o">+</span> <span class="n">inputs</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+                          <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">+</span> <span class="n">theta_stack</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="n">src</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">dst</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]))</span>
+
+      <span class="c1"># Runs the actual body.FProp</span>
+      <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+      <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">out_shapes</span><span class="p">)</span>
+      <span class="c1"># Passes fprop outputs to the next layer through state.</span>
+      <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># Initiate state0 with inferred output shapes.</span>
+      <span class="n">state0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">outputs</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">out_shapes</span><span class="p">])</span>
+      <span class="c1"># Runs body.FProp p.repeat times using Recurrent.</span>
+      <span class="n">acc_states</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(),</span>
+          <span class="n">state0</span><span class="o">=</span><span class="n">state0</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+          <span class="n">cell_fn</span><span class="o">=</span><span class="n">_CellFn</span><span class="p">)</span>
+
+      <span class="c1"># Retrieves fprop outputs from state1 and sets shapes.</span>
+      <span class="n">output_tensors</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">acc_states</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">out_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_tensors</span><span class="p">)):</span>
+        <span class="n">output_tensors</span><span class="p">[</span><span class="n">out_idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">]</span> <span class="o">+</span> <span class="n">out_shapes</span><span class="p">[</span><span class="n">out_idx</span><span class="p">]</span><span class="o">.</span><span class="n">as_list</span><span class="p">()))</span>
+
+      <span class="k">return</span> <span class="n">output_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">output_tensors</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParallelRepeatLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ParallelRepeatLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">input_shapes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="kc">None</span> <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span>
+    <span class="p">]</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="o">*</span><span class="n">input_shapes</span><span class="p">)</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span><span class="p">)</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">flops</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat</span>
+    <span class="n">out_shapes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="kc">None</span> <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">]</span> <span class="o">+</span> <span class="n">s</span><span class="p">[:])</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">out_shapes</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="SequentialLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SequentialLayer">[docs]</a><span class="k">class</span> <span class="nc">SequentialLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer which connects a few layers in a sequence.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SequentialLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SequentialLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SequentialLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of layers</span><span class="se">\&#39;</span><span class="s1"> params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;repeat&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Repeat layers specified in </span><span class="se">\&#39;</span><span class="s1">sub</span><span class="se">\&#39;</span><span class="s1"> &#39;</span>
+             <span class="s1">&#39;this many times.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">SequentialLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">]))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># We create &#39;repeat&#39; number of sub layers. Each sub layer is a</span>
+        <span class="c1"># sequential layer specified by &#39;sub&#39;.  This allows us to name each</span>
+        <span class="c1"># repetition with a unique name.</span>
+        <span class="n">children</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
+          <span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rep&#39;</span><span class="p">,</span> <span class="n">children</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SequentialLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SequentialLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;layer </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="p">:</span>
+          <span class="n">th</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+          <span class="n">args</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;SequentialLayer: call </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                          <span class="n">ch</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+          <span class="n">args</span> <span class="o">=</span> <span class="n">ch</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">th</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">ch</span><span class="p">,</span> <span class="n">th</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rep</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">rep</span><span class="p">):</span>
+          <span class="n">args</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;  call </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ch</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span>
+                          <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+          <span class="n">args</span> <span class="o">=</span> <span class="n">ch</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">th</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+      <span class="n">args</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">args</span></div>
+
+<div class="viewcode-block" id="SequentialLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SequentialLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;  seq abs fprop </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+        <span class="n">meta</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span><span class="p">)</span>
+        <span class="n">total</span> <span class="o">+=</span> <span class="n">meta</span><span class="o">.</span><span class="n">flops</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">args</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="UnarySequentialLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.UnarySequentialLayer">[docs]</a><span class="k">class</span> <span class="nc">UnarySequentialLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer which connects a few layers in a sequence.</span>
+
+<span class="sd">  Each layer FProp must take a single input arg (besides theta) and its return</span>
+<span class="sd">  value will be used as the input for the next layer or as the final output</span>
+<span class="sd">  if it&#39;s the last layer.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="UnarySequentialLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.UnarySequentialLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">UnarySequentialLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of layers</span><span class="se">\&#39;</span><span class="s1"> params.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">UnarySequentialLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">]))</span>
+
+<div class="viewcode-block" id="UnarySequentialLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.UnarySequentialLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;layer </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="p">:</span>
+        <span class="n">th</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;  call </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ch</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">ch</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">th</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">x</span></div>
+
+<div class="viewcode-block" id="UnarySequentialLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.UnarySequentialLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;  seq abs fprop </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+      <span class="n">meta</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+      <span class="n">total</span> <span class="o">+=</span> <span class="n">meta</span><span class="o">.</span><span class="n">flops</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">x</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="GraphLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer">[docs]</a><span class="k">class</span> <span class="nc">GraphLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A layer that connects a few layers in a simple data flow graph.</span>
+
+<span class="sd">  Params.sub specifies a list of (signature, layer param) pairs for all the</span>
+<span class="sd">  sub-layers. &#39;Signature&#39; of a layer specifies the signature of the</span>
+<span class="sd">  corresponding layer&#39;s FProp function. It also names its input and output</span>
+<span class="sd">  tensors.  A &#39;signature&#39; is of the form &#39;x,b-&gt;c&#39;, where tensors on the left</span>
+<span class="sd">  side of &#39;-&gt;&#39; specifies the input to the layer and tensors to the right</span>
+<span class="sd">  specifies the output from the layer.  Note, the input to a layer has to be</span>
+<span class="sd">  produced before, either as input to the GraphLayer or as produced by some</span>
+<span class="sd">  previous layer. The output of a layer must be uniquely named, i.e. they can&#39;t</span>
+<span class="sd">  reuse names assigned previous layer output or the input to this GraphLayer.</span>
+
+<span class="sd">  The exact BNF form of a signature is as follows:</span>
+
+<span class="sd">    signature ::= [names] -&gt; [names]</span>
+<span class="sd">    names ::= [name](,[name])*</span>
+<span class="sd">    name ::= [A-Za-z][A-Za-z0-9\_]\*</span>
+
+<span class="sd">  Example</span>
+<span class="sd">    input: [&#39;a&#39;, &#39;b&#39;]</span>
+<span class="sd">    &#39;a-&gt;c&#39;, Fn(lambda x : tf.nn.relu(x))</span>
+<span class="sd">    &#39;c,b-&gt;d&#39;, Fn(lambda x, y : x + y)</span>
+
+<span class="sd">  The above example computes relu(a) + b</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GraphLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GraphLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_endpoints&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Names of the input tensors.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_endpoints&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Names of the output tensors.&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO(yonghui): Define a NamedTuple for this pair.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of (signature, layer params) pairs.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">GraphLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">signature</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">signature</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+          <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%02d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">signature</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
+          <span class="n">sub</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
+
+<div class="viewcode-block" id="GraphLayer.AddNamedTensor"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.AddNamedTensor">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">AddNamedTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add named tensors to &#39;named_tensors&#39;.&quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">n</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">named_tensors</span>
+    <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
+    <span class="k">return</span> <span class="n">named_tensors</span></div>
+
+<div class="viewcode-block" id="GraphLayer.ParseSignature"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.ParseSignature">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">ParseSignature</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse signature into input tensors and output tensors.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">))</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="n">i</span><span class="p">,</span> <span class="n">o</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">)</span>
+    <span class="n">i_tensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+    <span class="n">o_tensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">o</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+    <span class="k">assert</span> <span class="n">i_tensors</span>
+    <span class="k">assert</span> <span class="n">o_tensors</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i_tensors</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">x</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">o_tensors</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">i_tensors</span><span class="p">,</span> <span class="n">o_tensors</span></div>
+
+<div class="viewcode-block" id="GraphLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">named_tensors</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+        <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+
+      <span class="n">ch_out</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="p">):</span>
+        <span class="n">th</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">i_tensors</span><span class="p">,</span> <span class="n">o_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">ParseSignature</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">input_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">named_tensors</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i_tensors</span><span class="p">]</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;signature: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;GraphLayer: call </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ch</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">input_args</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_args</span><span class="p">))</span>
+        <span class="n">ch_out</span> <span class="o">=</span> <span class="n">ch</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">th</span><span class="p">,</span> <span class="o">*</span><span class="n">input_args</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+          <span class="n">ch_out</span> <span class="o">=</span> <span class="p">(</span><span class="n">ch_out</span><span class="p">,)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch_out</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">,</span> <span class="n">ch_out</span><span class="p">):</span>
+          <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+
+      <span class="n">layer_out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">named_tensors</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_out</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">layer_out</span> <span class="o">=</span> <span class="n">layer_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+      <span class="k">return</span> <span class="n">layer_out</span></div>
+
+<div class="viewcode-block" id="GraphLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">named_tensors</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+      <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+
+    <span class="n">ch_out</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">signature</span><span class="p">,</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
+      <span class="n">i_tensors</span><span class="p">,</span> <span class="n">o_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">ParseSignature</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
+      <span class="n">input_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">named_tensors</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i_tensors</span><span class="p">]</span>
+
+      <span class="n">meta</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="o">*</span><span class="n">input_args</span><span class="p">)</span>
+      <span class="n">total</span> <span class="o">+=</span> <span class="n">meta</span><span class="o">.</span><span class="n">flops</span>
+      <span class="n">ch_out</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch_out</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">,</span> <span class="n">ch_out</span><span class="p">):</span>
+        <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+
+    <span class="n">layer_out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">named_tensors</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">layer_out</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ParallelLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ParallelLayer">[docs]</a><span class="k">class</span> <span class="nc">ParallelLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer which connects a few layers in a parallel.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ParallelLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ParallelLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ParallelLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of layers</span><span class="se">\&#39;</span><span class="s1"> params. Each layer</span><span class="se">\&#39;</span><span class="s1">s &#39;</span>
+        <span class="s1">&#39;FProp must return one Tensor or a tuple of Tensors. &#39;</span>
+        <span class="s1">&#39;Their return values then can be merged according to the &#39;</span>
+        <span class="s1">&#39;merge method. &#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;merge&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Method to combine sub-layers</span><span class="se">\&#39;</span><span class="s1"> outputs.&#39;</span>
+        <span class="s1">&#39;It must be a callable list(tuple(tf.Tensor)) -&gt; tuple(tf.Tensor).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;merge_meta&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Callable to compute the meta of merge(). It &#39;</span>
+        <span class="s1">&#39;takes a list of tuples of TensorShape, and returns a NestedMap with &#39;</span>
+        <span class="s1">&#39;flops and out_shapes, etc.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ParallelLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">]))</span>
+
+<div class="viewcode-block" id="ParallelLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ParallelLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># Computes sub layers in parallel.</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="p">:</span>
+        <span class="n">th</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">ch</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">th</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+          <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">out</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">out</span><span class="p">,))</span>
+      <span class="n">rets</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">rets</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">rets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ParallelLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ParallelLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;  par abs fprop </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
+                      <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+      <span class="n">meta</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span><span class="p">)</span>
+      <span class="n">meta</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span>
+          <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;  par abs fprop </span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">),</span>
+                                                  <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">)))</span>
+      <span class="n">total</span> <span class="o">+=</span> <span class="n">meta</span><span class="o">.</span><span class="n">flops</span>
+      <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span><span class="p">)</span>
+
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">merge_meta</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span><span class="p">)</span>
+    <span class="n">meta</span><span class="o">.</span><span class="n">flops</span> <span class="o">+=</span> <span class="n">total</span>
+    <span class="k">return</span> <span class="n">meta</span></div></div>
+
+
+<div class="viewcode-block" id="MapLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.MapLayer">[docs]</a><span class="k">class</span> <span class="nc">MapLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer applies a lambda on every argument.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MapLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.MapLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MapLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fn&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A callable tensor-&gt;tensor.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fn_meta&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A callable shape-&gt;(flops, shape).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;kwargs&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">&#39;Keyword arguments to fn.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="MapLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.MapLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies lambda(x, \*kwargs) for every non-None arg.&quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">theta</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">fn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">p</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+      <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="MapLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.MapLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">flops</span><span class="p">,</span> <span class="n">rets</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">rets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">cost</span><span class="p">,</span> <span class="n">shape</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">fn_meta</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">shape</span><span class="p">,))</span>
+        <span class="n">flops</span> <span class="o">+=</span> <span class="n">cost</span>
+        <span class="n">rets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">rets</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="LinearLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.LinearLayer">[docs]</a><span class="k">class</span> <span class="nc">LinearLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Linear layer.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LinearLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.LinearLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LinearLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dims&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dims&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the output.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">LinearLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;w&#39;</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+              <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dims</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dims</span><span class="p">],</span>
+              <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+              <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+              <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span>
+
+<div class="viewcode-block" id="LinearLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.LinearLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply projection to inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      inputs: The inputs tensor.  Shaped [..., input_dims].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Projected inputs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">computation_cost</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span>
+          <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;flops&#39;</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reduce_prod</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">to_int64</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int64</span><span class="p">(</span>
+              <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">TENSOR_VALUES</span><span class="p">,</span>
+                                <span class="n">p</span><span class="o">.</span><span class="n">input_dims</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dims</span><span class="p">))</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="n">use_tpu</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">use_tpu</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">26</span><span class="p">:</span>
+        <span class="c1"># Avoids reshape if feasible and uses Einsum.</span>
+        <span class="k">if</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">97</span><span class="p">,</span> <span class="mi">123</span><span class="p">)])</span>  <span class="c1"># abc...xyz</span>
+          <span class="n">r</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">y,yz-&gt;</span><span class="si">{0}</span><span class="s1">z&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[:</span><span class="n">r</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+
+      <span class="n">input_dim</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">act</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">]),</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+      <span class="n">output_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">act</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">act</span><span class="p">,</span>
+                       <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">output_dim</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">act</span></div>
+
+<div class="viewcode-block" id="LinearLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.LinearLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dims</span> <span class="o">==</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># c_{ij} += x_{ik} * y_{kj} are considered 2 flops.</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">flops</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dims</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">output_dims</span><span class="p">],))</span></div></div>
+
+
+<div class="viewcode-block" id="BiasLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BiasLayer">[docs]</a><span class="k">class</span> <span class="nc">BiasLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Bias layer.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BiasLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BiasLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BiasLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dims&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BiasLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;b&#39;</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+              <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dims</span><span class="p">],</span>
+              <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+              <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+              <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span>
+
+<div class="viewcode-block" id="BiasLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BiasLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds bias to inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      inputs: The inputs tensor.  Shaped [..., dims].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Inputs plus bias.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span></div>
+
+<div class="viewcode-block" id="BiasLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BiasLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
+    <span class="k">assert</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">dims</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,))</span></div></div>
+
+
+<div class="viewcode-block" id="BranchLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BranchLayer">[docs]</a><span class="k">class</span> <span class="nc">BranchLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer to help constructing a network structure with multiple outputs.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BranchLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BranchLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BranchLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The param for the main network layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;fetches&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Fetch points within the body layer. Each fetch &#39;</span>
+        <span class="s1">&#39;layers</span><span class="se">\&#39;</span><span class="s1"> activation is appended to the output of body.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BranchLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BranchLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BranchLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">args</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">))</span>
+      <span class="k">for</span> <span class="n">fetch</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">fetches</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">GetDescendant</span><span class="p">(</span><span class="n">fetch</span><span class="p">)</span><span class="o">.</span><span class="n">activation</span><span class="p">,)</span>
+      <span class="k">return</span> <span class="n">args</span></div></div>
+
+
+<div class="viewcode-block" id="BatchParallelLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BatchParallelLayer">[docs]</a><span class="k">class</span> <span class="nc">BatchParallelLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer splits the batch and compute the FProp on multiple devices.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BatchParallelLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BatchParallelLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BatchParallelLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A layer param.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BatchParallelLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BatchParallelLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BatchParallelLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;FProp through multiple devices in the split.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      *args: A tuple of Tensors (one or more). Every tensor&#39;s first dimension is</span>
+<span class="sd">        the same (the batch dimension).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The sub layer&#39;s output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">args</span><span class="p">)</span>
+      <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
+      <span class="n">num</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span>
+      <span class="k">if</span> <span class="n">num</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">sub</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+      <span class="n">inps</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SplitRecursively</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="n">num</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">outs</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">xs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">inps</span><span class="p">):</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> on device </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+          <span class="n">ys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">sub</span><span class="p">,</span> <span class="o">*</span><span class="n">xs</span><span class="p">)</span>
+          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">outs</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">ys</span><span class="p">)]</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">outs</span> <span class="o">+=</span> <span class="p">[</span><span class="n">ys</span><span class="p">]</span>  <span class="c1"># ys is a single tensor</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ConcatRecursively</span><span class="p">(</span><span class="n">outs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ret</span>  <span class="c1"># ys is a single tensor</span></div></div>
+
+
+<div class="viewcode-block" id="FnLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.FnLayer">[docs]</a><span class="k">class</span> <span class="nc">FnLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer applies a function on a tuple of tensors.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FnLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.FnLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FnLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fn&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A lambda tuple(Tensor) -&gt; tuple(Tensor) &#39;</span>
+             <span class="s1">&#39;or a single Tensor.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;fn_meta&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Callable to compute the meta of fn(). It &#39;</span>
+        <span class="s1">&#39;takes a tuple of TensorShape, and returns a NestedMap with &#39;</span>
+        <span class="s1">&#39;flops and out_shapes, etc.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="FnLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.FnLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Applies a function (p.fn) on args.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: Unused.</span>
+<span class="sd">      *args: A tuple of Tensors (one or more).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      fn(\*args).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FnLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.FnLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">fn_meta</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">meta</span></div></div>
+
+
+<div class="viewcode-block" id="RematerializationLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.RematerializationLayer">[docs]</a><span class="k">class</span> <span class="nc">RematerializationLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A wrapper layer with rematerialization.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RematerializationLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.RematerializationLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RematerializationLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;The main layer whose FProp will be wrapped by RematerializeFn.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">RematerializationLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RematerializationLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.RematerializationLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">xs</span><span class="p">):</span>
+    <span class="n">input_list</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+    <span class="n">theta_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_list</span><span class="p">)</span>
+    <span class="n">input_list</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+    <span class="n">input_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">Fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="n">body_theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">[:</span><span class="n">theta_len</span><span class="p">])</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">body_theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="n">theta_len</span><span class="p">:</span><span class="n">input_len</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">RematerializeFn</span><span class="p">(</span><span class="n">Fn</span><span class="p">,</span> <span class="o">*</span><span class="n">input_list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RematerializationLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.RematerializationLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="PrintShapeLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.PrintShapeLayer">[docs]</a><span class="k">class</span> <span class="nc">PrintShapeLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer prints debug information.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PrintShapeLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.PrintShapeLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">name_scope</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">arg</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+              <span class="s1">&#39;FProp non-Tensor input in </span><span class="si">{}</span><span class="s1">: arg_</span><span class="si">{}</span><span class="s1"> arg = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                  <span class="n">name_scope</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">arg</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+              <span class="s1">&#39;FProp inputs in </span><span class="si">{}</span><span class="s1">: arg_</span><span class="si">{}</span><span class="s1"> shape = </span><span class="si">{}</span><span class="s1"> dtype = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                  <span class="n">name_scope</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">arg</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">arg</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">args</span></div>
+
+<div class="viewcode-block" id="PrintShapeLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.PrintShapeLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">args</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

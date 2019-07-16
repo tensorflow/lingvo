@@ -1,0 +1,1480 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.builder_layers module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.cluster module" href="lingvo.core.cluster.html" />
+    <link rel="prev" title="lingvo.core.build_data module" href="lingvo.core.build_data.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.builder_layers module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.builder_layers.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.builder_layers">
+<span id="lingvo-core-builder-layers-module"></span><h1>lingvo.core.builder_layers module<a class="headerlink" href="#module-lingvo.core.builder_layers" title="Permalink to this headline">¶</a></h1>
+<p>Abstractions for composing layers.</p>
+<dl class="class">
+<dt id="lingvo.core.builder_layers.FirstNLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">FirstNLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#FirstNLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.FirstNLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Returns the first n args.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.FirstNLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#FirstNLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.FirstNLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.FirstNLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#FirstNLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.FirstNLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the first n args.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.FirstNLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#FirstNLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.FirstNLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.FirstNLayer.FProp" title="lingvo.core.builder_layers.FirstNLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.FirstNLayer.FProp" title="lingvo.core.builder_layers.FirstNLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.ArgIndexLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">ArgIndexLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#ArgIndexLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.ArgIndexLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Select args with a list of indices.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.ArgIndexLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#ArgIndexLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.ArgIndexLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.ArgIndexLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#ArgIndexLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.ArgIndexLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the indexed args.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.builder_layers._ToTuple">
+<code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">_ToTuple</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#_ToTuple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers._ToTuple" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.builder_layers._MaybeStackExtraTheta">
+<code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">_MaybeStackExtraTheta</code><span class="sig-paren">(</span><em>theta</em>, <em>all_vars</em>, <em>repeat</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#_MaybeStackExtraTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers._MaybeStackExtraTheta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.RepeatLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">RepeatLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#RepeatLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.RepeatLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer which repeats itself sequentially using lingvo Recurrent.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.RepeatLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#RepeatLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.RepeatLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.RepeatLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#RepeatLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.RepeatLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.builder_layers.RepeatLayer.FProp" title="lingvo.core.builder_layers.RepeatLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.builder_layers.RepeatLayer.FProp" title="lingvo.core.builder_layers.RepeatLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.RepeatLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#RepeatLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.RepeatLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.RepeatLayer.FProp" title="lingvo.core.builder_layers.RepeatLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.RepeatLayer.FProp" title="lingvo.core.builder_layers.RepeatLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.SoftCondLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">SoftCondLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SoftCondLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SoftCondLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A wrapper layer implements soft condition computation.</p>
+<p>This layer computes</p>
+<p>output = p.body.FProp( sum_i w_i theta_i, *inputs)</p>
+<p>where the theta passed to p.body is the weighted average over p.num_experts
+copies of theta.body, and w_i is the example-dependent coefficient for the
+i-th expert (theta_i).</p>
+<p>Reference:
+Soft Conditional Computation, B. Yang, G. Bender, Q.V. Le, J. Ngiam
+<a class="reference external" href="https://arxiv.org/abs/1904.04971">https://arxiv.org/abs/1904.04971</a></p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.SoftCondLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SoftCondLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SoftCondLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.SoftCondLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SoftCondLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SoftCondLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.builder_layers.SoftCondLayer.FProp" title="lingvo.core.builder_layers.SoftCondLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.builder_layers.SoftCondLayer.FProp" title="lingvo.core.builder_layers.SoftCondLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.ParallelRepeatLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">ParallelRepeatLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#ParallelRepeatLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.ParallelRepeatLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.builder_layers.RepeatLayer" title="lingvo.core.builder_layers.RepeatLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.builder_layers.RepeatLayer</span></code></a></p>
+<p>A layer that connects identical sublayers in parallel.</p>
+<p>This layer consists of p.repeat copies of sub-layers, each of which
+shares the same structure but with different weights. Conceptually it
+computes:</p>
+<p>output= [f(theta[i], input[i]) for i in range(p.repeat)]</p>
+<p>where f is the fprop function of the sublayer, theta[i] and input[i] are
+the weights and inputs of the i-th sublayer.</p>
+<dl class="method">
+<dt id="lingvo.core.builder_layers.ParallelRepeatLayer._InferOutShapes">
+<code class="descname">_InferOutShapes</code><span class="sig-paren">(</span><em>args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#ParallelRepeatLayer._InferOutShapes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.ParallelRepeatLayer._InferOutShapes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.ParallelRepeatLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#ParallelRepeatLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.ParallelRepeatLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs p.repeat copies of self.body.FProp independently.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – Layer model parameters. The shape of each variable in theta is
+always [p.repeat, …]. And the i-th slice theta[i] becomes theta of the
+i-th copy of self.body.</li>
+<li><strong>*args</strong> – Input arguments. The shape of each tensor in args is always
+[p.repeat, ….]. And the list [arg[i] for arg in args] becomes inputs
+to the i-th copy of self.body.FProp.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The accumulated output_tenors. Each tensor t in the return has the shape
+[p.repeat, ….] and the tuple (t[i] for i in output_tensors) is the
+return tuple of the i-th self.body.FProp.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.ParallelRepeatLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#ParallelRepeatLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.ParallelRepeatLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.ParallelRepeatLayer.FProp" title="lingvo.core.builder_layers.ParallelRepeatLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.ParallelRepeatLayer.FProp" title="lingvo.core.builder_layers.ParallelRepeatLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.SequentialLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">SequentialLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SequentialLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SequentialLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer which connects a few layers in a sequence.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.SequentialLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SequentialLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SequentialLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.SequentialLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SequentialLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SequentialLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.builder_layers.SequentialLayer.FProp" title="lingvo.core.builder_layers.SequentialLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.builder_layers.SequentialLayer.FProp" title="lingvo.core.builder_layers.SequentialLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.SequentialLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SequentialLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SequentialLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.SequentialLayer.FProp" title="lingvo.core.builder_layers.SequentialLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.SequentialLayer.FProp" title="lingvo.core.builder_layers.SequentialLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.UnarySequentialLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">UnarySequentialLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#UnarySequentialLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.UnarySequentialLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer which connects a few layers in a sequence.</p>
+<p>Each layer FProp must take a single input arg (besides theta) and its return
+value will be used as the input for the next layer or as the final output
+if it’s the last layer.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.UnarySequentialLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#UnarySequentialLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.UnarySequentialLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.UnarySequentialLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#UnarySequentialLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.UnarySequentialLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.builder_layers.UnarySequentialLayer.FProp" title="lingvo.core.builder_layers.UnarySequentialLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.builder_layers.UnarySequentialLayer.FProp" title="lingvo.core.builder_layers.UnarySequentialLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.UnarySequentialLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#UnarySequentialLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.UnarySequentialLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.UnarySequentialLayer.FProp" title="lingvo.core.builder_layers.UnarySequentialLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.UnarySequentialLayer.FProp" title="lingvo.core.builder_layers.UnarySequentialLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.GraphLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">GraphLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer that connects a few layers in a simple data flow graph.</p>
+<p>Params.sub specifies a list of (signature, layer param) pairs for all the
+sub-layers. ‘Signature’ of a layer specifies the signature of the
+corresponding layer’s FProp function. It also names its input and output
+tensors.  A ‘signature’ is of the form ‘x,b-&gt;c’, where tensors on the left
+side of ‘-&gt;’ specifies the input to the layer and tensors to the right
+specifies the output from the layer.  Note, the input to a layer has to be
+produced before, either as input to the GraphLayer or as produced by some
+previous layer. The output of a layer must be uniquely named, i.e. they can’t
+reuse names assigned previous layer output or the input to this GraphLayer.</p>
+<p>The exact BNF form of a signature is as follows:</p>
+<blockquote>
+<div>signature ::= [names] -&gt; [names]
+names ::= [name](,[name])*
+name ::= [A-Za-z][A-Za-z0-9_]*</div></blockquote>
+<dl class="docutils">
+<dt>Example</dt>
+<dd>input: [‘a’, ‘b’]
+‘a-&gt;c’, Fn(lambda x : tf.nn.relu(x))
+‘c,b-&gt;d’, Fn(lambda x, y : x + y)</dd>
+</dl>
+<p>The above example computes relu(a) + b</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.GraphLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.core.builder_layers.GraphLayer.AddNamedTensor">
+<em class="property">static </em><code class="descname">AddNamedTensor</code><span class="sig-paren">(</span><em>n</em>, <em>t</em>, <em>named_tensors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.AddNamedTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.AddNamedTensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add named tensors to ‘named_tensors’.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.core.builder_layers.GraphLayer.ParseSignature">
+<em class="property">static </em><code class="descname">ParseSignature</code><span class="sig-paren">(</span><em>s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.ParseSignature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.ParseSignature" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse signature into input tensors and output tensors.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.builder_layers.GraphLayer.FProp" title="lingvo.core.builder_layers.GraphLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.builder_layers.GraphLayer.FProp" title="lingvo.core.builder_layers.GraphLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.GraphLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.GraphLayer.FProp" title="lingvo.core.builder_layers.GraphLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.GraphLayer.FProp" title="lingvo.core.builder_layers.GraphLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.ParallelLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">ParallelLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#ParallelLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.ParallelLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer which connects a few layers in a parallel.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.ParallelLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#ParallelLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.ParallelLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.ParallelLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#ParallelLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.ParallelLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.builder_layers.ParallelLayer.FProp" title="lingvo.core.builder_layers.ParallelLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.builder_layers.ParallelLayer.FProp" title="lingvo.core.builder_layers.ParallelLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.ParallelLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#ParallelLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.ParallelLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.ParallelLayer.FProp" title="lingvo.core.builder_layers.ParallelLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.ParallelLayer.FProp" title="lingvo.core.builder_layers.ParallelLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.MapLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">MapLayer</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#MapLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.MapLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer applies a lambda on every argument.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.MapLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#MapLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.MapLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.MapLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#MapLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.MapLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies lambda(x, *kwargs) for every non-None arg.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.MapLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#MapLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.MapLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.MapLayer.FProp" title="lingvo.core.builder_layers.MapLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.MapLayer.FProp" title="lingvo.core.builder_layers.MapLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.LinearLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">LinearLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#LinearLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.LinearLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Linear layer.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.LinearLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#LinearLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.LinearLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.LinearLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#LinearLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.LinearLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply projection to inputs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>inputs</strong> – The inputs tensor.  Shaped […, input_dims].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Projected inputs.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.LinearLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#LinearLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.LinearLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.LinearLayer.FProp" title="lingvo.core.builder_layers.LinearLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.LinearLayer.FProp" title="lingvo.core.builder_layers.LinearLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.BiasLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">BiasLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#BiasLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.BiasLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Bias layer.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.BiasLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#BiasLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.BiasLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.BiasLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#BiasLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.BiasLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds bias to inputs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>inputs</strong> – The inputs tensor.  Shaped […, dims].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Inputs plus bias.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.BiasLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#BiasLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.BiasLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.BiasLayer.FProp" title="lingvo.core.builder_layers.BiasLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.BiasLayer.FProp" title="lingvo.core.builder_layers.BiasLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.BranchLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">BranchLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#BranchLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.BranchLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer to help constructing a network structure with multiple outputs.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.BranchLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#BranchLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.BranchLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.BranchLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#BranchLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.BranchLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.builder_layers.BranchLayer.FProp" title="lingvo.core.builder_layers.BranchLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.builder_layers.BranchLayer.FProp" title="lingvo.core.builder_layers.BranchLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.BatchParallelLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">BatchParallelLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#BatchParallelLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.BatchParallelLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer splits the batch and compute the FProp on multiple devices.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.BatchParallelLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#BatchParallelLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.BatchParallelLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.BatchParallelLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#BatchParallelLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.BatchParallelLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>FProp through multiple devices in the split.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>*args</strong> – A tuple of Tensors (one or more). Every tensor’s first dimension is
+the same (the batch dimension).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The sub layer’s output.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.FnLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">FnLayer</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#FnLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.FnLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer applies a function on a tuple of tensors.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.FnLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#FnLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.FnLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.FnLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#FnLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.FnLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a function (p.fn) on args.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – Unused.</li>
+<li><strong>*args</strong> – A tuple of Tensors (one or more).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">fn(*args).</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.FnLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#FnLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.FnLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.FnLayer.FProp" title="lingvo.core.builder_layers.FnLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.FnLayer.FProp" title="lingvo.core.builder_layers.FnLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.RematerializationLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">RematerializationLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#RematerializationLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.RematerializationLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A wrapper layer with rematerialization.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.RematerializationLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#RematerializationLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.RematerializationLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.RematerializationLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*xs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#RematerializationLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.RematerializationLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.builder_layers.RematerializationLayer.FProp" title="lingvo.core.builder_layers.RematerializationLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.builder_layers.RematerializationLayer.FProp" title="lingvo.core.builder_layers.RematerializationLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.RematerializationLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#RematerializationLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.RematerializationLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.RematerializationLayer.FProp" title="lingvo.core.builder_layers.RematerializationLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.RematerializationLayer.FProp" title="lingvo.core.builder_layers.RematerializationLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.PrintShapeLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">PrintShapeLayer</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#PrintShapeLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.PrintShapeLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer prints debug information.</p>
+<dl class="method">
+<dt id="lingvo.core.builder_layers.PrintShapeLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#PrintShapeLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.PrintShapeLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.builder_layers.PrintShapeLayer.FProp" title="lingvo.core.builder_layers.PrintShapeLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.builder_layers.PrintShapeLayer.FProp" title="lingvo.core.builder_layers.PrintShapeLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.builder_layers.PrintShapeLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#PrintShapeLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.PrintShapeLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.builder_layers.PrintShapeLayer.FProp" title="lingvo.core.builder_layers.PrintShapeLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.builder_layers.PrintShapeLayer.FProp" title="lingvo.core.builder_layers.PrintShapeLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.cluster.html" class="btn btn-neutral float-right" title="lingvo.core.cluster module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.build_data.html" class="btn btn-neutral float-left" title="lingvo.core.build_data module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
