@@ -268,6 +268,37 @@ py_library(
 )
 
 py_library(
+    name = "builder_layers",
+    srcs = ["builder_layers.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":base_layer",
+        ":computation_cost",
+        ":py_utils",
+        ":recurrent",
+        ":summary_utils",
+        ":symbolic",
+        ":tshape",
+        "//lingvo:compat",
+        # Implicit six dependency.
+    ],
+)
+
+py_test(
+    name = "builder_layers_test",
+    srcs = ["builder_layers_test.py"],
+    deps = [
+        ":builder_layers",
+        ":layers",
+        ":py_utils",
+        ":test_utils",
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+    ],
+)
+
+py_library(
     name = "cluster",
     srcs = ["cluster.py"],
     srcs_version = "PY2AND3",
