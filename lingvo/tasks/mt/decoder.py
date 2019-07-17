@@ -730,6 +730,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         atten_probs=atten_probs)
 
     return initial_results, py_utils.NestedMap({
+        'time_step': tf.constant(0),
         'rnn_states': rnn_states,
         'atten_context': init_atten_context,
         'atten_probs': atten_probs,
@@ -792,6 +793,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         'log_probs': log_probs,
     })
     new_states = py_utils.NestedMap({
+        'time_step': states.time_step + 1,
         'rnn_states': rnn_states,
         'atten_context': atten_context,
         'atten_probs': atten_probs,  # the updated attention probs
