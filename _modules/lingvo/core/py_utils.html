@@ -143,7 +143,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.py_utils</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Lint as: python2, python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -3269,6 +3270,84 @@
     <span class="sd">&quot;&quot;&quot;Exits the serial execution context.&quot;&quot;&quot;</span>
     <span class="c1"># Restores the Graph&#39;s op creation routine.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">create_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_op</span>
+
+
+<span class="k">def</span> <span class="nf">SoftmaxCrossEntropyFocalLoss</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span>
+                                 <span class="n">label_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">label_probs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">alpha</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">gamma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sa">u</span><span class="sd">&quot;&quot;&quot;Focal loss for multinomial (softmax) logistic loss.</span>
+
+<span class="sd">  [1] Focal loss https://arxiv.org/abs/1708.02002</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    logits: [..., C]. Logits for the multinomial logistic regression. C is the</span>
+<span class="sd">      number of classes.</span>
+<span class="sd">    label_ids: [...]. Each entry in labels must be an index in [0, C).</span>
+<span class="sd">    label_probs: [..., C]. Each vector along last dimension must be a valid</span>
+<span class="sd">      probability distribution.</span>
+<span class="sd">    alpha: [C]. The weighting factor alpha. Eq (3) in [1].</span>
+<span class="sd">    gamma: []. Tunable focusing parameter. Eq (4) in [1].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    loss[i..., j] = FL(pₜ) = - αₜ(1-pₜ)ˠlog(pₜ) Eq (5) in [1].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">label_probs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">label_probs</span> <span class="o">*</span> <span class="n">log_probs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">gamma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">gamma</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_probs</span><span class="p">)</span>
+      <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">probs</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">alpha</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span>
+                           <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sparse_softmax_cross_entropy_with_logits</span><span class="p">(</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">label_ids</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">gamma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">gamma</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">loss</span><span class="p">)</span>
+      <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">probs</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">label_ids</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">loss</span>
+
+
+<span class="k">def</span> <span class="nf">SigmoidCrossEntropyFocalLoss</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sa">u</span><span class="sd">&quot;&quot;&quot;Focal loss for binary (sigmoid) logistic loss.</span>
+
+<span class="sd">  [1] Focal loss https://arxiv.org/abs/1708.02002</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    logits: [..., C]. Logits for the sigmoid logistic regression.</span>
+<span class="sd">    labels: [..., C]. 0/1 labels.</span>
+<span class="sd">    alpha: The weighting factor alpha. Eq (3) in [1].</span>
+<span class="sd">    gamma: Tunable focusing parameter. Eq (4) in [1].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    loss[i..., j] = FL(pₜ) = - αₜ(1-pₜ)ˠlog(pₜ) Eq (5) in [1].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="c1"># [1] Eq (4).</span>
+  <span class="c1">#</span>
+  <span class="c1"># The numerically-stable way to compute</span>
+  <span class="c1">#  log(p) for positives;</span>
+  <span class="c1">#  log(1 - p) for negatives.</span>
+  <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid_cross_entropy_with_logits</span><span class="p">(</span><span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">gamma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">gamma</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="c1"># The modulating factor. Note that</span>
+    <span class="c1"># (1 - p)ˠ = [1 - σ(x)]ˠ = [σ(-x)]ˠ, for positives.</span>
+    <span class="c1"># pˠ = [σ(x)]ˠ, for negatives.</span>
+    <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">labels</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)),</span> <span class="n">gamma</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># [1] Eq (3)</span>
+    <span class="n">loss</span> <span class="o">*=</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">labels</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">labels</span><span class="p">))</span>
+
+  <span class="k">return</span> <span class="n">loss</span>
 </pre></div>
 
            </div>

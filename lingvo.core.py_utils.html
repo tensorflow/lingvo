@@ -2000,6 +2000,57 @@ Otherwise, these ops produce inconsistent values between FProp and BProp.</p>
 <p>The resulting graph guarantees that x is computed before y.</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.py_utils.SoftmaxCrossEntropyFocalLoss">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">SoftmaxCrossEntropyFocalLoss</code><span class="sig-paren">(</span><em>logits</em>, <em>label_ids=None</em>, <em>label_probs=None</em>, <em>alpha=None</em>, <em>gamma=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SoftmaxCrossEntropyFocalLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SoftmaxCrossEntropyFocalLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Focal loss for multinomial (softmax) logistic loss.</p>
+<p>[1] Focal loss <a class="reference external" href="https://arxiv.org/abs/1708.02002">https://arxiv.org/abs/1708.02002</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>logits</strong> – […, C]. Logits for the multinomial logistic regression. C is the
+number of classes.</li>
+<li><strong>label_ids</strong> – […]. Each entry in labels must be an index in [0, C).</li>
+<li><strong>label_probs</strong> – […, C]. Each vector along last dimension must be a valid
+probability distribution.</li>
+<li><strong>alpha</strong> – [C]. The weighting factor alpha. Eq (3) in [1].</li>
+<li><strong>gamma</strong> – []. Tunable focusing parameter. Eq (4) in [1].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">loss[i…, j] = FL(pₜ) = - αₜ(1-pₜ)ˠlog(pₜ) Eq (5) in [1].</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.SigmoidCrossEntropyFocalLoss">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">SigmoidCrossEntropyFocalLoss</code><span class="sig-paren">(</span><em>logits</em>, <em>labels</em>, <em>alpha=None</em>, <em>gamma=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SigmoidCrossEntropyFocalLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SigmoidCrossEntropyFocalLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Focal loss for binary (sigmoid) logistic loss.</p>
+<p>[1] Focal loss <a class="reference external" href="https://arxiv.org/abs/1708.02002">https://arxiv.org/abs/1708.02002</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>logits</strong> – […, C]. Logits for the sigmoid logistic regression.</li>
+<li><strong>labels</strong> – […, C]. 0/1 labels.</li>
+<li><strong>alpha</strong> – The weighting factor alpha. Eq (3) in [1].</li>
+<li><strong>gamma</strong> – Tunable focusing parameter. Eq (4) in [1].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">loss[i…, j] = FL(pₜ) = - αₜ(1-pₜ)ˠlog(pₜ) Eq (5) in [1].</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 
 
