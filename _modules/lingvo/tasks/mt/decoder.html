@@ -875,6 +875,7 @@
         <span class="n">atten_probs</span><span class="o">=</span><span class="n">atten_probs</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">initial_results</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;time_step&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
         <span class="s1">&#39;rnn_states&#39;</span><span class="p">:</span> <span class="n">rnn_states</span><span class="p">,</span>
         <span class="s1">&#39;atten_context&#39;</span><span class="p">:</span> <span class="n">init_atten_context</span><span class="p">,</span>
         <span class="s1">&#39;atten_probs&#39;</span><span class="p">:</span> <span class="n">atten_probs</span><span class="p">,</span>
@@ -937,6 +938,7 @@
         <span class="s1">&#39;log_probs&#39;</span><span class="p">:</span> <span class="n">log_probs</span><span class="p">,</span>
     <span class="p">})</span>
     <span class="n">new_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;time_step&#39;</span><span class="p">:</span> <span class="n">states</span><span class="o">.</span><span class="n">time_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
         <span class="s1">&#39;rnn_states&#39;</span><span class="p">:</span> <span class="n">rnn_states</span><span class="p">,</span>
         <span class="s1">&#39;atten_context&#39;</span><span class="p">:</span> <span class="n">atten_context</span><span class="p">,</span>
         <span class="s1">&#39;atten_probs&#39;</span><span class="p">:</span> <span class="n">atten_probs</span><span class="p">,</span>  <span class="c1"># the updated attention probs</span>
