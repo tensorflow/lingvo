@@ -1938,5 +1938,115 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessFunctionalFor))
 
 
+class FocalLossTest(tf.test.TestCase):
+
+  def _testNpFL(self, logits, labels, alpha, gamma):
+    self.assertEqual(logits.shape, labels.shape)
+    shape = labels.shape
+    logits = logits.reshape([-1])
+    labels = labels.reshape([-1])
+
+    def _Sigmoid(x):
+      return 1.0 / (1.0 + np.exp(-x))
+
+    def _CrossEntropy(prob, label):
+      if label > 0:
+        return -np.log(prob)
+      else:
+        return -np.log(1 - prob)
+
+    probabilities = _Sigmoid(logits)
+    ans = np.empty(probabilities.shape)
+    for i, (l, p) in enumerate(zip(labels, probabilities)):
+      ce = _CrossEntropy(p, l)
+      pt = (l * p) + ((1 - l) * (1 - p))
+      if alpha is not None:
+        ce *= (l * alpha) + ((1 - l) * (1 - alpha))
+      if gamma is not None:
+        ce *= np.power(1 - pt, gamma)
+      ans[i] = ce
+    return ans.reshape(shape)
+
+  def _testTfFL(self, logits, labels, alpha, gamma):
+    g = tf.Graph()
+    with g.as_default():
+      x = tf.placeholder(tf.float32)
+      y = tf.placeholder(tf.float32)
+      z = py_utils.SigmoidCrossEntropyFocalLoss(x, y, alpha, gamma)
+    with self.session(graph=g) as sess:
+      return sess.run(z, feed_dict={x: logits, y: labels})
+
+  def testSigmoidCrossEntropyFocalLoss(self):
+    logits = np.random.normal(scale=10, size=(2, 3, 5))
+    labels = np.floor(np.random.uniform(size=(2, 3, 5)) + 0.2)
+    for (alpha, gamma) in [(None, None), (0.25, 2), (0.1, 0), (1, 5)]:
+      np_result = self._testNpFL(logits, labels, alpha, gamma)
+      tf_lingvo_result = self._testTfFL(logits, labels, alpha, gamma)
+      self.assertAllClose(np_result, tf_lingvo_result)
+
+  def _testNpSCEFL(self, logits, labels, alpha, gamma):
+    probs = np.exp(logits - np.max(logits, axis=-1, keepdims=True))
+    probs = probs / np.sum(probs, axis=-1, keepdims=True)
+
+    shape = probs.shape[:-1]
+    probs = probs.reshape([-1, probs.shape[-1]])
+    ans = np.empty(probs.shape[:-1])
+
+    if labels.shape != logits.shape:
+      # convert labels to class probabilities
+      label_probs = np.zeros(probs.shape)
+      label_probs[np.arange(labels.size), labels.reshape([-1])] = 1.0
+    else:
+      label_probs = labels.reshape([-1, labels.shape[-1]])
+    for i, (lp, p) in enumerate(zip(label_probs, probs)):
+      ce = lp * -np.log(p)
+      if alpha is not None:
+        ce *= alpha
+      if gamma is not None:
+        ce *= np.power(1 - p, gamma)
+      ans[i] = ce.sum()
+    ans = ans.reshape(shape)
+    return ans
+
+  def _testTfSCEFLLabelIds(self, logits, labels, alpha, gamma):
+    g = tf.Graph()
+    with g.as_default():
+      x = tf.placeholder(tf.float32)
+      y = tf.placeholder(tf.int32)
+      z = py_utils.SoftmaxCrossEntropyFocalLoss(
+          x, label_ids=y, alpha=alpha, gamma=gamma)
+    with self.session(graph=g) as sess:
+      return sess.run(z, feed_dict={x: logits, y: labels})
+
+  def _testTfSCEFLLabelProbs(self, logits, labels, alpha, gamma):
+    g = tf.Graph()
+    with g.as_default():
+      x = tf.placeholder(tf.float32)
+      y = tf.placeholder(tf.float32)
+      z = py_utils.SoftmaxCrossEntropyFocalLoss(
+          x, label_probs=y, alpha=alpha, gamma=gamma)
+    with self.session(graph=g) as sess:
+      return sess.run(z, feed_dict={x: logits, y: labels})
+
+  def testSoftmaxCrossEntropyFocalLoss(self):
+    num_classes = 7
+    logits = np.random.normal(scale=10, size=(2, 3, 5, num_classes))
+    label_ids = np.random.randint(num_classes, size=(2, 3, 5))
+    label_probs = np.random.uniform(size=(2, 3, 5, num_classes))
+    label_probs /= label_probs.sum(axis=-1, keepdims=True)
+    for (alpha, gamma) in [
+        (None, None),
+        (np.random.uniform(size=[num_classes]).astype(np.float32), 2),
+        (np.random.uniform(size=[num_classes]).astype(np.float32), 0),
+        (np.random.uniform(size=[num_classes]).astype(np.float32), 5)
+    ]:
+      self.assertAllClose(
+          self._testNpSCEFL(logits, label_ids, alpha, gamma),
+          self._testTfSCEFLLabelIds(logits, label_ids, alpha, gamma))
+      self.assertAllClose(
+          self._testNpSCEFL(logits, label_probs, alpha, gamma),
+          self._testTfSCEFLLabelProbs(logits, label_probs, alpha, gamma))
+
+
 if __name__ == '__main__':
   tf.test.main()

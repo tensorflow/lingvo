@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
@@ -3124,3 +3125,81 @@ class ForceSerialExecution(object):
     """Exits the serial execution context."""
     # Restores the Graph's op creation routine.
     self._graph.create_op = self._create_op
+
+
+def SoftmaxCrossEntropyFocalLoss(logits,
+                                 label_ids=None,
+                                 label_probs=None,
+                                 alpha=None,
+                                 gamma=None):
+  u"""Focal loss for multinomial (softmax) logistic loss.
+
+  [1] Focal loss https://arxiv.org/abs/1708.02002
+
+  Args:
+    logits: [..., C]. Logits for the multinomial logistic regression. C is the
+      number of classes.
+    label_ids: [...]. Each entry in labels must be an index in [0, C).
+    label_probs: [..., C]. Each vector along last dimension must be a valid
+      probability distribution.
+    alpha: [C]. The weighting factor alpha. Eq (3) in [1].
+    gamma: []. Tunable focusing parameter. Eq (4) in [1].
+
+  Returns:
+    loss[i..., j] = FL(pₜ) = - αₜ(1-pₜ)ˠlog(pₜ) Eq (5) in [1].
+  """
+  if label_probs is not None:
+    log_probs = tf.nn.log_softmax(logits)
+    loss = -(label_probs * log_probs)
+    if gamma is not None and gamma != 0:
+      probs = tf.exp(log_probs)
+      loss *= tf.pow(1.0 - probs, gamma)
+    if alpha is not None:
+      loss *= tf.reshape(
+          alpha, tf.concat([tf.ones(tf.rank(loss) - 1, tf.int32), [-1]],
+                           axis=0))
+    loss = tf.reduce_sum(loss, axis=-1)
+  else:
+    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        labels=label_ids, logits=logits)
+    if gamma is not None and gamma != 0:
+      probs = tf.exp(-loss)
+      loss *= tf.pow(1.0 - probs, gamma)
+    if alpha is not None:
+      loss *= tf.gather(alpha, label_ids)
+  return loss
+
+
+def SigmoidCrossEntropyFocalLoss(logits, labels, alpha=None, gamma=None):
+  u"""Focal loss for binary (sigmoid) logistic loss.
+
+  [1] Focal loss https://arxiv.org/abs/1708.02002
+
+  Args:
+    logits: [..., C]. Logits for the sigmoid logistic regression.
+    labels: [..., C]. 0/1 labels.
+    alpha: The weighting factor alpha. Eq (3) in [1].
+    gamma: Tunable focusing parameter. Eq (4) in [1].
+
+  Returns:
+    loss[i..., j] = FL(pₜ) = - αₜ(1-pₜ)ˠlog(pₜ) Eq (5) in [1].
+  """
+
+  # [1] Eq (4).
+  #
+  # The numerically-stable way to compute
+  #  log(p) for positives;
+  #  log(1 - p) for negatives.
+  loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits)
+
+  if gamma is not None and gamma != 0:
+    # The modulating factor. Note that
+    # (1 - p)ˠ = [1 - σ(x)]ˠ = [σ(-x)]ˠ, for positives.
+    # pˠ = [σ(x)]ˠ, for negatives.
+    loss *= tf.pow(tf.sigmoid(logits * (1 - labels * 2)), gamma)
+
+  if alpha is not None:
+    # [1] Eq (3)
+    loss *= (alpha * labels + (1 - alpha) * (1 - labels))
+
+  return loss
