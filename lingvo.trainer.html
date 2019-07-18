@@ -188,10 +188,91 @@ $ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>im
 </dd></dl>
 
 <dl class="class">
+<dt id="lingvo.trainer.Checkpointer">
+<em class="property">class </em><code class="descclassname">lingvo.trainer.</code><code class="descname">Checkpointer</code><span class="sig-paren">(</span><em>train_dir</em>, <em>model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Checkpointing utility class.</p>
+<p>Needs to be created within a graph context.</p>
+<dl class="method">
+<dt id="lingvo.trainer.Checkpointer._GetSaver">
+<code class="descname">_GetSaver</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer._GetSaver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer._GetSaver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a saver.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Checkpointer.RestoreFromPath">
+<code class="descname">RestoreFromPath</code><span class="sig-paren">(</span><em>sess</em>, <em>checkpoint_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer.RestoreFromPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer.RestoreFromPath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the checkpoint from specified path.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Checkpointer.MaybeSave">
+<code class="descname">MaybeSave</code><span class="sig-paren">(</span><em>sess</em>, <em>gsteps</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer.MaybeSave"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer.MaybeSave" title="Permalink to this definition">¶</a></dt>
+<dd><p>If it’s time to save, save the checkpoint.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>sess</strong> – tf.Session.</li>
+<li><strong>gsteps</strong> – Current global step.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Checkpointer.Save">
+<code class="descname">Save</code><span class="sig-paren">(</span><em>sess</em>, <em>gsteps</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer.Save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer.Save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the checkpoint.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>sess</strong> – tf.Session.</li>
+<li><strong>gsteps</strong> – Current global step.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Checkpointer._Restore">
+<code class="descname">_Restore</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer._Restore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer._Restore" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Checkpointer.RestoreIfNeeded">
+<code class="descname">RestoreIfNeeded</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer.RestoreIfNeeded"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer.RestoreIfNeeded" title="Permalink to this definition">¶</a></dt>
+<dd><p>If vars are not initialized, restore frome checkpoint.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sess</strong> – tf.Session.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.trainer.Controller">
 <em class="property">class </em><code class="descclassname">lingvo.trainer.</code><code class="descname">Controller</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
 <p>Controller for a training cluster.</p>
+<dl class="method">
+<dt id="lingvo.trainer.Controller._CreateCheckpointer">
+<code class="descname">_CreateCheckpointer</code><span class="sig-paren">(</span><em>train_dir</em>, <em>model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._CreateCheckpointer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._CreateCheckpointer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper method for override purposes.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="lingvo.trainer.Controller.Start">
 <code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller.Start" title="Permalink to this definition">¶</a></dt>
@@ -205,21 +286,6 @@ $ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>im
 <dl class="method">
 <dt id="lingvo.trainer.Controller._Loop">
 <code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._Loop" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.Controller._Save">
-<code class="descname">_Save</code><span class="sig-paren">(</span><em>sess</em>, <em>gsteps</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._Save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._Save" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.Controller._Restore">
-<code class="descname">_Restore</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._Restore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._Restore" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.Controller._RestoreIfNeeded">
-<code class="descname">_RestoreIfNeeded</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._RestoreIfNeeded"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._RestoreIfNeeded" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -493,6 +559,12 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Controller._CreateCheckpointer">
+<code class="descname">_CreateCheckpointer</code><span class="sig-paren">(</span><em>train_dir</em>, <em>model</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._CreateCheckpointer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper method for override purposes.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.trainer.RunnerManager.Controller._Loop">
 <code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._Loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -502,21 +574,6 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 <code class="descname">_RecordStepRate</code><span class="sig-paren">(</span><em>current_steps</em>, <em>total_examples</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._RecordStepRate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the overall step rate and adds a summary.</p>
 </dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.RunnerManager.Controller._Restore">
-<code class="descname">_Restore</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._Restore" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.RunnerManager.Controller._RestoreIfNeeded">
-<code class="descname">_RestoreIfNeeded</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._RestoreIfNeeded" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.RunnerManager.Controller._Save">
-<code class="descname">_Save</code><span class="sig-paren">(</span><em>sess</em>, <em>gsteps</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._Save" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.trainer.RunnerManager.Controller._SummarizeValue">
