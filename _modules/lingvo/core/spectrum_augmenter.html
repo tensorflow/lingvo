@@ -197,10 +197,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;unstack&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to unstack features before applying SpecAugment&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stack_height&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Number of frames stacked on top of each other&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">unstack</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">stack_height</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">left_content</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span>
-              <span class="n">p</span><span class="o">.</span><span class="n">frame_stride</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>

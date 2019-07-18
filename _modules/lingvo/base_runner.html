@@ -176,6 +176,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.core.framework</span> <span class="k">import</span> <span class="n">summary_pb2</span>
+<span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="k">import</span> <span class="n">saver_pb2</span>
 
 
 <div class="viewcode-block" id="BaseRunner"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner">[docs]</a><span class="k">class</span> <span class="nc">BaseRunner</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -282,6 +283,27 @@
               <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span>
                   <span class="n">tag</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">tensor</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">make_tensor_proto</span><span class="p">([</span><span class="n">text</span><span class="p">]))</span>
           <span class="p">]))</span></div>
+
+<div class="viewcode-block" id="BaseRunner._GetSaver"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._GetSaver">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSaver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a saver.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Using EMA for evaluation.&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">())</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span>
+        <span class="n">sharded</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">max_to_keep</span><span class="o">=</span><span class="n">tp</span><span class="o">.</span><span class="n">save_max_to_keep</span><span class="p">,</span>
+        <span class="n">keep_checkpoint_every_n_hours</span><span class="o">=</span><span class="n">tp</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span><span class="p">,</span>
+        <span class="n">pad_step_number</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># %08d</span>
+        <span class="n">write_version</span><span class="o">=</span><span class="n">saver_pb2</span><span class="o">.</span><span class="n">SaverDef</span><span class="o">.</span><span class="n">V2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseRunner._LoadCheckpointForEval"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._LoadCheckpointForEval">[docs]</a>  <span class="k">def</span> <span class="nf">_LoadCheckpointForEval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Load the checkpoint for evaluation.&quot;&quot;&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load from checkpoint </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseRunner._FindNewCheckpoint"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._FindNewCheckpoint">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">Retry</span><span class="p">(</span><span class="n">initial_delay_sec</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">max_delay_sec</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">_FindNewCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prev_path</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
