@@ -52,10 +52,6 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     p.Define('unstack', False,
              'Whether to unstack features before applying SpecAugment')
     p.Define('stack_height', 3, 'Number of frames stacked on top of each other')
-    if p.unstack:
-      assert (p.stack_height == p.left_content + 1 + p.right_context ==
-              p.frame_stride)
-
     return p
 
   @base_layer.initializer
