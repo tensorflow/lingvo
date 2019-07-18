@@ -436,7 +436,8 @@
         <span class="s1">&#39;&#39;</span><span class="p">,</span>
         <span class="s1">&#39;A single file pattern string, a list of file pattern strings or a list&#39;</span>
         <span class="s1">&#39; of &lt;file_pattern, weight&gt; pairs or a list of  &lt;file_pattern, weight, &#39;</span>
-        <span class="s1">&#39;bprop_variable_filter&gt; tuples.&#39;</span>
+        <span class="s1">&#39;bprop_variable_filter&gt; tuples. Some of the cases may not be supported &#39;</span>
+        <span class="s1">&#39;Depending on the value of use_within_batch_mixing and use_chaining.&#39;</span>
         <span class="s1">&#39;In the later 2 cases, probablistic samples are from the inputs &#39;</span>
         <span class="s1">&#39;proportional to their weights. Typically, values are binary &#39;</span>
         <span class="s1">&#39;protocol buffers containing train/eval samples. Keys are not used.&#39;</span><span class="p">)</span>
@@ -628,6 +629,9 @@
     <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">input_entry</span> <span class="ow">in</span> <span class="n">input_file_pattern</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_entry</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Should explicitly specify weights, got string: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                         <span class="p">(</span><span class="n">input_entry</span><span class="p">,))</span>
       <span class="n">file_pattern</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
       <span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_MakeDataSourceFromFilePatternFunc</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">))</span>
       <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
