@@ -1938,6 +1938,20 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessFunctionalFor))
 
 
+class RecordFormatTest(tf.test.TestCase):
+
+  def testRecordFormatFromFilePattern(self):
+    record_format, path = py_utils.RecordFormatFromFilePattern(
+        'tfrecord:/path/to/bar')
+    self.assertEqual(record_format, 'tfrecord')
+    self.assertEqual(path, '/path/to/bar')
+
+    record_format, path = py_utils.RecordFormatFromFilePattern(
+        'custom:/path/to/baz')
+    self.assertEqual(record_format, 'custom')
+    self.assertEqual(path, '/path/to/baz')
+
+
 class FocalLossTest(tf.test.TestCase):
 
   def _testNpFL(self, logits, labels, alpha, gamma):

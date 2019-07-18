@@ -3203,3 +3203,34 @@ def SigmoidCrossEntropyFocalLoss(logits, labels, alpha=None, gamma=None):
     loss *= (alpha * labels + (1 - alpha) * (1 - labels))
 
   return loss
+
+
+_RECORD_FORMAT_RE = re.compile('(^[A-Za-z]+):(.*)')
+
+
+def RecordFormatFromFilePattern(file_pattern):
+  """Return the record format string for a Lingvo file pattern.
+
+  Lingvo file patterns take the form of:
+    tfrecord:/path/to/bar -> tfrecord is the record_format.
+
+  This function takes a file pattern and returns a string indicating
+  which format the filepattern implies.
+
+  Args:
+    file_pattern: String file pattern.
+
+  Returns:
+    record_format: String record format, e.g., "tfrecord", etc.
+    file_pattern: The file pattern without any prefixes.
+  """
+  result = re.match(_RECORD_FORMAT_RE, file_pattern)
+
+  if result is None:
+    # TODO(vrv): Fix all callers so that file_pattern must contain
+    # the record format prefix.
+    return 'sstable', file_pattern
+
+  # regexp ensures that a match implies there are two groups:
+  # the record format and then the file pattern.
+  return result.groups()
