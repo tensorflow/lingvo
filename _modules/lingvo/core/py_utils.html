@@ -3348,6 +3348,37 @@
     <span class="n">loss</span> <span class="o">*=</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">labels</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">labels</span><span class="p">))</span>
 
   <span class="k">return</span> <span class="n">loss</span>
+
+
+<span class="n">_RECORD_FORMAT_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">&#39;(^[A-Za-z]+):(.*)&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">RecordFormatFromFilePattern</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Return the record format string for a Lingvo file pattern.</span>
+
+<span class="sd">  Lingvo file patterns take the form of:</span>
+<span class="sd">    tfrecord:/path/to/bar -&gt; tfrecord is the record_format.</span>
+
+<span class="sd">  This function takes a file pattern and returns a string indicating</span>
+<span class="sd">  which format the filepattern implies.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    file_pattern: String file pattern.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    record_format: String record format, e.g., &quot;tfrecord&quot;, etc.</span>
+<span class="sd">    file_pattern: The file pattern without any prefixes.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">_RECORD_FORMAT_RE</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># TODO(vrv): Fix all callers so that file_pattern must contain</span>
+    <span class="c1"># the record format prefix.</span>
+    <span class="k">return</span> <span class="s1">&#39;sstable&#39;</span><span class="p">,</span> <span class="n">file_pattern</span>
+
+  <span class="c1"># regexp ensures that a match implies there are two groups:</span>
+  <span class="c1"># the record format and then the file pattern.</span>
+  <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
 </pre></div>
 
            </div>
