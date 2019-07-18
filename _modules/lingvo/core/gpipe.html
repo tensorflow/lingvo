@@ -181,6 +181,7 @@
 <span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">builder_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">recurrent</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
@@ -267,12 +268,7 @@
 
 <span class="sd">  FeatureExtractionLayer is a layer which connects a few layers in a sequence.</span>
 <span class="sd">  It is also capable of fetching and forwarding activation endpoints.</span>
-<span class="sd">  # TODO(huangyp): Allow keyworded argument dict in FProp.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    fetch_activation_layers: names of fetch layers that extra activations.</span>
-<span class="sd">    num_activation_inputs: # of activations forwarded from previous layers.</span>
-<span class="sd">    num_activation_outputs: # of activations forwarded to next layers.</span>
+<span class="sd">  # TODO(huangyp): Make it a sublayer of builder_layers.SequentialLayer</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="FeatureExtractionLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.FeatureExtractionLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -338,6 +334,78 @@
     <span class="k">for</span> <span class="n">fetch_layer</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">act_fetch_layers</span><span class="p">:</span>
       <span class="n">extra_args</span> <span class="o">+=</span> <span class="p">(</span><span class="n">act_fetch_metas</span><span class="p">[</span><span class="n">fetch_layer</span><span class="p">],)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">seq_args</span> <span class="o">+</span> <span class="n">extra_args</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="PartitionSequentialLayers"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.PartitionSequentialLayers">[docs]</a><span class="k">def</span> <span class="nf">PartitionSequentialLayers</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">,</span> <span class="o">*</span><span class="n">shapes</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Partition a layer composed of sequential layers.</span>
+
+<span class="sd">  This routine strives to partition layers so that each partition costs roughly</span>
+<span class="sd">  the same flops given the input shapes.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    params: A layer param or a list of layer param.</span>
+<span class="sd">    num_partitions: The desired number of partitions.</span>
+<span class="sd">    *shapes: A tuple of tshape.Shape representing input tensors to the first</span>
+<span class="sd">      layer.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A list of FeatureExtractionLayer params.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="c1"># Recursively concatenate SequentialLayer into a list.</span>
+  <span class="k">def</span> <span class="nf">FlattenSeq</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">p</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">builder_layers</span><span class="o">.</span><span class="n">SequentialLayer</span><span class="p">,</span> <span class="n">FeatureExtractionLayer</span><span class="p">]:</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()]</span>
+    <span class="n">subs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
+        <span class="n">subs</span> <span class="o">+=</span> <span class="n">FlattenSeq</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">subs</span>
+
+  <span class="n">subs</span> <span class="o">=</span> <span class="n">FlattenSeq</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_partitions: </span><span class="si">{}</span><span class="s1"> input_shape: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+      <span class="n">num_partitions</span><span class="p">,</span> <span class="n">shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+  <span class="c1"># Computes the estimate cost for each sub layer.</span>
+  <span class="n">total</span><span class="p">,</span> <span class="n">histo</span><span class="p">,</span> <span class="n">output_shapes</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">[],</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">subs</span><span class="p">):</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;cell_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="o">*</span><span class="n">shapes</span><span class="p">)</span>
+    <span class="n">total</span> <span class="o">+=</span> <span class="n">meta</span><span class="o">.</span><span class="n">flops</span>
+    <span class="n">histo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">total</span><span class="p">)</span>
+    <span class="n">output_shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span><span class="p">)</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;len </span><span class="si">%d</span><span class="s1"> histogram = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">subs</span><span class="p">),</span> <span class="n">histo</span><span class="p">)</span>
+
+  <span class="c1"># Computes the normalized cumulative histogram of the layer&#39;s cost.</span>
+  <span class="n">histo_pct</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">total</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">histo</span><span class="p">]</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;cost pct = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">histo_pct</span><span class="p">)</span>
+
+  <span class="c1"># i-th sub layer is put into partition j, where j is roughly i-th cumulative</span>
+  <span class="c1"># histogram times num_partitions.</span>
+  <span class="n">parts</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_partitions</span><span class="p">)]</span>
+  <span class="n">parts_cost</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_partitions</span>
+  <span class="n">pre_hist_cost</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">subs</span><span class="p">):</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">histo_pct</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_partitions</span><span class="p">),</span> <span class="n">num_partitions</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># The boundary at parts[j] where j &gt; 0</span>
+    <span class="k">if</span> <span class="n">j</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">parts</span><span class="p">[</span><span class="n">j</span><span class="p">]:</span>
+      <span class="n">parts_cost</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">histo_pct</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">pre_hist_cost</span>
+      <span class="n">pre_hist_cost</span> <span class="o">=</span> <span class="n">histo_pct</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">parts</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+  <span class="n">parts_cost</span><span class="p">[</span><span class="n">num_partitions</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">pre_hist_cost</span>
+  <span class="n">seqs</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pa</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parts</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Partition </span><span class="si">%d</span><span class="s1"> #subs </span><span class="si">%d</span><span class="s1"> #cost </span><span class="si">%.3f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pa</span><span class="p">),</span>
+                    <span class="n">parts_cost</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="n">seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FeatureExtractionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;d</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="n">pa</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">seqs</span></div>
 
 
 <div class="viewcode-block" id="SeqLayer"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.SeqLayer">[docs]</a><span class="k">class</span> <span class="nc">SeqLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>

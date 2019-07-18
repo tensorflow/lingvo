@@ -209,20 +209,7 @@ will be included.</p>
 <p>A layer that extrac features from a sequence of layers.</p>
 <p>FeatureExtractionLayer is a layer which connects a few layers in a sequence.
 It is also capable of fetching and forwarding activation endpoints.
-# TODO(huangyp): Allow keyworded argument dict in FProp.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>fetch_activation_layers</strong> – names of fetch layers that extra activations.</li>
-<li><strong>num_activation_inputs</strong> – # of activations forwarded from previous layers.</li>
-<li><strong>num_activation_outputs</strong> – # of activations forwarded to next layers.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+# TODO(huangyp): Make it a sublayer of builder_layers.SequentialLayer</p>
 <dl class="classmethod">
 <dt id="lingvo.core.gpipe.FeatureExtractionLayer.Params">
 <em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gpipe.html#FeatureExtractionLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gpipe.FeatureExtractionLayer.Params" title="Permalink to this definition">¶</a></dt>
@@ -306,6 +293,31 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </table>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.gpipe.PartitionSequentialLayers">
+<code class="descclassname">lingvo.core.gpipe.</code><code class="descname">PartitionSequentialLayers</code><span class="sig-paren">(</span><em>params</em>, <em>num_partitions</em>, <em>*shapes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gpipe.html#PartitionSequentialLayers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gpipe.PartitionSequentialLayers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Partition a layer composed of sequential layers.</p>
+<p>This routine strives to partition layers so that each partition costs roughly
+the same flops given the input shapes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – A layer param or a list of layer param.</li>
+<li><strong>num_partitions</strong> – The desired number of partitions.</li>
+<li><strong>*shapes</strong> – A tuple of tshape.Shape representing input tensors to the first
+layer.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A list of FeatureExtractionLayer params.</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="class">
