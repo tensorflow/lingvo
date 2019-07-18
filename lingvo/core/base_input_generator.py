@@ -291,7 +291,8 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         '',
         'A single file pattern string, a list of file pattern strings or a list'
         ' of <file_pattern, weight> pairs or a list of  <file_pattern, weight, '
-        'bprop_variable_filter> tuples.'
+        'bprop_variable_filter> tuples. Some of the cases may not be supported '
+        'Depending on the value of use_within_batch_mixing and use_chaining.'
         'In the later 2 cases, probablistic samples are from the inputs '
         'proportional to their weights. Typically, values are binary '
         'protocol buffers containing train/eval samples. Keys are not used.')
@@ -483,6 +484,9 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     weights = []
     self._bprop_variable_filters = []
     for input_entry in input_file_pattern:
+      if isinstance(input_entry, six.string_types):
+        raise ValueError('Should explicitly specify weights, got string: %s' %
+                         (input_entry,))
       file_pattern, weight = input_entry[:2]
       inputs.append(_MakeDataSourceFromFilePatternFunc(file_pattern))
       weights.append(weight)
