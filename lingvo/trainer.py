@@ -149,7 +149,8 @@ tf.flags.DEFINE_float('saver_keep_checkpoint_every_n_hours', None,
 tf.flags.DEFINE_bool(
     'checkpoint_in_trainer_tpu', False,
     'Whether to enable checkpointing in TrainerTpu, allowing for '
-    'operation without a separate Controller task.')
+    'operation without a separate Controller task.'
+    'TODO(b/137871213) migrate file/summaries from Controller.')
 
 # Please consider adding model params instead of adding flags.
 
