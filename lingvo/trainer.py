@@ -56,7 +56,6 @@ from lingvo import base_runner
 from tensorflow.contrib.tpu.python.tpu import device_assignment as device_assignment_lib
 from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.core.protobuf import config_pb2
-from tensorflow.core.protobuf import saver_pb2  # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.tpu import training_loop as tpu_training_loop  # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.tpu.ops import tpu_ops  # pylint:disable=g-direct-tensorflow-import
 
@@ -146,12 +145,6 @@ tf.flags.DEFINE_integer('saver_max_to_keep', None,
 tf.flags.DEFINE_float('saver_keep_checkpoint_every_n_hours', None,
                       'How often to keep a checkpoint.')
 
-tf.flags.DEFINE_bool(
-    'checkpoint_in_trainer_tpu', False,
-    'Whether to enable checkpointing in TrainerTpu, allowing for '
-    'operation without a separate Controller task.'
-    'TODO(b/137871213) migrate file/summaries from Controller.')
-
 # Please consider adding model params instead of adding flags.
 
 FLAGS = tf.flags.FLAGS
@@ -223,74 +216,124 @@ def _ModelAnalysis(model):
   return output, analyzer.total
 
 
-class Checkpointer(object):
-  """Checkpointing utility class.
+class Controller(base_runner.BaseRunner):
+  """Controller for a training cluster."""
 
-  Needs to be created within a graph context.
-  """
-
-  def __init__(self, train_dir, model):
-    """Initialize Checkpointer.
-
-    Args:
-     train_dir: Training directory for saving checkpoints.
-     model: Model.
-    """
-    self._train_dir = train_dir
-    self._model = model
-    self._params = model.params
-
-    self._vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
-    self._uninitialized_vars = tf.report_uninitialized_variables(self._vars)
-    self._initialize_vars = tf.global_variables_initializer()
-
+  def __init__(self, *args, **kwargs):
+    super(Controller, self).__init__(*args, **kwargs)
+    assert not self._model_task_name, 'Controller needs all tasks!'
     self._save_path = os.path.join(self._train_dir, 'ckpt')
-    self._model_tasks = model.tasks
+    tf.gfile.MakeDirs(self._train_dir)
+    self._control_dir = os.path.join(self._logdir, 'control')
+    tf.gfile.MakeDirs(self._control_dir)
+    self._summary_writer = self._CreateSummaryWriter(self._control_dir)
+    self._time_steps = []  # A short history of (timestamp, global_step)
 
-    tp = self._params.train
-    self._save_interval_seconds = tp.save_interval_seconds
-    self._next_checkpoint_seconds = 0
-    self._saver = self._GetSaver()
+    with self._graph.as_default(), tf.container(self._container_id):
+      with self._cluster, tf.device(self._cluster.GetPlacer()):
+        self._model = self.params.Instantiate()
+        self._params = self._model.params
+        self._model.ConstructFPropBPropGraph()
+        self._saver = self._GetSaver()
+        self._summary_op = tf.summary.merge_all()
+        self._vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+        self._uninitialized = tf.report_uninitialized_variables(self._vars)
+        self._initialize_all = tf.global_variables_initializer()
+        self.initialize_tables = tf.tables_initializer()
+        self._initialize_local_vars = tf.local_variables_initializer()
+        self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
+        self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
 
-  def _GetSaver(self):
-    """Returns a saver."""
-    p = self._params
-    if p.is_eval and self._model.ema:
-      tf.logging.info('Using EMA for evaluation.')
-      return tf.train.Saver(self._model.ema.variables_to_restore())
-    tp = p.train
-    return tf.train.Saver(
-        sharded=True,
-        max_to_keep=tp.save_max_to_keep,
-        keep_checkpoint_every_n_hours=tp.save_keep_checkpoint_every_n_hours,
-        pad_step_number=True,  # %08d
-        write_version=saver_pb2.SaverDef.V2)
+    self._ExportMetrics(params=self.params)
+    self._model_analysis, self._total_num_params = _ModelAnalysis(self._model)
+    py_utils.LogMultiLines('MODEL ANALYSIS', self._model_analysis)
+    self._WriteToLog(self._model_analysis, self._control_dir,
+                     'model_analysis.txt')
+    self._WriteToLog(self.params.ToText(), self._control_dir, 'params.txt')
+    tf.train.write_graph(self._graph.as_graph_def(), self._control_dir,
+                         'train.pbtxt')
 
-  def RestoreFromPath(self, sess, checkpoint_path):
-    """Load the checkpoint from specified path."""
-    tf.logging.info('Load from checkpoint %s.', checkpoint_path)
-    self._saver.restore(sess, checkpoint_path)
-    tf.logging.info('Load checkpoint done.')
+  def Start(self):
+    self._RunLoop('controller', self._Loop)
 
-  def MaybeSave(self, sess, gsteps):
-    """If it's time to save, save the checkpoint.
+  def StartEnqueueOp(self, op):
+    self._RunLoop(
+        'controller/enqueue_op/%s' % op.name, self._LoopEnqueue, loop_args=[op])
 
-    Args:
-      sess: tf.Session.
-      gsteps: Current global step.
-    """
-    now = time.time()
-    if now >= self._next_checkpoint_seconds:
-      self.Save(sess, gsteps)
-      self._next_checkpoint_seconds = now + self._save_interval_seconds
+  def _Loop(self):
+    self._summary_writer.add_graph(self._graph)
+    with tf.container(self._container_id), self._GetSession() as sess:
+      gsteps = py_utils.GetGlobalStep()
+      examples = self._model.total_examples
 
-  def Save(self, sess, gsteps):
-    """Save the checkpoint.
+      if FLAGS.interactive:
+        # Into interactive debugging mode.
+        _StartShell(locals())
+        return
 
-    Args:
-      sess: tf.Session.
-      gsteps: Current global step.
-    """
+      # This initializes local tables
+      sess.run(self.initialize_tables)
+      # This initializes local variables.
+      sess.run(self._initialize_local_vars)
+
+      # TODO(zhifengc): Moves these options into params.
+      tp = self.params.train
+      save_interval_seconds = tp.save_interval_seconds
+      summary_interval_steps = tp.summary_interval_steps
+
+      next_checkpoint_seconds = 0
+      next_summary_step = 1
+
+      while True:
+        now = time.time()
+        next_iteration_seconds = now + min(
+            10, save_interval_seconds)  # 10 seconds or less
+
+        # Init/restore variable if needed.
+        self._RestoreIfNeeded(sess)
+
+        global_step, total_examples = sess.run([gsteps, examples])
+        step_rate, example_rate = self._RecordStepRate(global_step,
+                                                       total_examples)
+        if self._trial.ShouldStop() or self._ShouldStop(sess, global_step):
+          tf.logging.info('Training finished.')
+          self._Save(sess, global_step)
+          # Close all the queues so the enqueue threads can also finish.
+          for close_op in self.close_queue_ops:
+            sess.run(close_op)
+          sess.close()
+          return
+
+        # Checkpoint.
+        if now >= next_checkpoint_seconds:
+          self._Save(sess, gsteps)
+          next_checkpoint_seconds = now + save_interval_seconds
+
+        # Summary.
+        if self._summary_op is not None and global_step >= next_summary_step:
+          tf.logging.info('Write summary @%s', global_step)
+          summary_str = sess.run(self._summary_op)
+          if isinstance(summary_str, np.ndarray) and summary_str.size == 0:
+            tf.logging.info('Skipping summary: %s', summary_str)
+          else:
+            self._summary_writer.add_summary(summary_str, global_step)
+          self._SummarizeValue(global_step, 'total_num_params',
+                               self._total_num_params)
+          next_summary_step = global_step + summary_interval_steps
+          tf.logging.info('Write summary done: step %d', global_step)
+          self._SetStatusMessage(
+              'step:%6d, steps/sec: %0.2f, examples/sec: %0.2f' %
+              (global_step, step_rate, example_rate))
+          self._ExportMetrics(
+              global_step=global_step,
+              step_rate=step_rate,
+              example_rate=example_rate)
+
+        now = time.time()
+        if now < next_iteration_seconds:
+          time.sleep(next_iteration_seconds - now)
+
+  def _Save(self, sess, gsteps):
     tf.logging.info('Save checkpoint')
     path = self._saver.save(sess, self._save_path, gsteps)
     tf.logging.info('Save checkpoint done: %s', path)
@@ -298,16 +341,13 @@ class Checkpointer(object):
   def _Restore(self, sess):
     path = tf.train.latest_checkpoint(self._train_dir)
     if path:
-      self.RestoreFromPath(sess, path)
+      tf.logging.info('Load from checkpoint %s.', path)
+      self._saver.restore(sess, path)
+      tf.logging.info('Load checkpoint done.')
     return path
 
-  def RestoreIfNeeded(self, sess):
-    """If vars are not initialized, restore frome checkpoint.
-
-    Args:
-      sess: tf.Session.
-    """
-    uninitialized_var_names = list(sess.run(self._uninitialized_vars))
+  def _RestoreIfNeeded(self, sess):
+    uninitialized_var_names = list(sess.run(self._uninitialized))
     if not uninitialized_var_names:
       return
 
@@ -316,10 +356,10 @@ class Checkpointer(object):
       return
 
     if (not any(task.params.train.init_from_checkpoint_rules
-                for task in self._model_tasks) and
+                for task in self._model.tasks) and
         not self._params.train.init_from_checkpoint_rules):
       tf.logging.info('Initialize ALL variables: %s', uninitialized_var_names)
-      sess.run([self._initialize_vars])
+      sess.run([self._initialize_all])
       tf.logging.info('Initialize variables done.')
       return
 
@@ -355,121 +395,6 @@ class Checkpointer(object):
     tf.logging.info('Initialize variables: %s',
                     [v.name for v in uninitialized_vars])
     sess.run(tf.variables_initializer(uninitialized_vars))
-
-
-class Controller(base_runner.BaseRunner):
-  """Controller for a training cluster."""
-
-  def __init__(self, *args, **kwargs):
-    super(Controller, self).__init__(*args, **kwargs)
-    assert not self._model_task_name, 'Controller needs all tasks!'
-    tf.gfile.MakeDirs(self._train_dir)
-    self._control_dir = os.path.join(self._logdir, 'control')
-    tf.gfile.MakeDirs(self._control_dir)
-    self._summary_writer = self._CreateSummaryWriter(self._control_dir)
-    self._time_steps = []  # A short history of (timestamp, global_step)
-
-    with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(self._cluster.GetPlacer()):
-        self._model = self.params.Instantiate()
-        self._params = self._model.params
-        self._model.ConstructFPropBPropGraph()
-        self._summary_op = tf.summary.merge_all()
-        self.initialize_tables = tf.tables_initializer()
-        self._initialize_local_vars = tf.local_variables_initializer()
-        self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
-        self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
-        self.checkpointer = self._CreateCheckpointer(self._train_dir,
-                                                     self._model)
-
-    self._ExportMetrics(params=self.params)
-    self._model_analysis, self._total_num_params = _ModelAnalysis(self._model)
-    py_utils.LogMultiLines('MODEL ANALYSIS', self._model_analysis)
-    self._WriteToLog(self._model_analysis, self._control_dir,
-                     'model_analysis.txt')
-    self._WriteToLog(self.params.ToText(), self._control_dir, 'params.txt')
-    tf.train.write_graph(self._graph.as_graph_def(), self._control_dir,
-                         'train.pbtxt')
-
-  def _CreateCheckpointer(self, train_dir, model):
-    """Wrapper method for override purposes."""
-    return Checkpointer(train_dir, model)
-
-  def Start(self):
-    self._RunLoop('controller', self._Loop)
-
-  def StartEnqueueOp(self, op):
-    self._RunLoop(
-        'controller/enqueue_op/%s' % op.name, self._LoopEnqueue, loop_args=[op])
-
-  def _Loop(self):
-    self._summary_writer.add_graph(self._graph)
-    with tf.container(self._container_id), self._GetSession() as sess:
-      gsteps = py_utils.GetGlobalStep()
-      examples = self._model.total_examples
-
-      if FLAGS.interactive:
-        # Into interactive debugging mode.
-        _StartShell(locals())
-        return
-
-      # This initializes local tables
-      sess.run(self.initialize_tables)
-      # This initializes local variables.
-      sess.run(self._initialize_local_vars)
-
-      # TODO(zhifengc): Moves these options into params.
-      tp = self.params.train
-      summary_interval_steps = tp.summary_interval_steps
-      save_interval_seconds = tp.save_interval_seconds
-      next_summary_step = 1
-
-      while True:
-        now = time.time()
-        next_iteration_seconds = now + min(
-            10, save_interval_seconds)  # 10 seconds or less
-
-        # Init/restore variable if needed.
-        self.checkpointer.RestoreIfNeeded(sess)
-
-        global_step, total_examples = sess.run([gsteps, examples])
-        step_rate, example_rate = self._RecordStepRate(global_step,
-                                                       total_examples)
-        if self._trial.ShouldStop() or self._ShouldStop(sess, global_step):
-          tf.logging.info('Training finished.')
-          self.checkpointer.Save(sess, global_step)
-          # Close all the queues so the enqueue threads can also finish.
-          for close_op in self.close_queue_ops:
-            sess.run(close_op)
-          sess.close()
-          return
-
-        # Checkpoint if it's time.
-        self.checkpointer.MaybeSave(sess, gsteps)
-
-        # Summary.
-        if self._summary_op is not None and global_step >= next_summary_step:
-          tf.logging.info('Write summary @%s', global_step)
-          summary_str = sess.run(self._summary_op)
-          if isinstance(summary_str, np.ndarray) and summary_str.size == 0:
-            tf.logging.info('Skipping summary: %s', summary_str)
-          else:
-            self._summary_writer.add_summary(summary_str, global_step)
-          self._SummarizeValue(global_step, 'total_num_params',
-                               self._total_num_params)
-          next_summary_step = global_step + summary_interval_steps
-          tf.logging.info('Write summary done: step %d', global_step)
-          self._SetStatusMessage(
-              'step:%6d, steps/sec: %0.2f, examples/sec: %0.2f' %
-              (global_step, step_rate, example_rate))
-          self._ExportMetrics(
-              global_step=global_step,
-              step_rate=step_rate,
-              example_rate=example_rate)
-
-        now = time.time()
-        if now < next_iteration_seconds:
-          time.sleep(next_iteration_seconds - now)
 
   def _SummarizeValue(self, steps, tag, value):
     self._summary_writer.add_summary(
@@ -755,10 +680,6 @@ class TrainerTpu(base_runner.BaseRunner):
 
       self.initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
-
-      if FLAGS.checkpoint_in_trainer_tpu:
-        self.checkpointer = Checkpointer(self._train_dir, self._model)
-
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       assert not tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
       tf.logging.info('Trainer number of enqueue ops: %d',
@@ -901,20 +822,14 @@ class TrainerTpu(base_runner.BaseRunner):
       sess.run(self._initialize_local_vars)
       if FLAGS.run_locally == 'tpu':
         sess.run(tf.global_variables_initializer())
-
-      if FLAGS.checkpoint_in_trainer_tpu:
-        self.checkpointer.RestoreIfNeeded(sess)
-
       gsteps = py_utils.GetGlobalStep()
       global_step = sess.run(gsteps)
       self._initialized.set()
       eval_metrics = None
 
       sess.run(self._load_ops)
+
       while True:
-        if FLAGS.checkpoint_in_trainer_tpu:
-          # Init/restore variable if needed.
-          self.checkpointer.RestoreIfNeeded(sess)
         if self._trial.ShouldStopAndMaybeReport(global_step, eval_metrics):
           # Early terminate gracefully by setting a new max step horizon: three
           # more TPU steps to ensure that the enqueue ops can gracefully
@@ -959,9 +874,6 @@ class TrainerTpu(base_runner.BaseRunner):
         task.ProcessFPropResults(sess, global_step, eval_metrics, outfeeds)
         self._model.ProcessFPropResults(sess, global_step, eval_metrics,
                                         outfeeds)
-
-        if FLAGS.checkpoint_in_trainer_tpu:
-          self.checkpointer.MaybeSave(sess, gsteps)
 
 
 def _GetSpecificCheckpoint(load_checkpoint_from):
@@ -1028,12 +940,12 @@ class Evaler(base_runner.BaseRunner):
         # exactly the same.
         self._model.ConstructFPropGraph()
         self._model_task = self._model.GetTask(self._model_task_name)
+        self._saver = self._GetSaver()
       self.initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for eval models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       assert not self.enqueue_ops
-      self.checkpointer = Checkpointer(self._train_dir, self._model)
 
     # Saves the graph def.
     self._WriteToLog(self.params.ToText(), self._eval_dir, 'params.txt')
@@ -1099,7 +1011,7 @@ class Evaler(base_runner.BaseRunner):
     """
 
     if not FLAGS.evaler_in_same_address_as_controller:
-      self.checkpointer.RestoreFromPath(sess, path)
+      self._LoadCheckpointForEval(sess, path)
 
     global_step = sess.run(py_utils.GetGlobalStep())
     # Check after how many steps checkpoint got saved.
@@ -1210,12 +1122,12 @@ class Decoder(base_runner.BaseRunner):
               self._model_task.input_generator.GetPreprocessedInputBatch())
 
         self._dec_output = self._model_task.Decode(input_batch)
+        self._saver = self._GetSaver()
         self._summary_op = tf.summary.merge_all()
       self.initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for decoder models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
-      self.checkpointer = Checkpointer(self._train_dir, self._model)
       assert not self.enqueue_ops
 
     # Saves the graph def.
@@ -1265,7 +1177,7 @@ class Decoder(base_runner.BaseRunner):
     samples_per_summary = p.eval.decoder_samples_per_summary
     if not samples_per_summary:
       samples_per_summary = p.eval.samples_per_summary
-    self.checkpointer.RestoreFromPath(sess, checkpoint_path)
+    self._LoadCheckpointForEval(sess, checkpoint_path)
 
     global_step = sess.run(py_utils.GetGlobalStep())
     dec_metrics = self._model_task.CreateDecoderMetrics()
