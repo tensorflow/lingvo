@@ -900,6 +900,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_layer",
+        ":builder_layers",
         ":py_utils",
         ":recurrent",
         ":tshape",

@@ -23,7 +23,9 @@ import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import test_utils
+from lingvo.core import tshape
 from lingvo.core.gpipe import FeatureExtractionLayer
+from lingvo.core.gpipe import PartitionSequentialLayers
 from lingvo.core.gpipe import PipeliningLayer
 from lingvo.core.layers import Conv2DLayerNoPadding
 from lingvo.core.layers import FetchLayer
@@ -72,6 +74,14 @@ class _SimpyLayer(base_layer.BaseLayer):
   def FPropMeta(cls, p, inputs):
     py_utils.CheckShapes((inputs,))
     return py_utils.NestedMap(flops=1, out_shapes=(inputs,))
+
+
+def _Partition(params, num_splits, *shapes):
+  seqs = PartitionSequentialLayers(params, num_splits, *shapes)
+  return [
+      FeatureExtractionLayer.Params().Set(name='d%d' % i, sub=seqs[i].sub)
+      for i in range(len(seqs))
+  ]
 
 
 def _BuildDummyPipelineCnn(num_splits=4, num_micro_batches=8):
@@ -127,14 +137,26 @@ def _BuildDummyPipelineCnn(num_splits=4, num_micro_batches=8):
 
 class DummyPipelineCnnTest(test_utils.TestCase):
 
-  def _verify_timestep_counts(self, num_splits):
+  def _verify_timestep_counts(self, num_splits, auto_partition=False):
     num_micro_batches = 8
     batch_size = 16
     with self.session(graph=tf.Graph()) as sess:
       tf.set_random_seed(1245)
       inputs = tf.random_uniform([batch_size, 8, 8, 1], seed=12345)
-      net = _BuildDummyPipelineCnn(
-          num_splits=num_splits, num_micro_batches=num_micro_batches)
+      if auto_partition:
+        layers = [
+            _SimpyLayer.Params().Set(name='layer_{}'.format(i))
+            for i in range(16)
+        ]
+        net = PipeliningLayer.Params().Set(
+            name='pipeline',
+            num_micro_batches=num_micro_batches,
+            cell_tpl=_Partition(layers, num_splits,
+                                tshape.Shape([batch_size, 8, 8,
+                                              1]))).Instantiate()
+      else:
+        net = _BuildDummyPipelineCnn(
+            num_splits=num_splits, num_micro_batches=num_micro_batches)
       endpoints = net.FPropDefaultTheta(inputs)
       if isinstance(endpoints, (list, tuple)):
         logits, aux_logits = endpoints
@@ -165,6 +187,12 @@ class DummyPipelineCnnTest(test_utils.TestCase):
 
   def testDummyPipelineCnnFourSplits(self):
     self._verify_timestep_counts(num_splits=4)
+
+  def testDummyPipelineCnnAutoPartitionTwoSplits(self):
+    self._verify_timestep_counts(num_splits=2, auto_partition=True)
+
+  def testDummyPipelineCnnAutoPartitionFourSplits(self):
+    self._verify_timestep_counts(num_splits=4, auto_partition=True)
 
 
 if __name__ == '__main__':

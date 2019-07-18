@@ -36,6 +36,7 @@ from __future__ import print_function
 import contextlib
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import builder_layers
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import tshape
@@ -122,12 +123,7 @@ class FeatureExtractionLayer(base_layer.BaseLayer):
 
   FeatureExtractionLayer is a layer which connects a few layers in a sequence.
   It is also capable of fetching and forwarding activation endpoints.
-  # TODO(huangyp): Allow keyworded argument dict in FProp.
-
-  Args:
-    fetch_activation_layers: names of fetch layers that extra activations.
-    num_activation_inputs: # of activations forwarded from previous layers.
-    num_activation_outputs: # of activations forwarded to next layers.
+  # TODO(huangyp): Make it a sublayer of builder_layers.SequentialLayer
   """
 
   @classmethod
@@ -193,6 +189,78 @@ class FeatureExtractionLayer(base_layer.BaseLayer):
     for fetch_layer in p.act_fetch_layers:
       extra_args += (act_fetch_metas[fetch_layer],)
     return py_utils.NestedMap(flops=total, out_shapes=seq_args + extra_args)
+
+
+def PartitionSequentialLayers(params, num_partitions, *shapes):
+  r"""Partition a layer composed of sequential layers.
+
+  This routine strives to partition layers so that each partition costs roughly
+  the same flops given the input shapes.
+
+  Args:
+    params: A layer param or a list of layer param.
+    num_partitions: The desired number of partitions.
+    *shapes: A tuple of tshape.Shape representing input tensors to the first
+      layer.
+
+  Returns:
+    A list of FeatureExtractionLayer params.
+  """
+
+  # Recursively concatenate SequentialLayer into a list.
+  def FlattenSeq(p):
+    if isinstance(p, list):
+      return p
+    if p.cls not in [builder_layers.SequentialLayer, FeatureExtractionLayer]:
+      return [p.Copy()]
+    subs = []
+    for _ in range(p.repeat):
+      for s in p.sub:
+        subs += FlattenSeq(s)
+    return subs
+
+  subs = FlattenSeq(params)
+
+  assert len(shapes) == 1
+  tf.logging.info('num_partitions: {} input_shape: {}'.format(
+      num_partitions, shapes[0]))
+
+  # Computes the estimate cost for each sub layer.
+  total, histo, output_shapes = 0, [], []
+  for i, s in enumerate(subs):
+    s.name = 'cell_%03d' % i
+    meta = s.cls.FPropMeta(s, *shapes)
+    total += meta.flops
+    histo.append(total)
+    output_shapes.append(meta.out_shapes)
+    shapes = meta.out_shapes
+  tf.logging.vlog(1, 'len %d histogram = %s', len(subs), histo)
+
+  # Computes the normalized cumulative histogram of the layer's cost.
+  histo_pct = [float(x / total) for x in histo]
+  tf.logging.vlog(1, 'cost pct = %s', histo_pct)
+
+  # i-th sub layer is put into partition j, where j is roughly i-th cumulative
+  # histogram times num_partitions.
+  parts = [[] for _ in range(num_partitions)]
+  parts_cost = [0] * num_partitions
+  pre_hist_cost = 0
+  for i, s in enumerate(subs):
+    j = min(int(histo_pct[i] * num_partitions), num_partitions - 1)
+    # The boundary at parts[j] where j > 0
+    if j > 0 and not parts[j]:
+      parts_cost[j - 1] = histo_pct[i - 1] - pre_hist_cost
+      pre_hist_cost = histo_pct[i - 1]
+    parts[j].append(s)
+
+  parts_cost[num_partitions - 1] = 1.0 - pre_hist_cost
+  seqs = []
+  for i, pa in enumerate(parts):
+    tf.logging.info('Partition %d #subs %d #cost %.3f', i, len(pa),
+                    parts_cost[i])
+
+    seqs.append(FeatureExtractionLayer.Params().Set(name='d%d' % i, sub=pa))
+  return seqs
 
 
 class SeqLayer(base_layer.BaseLayer):
