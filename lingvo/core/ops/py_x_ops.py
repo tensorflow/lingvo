@@ -60,3 +60,6 @@ id_to_ascii = gen_x_ops.id_to_ascii
 ngram_id_to_token = gen_x_ops.ngram_id_to_token
 bpe_ids_to_words = gen_x_ops.bpe_ids_to_words
 bpe_words_to_ids = gen_x_ops.bpe_words_to_ids
+
+static_map_string_int = gen_x_ops.static_map_string_int
+static_map_int_string = gen_x_ops.static_map_int_string

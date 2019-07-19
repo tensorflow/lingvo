@@ -49,6 +49,7 @@ cc_library(
         ":functional_ops_kernels",
         ":generic_input_op_kernels",
         ":random_ops_kernels",
+        ":static_map_op",
         ":tokenizer_ops_kernels",
     ],
 )
@@ -176,6 +177,22 @@ lingvo_cc_test_library(
 )
 
 ###################### Op kernel implementations.
+
+custom_kernel_library(
+    name = "static_map_op",
+    srcs = ["static_map_op.cc"],
+    op_def_lib = [":x_ops"],
+)
+
+py_test(
+    name = "static_map_op_test",
+    srcs = ["static_map_op_test.py"],
+    deps = [
+        ":py_x_ops",
+        "//lingvo:compat",
+        "//lingvo/core:test_utils",
+    ],
+)
 
 custom_kernel_library(
     name = "assert_kernels",

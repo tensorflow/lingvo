@@ -634,5 +634,45 @@ dynamic_padding_constants: Must be set if `dynamic_padding_dimension` is
     provided. The constant value to use for padding.
 )doc");
 
+REGISTER_OP("StaticMapStringInt")
+    .Input("x: string")
+    .Output("y: int32")
+    .Attr("keys: list(string)")
+    .Attr("vals: list(int) = []")
+    .Attr("unk: int = -1")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      c->set_output(0, c->input(0));
+      return ::tensorflow::Status::OK();
+    })
+    .Doc(R"doc(
+Maps every element of x according a static mapping.
+
+x: A Tensor of type string.
+y: A Tensor of type int32. Same shape of x.
+keys: The list of keys.
+vals: The list of values. If empty, defaults to [0 .. len(keys)).
+unk: The value when the key is not found.
+)doc");
+
+REGISTER_OP("StaticMapIntString")
+    .Input("x: int32")
+    .Output("y: string")
+    .Attr("keys: list(int) = []")
+    .Attr("vals: list(string)")
+    .Attr("unk: string = ''")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      c->set_output(0, c->input(0));
+      return ::tensorflow::Status::OK();
+    })
+    .Doc(R"doc(
+Maps every element of x according a static mapping.
+
+x: A Tensor of type int32.
+y: A Tensor of type string. Same shape of x.
+keys: The list of keys. If empty, defaults to [0 .. len(keys)).
+vals: The list of values.
+unk: The value when the key is not found.
+)doc");
+
 }  // namespace
 }  // namespace tensorflow
