@@ -1181,6 +1181,9 @@ class Decoder(base_runner.BaseRunner):
 
     global_step = sess.run(py_utils.GetGlobalStep())
     dec_metrics = self._model_task.CreateDecoderMetrics()
+    if not dec_metrics:
+      tf.logging.info('Empty decoder metrics')
+      return
     buffered_decode_out = []
     num_examples_metric = dec_metrics['num_samples_in_batch']
     start_time = time.time()
