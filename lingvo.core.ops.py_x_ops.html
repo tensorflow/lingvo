@@ -869,6 +869,58 @@ paddings: A <code class="xref py py-obj docutils literal notranslate"><span clas
 </table>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.ops.py_x_ops.static_map_string_int">
+<code class="descclassname">lingvo.core.ops.py_x_ops.</code><code class="descname">static_map_string_int</code><span class="sig-paren">(</span><em>x</em>, <em>keys</em>, <em>vals=[]</em>, <em>unk=-1</em>, <em>name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.py_x_ops.static_map_string_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maps every element of x according a static mapping.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A Tensor of type string.</li>
+<li><strong>keys</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>. The list of keys.</li>
+<li><strong>vals</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
+The list of values. If empty, defaults to [0 .. len(keys)).</li>
+<li><strong>unk</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.
+The value when the key is not found.</li>
+<li><strong>name</strong> – A name for the operation (optional).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A Tensor of type int32. Same shape of x.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.ops.py_x_ops.static_map_int_string">
+<code class="descclassname">lingvo.core.ops.py_x_ops.</code><code class="descname">static_map_int_string</code><span class="sig-paren">(</span><em>x</em>, <em>vals</em>, <em>keys=[]</em>, <em>unk=''</em>, <em>name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.py_x_ops.static_map_int_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maps every element of x according a static mapping.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A Tensor of type int32.</li>
+<li><strong>vals</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>. The list of values.</li>
+<li><strong>keys</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
+The list of keys. If empty, defaults to [0 .. len(keys)).</li>
+<li><strong>unk</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>.
+The value when the key is not found.</li>
+<li><strong>name</strong> – A name for the operation (optional).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A Tensor of type string. Same shape of x.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 
 
