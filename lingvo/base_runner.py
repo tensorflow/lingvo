@@ -31,7 +31,6 @@ from lingvo.core import early_stop
 from lingvo.core import py_utils
 
 from tensorflow.core.framework import summary_pb2
-from tensorflow.core.protobuf import saver_pb2
 
 
 class BaseRunner(object):
@@ -138,27 +137,6 @@ class BaseRunner(object):
               tf.Summary.Value(
                   tag=filename, tensor=tf.make_tensor_proto([text]))
           ]))
-
-  def _GetSaver(self):
-    """Returns a saver."""
-    assert tf.get_default_graph() == self._graph
-    p = self.params
-    if p.is_eval and self._model.ema:
-      tf.logging.info('Using EMA for evaluation.')
-      return tf.train.Saver(self._model.ema.variables_to_restore())
-    tp = p.train
-    return tf.train.Saver(
-        sharded=True,
-        max_to_keep=tp.save_max_to_keep,
-        keep_checkpoint_every_n_hours=tp.save_keep_checkpoint_every_n_hours,
-        pad_step_number=True,  # %08d
-        write_version=saver_pb2.SaverDef.V2)
-
-  def _LoadCheckpointForEval(self, sess, checkpoint_path):
-    """Load the checkpoint for evaluation."""
-    tf.logging.info('Load from checkpoint %s.', checkpoint_path)
-    self._saver.restore(sess, checkpoint_path)
-    tf.logging.info('Load checkpoint done.')
 
   @py_utils.Retry(initial_delay_sec=300, max_delay_sec=300)
   def _FindNewCheckpoint(self, prev_path, sess):
