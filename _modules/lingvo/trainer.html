@@ -1326,6 +1326,9 @@
 
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
     <span class="n">dec_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">dec_metrics</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Empty decoder metrics&#39;</span><span class="p">)</span>
+      <span class="k">return</span>
     <span class="n">buffered_decode_out</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">num_examples_metric</span> <span class="o">=</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span>
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
