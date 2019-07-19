@@ -2062,5 +2062,40 @@ class FocalLossTest(tf.test.TestCase):
           self._testTfSCEFLLabelProbs(logits, label_probs, alpha, gamma))
 
 
+class UniformSamplerTest(tf.test.TestCase):
+
+  def testUniformSamplerSamples(self):
+    sampler = py_utils.UniformSampler(5)
+    for i in range(5):
+      sampler.Add(i)
+    # Up to the total number of samples, no sampling is performed.
+    self.assertEqual([0, 1, 2, 3, 4], sampler.samples)
+
+  def testUniformSampler(self):
+    # Run a bunch of trials sampling 10 items out of 100 ids.
+    np.random.seed(123456)
+    state_space = 100
+    num_samples = 10
+    num_trials = 10000
+    counts = np.zeros([state_space])
+    for _ in range(num_trials):
+      sampler = py_utils.UniformSampler(num_samples)
+      # Add an element for each item in the state space.
+      for i in range(state_space):
+        sampler.Add(i)
+      samples = sampler.samples
+      self.assertEqual(num_samples, len(samples))
+      for value in samples:
+        counts[value] += 1
+    distribution = counts / np.sum(counts)
+
+    # We expect that over the course of many trials, each item in
+    # the state space gets selected roughly an equal number of times,
+    # implying that the reservoir sampler is not biased based on the order
+    # in which items were added to the sampler.
+    self.assertGreater(min(distribution), 0.009)
+    self.assertLess(max(distribution), 0.011)
+
+
 if __name__ == '__main__':
   tf.test.main()
