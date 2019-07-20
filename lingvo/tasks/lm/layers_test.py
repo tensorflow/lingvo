@@ -896,8 +896,8 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     p.stack.emb_tpl.token_emb.embedding_dim = dims
     p.stack.emb_tpl.position_emb.embedding_dim = dims
     p.stack.model_dim = dims
-    p.stack.softmax_tpl.softmax.input_dim = dims
-    p.stack.softmax_tpl.softmax.num_classes = vocab
+    p.stack.softmax_tpl.input_dim = dims
+    p.stack.softmax_tpl.num_classes = vocab
     trans_tpl = p.stack.encoder_tpl
     trans_tpl.source_dim = dims
     trans_tpl.tr_atten_tpl.num_attention_heads = 2

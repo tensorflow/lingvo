@@ -62,20 +62,16 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       softmax = layers_with_gpipe.GPipeTransformerSoftmaxLayer.Params()
       softmax.name = 'softmax'
       softmax.inputs_from_decoder = False
-      softmax.softmax.num_classes = 2
-      softmax.softmax.input_dim = depth
+      softmax.num_classes = 2
+      softmax.input_dim = depth
       softmax = softmax.Instantiate()
       (source_vecs, _, _, _) = self._testInputs(depth=depth)
       source_padding = tf.zeros([5, 2])
-      labels = tf.ones([5, 2], dtype=tf.int32)
-      label_weights = tf.ones([5, 2])
       softmax_inputs = transformer.FPropDefaultTheta(source_vecs,
                                                      source_padding, None, None,
-                                                     None, None, labels,
-                                                     label_weights, None, None)
+                                                     None, None, None, None)
       softmax_outputs = softmax.FPropDefaultTheta(*softmax_inputs)
-      self.assertEqual([5, 2], softmax_outputs[0].shape)
-      self.assertEqual([5, 2, 2], softmax_outputs[1].shape)
+      self.assertEqual([5, 2, 2], softmax_outputs.shape)
 
   def testGPipeSoftmaxLayerInputfromDecoder(self):
     with self.session(use_gpu=True):
@@ -92,21 +88,17 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       softmax = layers_with_gpipe.GPipeTransformerSoftmaxLayer.Params()
       softmax.name = 'softmax'
       softmax.inputs_from_decoder = True
-      softmax.softmax.num_classes = 2
-      softmax.softmax.input_dim = depth
+      softmax.num_classes = 2
+      softmax.input_dim = depth
       softmax = softmax.Instantiate()
       (source_vecs, _, aux_vecs, aux_paddings) = self._testInputs(depth=depth)
       source_padding = tf.zeros([5, 2])
-      labels = tf.ones([5, 2], dtype=tf.int32)
-      label_weights = tf.ones([5, 2])
       softmax_inputs = transformer.FPropDefaultTheta(aux_vecs, aux_paddings,
                                                      source_vecs,
                                                      source_padding, None, None,
-                                                     labels, label_weights,
                                                      None, None)
       softmax_outputs = softmax.FPropDefaultTheta(*softmax_inputs)
-      self.assertEqual([5, 2], softmax_outputs[0].shape)
-      self.assertEqual([5, 2, 2], softmax_outputs[1].shape)
+      self.assertEqual([5, 2, 2], softmax_outputs.shape)
 
   def testTransformerLayerExtendStep(self):
     with self.session(use_gpu=True) as sess:
@@ -126,7 +118,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
 
       output1 = transformer.FPropDefaultTheta(aux_vecs, aux_paddings,
                                               source_vecs, source_padding, None,
-                                              None, None, None, None, None)
+                                              None, None, None)
       h1 = output1[2]
 
       h2 = []
@@ -171,7 +163,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       (source_vecs, source_padding, _, _) = self._testInputs(depth=depth)
 
       h = transformer.FPropDefaultTheta(source_vecs, source_padding, None, None,
-                                        None, None, None, None, None, None)[0]
+                                        None, None, None, None)[0]
 
       tf.global_variables_initializer().run()
       actual_layer_output = sess.run([h])[0]
@@ -221,8 +213,8 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
        aux_paddings) = self._testInputs(depth=depth)
 
       h = transformer.FPropDefaultTheta(aux_vecs, aux_paddings, source_vecs,
-                                        source_padding, None, None, None, None,
-                                        None, None)[0]
+                                        source_padding, None, None, None,
+                                        None)[0]
 
       tf.global_variables_initializer().run()
       actual_layer_output = sess.run([h])[0]
@@ -265,9 +257,16 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       (source_vecs, _, aux_vecs, aux_paddings) = self._testInputs(depth=depth)
       source_padding = tf.zeros([5, 2])
 
-      h1 = et_decoder.FPropDefaultTheta(aux_vecs, aux_paddings, source_vecs,
-                                        source_padding, None, None, None, None,
-                                        None, None)[2]
+      h1 = et_decoder.FPropDefaultTheta(
+          aux_vecs,
+          aux_paddings,
+          source_vecs,
+          source_padding,
+          None,
+          None,
+          None,
+          None,
+      )[2]
       h2 = []
 
       double_head_attention_states = py_utils.NestedMap(
@@ -328,8 +327,8 @@ def _TransformerParamsWithEmbeddings(num_decoder_layers=0,
   params.num_micro_batches = num_micro_batches
   params.state_dtype = tf.float32
   if has_softmax:
-    params.softmax_tpl.softmax.input_dim = model_dim
-    params.softmax_tpl.softmax.num_classes = 2
+    params.softmax_tpl.input_dim = model_dim
+    params.softmax_tpl.num_classes = 2
   else:
     params.softmax_tpl = None
 
@@ -368,8 +367,8 @@ def _EvolvedTransformerParamsWithEmbeddings(num_decoder_layers=0,
   params.num_micro_batches = num_micro_batches
   params.state_dtype = tf.float32
   if has_softmax:
-    params.softmax_tpl.softmax.input_dim = model_dim
-    params.softmax_tpl.softmax.num_classes = 2
+    params.softmax_tpl.input_dim = model_dim
+    params.softmax_tpl.num_classes = 2
   else:
     params.softmax_tpl = None
 
@@ -716,7 +715,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       xformer = stack_cls(params)
 
       input_ids, id_paddings, _, _ = inputs_fn(batch=batch)
-      labels = tf.ones([input_ids.shape.as_list()[0], batch])
+      labels = tf.ones([input_ids.shape.as_list()[0], batch], dtype=tf.int32)
       label_weights = tf.ones([input_ids.shape.as_list()[0], batch])
       tf.set_random_seed(1234)
       tf.global_variables_initializer().run()
@@ -774,7 +773,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
 
       input_ids, id_paddings, tgt_inputs, tgt_paddings = (
           inputs_fn(batch=batch))
-      labels = tf.ones([tgt_inputs.shape.as_list()[0], batch])
+      labels = tf.ones([tgt_inputs.shape.as_list()[0], batch], dtype=tf.int32)
       label_weights = tf.ones([tgt_inputs.shape.as_list()[0], batch])
       tf.set_random_seed(1234)
       tf.global_variables_initializer().run()

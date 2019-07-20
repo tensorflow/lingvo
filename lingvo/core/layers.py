@@ -2226,6 +2226,10 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
     """Returns the logits computed before the softmax."""
     raise NotImplementedError('GetLogits is not implemented.')
 
+  def XentLossFromLogits(self, **unused):
+    """Returns the Xent loss from pre-computed logits."""
+    raise NotImplementedError('XentLossFromLogits is not implemented.')
+
   def XentLoss(self, *args, **kwargs):
     """Computes cross entropy."""
     return self.FProp(self.theta, *args, **kwargs)
@@ -2528,25 +2532,16 @@ class SimpleFullSoftmax(SoftmaxLayer):
     p = self.params
     inputs = self._GetInputs(inputs)
     logits = self.Logits(theta, inputs)
-
     if class_probabilities is not None:
-      per_example_xent = tf.nn.softmax_cross_entropy_with_logits(
-          labels=class_probabilities, logits=logits)
-      per_example_argmax = py_utils.ArgMax(logits)
+      per_example_xent, per_example_argmax = self.XentLossFromLogits(
+          theta, logits, class_weights, class_ids, class_probabilities)
     elif p.chunk_size:
       class_ids = py_utils.HasShape(class_ids, [-1, 1])
       per_example_xent, per_example_argmax = self._XentLossByChunk(
           theta, inputs, class_ids)
     elif p.num_sampled == 0 or p.is_eval:
-      assert class_ids is not None
-      assert logits is not None
-      tf.logging.vlog(
-          0, 'Using sparse_softmax_cross_entropy_with_logits() in '
-          'SimpleFullSoftmax::_FProp2D logits_shape=%r',
-          py_utils.GetShape(logits))
-      per_example_xent = tf.nn.sparse_softmax_cross_entropy_with_logits(
-          labels=tf.reshape(class_ids, [-1]), logits=logits)
-      per_example_argmax = py_utils.ArgMax(logits)
+      per_example_xent, per_example_argmax = self.XentLossFromLogits(
+          theta, logits, class_weights, class_ids, class_probabilities)
     else:  # Use sampled soft-max in training mode with p.num_sampled set.
       assert p.num_sampled > 0
       tf.logging.vlog(
@@ -2570,7 +2565,6 @@ class SimpleFullSoftmax(SoftmaxLayer):
         tf.cast(class_weights, py_utils.FPropDtype(p)), [-1])
     total_xent = tf.reduce_sum(per_example_xent * label_weights)
     total_weights = tf.reduce_sum(label_weights)
-
     return py_utils.NestedMap(
         logits=logits,
         log_probs=tf.nn.log_softmax(logits),
@@ -2580,6 +2574,33 @@ class SimpleFullSoftmax(SoftmaxLayer):
         total_xent=total_xent,
         total_weight=total_weights,
         avg_xent=total_xent / total_weights)
+
+  def XentLossFromLogits(self,
+                         theta,
+                         logits,
+                         class_weights,
+                         class_ids=None,
+                         class_probabilities=None):
+    """Computes cross-entropy, argmax etc. from logits."""
+    p = self.params
+    assert logits is not None
+    if class_probabilities is not None:
+      per_example_xent = tf.nn.softmax_cross_entropy_with_logits(
+          labels=class_probabilities, logits=logits)
+      per_example_argmax = py_utils.ArgMax(logits)
+    elif p.num_sampled == 0 or p.is_eval:
+      assert class_ids is not None
+      tf.logging.vlog(
+          0, 'Using sparse_softmax_cross_entropy_with_logits() in '
+          'SimpleFullSoftmax::_FProp2D logits_shape=%r',
+          py_utils.GetShape(logits))
+      per_example_xent = tf.nn.sparse_softmax_cross_entropy_with_logits(
+          labels=tf.reshape(class_ids, [-1]), logits=logits)
+      per_example_argmax = py_utils.ArgMax(logits)
+    else:
+      raise ValueError(
+          'This set of arguments is not supported for XentLossFromLogits.')
+    return per_example_xent, per_example_argmax
 
 
 class ConvSoftmax(quant_utils.QuantizableLayer):

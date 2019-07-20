@@ -66,10 +66,12 @@ def _common_gpipe_transformer_init(layer):
   assert p.name
 
 
-def _common_gpipe_transformer_encoder_fprop(
-    layer, layer_class, theta, source_vecs, source_paddings, target_vecs,
-    target_paddings, source_segment_id, target_segment_id, labels,
-    label_weights, transparent_acc, transparent_acc_helper):
+def _common_gpipe_transformer_encoder_fprop(layer, layer_class, theta,
+                                            source_vecs, source_paddings,
+                                            target_vecs, target_paddings,
+                                            source_segment_id,
+                                            target_segment_id, transparent_acc,
+                                            transparent_acc_helper):
   """GPipe encoder FProp."""
   p = layer.params
   h, _ = super(layer_class, layer).FProp(
@@ -90,14 +92,15 @@ def _common_gpipe_transformer_encoder_fprop(
   if p.normalize_output:
     h = layer.layer_norm.FProp(theta.layer_norm, h)
   return (h, source_paddings, target_vecs, target_paddings, source_segment_id,
-          target_segment_id, labels, label_weights, transparent_acc,
-          transparent_acc_helper)
+          target_segment_id, transparent_acc, transparent_acc_helper)
 
 
-def _common_gpipe_transformer_decoder_fprop(
-    layer, layer_class, theta, source_vecs, source_paddings, target_vecs,
-    target_paddings, source_segment_id, target_segment_id, labels,
-    label_weights, transparent_acc, transparent_acc_helper):
+def _common_gpipe_transformer_decoder_fprop(layer, layer_class, theta,
+                                            source_vecs, source_paddings,
+                                            target_vecs, target_paddings,
+                                            source_segment_id,
+                                            target_segment_id, transparent_acc,
+                                            transparent_acc_helper):
   """GPipe decoder FProp."""
   assert target_vecs is not None
   assert target_paddings is not None
@@ -111,8 +114,7 @@ def _common_gpipe_transformer_decoder_fprop(
       aux_segment_id=source_segment_id)
   h.set_shape(target_vecs.shape)
   return (source_vecs, source_paddings, h, target_paddings, source_segment_id,
-          target_segment_id, labels, label_weights, transparent_acc,
-          transparent_acc_helper)
+          target_segment_id, transparent_acc, transparent_acc_helper)
 
 
 def _common_gpipe_transformer_fprop_meta(p, inputs, *args):
@@ -125,11 +127,11 @@ def _common_gpipe_transformer_fprop_meta(p, inputs, *args):
   args = args if isinstance(args, tuple) else (args,)
   if not p.has_aux_atten and p.is_transparent:  # Transparent Encoder FPropMeta
     if p.transparent_merger_tpl is not None:
-      args = args[:7] + (
-          inputs, tshape.Shape([p.transparent_merger_tpl.num_sources - 1]))
-    args = args[:8] + (tshape.Shape([args[8][0] - 1]),)
+      args = args[:5] + (inputs,
+                         tshape.Shape([p.transparent_merger_tpl.num_sources]))
+    args = args[:6] + (tshape.Shape([args[6][0] - 1]),)
     if p.final_enc_layer:
-      args = args[:7] + (None, None)
+      args = args[:5] + (None, None)
   return py_utils.NestedMap(flops=flops, out_shapes=(inputs,) + args)
 
 
@@ -148,20 +150,20 @@ class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
     _common_gpipe_transformer_init(self)
 
   def FProp(self, theta, source_vecs, source_paddings, target_vecs,
-            target_paddings, source_segment_id, target_segment_id, labels,
-            label_weights, transparent_acc, transparent_acc_helper):
+            target_paddings, source_segment_id, target_segment_id,
+            transparent_acc, transparent_acc_helper):
     p = self.params
     with tf.name_scope(p.name):
       if p.has_aux_atten:  # Decoder FProp
         return _common_gpipe_transformer_decoder_fprop(
             self, GPipeTransformerLayer, theta, source_vecs, source_paddings,
             target_vecs, target_paddings, source_segment_id, target_segment_id,
-            labels, label_weights, transparent_acc, transparent_acc_helper)
+            transparent_acc, transparent_acc_helper)
       else:  # Encoder FProp
         return _common_gpipe_transformer_encoder_fprop(
             self, GPipeTransformerLayer, theta, source_vecs, source_paddings,
             target_vecs, target_paddings, source_segment_id, target_segment_id,
-            labels, label_weights, transparent_acc, transparent_acc_helper)
+            transparent_acc, transparent_acc_helper)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -183,13 +185,13 @@ class GPipeEvolvedTransformerEncoderLayer(
     _common_gpipe_transformer_init(self)
 
   def FProp(self, theta, source_vecs, source_paddings, target_vecs,
-            target_paddings, source_segment_id, target_segment_id, labels,
-            label_weights, transparent_acc, transparent_acc_helper):
+            target_paddings, source_segment_id, target_segment_id,
+            transparent_acc, transparent_acc_helper):
     with tf.name_scope(self.params.name):
       return _common_gpipe_transformer_encoder_fprop(
           self, GPipeEvolvedTransformerEncoderLayer, theta, source_vecs,
           source_paddings, target_vecs, target_paddings, source_segment_id,
-          target_segment_id, labels, label_weights, None, None)
+          target_segment_id, None, None)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -211,97 +213,50 @@ class GPipeEvolvedTransformerDecoderLayer(
     _common_gpipe_transformer_init(self)
 
   def FProp(self, theta, source_vecs, source_paddings, target_vecs,
-            target_paddings, source_segment_id, target_segment_id, labels,
-            label_weights, transparent_acc, transparent_acc_helper):
+            target_paddings, source_segment_id, target_segment_id,
+            transparent_acc, transparent_acc_helper):
     with tf.name_scope(self.params.name):
       return _common_gpipe_transformer_decoder_fprop(
           self, GPipeEvolvedTransformerDecoderLayer, theta, source_vecs,
           source_paddings, target_vecs, target_paddings, source_segment_id,
-          target_segment_id, labels, label_weights, transparent_acc,
-          transparent_acc_helper)
+          target_segment_id, transparent_acc, transparent_acc_helper)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
     return _common_gpipe_transformer_fprop_meta(p, inputs, *args)
 
 
-class GPipeTransformerSoftmaxLayer(base_layer.BaseLayer):
-  """GPipe compatible softmax layer for transformers."""
+class GPipeTransformerSoftmaxLayer(layers.SimpleFullSoftmax):
+  """GPipe compatible softmax layer for transformers for computing logits."""
 
   @classmethod
   def Params(cls):
     p = super(GPipeTransformerSoftmaxLayer, cls).Params()
-    p.Define('num_shards', 16,
-             'num_shards for softmax. Assert vocab_size % num_shards == 0')
-    p.Define('label_smoothing', None, 'Label smoothing Params.')
-    p.Define('softmax', layers.SimpleFullSoftmax.Params(),
-             'Params for the softmax layer.')
     p.Define('inputs_from_decoder', False,
              'Bool, whether inputs to this layer come from decoder or not.')
     return p
 
-  @base_layer.initializer
-  def __init__(self, params):
-    super(GPipeTransformerSoftmaxLayer, self).__init__(params)
-    p = self.params
-    self.CreateChild('softmax', p.softmax)
-    if p.label_smoothing is not None:
-      self.CreateChild('smoother', p.label_smoothing)
-
   def FProp(self, theta, source_vecs, source_paddings, target_vecs,
-            target_paddings, source_segment_id, target_segment_id, labels,
-            label_weights, transparent_acc, transparent_acc_helper):
+            target_paddings, source_segment_id, target_segment_id,
+            transparent_acc, transparent_acc_helper):
     p = self.params
     if p.inputs_from_decoder:
       transformer_output = target_vecs
     else:
       transformer_output = source_vecs
-    return self._FPropSoftmax(theta, transformer_output, labels, label_weights,
-                              target_paddings)
-
-  def _FPropSoftmax(self, theta, softmax_input, target_labels, target_weights,
-                    target_paddings):
-    """Computes cross-entropy loss given the softmax input, labels and weights.
-
-    Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
-      softmax_input: A tensor of shape [time, batch, p.softmax.input_dim].
-      target_labels: A matrix of params.dtype [time, batch].
-      target_weights: A matrix of params.dtype [time, batch].
-      target_paddings: A matrix of params.dtype [time, batch].
-
-    Returns:
-      per_example_xent: Tensor with shape [time, batch]
-      logits: Tensor with shape [time, batch, vocab_size]
-    """
-    p = self.params
-
-    if p.label_smoothing is None:
-      xent_loss = self.softmax.FProp(
-          theta.softmax, [softmax_input],
-          class_weights=target_weights,
-          class_ids=tf.cast(target_labels, tf.int32))
-    else:
-      # [time, batch, num_classes]
-      target_probs = tf.transpose(
-          self.smoother.FProp(
-              theta.smoother,
-              tf.transpose(target_paddings),
-              tf.transpose(target_labels),
-              target_ids=None), [1, 0, 2])
-      xent_loss = self.softmax.FProp(
-          theta.softmax, [softmax_input],
-          class_weights=target_weights,
-          class_probabilities=target_probs)
-    return xent_loss.per_example_xent, xent_loss.logits
+    dim1, dim2 = tf.shape(transformer_output)[0], tf.shape(
+        transformer_output)[1]
+    softmax_input = tf.reshape(transformer_output, [-1, p.input_dim])
+    output_shape = [dim1, dim2, p.num_classes]
+    return tf.reshape(
+        super(GPipeTransformerSoftmaxLayer,
+              self).Logits(theta, [softmax_input]), output_shape)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
-    t, b = args[1][:2] if p.inputs_from_decoder else inputs[:2]
-    per_example_xent = tshape.Shape([t, b])
-    logits = tshape.Shape([t, b, p.softmax.num_classes])
-    return py_utils.NestedMap(flops=100, out_shapes=(per_example_xent, logits))
+    dim1, dim2 = args[1][:2] if p.inputs_from_decoder else inputs[:2]
+    logits = tshape.Shape([dim1, dim2, p.num_classes])
+    return py_utils.NestedMap(flops=100, out_shapes=(logits,))
 
 
 class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
@@ -409,8 +364,7 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
     return input_embs
 
   def FProp(self, theta, source_id, source_paddings, target_id, target_paddings,
-            source_segment_id, target_segment_id, labels, label_weights,
-            source_pos_id, target_pos_id):
+            source_segment_id, target_segment_id, source_pos_id, target_pos_id):
     p = self.params
     with tf.name_scope(p.name):
       source_vecs = self.GetEmbeddings(theta.src_token_emb, self.src_token_emb,
@@ -425,8 +379,7 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
                                          self.tgt_dropout, target_id,
                                          target_pos_id)
       return (source_vecs, source_paddings, target_vecs, target_paddings,
-              source_segment_id, target_segment_id, labels, label_weights, None,
-              None)
+              source_segment_id, target_segment_id, None, None)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -443,7 +396,7 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
     if p.add_tgt_embedding_layer:
       tgt_time, tgt_batch = args[1]
       new_args[1] = tshape.Shape([tgt_time, tgt_batch, dim])
-    new_args = tuple(new_args[:7]) + (None, None)
+    new_args = tuple(new_args[:5]) + (None, None)
     return py_utils.NestedMap(flops=flops, out_shapes=(new_inputs,) + new_args)
 
 
@@ -476,6 +429,7 @@ class GPipeTransformerStack(PipeliningLayer):
              'Prepare embeddings for Transformer input.')
     p.Define('softmax_tpl', GPipeTransformerSoftmaxLayer.Params(),
              'Optional softmax layer to compute the logits.')
+    p.Define('label_smoothing', None, 'Label smoothing Params.')
     p.Define('encoder_tpl', GPipeTransformerLayer.Params(),
              'TransformerLayer Encoder params tpl.')
     p.Define('decoder_tpl', GPipeTransformerLayer.Params(),
@@ -581,6 +535,9 @@ class GPipeTransformerStack(PipeliningLayer):
       p.cell_tpl = cells
     super(GPipeTransformerStack, self).__init__(p)
 
+    if p.label_smoothing:
+      self.CreateChild('smoother', p.label_smoothing)
+
   def SetupDeterministicDropout(self, params):
     """Replaced dropout layers in transformer with deterministic ones."""
     params.tr_atten_tpl.residual_dropout_tpl = (
@@ -594,10 +551,11 @@ class GPipeTransformerStack(PipeliningLayer):
         layers.DeterministicDropoutLayer.Params())
     return params
 
-  def Logits(self, inputs):
+  def Logits(self, theta, inputs):
     num_splits = len(self.params.splits)
-    child = self.children['cell_{}'.format(num_splits - 1)].softmax.softmax
-    return child.Logits(child.theta, inputs)
+    softmax = self.children['cell_{}'.format(num_splits - 1)].softmax
+    softmax_theta = theta['cell_{}'.format(num_splits - 1)].softmax
+    return softmax.Logits(softmax_theta, inputs)
 
   def GetEncoders(self):
     encoders = []
@@ -647,12 +605,11 @@ class GPipeTransformerStack(PipeliningLayer):
     for encoder_l in self.GetEncoders():
       encoder_outs = encoder_l.FProp(encoder_l.theta, source_vecs,
                                      source_paddings, None, None, None, None,
-                                     None, None, transparent_acc,
-                                     transparent_weights)
+                                     transparent_acc, transparent_weights)
       source_vecs = encoder_outs[0]
-      if p.is_transparent and len(encoder_outs) == 10:
-        transparent_acc = encoder_outs[8]
-        transparent_weights = encoder_outs[9]
+      if p.is_transparent and len(encoder_outs) == 8:
+        transparent_acc = encoder_outs[6]
+        transparent_weights = encoder_outs[7]
     return source_vecs
 
   def FProp(self,
@@ -704,13 +661,36 @@ class GPipeTransformerStack(PipeliningLayer):
       assert source_pos_id is not None, (
           'Need to specify src_pos_id for packed input and embeddings.')
 
-    gpipe_outputs = super(GPipeTransformerStack,
-                          self).FProp(theta, source_input, source_paddings,
-                                      target_input, target_paddings,
-                                      source_segment_id, target_segment_id,
-                                      labels, label_weights, source_pos_id,
-                                      target_pos_id)
-    return gpipe_outputs
+    logits = super(GPipeTransformerStack,
+                   self).FProp(theta, source_input, source_paddings,
+                               target_input, target_paddings, source_segment_id,
+                               target_segment_id, source_pos_id, target_pos_id)
+    if not p.softmax_tpl:
+      return logits
+    label_weights = tf.reshape(label_weights, [-1])
+    target_probs = None
+    if p.label_smoothing:
+      target_probs = tf.transpose(
+          self.smoother.FProp(
+              theta.smoother,
+              tf.transpose(target_paddings),
+              tf.transpose(labels),
+              target_ids=None), [1, 0, 2])
+      target_probs = tf.reshape(target_probs, [-1, p.softmax_tpl.num_classes])
+    reshaped_logits = tf.reshape(logits, [-1, p.softmax_tpl.num_classes])
+    tgt_labels = tf.reshape(labels, [-1])
+    num_splits = len(p.splits)
+    softmax = self.children['cell_{}'.format(num_splits - 1)].softmax
+    softmax_theta = theta['cell_{}'.format(num_splits - 1)].softmax
+    per_example_xent, _ = softmax.XentLossFromLogits(
+        softmax_theta,
+        reshaped_logits,
+        class_weights=tf.reshape(label_weights, [-1]),
+        class_ids=tgt_labels,
+        class_probabilities=target_probs)
+    xent_shape = tf.shape(logits)[:2]
+    per_example_xent = tf.reshape(per_example_xent, xent_shape)
+    return per_example_xent, logits
 
 
 class GPipeEvolvedTransformerStack(GPipeTransformerStack):

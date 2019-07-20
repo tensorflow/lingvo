@@ -1270,12 +1270,12 @@ class GPipeTransformerLm(BaseLanguageModel):
     trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_pre_proj = True
     trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_post_proj = True
     trans_tpl.tr_fflayer_tpl.hidden_dim = hidden_dim
-    p.stack.softmax_tpl.softmax.Set(
+    p.stack.softmax_tpl.Set(
         num_classes=vocab_size, input_dim=model_dim, num_shards=num_shards)
     if softmax_max_alloc:
       # If the vocab is very large, computes the softmax chunk-by-chunk.
-      p.stack.softmax_tpl.softmax.chunk_size = max(
-          1, int(softmax_max_alloc / vocab_size))
+      p.stack.softmax_tpl.chunk_size = max(1,
+                                           int(softmax_max_alloc / vocab_size))
     return p
 
   @base_layer.initializer
@@ -1312,12 +1312,12 @@ class GPipeTransformerLm(BaseLanguageModel):
       value and `state1` is the next recurrent state. Otherwise,
       `xent_output` only contains the softmax logits.
     """
-    p = self.params
     ids = py_utils.HasRank(inputs, 2)
     paddings = py_utils.HasShape(paddings, tf.shape(ids))
-    per_example_xent, logits = self.stack.FProp(
-        theta.stack, ids, paddings, None, None, None, None,
-        tf.cast(labels.class_ids, py_utils.FPropDtype(p)), labels.class_weights)
+    per_example_xent, logits = self.stack.FProp(theta.stack, ids, paddings,
+                                                None, None, None, None,
+                                                labels.class_ids,
+                                                labels.class_weights)
     per_example_argmax = py_utils.ArgMax(logits)
     total_xent = tf.reduce_sum(per_example_xent * labels.class_weights)
     total_weights = tf.reduce_sum(labels.class_weights)
