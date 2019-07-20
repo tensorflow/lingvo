@@ -27,12 +27,12 @@ import sympy
 class SymbolicTest(test_utils.TestCase):
 
   def testGetSymbol(self):
-    x = symbolic.NewSymbol('x')
+    x = symbolic.Symbol('x')
     self.assertIsInstance(x, sympy.Expr)
 
   def testEvalExpr(self):
-    x = symbolic.NewSymbol('x')
-    y = symbolic.NewSymbol('y')
+    x = symbolic.Symbol('x')
+    y = symbolic.Symbol('y')
     xy = x * y
 
     with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES, {x: 2, y: 3}):
@@ -56,10 +56,11 @@ class SymbolicTest(test_utils.TestCase):
         with self.session() as sess:
           self.assertEqual(12, sess.run(ab, {a: 3, b: 4}))
 
-    with self.assertRaises(Exception):
-      # EvalExpr does not support partial evaluation.
+      # EvalExpr supports partial evaluation.
       with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES, {y: 3}):
-        symbolic.EvalExpr(symbolic.STATIC_VALUES, xy)
+        x3 = symbolic.EvalExpr(symbolic.STATIC_VALUES, xy)
+        with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES, {x: 9}):
+          self.assertEqual(27, symbolic.EvalExpr(symbolic.STATIC_VALUES, x3))
 
 
 if __name__ == '__main__':

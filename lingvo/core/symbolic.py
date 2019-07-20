@@ -24,16 +24,12 @@ from six.moves import zip
 import sympy
 
 
-class _Symbol(sympy.Dummy):
+class Symbol(sympy.Dummy):
   pass
 
 
-def NewSymbol(name):
-  return _Symbol(name)
-
-
 def IsSymbol(x):
-  return isinstance(x, _Symbol)
+  return isinstance(x, Symbol)
 
 
 def IsExpr(x):
@@ -76,7 +72,7 @@ class SymbolToValueMap(object):
 
     Args:
       value_type: the type of values in 'symbol_to_value_map'.
-      symbol_to_value_map: a dict from _Symbol to values.
+      symbol_to_value_map: a dict from Symbol to values.
     """
     assert value_type in VALUE_TYPES
     self.value_type = value_type
