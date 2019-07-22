@@ -23,8 +23,8 @@ import math
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import early_stop
+from lingvo.core import ops
 from lingvo.core import py_utils
-from lingvo.core.ops import py_x_ops
 from six.moves import zip
 
 from tensorflow.python.framework import function
@@ -577,8 +577,8 @@ class DevBasedSchedule(BaseLearningRateSchedule):
           'ref_step', wp, trainable=False)
 
       self._metric_history = early_stop.MetricHistory(p.metric_history)
-      self._best_step = py_x_ops.best_step(self._metric_history.hist_file,
-                                           p.tolerance)
+      self._best_step = ops.best_step(self._metric_history.hist_file,
+                                      p.tolerance)
 
   def FProp(self, theta, current_step):
     p = self.params

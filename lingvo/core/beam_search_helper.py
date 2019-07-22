@@ -25,8 +25,8 @@ from __future__ import print_function
 import collections
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import ops
 from lingvo.core import py_utils
-from lingvo.core.ops import py_x_ops
 import six
 
 # TODO(yonghui):
@@ -287,7 +287,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
 
     (out_best_scores, out_cumulative_scores, out_scores, out_hyps,
      out_prev_hyps, out_done_hyps, out_atten_probs,
-     all_done) = py_x_ops.beam_search_step(
+     all_done) = ops.beam_search_step(
          bs_results.log_probs,
          bs_results.atten_probs,
          best_scores,
@@ -449,7 +449,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
           tf.reduce_sum(1.0 - tf.transpose(source_paddings), 1))
 
     # [num_beams, num_hyps_per_beam].
-    topk_hyps = py_x_ops.top_k_terminated_hyps(
+    topk_hyps = ops.top_k_terminated_hyps(
         final_done_hyps,
         source_seq_lengths,
         k=num_hyps_per_beam,
@@ -461,7 +461,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
         merge_paths=p.merge_paths)
     # [num_beams * num_hyps_per_beam, ...].
     max_seq_length = 0 if isinstance(max_steps, tf.Tensor) else max_steps
-    topk_ids, topk_lens, topk_scores = py_x_ops.unpack_hyp(
+    topk_ids, topk_lens, topk_scores = ops.unpack_hyp(
         tf.reshape(topk_hyps, [-1]), max_seq_length=max_seq_length)
     # [num_beams, num_hyps_per_beam].
     topk_scores = tf.reshape(topk_scores, tf.shape(topk_hyps))

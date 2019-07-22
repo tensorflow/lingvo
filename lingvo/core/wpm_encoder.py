@@ -32,7 +32,7 @@ from __future__ import print_function
 
 import sys
 import lingvo.compat as tf
-from lingvo.core.ops import py_x_ops
+from lingvo.core import ops
 import six
 
 # Must be a large ID.
@@ -65,12 +65,12 @@ class WpmEncoder(object):
     self._merge_prob = merge_prob
 
   def _TokenToString(self, token):
-    return py_x_ops.vocab_id_to_token(token, vocab=self._pieces)
+    return ops.vocab_id_to_token(token, vocab=self._pieces)
 
   def _StringToToken(self, tokstr):
     return tf.where(
-        py_x_ops.token_in_vocab(tokstr, vocab=self._pieces),
-        py_x_ops.vocab_token_to_id(tokstr, vocab=self._pieces),
+        ops.token_in_vocab(tokstr, vocab=self._pieces),
+        ops.vocab_token_to_id(tokstr, vocab=self._pieces),
         tf.broadcast_to(NO_TOKEN, tf.shape(tokstr)))
 
   def _MergeTokens(self, tokens):

@@ -64,7 +64,7 @@ py_library(
         ":base_layer",
         ":py_utils",
         "//lingvo:compat",
-        "//lingvo/core/ops:py_x_ops",
+        "//lingvo/core/ops",
         # Implicit six dependency.
     ],
 )
@@ -132,11 +132,12 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_layer",
+        ":hyperparams",
         ":input_generator_helper",
         ":py_utils",
         ":tokenizers",
         "//lingvo:compat",
-        "//lingvo/core/ops:py_x_ops",
+        "//lingvo/core/ops",
         # Implicit six dependency.
     ],
 )
@@ -363,7 +364,7 @@ py_library(
     deps = [
         ":hyperparams",
         "//lingvo:compat",
-        "//lingvo/core/ops:py_x_ops",
+        "//lingvo/core/ops",
     ],
 )
 
@@ -577,7 +578,7 @@ py_library(
         ":early_stop",
         ":py_utils",
         "//lingvo:compat",
-        "//lingvo/core/ops:py_x_ops",
+        "//lingvo/core/ops",
         # Implicit six dependency.
     ],
 )
@@ -768,7 +769,7 @@ py_library(
         ":symbolic",
         ":tshape",
         "//lingvo:compat",
-        "//lingvo/core/ops:py_x_ops",
+        "//lingvo/core/ops",
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow py proto dependency.
@@ -889,7 +890,7 @@ py_library(
     deps = [
         ":py_utils",
         "//lingvo:compat",
-        "//lingvo/core/ops:py_x_ops",
+        "//lingvo/core/ops",
         # Implicit tensorflow python framework_for_generated_wrappers dependency.
     ],
 )
@@ -1101,7 +1102,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
-        "//lingvo/core/ops:py_x_ops",
+        "//lingvo/core/ops",
         # Implicit six dependency.
     ],
 )
@@ -1125,7 +1126,7 @@ py_library(
         ":py_utils",
         ":wpm_encoder",
         "//lingvo:compat",
-        "//lingvo/core/ops:py_x_ops",
+        "//lingvo/core/ops",
         # Implicit numpy dependency.
     ],
 )

@@ -86,7 +86,7 @@ def gen_op_cclib(name, srcs, deps):
         copts = tf_copts(),
     )
 
-def gen_op_pylib(name, cc_lib_name, srcs, kernel_deps):
+def gen_op_pylib(name, cc_lib_name, srcs, kernel_deps, py_deps = []):
     native.cc_binary(
         name = cc_lib_name + ".so",
         deps = [cc_lib_name] + kernel_deps,
@@ -99,6 +99,7 @@ def gen_op_pylib(name, cc_lib_name, srcs, kernel_deps):
         srcs = srcs,
         srcs_version = "PY2AND3",
         data = [cc_lib_name + ".so"],
+        deps = py_deps,
     )
 
 def lingvo_cuda_py_test(name, tags = [], deps = [], **kwargs):

@@ -18,9 +18,9 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from lingvo.core import ops
 from lingvo.core import test_helper
 from lingvo.core import test_utils
-from lingvo.core.ops import py_x_ops
 import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
@@ -41,7 +41,7 @@ class BestStepOp(test_utils.TestCase):
   def testTol0(self):
     g = tf.Graph()
     with g.as_default():
-      output = py_x_ops.best_step(self._HistFile())
+      output = ops.best_step(self._HistFile())
     with self.session(graph=g) as sess:
       best_step, last_step = sess.run(output)
       self.assertEqual(best_step, 42122)
@@ -50,7 +50,7 @@ class BestStepOp(test_utils.TestCase):
   def testTolNon0(self):
     g = tf.Graph()
     with g.as_default():
-      output = py_x_ops.best_step(self._HistFile(), 0.1)
+      output = ops.best_step(self._HistFile(), 0.1)
     with self.session(graph=g) as sess:
       best_step, last_step = sess.run(output)
       self.assertEqual(best_step, 37553)
@@ -59,7 +59,7 @@ class BestStepOp(test_utils.TestCase):
   def testNoFile(self):
     g = tf.Graph()
     with g.as_default():
-      output = py_x_ops.best_step('')
+      output = ops.best_step('')
     with self.session(graph=g) as sess:
       best_step, last_step = sess.run(output)
       self.assertEqual(best_step, 0)
@@ -68,7 +68,7 @@ class BestStepOp(test_utils.TestCase):
   def testAscendingValTol0(self):
     g = tf.Graph()
     with g.as_default():
-      output = py_x_ops.best_step(self._BleuFile(), 0.0, False)
+      output = ops.best_step(self._BleuFile(), 0.0, False)
     with self.session(graph=g) as sess:
       best_step, last_step = sess.run(output)
       self.assertEqual(best_step, 41500)
@@ -77,7 +77,7 @@ class BestStepOp(test_utils.TestCase):
   def testTfEventAscendingValTol0(self):
     g = tf.Graph()
     with g.as_default():
-      output = py_x_ops.best_step(self._TfEventFile(), 0.0, False, 'bleu/dev')
+      output = ops.best_step(self._TfEventFile(), 0.0, False, 'bleu/dev')
     with self.session(graph=g) as sess:
       best_step, last_step = sess.run(output)
       self.assertEqual(best_step, 102600)

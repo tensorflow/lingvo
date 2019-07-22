@@ -22,7 +22,7 @@ from __future__ import print_function
 import os
 import lingvo.compat as tf
 from lingvo.core import hyperparams
-from lingvo.core.ops import py_x_ops
+from lingvo.core import ops
 
 
 class MetricHistory(object):
@@ -186,9 +186,10 @@ class EarlyStop(object):
     """
     del theta  # not used
     if self.params.window:
-      self._node = py_x_ops.best_step(
-          self.metric_history.hist_file, self.params.tolerance,
-          self.metric_history.minimize, self.metric_history.metric)
+      self._node = ops.best_step(self.metric_history.hist_file,
+                                 self.params.tolerance,
+                                 self.metric_history.minimize,
+                                 self.metric_history.metric)
     else:
       self._node = None
     return self._node

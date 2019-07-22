@@ -18,8 +18,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from lingvo.core import ops
 from lingvo.core import test_utils
-from lingvo.core.ops import py_x_ops
 import numpy as np
 from six.moves import range
 import tensorflow as tf
@@ -46,7 +46,7 @@ class FunctionalOpsTest(test_utils.TestCase):
     g = tf.Graph()
     with g.as_default():
       _ = MyFn.name
-      u, v = py_x_ops.cached_call(MyFn, [tf.float32, tf.float32])
+      u, v = ops.cached_call(MyFn, [tf.float32, tf.float32])
 
     with self.session(graph=g) as sess:
       for _ in range(10):

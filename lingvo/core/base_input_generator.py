@@ -23,9 +23,9 @@ import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import hyperparams
 from lingvo.core import input_generator_helper as ig_helper
+from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
-from lingvo.core.ops import py_x_ops
 import six
 from six.moves import map
 from six.moves import range
@@ -754,12 +754,12 @@ class BaseTinyDatasetInput(BaseInputGenerator):
       return tf.to_float(x), tf.to_float(y)
 
     # Loads data and label into memory and keep it around.
-    data, label = py_x_ops.cached_call(f=ReadData, T=[tf.float32, tf.float32])
+    data, label = ops.cached_call(f=ReadData, T=[tf.float32, tf.float32])
     b, shape = self.InfeedBatchSize(), list(p.data_shape)
     data = tf.reshape(data, [-1] + shape)
     label = tf.reshape(label, [-1])
     label = py_utils.HasShape(label, [tf.shape(data)[0]])
-    sample_ids = py_x_ops.random_permutation_sequence(
+    sample_ids = ops.random_permutation_sequence(
         num=p.num_samples,
         batch=b,
         repeat=p.repeat,

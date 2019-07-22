@@ -18,9 +18,9 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from lingvo.core import ops
 from lingvo.core import test_utils
 from lingvo.core.ops import hyps_pb2
-from lingvo.core.ops import py_x_ops
 import numpy as np
 from six.moves import zip
 import tensorflow as tf
@@ -61,7 +61,7 @@ class BeamSearchOpTest(test_utils.TestCase):
 
     for i, prob in enumerate(probs):
       (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-       atten_probs, done) = py_x_ops.beam_search_step(
+       atten_probs, done) = ops.beam_search_step(
            prob,
            init_atten_probs,
            best_scores,
@@ -561,7 +561,7 @@ class BeamSearchOpTest(test_utils.TestCase):
 
       (out_best_scores_0, out_cumulative_scores_0, out_scores_0, out_hyps_0,
        out_prev_hyps_0, out_done_hyps_0, out_atten_probs_0,
-       _) = py_x_ops.beam_search_step(
+       _) = ops.beam_search_step(
            scores,
            atten_probs,
            best_scores,
@@ -576,7 +576,7 @@ class BeamSearchOpTest(test_utils.TestCase):
            beam_size=3.0,
            num_hyps_per_beam=num_hyps_per_beam)
 
-      outputs = py_x_ops.beam_search_step(
+      outputs = ops.beam_search_step(
           scores,
           atten_probs,
           out_best_scores_0,
@@ -593,7 +593,7 @@ class BeamSearchOpTest(test_utils.TestCase):
 
       # Get the topk terminated hyps.
       in_done_hyps = outputs[5]
-      topk_hyps = py_x_ops.top_k_terminated_hyps(
+      topk_hyps = ops.top_k_terminated_hyps(
           in_done_hyps,
           src_seq_lengths,
           k=2,
@@ -601,7 +601,7 @@ class BeamSearchOpTest(test_utils.TestCase):
           length_normalization=0.2,
           coverage_penalty=0.2,
           target_seq_length_ratio=1.0)
-      seq_ids, seq_lens, seq_scores = py_x_ops.unpack_hyp(
+      seq_ids, seq_lens, seq_scores = ops.unpack_hyp(
           tf.reshape(topk_hyps, [-1]), max_seq_length=5)
 
       k1, k2, k3, k4 = sess.run([topk_hyps, seq_ids, seq_lens, seq_scores])

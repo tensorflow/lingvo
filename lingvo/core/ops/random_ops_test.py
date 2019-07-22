@@ -17,8 +17,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from lingvo.core import ops
 from lingvo.core import test_utils
-from lingvo.core.ops import py_x_ops
 from six.moves import range
 import tensorflow as tf
 
@@ -29,7 +29,7 @@ class RandomOpsTest(test_utils.TestCase):
 
   def testRandomPermutationSequenceRepeat(self):
     with self.session() as sess:
-      out = py_x_ops.random_permutation_sequence(num=20, batch=7, repeat=True)
+      out = ops.random_permutation_sequence(num=20, batch=7, repeat=True)
 
       remaining = list(range(20))
       for _ in range(10):
@@ -49,7 +49,7 @@ class RandomOpsTest(test_utils.TestCase):
 
   def testRandomPermutationSequenceNoRepeat(self):
     with self.session() as sess:
-      out = py_x_ops.random_permutation_sequence(num=20, batch=7, repeat=False)
+      out = ops.random_permutation_sequence(num=20, batch=7, repeat=False)
 
       # Each epoch takes exactly 3 steps.
       vals = sess.run(out).tolist() + sess.run(out).tolist() + sess.run(

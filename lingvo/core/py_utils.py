@@ -32,10 +32,10 @@ import zlib
 
 import lingvo.compat as tf
 from lingvo.core import hyperparams
+from lingvo.core import ops
 from lingvo.core import retry
 from lingvo.core import symbolic
 from lingvo.core import tshape
-from lingvo.core.ops import py_x_ops
 import numpy as np
 import six
 from six.moves import range
@@ -190,14 +190,14 @@ def assert_shape_match(*args, **kwargs):  # pylint: disable=invalid-name
     filepath, line, func, _ = traceback.extract_stack(limit=3)[-2]
     kwargs['msg'] = 'LINGVO ASSERT %s:%s(%s)' % (re.sub(
         r'.*/', '', filepath), line, func)
-    return py_x_ops.assert_shape_match(*args, **kwargs)
+    return ops.assert_shape_match(*args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_same_dim0(xs, *args, **kwargs):  # pylint: disable=invalid-name
   if FLAGS.enable_asserts:
-    return py_x_ops.assert_same_dim0(xs, *args, **kwargs)
+    return ops.assert_same_dim0(xs, *args, **kwargs)
   else:
     return tf.no_op()
 
@@ -334,7 +334,7 @@ def HasShape(tensor, expected_shape, ndims=None):
     msg = 'LINGVO ASSERT %s:%s(%s)' % (re.sub(r'.*/', '',
                                                  filepath), line, func)
     return with_dependencies([
-        py_x_ops.assert_shape_match(
+        ops.assert_shape_match(
             tf.shape(tensor)[:ndims], expected_shape, msg=msg)
     ], tensor)
   else:

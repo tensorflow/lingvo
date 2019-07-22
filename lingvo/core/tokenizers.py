@@ -21,9 +21,9 @@ from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import wpm_encoder
-from lingvo.core.ops import py_x_ops
 import numpy as np
 
 
@@ -123,14 +123,14 @@ class AsciiTokenizer(BaseTokenizer):
 
   def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
     p = self.params
-    return py_x_ops.ascii_to_token_id(
+    return ops.ascii_to_token_id(
         strs,
         maxlen=max_length,
         pad_to_maxlen=p.pad_to_max_length,
         append_eos=append_eos)
 
   def IdsToStrings(self, ids, lens):
-    return py_x_ops.id_to_ascii(ids, lens)
+    return ops.id_to_ascii(ids, lens)
 
 
 class VocabFileTokenizer(BaseTokenizer):
@@ -170,7 +170,7 @@ class VocabFileTokenizer(BaseTokenizer):
     p = self.params
 
     if p.token_vocab_filepath:
-      return py_x_ops.str_to_vocab_tokens(
+      return ops.str_to_vocab_tokens(
           strs,
           maxlen=max_length,
           pad_to_maxlen=p.pad_to_max_length,
@@ -191,7 +191,7 @@ class VocabFileTokenizer(BaseTokenizer):
       ngram_vocab_filepath = p.ngram_vocab_filepath
       ngram_separator = p.ngram_separator
 
-    return py_x_ops.ngram_id_to_token(
+    return ops.ngram_id_to_token(
         token_ids=ids,
         seq_lengths=lens,
         ngram_vocab_filepath=ngram_vocab_filepath,
@@ -213,7 +213,7 @@ class BpeTokenizer(BaseTokenizer):
   def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
     p = self.params
 
-    return py_x_ops.bpe_words_to_ids(
+    return ops.bpe_words_to_ids(
         strs,
         maxlen=max_length,
         append_eos=append_eos,
@@ -222,7 +222,7 @@ class BpeTokenizer(BaseTokenizer):
   def IdsToStrings(self, ids, lens):
     p = self.params
 
-    return py_x_ops.bpe_ids_to_words(
+    return ops.bpe_ids_to_words(
         token_ids=ids, seq_lengths=lens, vocab_filepath=p.codes_filepath)
 
 

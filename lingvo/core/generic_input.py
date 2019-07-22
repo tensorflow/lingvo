@@ -19,10 +19,8 @@ from __future__ import division
 from __future__ import print_function
 
 import lingvo.compat as tf
+from lingvo.core import ops
 from lingvo.core import py_utils
-from lingvo.core.ops import py_x_ops
-
-
 from tensorflow.python.framework import function
 
 
@@ -87,7 +85,7 @@ def GenericInput(processor, *args, **kwargs):
       tf.DType(a.type) for a in proc_fn.definition.signature.output_arg
   ]
   assert out_types[-1] == tf.int32, ('%s is not expected.' % out_types[-1])
-  flat_outputs = py_x_ops.gen_x_ops.generic_input(
+  flat_outputs = ops.gen_x_ops.generic_input(
       processor=proc_fn, out_types=out_types[:-1], *args, **kwargs)
   tf.logging.debug('x_ops.generic_input flat_outputs=%s', flat_outputs)
   if not output_tmpl:
