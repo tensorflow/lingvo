@@ -177,7 +177,7 @@
 
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
-<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">ops</span>
 <span class="kn">import</span> <span class="nn">six</span>
 
 <span class="c1"># Must be a large ID.</span>
@@ -210,12 +210,12 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_merge_prob</span> <span class="o">=</span> <span class="n">merge_prob</span>
 
 <div class="viewcode-block" id="WpmEncoder._TokenToString"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._TokenToString">[docs]</a>  <span class="k">def</span> <span class="nf">_TokenToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">vocab_id_to_token</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">vocab_id_to_token</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WpmEncoder._StringToToken"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._StringToToken">[docs]</a>  <span class="k">def</span> <span class="nf">_StringToToken</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokstr</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-        <span class="n">py_x_ops</span><span class="o">.</span><span class="n">token_in_vocab</span><span class="p">(</span><span class="n">tokstr</span><span class="p">,</span> <span class="n">vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">),</span>
-        <span class="n">py_x_ops</span><span class="o">.</span><span class="n">vocab_token_to_id</span><span class="p">(</span><span class="n">tokstr</span><span class="p">,</span> <span class="n">vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">),</span>
+        <span class="n">ops</span><span class="o">.</span><span class="n">token_in_vocab</span><span class="p">(</span><span class="n">tokstr</span><span class="p">,</span> <span class="n">vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">),</span>
+        <span class="n">ops</span><span class="o">.</span><span class="n">vocab_token_to_id</span><span class="p">(</span><span class="n">tokstr</span><span class="p">,</span> <span class="n">vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">),</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">NO_TOKEN</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tokstr</span><span class="p">)))</span></div>
 
 <div class="viewcode-block" id="WpmEncoder._MergeTokens"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._MergeTokens">[docs]</a>  <span class="k">def</span> <span class="nf">_MergeTokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>

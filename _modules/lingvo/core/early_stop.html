@@ -167,7 +167,7 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
-<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">ops</span>
 
 
 <div class="viewcode-block" id="MetricHistory"><a class="viewcode-back" href="../../../lingvo.core.early_stop.html#lingvo.core.early_stop.MetricHistory">[docs]</a><span class="k">class</span> <span class="nc">MetricHistory</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -331,9 +331,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">theta</span>  <span class="c1"># not used</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">window</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_node</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">best_step</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">hist_file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tolerance</span><span class="p">,</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">minimize</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">metric</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_node</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">best_step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">hist_file</span><span class="p">,</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tolerance</span><span class="p">,</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">minimize</span><span class="p">,</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">metric</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_node</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node</span></div>

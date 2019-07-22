@@ -168,8 +168,8 @@
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">early_stop</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
@@ -722,8 +722,8 @@
           <span class="s1">&#39;ref_step&#39;</span><span class="p">,</span> <span class="n">wp</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">_metric_history</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metric_history</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_best_step</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">best_step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metric_history</span><span class="o">.</span><span class="n">hist_file</span><span class="p">,</span>
-                                           <span class="n">p</span><span class="o">.</span><span class="n">tolerance</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_best_step</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">best_step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metric_history</span><span class="o">.</span><span class="n">hist_file</span><span class="p">,</span>
+                                      <span class="n">p</span><span class="o">.</span><span class="n">tolerance</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DevBasedSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.DevBasedSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>

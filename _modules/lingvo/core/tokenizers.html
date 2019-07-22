@@ -166,9 +166,9 @@
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">wpm_encoder</span>
-<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 
@@ -268,14 +268,14 @@
 
 <div class="viewcode-block" id="AsciiTokenizer._StringsToIdsImpl"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.AsciiTokenizer._StringsToIdsImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_StringsToIdsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">,</span> <span class="n">languages</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">ascii_to_token_id</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">ascii_to_token_id</span><span class="p">(</span>
         <span class="n">strs</span><span class="p">,</span>
         <span class="n">maxlen</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span>
         <span class="n">pad_to_maxlen</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_length</span><span class="p">,</span>
         <span class="n">append_eos</span><span class="o">=</span><span class="n">append_eos</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AsciiTokenizer.IdsToStrings"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.AsciiTokenizer.IdsToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">id_to_ascii</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">id_to_ascii</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="VocabFileTokenizer"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.VocabFileTokenizer">[docs]</a><span class="k">class</span> <span class="nc">VocabFileTokenizer</span><span class="p">(</span><span class="n">BaseTokenizer</span><span class="p">):</span>
@@ -315,7 +315,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">token_vocab_filepath</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">str_to_vocab_tokens</span><span class="p">(</span>
+      <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">str_to_vocab_tokens</span><span class="p">(</span>
           <span class="n">strs</span><span class="p">,</span>
           <span class="n">maxlen</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span>
           <span class="n">pad_to_maxlen</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_length</span><span class="p">,</span>
@@ -336,7 +336,7 @@
       <span class="n">ngram_vocab_filepath</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ngram_vocab_filepath</span>
       <span class="n">ngram_separator</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ngram_separator</span>
 
-    <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">ngram_id_to_token</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">ngram_id_to_token</span><span class="p">(</span>
         <span class="n">token_ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
         <span class="n">seq_lengths</span><span class="o">=</span><span class="n">lens</span><span class="p">,</span>
         <span class="n">ngram_vocab_filepath</span><span class="o">=</span><span class="n">ngram_vocab_filepath</span><span class="p">,</span>
@@ -358,7 +358,7 @@
 <div class="viewcode-block" id="BpeTokenizer._StringsToIdsImpl"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BpeTokenizer._StringsToIdsImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_StringsToIdsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">,</span> <span class="n">languages</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">bpe_words_to_ids</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">bpe_words_to_ids</span><span class="p">(</span>
         <span class="n">strs</span><span class="p">,</span>
         <span class="n">maxlen</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span>
         <span class="n">append_eos</span><span class="o">=</span><span class="n">append_eos</span><span class="p">,</span>
@@ -367,7 +367,7 @@
 <div class="viewcode-block" id="BpeTokenizer.IdsToStrings"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BpeTokenizer.IdsToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">bpe_ids_to_words</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">bpe_ids_to_words</span><span class="p">(</span>
         <span class="n">token_ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span> <span class="n">seq_lengths</span><span class="o">=</span><span class="n">lens</span><span class="p">,</span> <span class="n">vocab_filepath</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">codes_filepath</span><span class="p">)</span></div></div>
 
 
