@@ -181,7 +181,6 @@
 <span class="kn">import</span> <span class="nn">six</span>
 
 <span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="k">import</span> <span class="n">text_format</span>
-<span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="k">import</span> <span class="n">config_pb2</span>
 
 
 <div class="viewcode-block" id="LoadInferenceGraph"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.LoadInferenceGraph">[docs]</a><span class="k">def</span> <span class="nf">LoadInferenceGraph</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
@@ -351,8 +350,7 @@
             <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
     <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)}</span>
 
-    <span class="n">run_options</span> <span class="o">=</span> <span class="n">config_pb2</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span>
-        <span class="n">report_tensor_allocations_upon_oom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">run_options</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span><span class="n">report_tensor_allocations_upon_oom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">fetched_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RunWithValidSession</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="n">valid_fetches</span><span class="p">,</span> <span class="n">feed_dict</span><span class="o">=</span><span class="n">feeds</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
     <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">fetch_keys</span><span class="p">)</span>

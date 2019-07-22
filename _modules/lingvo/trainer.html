@@ -200,8 +200,6 @@
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">base_runner</span>
 <span class="kn">from</span> <span class="nn">tensorflow.contrib.tpu.python.tpu</span> <span class="k">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">device_assignment_lib</span>
 <span class="kn">from</span> <span class="nn">tensorflow.contrib.tpu.python.tpu</span> <span class="k">import</span> <span class="n">tpu_function</span>
-<span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="k">import</span> <span class="n">config_pb2</span>
-<span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="k">import</span> <span class="n">saver_pb2</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">training_loop</span> <span class="k">as</span> <span class="n">tpu_training_loop</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu.ops</span> <span class="k">import</span> <span class="n">tpu_ops</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 
@@ -409,7 +407,7 @@
         <span class="n">max_to_keep</span><span class="o">=</span><span class="n">tp</span><span class="o">.</span><span class="n">save_max_to_keep</span><span class="p">,</span>
         <span class="n">keep_checkpoint_every_n_hours</span><span class="o">=</span><span class="n">tp</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span><span class="p">,</span>
         <span class="n">pad_step_number</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># %08d</span>
-        <span class="n">write_version</span><span class="o">=</span><span class="n">saver_pb2</span><span class="o">.</span><span class="n">SaverDef</span><span class="o">.</span><span class="n">V2</span><span class="p">)</span></div>
+        <span class="n">write_version</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">SaverDef</span><span class="o">.</span><span class="n">V2</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Checkpointer.RestoreFromPath"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Checkpointer.RestoreFromPath">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreFromPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Load the checkpoint from specified path.&quot;&quot;&quot;</span>
@@ -1423,8 +1421,7 @@
     <span class="k">while</span> <span class="n">num_examples_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">&lt;</span> <span class="n">samples_per_summary</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Fetching dec_output.&#39;</span><span class="p">)</span>
       <span class="n">fetch_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-      <span class="n">run_options</span> <span class="o">=</span> <span class="n">config_pb2</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span>
-          <span class="n">report_tensor_allocations_upon_oom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="n">run_options</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span><span class="n">report_tensor_allocations_upon_oom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># No summaries were collected.</span>
         <span class="n">dec_out</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
