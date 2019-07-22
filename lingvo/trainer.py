@@ -55,8 +55,6 @@ from six.moves import zip
 from lingvo import base_runner
 from tensorflow.contrib.tpu.python.tpu import device_assignment as device_assignment_lib
 from tensorflow.contrib.tpu.python.tpu import tpu_function
-from tensorflow.core.protobuf import config_pb2
-from tensorflow.core.protobuf import saver_pb2  # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.tpu import training_loop as tpu_training_loop  # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.tpu.ops import tpu_ops  # pylint:disable=g-direct-tensorflow-import
 
@@ -264,7 +262,7 @@ class Checkpointer(object):
         max_to_keep=tp.save_max_to_keep,
         keep_checkpoint_every_n_hours=tp.save_keep_checkpoint_every_n_hours,
         pad_step_number=True,  # %08d
-        write_version=saver_pb2.SaverDef.V2)
+        write_version=tf.train.SaverDef.V2)
 
   def RestoreFromPath(self, sess, checkpoint_path):
     """Load the checkpoint from specified path."""
@@ -1278,8 +1276,7 @@ class Decoder(base_runner.BaseRunner):
     while num_examples_metric.total_value < samples_per_summary:
       tf.logging.info('Fetching dec_output.')
       fetch_start = time.time()
-      run_options = config_pb2.RunOptions(
-          report_tensor_allocations_upon_oom=False)
+      run_options = tf.RunOptions(report_tensor_allocations_upon_oom=False)
       if self._summary_op is None:
         # No summaries were collected.
         dec_out = sess.run(self._dec_output, options=run_options)

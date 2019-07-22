@@ -36,7 +36,6 @@ from lingvo.core import py_utils
 import six
 
 from google.protobuf import text_format
-from tensorflow.core.protobuf import config_pb2
 
 
 def LoadInferenceGraph(path):
@@ -206,8 +205,7 @@ class Predictor(object):
             (k, list(self._feeds.keys())))
     feeds = {self._feeds[k]: v for k, v in six.iteritems(kwargs)}
 
-    run_options = config_pb2.RunOptions(
-        report_tensor_allocations_upon_oom=False)
+    run_options = tf.RunOptions(report_tensor_allocations_upon_oom=False)
     fetched_results = self._RunWithValidSession(
         tf.Session.run, valid_fetches, feed_dict=feeds, options=run_options)
     results = [None] * len(fetch_keys)
