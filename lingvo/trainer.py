@@ -341,7 +341,7 @@ class Checkpointer(object):
       py_utils.OverrideVarsFromCheckpoints(sess, self._vars,
                                            tp.init_from_checkpoint_rules)
 
-    uninitialized_var_names = list(sess.run(self._uninitialized))
+    uninitialized_var_names = list(sess.run(self._uninitialized_vars))
     if not uninitialized_var_names:
       return
 
