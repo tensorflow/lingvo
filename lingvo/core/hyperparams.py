@@ -183,6 +183,9 @@ class Params(object):
   def __dir__(self):
     return sorted(self._params.keys())
 
+  def __contains__(self, name):
+    return name in self._params
+
   def __len__(self):
     return len(self._params)
 

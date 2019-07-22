@@ -103,6 +103,8 @@ class ParamsTest(test_utils.TestCase):
     p.Define('foo', 1, '')
     self.assertEqual(p.foo, 1)
     self.assertEqual(p.Get('foo'), 1)
+    self.assertIn('foo', p)
+    self.assertNotIn('bar', p)
     p.Set(foo=2)
     self.assertEqual(p.foo, 2)
     self.assertEqual(p.Get('foo'), 2)
@@ -110,6 +112,8 @@ class ParamsTest(test_utils.TestCase):
     self.assertEqual(p.foo, 3)
     self.assertEqual(p.Get('foo'), 3)
     p.Delete('foo')
+    self.assertNotIn('foo', p)
+    self.assertNotIn('bar', p)
     self.assertRaisesRegexp(AttributeError, 'foo', lambda: p.foo)
     self.assertRaisesRegexp(AttributeError, 'foo', p.Get, 'foo')
 
