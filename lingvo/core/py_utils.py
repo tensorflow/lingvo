@@ -779,6 +779,10 @@ def ToStaticShape(shape):
     return shape
 
 
+def Zeros(shape):
+  return tf.zeros(ToStaticShape(shape))
+
+
 class RNNCellStateInit(object):
   """State initialization functions for RNN cell init state."""
 
