@@ -584,22 +584,22 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetEmbeddings">
-<code class="descname">GetEmbeddings</code><span class="sig-paren">(</span><em>emb_theta</em>, <em>emb</em>, <em>pos_emb_theta</em>, <em>pos_emb</em>, <em>dropout_theta</em>, <em>dropout</em>, <em>input_ids</em>, <em>input_pos_ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.GetEmbeddings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetEmbeddings" title="Permalink to this definition">¶</a></dt>
+<code class="descname">GetEmbeddings</code><span class="sig-paren">(</span><em>emb_theta</em>, <em>emb</em>, <em>pos_emb_theta</em>, <em>pos_emb</em>, <em>dropout_theta</em>, <em>dropout</em>, <em>input_ids</em>, <em>input_pos_ids</em>, <em>task_emb_theta</em>, <em>task_emb</em>, <em>task_ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.GetEmbeddings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetEmbeddings" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta">
-<code class="descname">GetEncoderEmbeddingsDefaultTheta</code><span class="sig-paren">(</span><em>input_ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<code class="descname">GetEncoderEmbeddingsDefaultTheta</code><span class="sig-paren">(</span><em>input_ids</em>, <em>task_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta">
-<code class="descname">GetDecoderEmbeddingsDefaultTheta</code><span class="sig-paren">(</span><em>input_ids</em>, <em>t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<code class="descname">GetDecoderEmbeddingsDefaultTheta</code><span class="sig-paren">(</span><em>input_ids</em>, <em>task_ids=None</em>, <em>t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_id</em>, <em>source_paddings</em>, <em>target_id</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>source_pos_id</em>, <em>target_pos_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_id</em>, <em>source_paddings</em>, <em>target_id</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>source_pos_id</em>, <em>target_pos_id</em>, <em>source_task_id</em>, <em>target_task_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
 calls <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
@@ -713,12 +713,12 @@ for details.</p>
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack.EncoderEmbedFPropDefaultTheta">
-<code class="descname">EncoderEmbedFPropDefaultTheta</code><span class="sig-paren">(</span><em>source_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.EncoderEmbedFPropDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.EncoderEmbedFPropDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<code class="descname">EncoderEmbedFPropDefaultTheta</code><span class="sig-paren">(</span><em>source_id</em>, <em>source_task_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.EncoderEmbedFPropDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.EncoderEmbedFPropDefaultTheta" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack.DecoderEmbedFPropDefaultTheta">
-<code class="descname">DecoderEmbedFPropDefaultTheta</code><span class="sig-paren">(</span><em>tgt_id</em>, <em>t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.DecoderEmbedFPropDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.DecoderEmbedFPropDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<code class="descname">DecoderEmbedFPropDefaultTheta</code><span class="sig-paren">(</span><em>tgt_id</em>, <em>tgt_task_id=None</em>, <em>t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.DecoderEmbedFPropDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.DecoderEmbedFPropDefaultTheta" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -728,7 +728,7 @@ for details.</p>
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_input</em>, <em>source_paddings</em>, <em>target_input=None</em>, <em>target_paddings=None</em>, <em>source_segment_id=None</em>, <em>target_segment_id=None</em>, <em>labels=None</em>, <em>label_weights=None</em>, <em>source_pos_id=None</em>, <em>target_pos_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_input</em>, <em>source_paddings</em>, <em>target_input=None</em>, <em>target_paddings=None</em>, <em>source_segment_id=None</em>, <em>target_segment_id=None</em>, <em>labels=None</em>, <em>label_weights=None</em>, <em>source_pos_id=None</em>, <em>target_pos_id=None</em>, <em>source_task_id=None</em>, <em>target_task_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transforms source sequence of Tensors with Transformers layers.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -737,8 +737,8 @@ for details.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</li>
-<li><strong>source_input</strong> – A sequence of ints indicating source input ids of
-[time, batch] shape.</li>
+<li><strong>source_input</strong> – A sequence of ints indicating source input ids of [time,
+batch] shape.</li>
 <li><strong>source_paddings</strong> – A sequence of 0s and 1s indicating input paddings of
 [time, batch] shape.</li>
 <li><strong>target_input</strong> – A sequence of ints indicating target input ids of [time,
@@ -749,11 +749,15 @@ batch] shape.</li>
 <li><strong>target_segment_id</strong> – A sequence of ints indicating target segment ids of
 [time, batch] shape.</li>
 <li><strong>labels</strong> – A sequence of ints indicating label ids of [time, batch] shape.</li>
-<li><strong>label_weights</strong> – A sequence of floats indicates label weights of
-[time, batch] shape.</li>
+<li><strong>label_weights</strong> – A sequence of floats indicates label weights of [time,
+batch] shape.</li>
 <li><strong>source_pos_id</strong> – A sequence of ints indicating source position ids of [time,
 batch] shape.</li>
 <li><strong>target_pos_id</strong> – A sequence of ints indicating target position ids of [time,
+batch] shape.</li>
+<li><strong>source_task_id</strong> – A sequence of ints indicating source task ids of [time,
+batch] shape.</li>
+<li><strong>target_task_id</strong> – A sequence of ints indicating target task ids of [time,
 batch] shape.</li>
 </ul>
 </td>
