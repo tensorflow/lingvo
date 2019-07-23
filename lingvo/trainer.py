@@ -150,6 +150,21 @@ tf.flags.DEFINE_bool(
     'operation without a separate Controller task.'
     'TODO(b/137871213) migrate file/summaries from Controller.')
 
+tf.flags.DEFINE_string(
+    'tpu', None,
+    'The Cloud TPU on GCP to use for training. This should be either the name '
+    'used when creating the Cloud TPU, or a grpc://ip.address.of.tpu:8470 '
+    'url. If set, other cluster parameters (such as --cluster_spec) will be '
+    'configured automatically with TPUClusterResolver.')
+tf.flags.DEFINE_string(
+    'gcp_project', None,
+    'Project name for the Cloud TPU-enabled project. If not specified, we '
+    'will attempt to automatically detect the GCE project from metadata.')
+tf.flags.DEFINE_string(
+    'tpu_zone', None,
+    'GCE zone where the Cloud TPU is located in. If not specified, we '
+    'will attempt to automatically detect the GCE project from metadata.')
+
 # Please consider adding model params instead of adding flags.
 
 FLAGS = tf.flags.FLAGS
@@ -1459,6 +1474,38 @@ class RunnerManager(object):
         FLAGS.ps_job = '/job:ps'
         FLAGS.ps_replicas = len(cluster_spec_dict['ps'])
 
+  def MaybeConfigCloudTpu(self):
+    """If given `FLAGS.tpu`, update flags for running on a Cloud TPU."""
+    if not FLAGS.tpu:
+      return
+
+    cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+        tpu=FLAGS.tpu,
+        project=FLAGS.gcp_project,
+        zone=FLAGS.tpu_zone,
+        job_name='tpu_worker',
+        coordinator_name='trainer_client',
+        coordinator_address='localhost:0')
+    cluster_spec_dict = cluster_resolver.cluster_spec().as_dict()
+
+    FLAGS.job = 'trainer_client'
+    FLAGS.tf_master = cluster_resolver.get_master()
+
+    FLAGS.worker_job = '/job:tpu_worker'
+    FLAGS.worker_replicas = len(cluster_spec_dict['tpu_worker'])
+    FLAGS.worker_num_tpu_hosts = FLAGS.worker_replicas
+    FLAGS.worker_tpus = cluster_resolver.num_accelerators()['TPU']
+    FLAGS.ps_job = FLAGS.worker_job
+    FLAGS.ps_replicas = FLAGS.worker_replicas
+
+    FLAGS.cluster_spec = ('@'.join(
+        '{}={}'.format(job, ','.join(hosts))
+        for job, hosts in cluster_spec_dict.iteritems()))
+
+    FLAGS.xla_device = 'tpu'
+    FLAGS.enable_asserts = False
+    FLAGS.checkpoint_in_trainer_tpu = True
+
   def UpdateClusterParamsFromFlags(self, cluster, job_name):
     """Update `cluster` with a training cluster configuration from flags."""
     cluster.mode = FLAGS.mode
@@ -1777,6 +1824,7 @@ class RunnerManager(object):
 
     self.MaybeConfigRunLocally()
     self.MaybeConfigRunDistributed()
+    self.MaybeConfigCloudTpu()
     self.MaybeLaunchTensorFlow()
     self.StartRunners(self.CreateRunners(FLAGS.job.split(','), FLAGS.logdir))
 
