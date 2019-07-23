@@ -1532,8 +1532,6 @@ class DoubleProjectionLSTMCell(RNNCell):
     super(DoubleProjectionLSTMCell, self).__init__(params)
     assert isinstance(params, hyperparams.Params)
     p = self.params
-    assert p.num_input_hidden_nodes > 0
-    assert p.num_hidden_nodes > 0
 
     with tf.variable_scope(p.name):
 
@@ -1604,23 +1602,28 @@ class DoubleProjectionLSTMCell(RNNCell):
   def GetOutput(self, state):
     return state.m
 
+  def _ProcessInputProj(self, theta, input_proj):
+    return input_proj
+
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
     concat = tf.concat(inputs.act + [state0.m], 1)
     input_proj = tf.matmul(concat, theta.w_input_proj)
+    input_proj = self._ProcessInputProj(theta, input_proj)
     gate_map = {}
     for gate_name in self.gates:
       g = tf.matmul(input_proj, theta.get('wm_%s' % gate_name))
-      g = self._LayerNorm(g,
+      g = self._LayerNorm(theta, g,
                           theta.get('ln_scale_%s' % gate_name) + 1.0,
                           theta.get('bias_%s' % gate_name))
       gate_map[gate_name] = g
     return gate_map
 
-  def _LayerNorm(self, x, scale, bias):
+  def _LayerNorm(self, theta, x, scale, bias):
     """Applies layer normalization on the last dimension of 'x'.
 
     Args:
+      theta: a nested map of params
       x: activation tensor, where the last dimension represents channels.
       scale: multiples to the noramlized results
       bias: additions to the noramlized results for biasing
@@ -1639,7 +1642,8 @@ class DoubleProjectionLSTMCell(RNNCell):
     """Compute the new state."""
     new_c = tf.sigmoid(xmw['f_g']) * state0.c + tf.sigmoid(
         xmw['i_g']) * tf.tanh(xmw['i_i'])
-    new_c_normed = self._LayerNorm(new_c, theta.ln_scale_c + 1.0, theta.bias_c)
+    new_c_normed = self._LayerNorm(theta, new_c, theta.ln_scale_c + 1.0,
+                                   theta.bias_c)
     new_m = tf.sigmoid(xmw['o_g']) * tf.tanh(new_c_normed)
     new_m = tf.matmul(new_m, theta.w_output_proj)
 
