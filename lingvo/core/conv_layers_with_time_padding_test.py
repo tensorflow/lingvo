@@ -51,6 +51,14 @@ class ConvLayerTest(test_utils.TestCase):
       expected_var_names = ['conv/w/var:0']
       self.assertEqual(expected_var_names, conv_var_names)
 
+  def testConv2DLayerWithPaddingOutputChannels(self):
+    with self.session(use_gpu=True):
+      params = conv_layers_with_time_padding.Conv2DLayerWithPadding.Params()
+      params.name = 'conv'
+      params.filter_shape = [3, 3, 3, 32]
+      actual_output_channels = params.cls.OutputChannels(params)
+      self.assertEqual(32, actual_output_channels)
+
   def testConv2DLayerOutShape(self):
     with self.session(use_gpu=True):
       tf.set_random_seed(398847392)
@@ -116,6 +124,14 @@ class ConvLayerTest(test_utils.TestCase):
       v1, v2 = sess.run([out_sum, out_sum_squared])
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-3.584711, 3.324082], [v1, v2])
+
+  def testDepthwiseConv2DLayerOutputChannels(self):
+    with self.session(use_gpu=True):
+      params = conv_layers_with_time_padding.DepthwiseConv2DLayer.Params()
+      params.name = 'conv'
+      params.filter_shape = [3, 3, 3, 2]
+      actual_output_channels = params.cls.OutputChannels(params)
+      self.assertEqual(6, actual_output_channels)
 
   def testDepthwiseConv2DLayerFProp(self):
     with self.session(use_gpu=True) as sess:
@@ -202,6 +218,16 @@ class ConvLayerTest(test_utils.TestCase):
         np.random.normal(0.1, 0.5, [2, 4, 1, 4]), dtype=tf.float32)
     output, _ = conv_layer.FPropDefaultTheta(inputs, in_padding)
     return output
+
+  def testNormalizedDepthwiseConv2DLayerOutputChannels(self):
+    with self.session(use_gpu=True):
+      params = (
+          conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer.Params())
+      params.name = 'conv'
+      params.filter_shape = [3, 1, 2, 1]
+      params.weight_tiling_factor = 2
+      actual_output_channels = params.cls.OutputChannels(params)
+      self.assertEqual(4, actual_output_channels)
 
   def testNormalizedDepthwiseConv2DLayerFProp(self):
     expected_output = [[0.91136134, 1.25781929, 1.76708317, 0.9021343],

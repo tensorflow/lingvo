@@ -146,10 +146,14 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
     if any(x > 1 for x in p.dilation_rate):
       assert all(x == 1 for x in p.filter_stride)
 
-  @property
-  def output_channels(self):
+  @classmethod
+  def OutputChannels(cls, p):
     """The number of output channels for this conv layer."""
     raise NotImplementedError()
+
+  @property
+  def output_channels(self):
+    return self.OutputChannels(self.params)
 
   @property
   def input_channels(self):
@@ -238,10 +242,9 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
                 dtype=p.dtype,
                 collections=[self.__class__.__name__ + '_vars']))
 
-  @property
-  def output_channels(self):
+  @classmethod
+  def OutputChannels(cls, p):
     """The number of output channels for this conv layer."""
-    p = self.params
     return p.filter_shape[-1]
 
   def _GetWeight(self, theta):
@@ -341,10 +344,9 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
                 dtype=p.dtype,
                 collections=[self.__class__.__name__ + '_vars']))
 
-  @property
-  def output_channels(self):
+  @classmethod
+  def OutputChannels(cls, p):
     """The number of output channels for this conv layer."""
-    p = self.params
     # Depthwise convolution filter shape is:
     #   [..., in_channels, channel_multiplier].
     return p.filter_shape[2] * p.filter_shape[3]
@@ -429,10 +431,9 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     assert p.filter_shape[1] == 1, 'Only 1d convolution is supported.'
     assert p.temperature > 0.0, 'Absolute zero temperature is not possible.'
 
-  @property
-  def output_channels(self):
+  @classmethod
+  def OutputChannels(cls, p):
     """The number of output channels for this conv layer."""
-    p = self.params
     # Depthwise convolution filter shape is:
     # [kernel_size, 1, in_channels, channel_multiplier].
     return p.filter_shape[2] * p.filter_shape[3] * p.weight_tiling_factor
