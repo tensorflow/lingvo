@@ -1854,7 +1854,8 @@
     <span class="n">vmap</span><span class="p">,</span>
     <span class="n">grad_aggregation_method</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AggregationMethod</span><span class="o">.</span><span class="n">EXPERIMENTAL_TREE</span><span class="p">,</span>
     <span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">gate_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">gate_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">compute_gradients_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients of variables in vmap w.r.t loss.</span>
 
 <span class="sd">  Args:</span>
@@ -1867,6 +1868,9 @@
 <span class="sd">      corresponding op.</span>
 <span class="sd">    gate_gradients: If True, add a tuple around the gradients returned for an</span>
 <span class="sd">      operations. This avoids some race conditions.</span>
+<span class="sd">    compute_gradients_fn: Function to use to compute gradients. If None,</span>
+<span class="sd">      use default. compute_gradients_fn should have the same signature as</span>
+<span class="sd">      this function, but without the last argument.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    var_grad - a `.NestedMap` of (variable, gradient). You can view</span>
@@ -1901,14 +1905,18 @@
   <span class="k">assert</span> <span class="n">filtered_vmap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
   <span class="n">filtered_vlist</span> <span class="o">=</span> <span class="n">filtered_vmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
-  <span class="c1"># tpu vs non-tpu is slightly different.</span>
-  <span class="k">if</span> <span class="n">use_tpu</span><span class="p">():</span>
-    <span class="k">if</span> <span class="n">nas_run</span><span class="p">():</span>
-      <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsTpuNas</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsTpu</span>
+  <span class="c1"># Use caller-supplied gradient function if supplied.</span>
+  <span class="k">if</span> <span class="n">compute_gradients_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">take_grad</span> <span class="o">=</span> <span class="n">compute_gradients_fn</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsSimple</span>
+    <span class="c1"># tpu vs non-tpu is slightly different.</span>
+    <span class="k">if</span> <span class="n">use_tpu</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">nas_run</span><span class="p">():</span>
+        <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsTpuNas</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsTpu</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsSimple</span>
 
   <span class="n">grads</span> <span class="o">=</span> <span class="n">take_grad</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">filtered_vlist</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
                     <span class="n">colocate_gradients_with_ops</span><span class="p">,</span> <span class="n">gate_gradients</span><span class="p">)</span>

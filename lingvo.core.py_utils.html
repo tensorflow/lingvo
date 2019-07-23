@@ -1120,7 +1120,7 @@ with the original op.</li>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.ComputeGradients">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ComputeGradients</code><span class="sig-paren">(</span><em>loss</em>, <em>vmap</em>, <em>grad_aggregation_method=1</em>, <em>colocate_gradients_with_ops=True</em>, <em>gate_gradients=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ComputeGradients</code><span class="sig-paren">(</span><em>loss</em>, <em>vmap</em>, <em>grad_aggregation_method=1</em>, <em>colocate_gradients_with_ops=True</em>, <em>gate_gradients=False</em>, <em>compute_gradients_fn=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes gradients of variables in vmap w.r.t loss.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1136,6 +1136,9 @@ AggregationMethod.</li>
 corresponding op.</li>
 <li><strong>gate_gradients</strong> – If True, add a tuple around the gradients returned for an
 operations. This avoids some race conditions.</li>
+<li><strong>compute_gradients_fn</strong> – Function to use to compute gradients. If None,
+use default. compute_gradients_fn should have the same signature as
+this function, but without the last argument.</li>
 </ul>
 </td>
 </tr>
