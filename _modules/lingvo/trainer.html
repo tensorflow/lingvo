@@ -295,6 +295,21 @@
     <span class="s1">&#39;operation without a separate Controller task.&#39;</span>
     <span class="s1">&#39;TODO(b/137871213) migrate file/summaries from Controller.&#39;</span><span class="p">)</span>
 
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;tpu&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s1">&#39;The Cloud TPU on GCP to use for training. This should be either the name &#39;</span>
+    <span class="s1">&#39;used when creating the Cloud TPU, or a grpc://ip.address.of.tpu:8470 &#39;</span>
+    <span class="s1">&#39;url. If set, other cluster parameters (such as --cluster_spec) will be &#39;</span>
+    <span class="s1">&#39;configured automatically with TPUClusterResolver.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;gcp_project&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s1">&#39;Project name for the Cloud TPU-enabled project. If not specified, we &#39;</span>
+    <span class="s1">&#39;will attempt to automatically detect the GCE project from metadata.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;tpu_zone&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s1">&#39;GCE zone where the Cloud TPU is located in. If not specified, we &#39;</span>
+    <span class="s1">&#39;will attempt to automatically detect the GCE project from metadata.&#39;</span><span class="p">)</span>
+
 <span class="c1"># Please consider adding model params instead of adding flags.</span>
 
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
@@ -1604,6 +1619,38 @@
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="s1">&#39;/job:ps&#39;</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;ps&#39;</span><span class="p">])</span></div>
 
+<div class="viewcode-block" id="RunnerManager.MaybeConfigCloudTpu"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigCloudTpu">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeConfigCloudTpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;If given `FLAGS.tpu`, update flags for running on a Cloud TPU.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu</span><span class="p">:</span>
+      <span class="k">return</span>
+
+    <span class="n">cluster_resolver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">distribute</span><span class="o">.</span><span class="n">cluster_resolver</span><span class="o">.</span><span class="n">TPUClusterResolver</span><span class="p">(</span>
+        <span class="n">tpu</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu</span><span class="p">,</span>
+        <span class="n">project</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">gcp_project</span><span class="p">,</span>
+        <span class="n">zone</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu_zone</span><span class="p">,</span>
+        <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;tpu_worker&#39;</span><span class="p">,</span>
+        <span class="n">coordinator_name</span><span class="o">=</span><span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span>
+        <span class="n">coordinator_address</span><span class="o">=</span><span class="s1">&#39;localhost:0&#39;</span><span class="p">)</span>
+    <span class="n">cluster_spec_dict</span> <span class="o">=</span> <span class="n">cluster_resolver</span><span class="o">.</span><span class="n">cluster_spec</span><span class="p">()</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
+
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer_client&#39;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span> <span class="o">=</span> <span class="n">cluster_resolver</span><span class="o">.</span><span class="n">get_master</span><span class="p">()</span>
+
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:tpu_worker&#39;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;tpu_worker&#39;</span><span class="p">])</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_num_tpu_hosts</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_tpus</span> <span class="o">=</span> <span class="n">cluster_resolver</span><span class="o">.</span><span class="n">num_accelerators</span><span class="p">()[</span><span class="s1">&#39;TPU&#39;</span><span class="p">]</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span>
+
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_spec</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">hosts</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">job</span><span class="p">,</span> <span class="n">hosts</span> <span class="ow">in</span> <span class="n">cluster_spec_dict</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()))</span>
+
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">=</span> <span class="s1">&#39;tpu&#39;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span> <span class="o">=</span> <span class="kc">True</span></div>
+
 <div class="viewcode-block" id="RunnerManager.UpdateClusterParamsFromFlags"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.UpdateClusterParamsFromFlags">[docs]</a>  <span class="k">def</span> <span class="nf">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">job_name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update `cluster` with a training cluster configuration from flags.&quot;&quot;&quot;</span>
     <span class="n">cluster</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span>
@@ -1922,6 +1969,7 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">MaybeConfigRunLocally</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">MaybeConfigRunDistributed</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">MaybeConfigCloudTpu</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">MaybeLaunchTensorFlow</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">))</span></div></div>
 
