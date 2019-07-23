@@ -160,6 +160,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_trial",
+        ":compat",
         ":model_imports_no_params",
         ":model_registry",
         # Implicit network file system dependency.
@@ -174,7 +175,6 @@ py_library(
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        # Implicit tensorflow py proto dependency.
         # Implicit tensorflow grpc dependency.
     ],
 )
@@ -203,6 +203,7 @@ py_test(
     ],
     deps = [
         ":base_trial",
+        ":compat",
         ":model_registry",
         ":trainer_lib",
         "//lingvo/core:base_input_generator",
@@ -216,7 +217,6 @@ py_test(
         "//lingvo/tasks/punctuator/params:codelab",
         # Implicit numpy dependency.
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -233,6 +233,7 @@ py_library(
     ],
     deps = [
         ":base_trial",
+        ":compat",
         ":model_registry",
         ":trainer_lib",
         "//lingvo/core:base_input_generator",
@@ -246,7 +247,6 @@ py_library(
         "//lingvo/tasks/punctuator/params:codelab",
         # Implicit numpy dependency.
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 

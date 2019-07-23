@@ -40,6 +40,7 @@ gen_op_pylib(
     py_deps = [
         "//lingvo:compat",
     ],
+    visibility = ["//visibility:private"],
 )
 
 py_library(
