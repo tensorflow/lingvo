@@ -284,6 +284,12 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
         'If set, encoder outputs a list of layer outputs while decoder '
         'expects a list of source input vectors.')
     p.Define('max_seq_len', 300, 'Max. seq len for decoding.')
+
+    # Supporting task embeddings as additional input.
+    p.Define('dec_task_emb', None,
+             'Adds task embeddings to every decoder timestep.')
+    p.Define('enc_task_emb', None,
+             'Adds task embeddings to every encoder timestep.')
     return p
 
   @base_layer.initializer
@@ -295,6 +301,8 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
       p.position_emb.name = 'src_position_emb'
       self.CreateChild('src_token_emb', p.token_emb)
       self.CreateChild('src_pos_emb', p.position_emb)
+      if p.enc_task_emb:
+        self.CreateChild('src_task_emb', p.enc_task_emb)
 
       p.dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
       p.dropout_tpl.name = 'src_dropout'
@@ -307,6 +315,8 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
         params = p.position_emb.Copy()
         params.name = 'tgt_position_emb'
         self.CreateChild('tgt_pos_emb', params)
+        if p.dec_task_emb:
+          self.CreateChild('tgt_task_emb', p.dec_task_emb)
 
         params = p.dropout_tpl.Copy()
         params.keep_prob = (1.0 - p.input_dropout_prob)
@@ -315,7 +325,8 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
     assert p.name
 
   def GetEmbeddings(self, emb_theta, emb, pos_emb_theta, pos_emb, dropout_theta,
-                    dropout, input_ids, input_pos_ids):
+                    dropout, input_ids, input_pos_ids, task_emb_theta, task_emb,
+                    task_ids):
     p = self.params
     seq_len = tf.shape(input_ids)[0]
     # [seq_len, batch, model_dim]
@@ -328,11 +339,14 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
       pos_embs = tf.expand_dims(pos_emb.FProp(pos_emb_theta, seq_len), 1)
 
     input_embs += pos_embs
+    if task_emb:
+      input_embs += task_emb.EmbLookup(task_emb_theta, task_ids)
     input_embs = dropout.FProp(dropout_theta, input_embs)
     return input_embs
 
   # To be used for decoding.
-  def GetEncoderEmbeddingsDefaultTheta(self, input_ids):
+  def GetEncoderEmbeddingsDefaultTheta(self, input_ids, task_ids=None):
+    p = self.params
     seq_len = tf.shape(input_ids)[0]
     # [seq_len, batch, model_dim]
     input_embs = self.src_token_emb.EmbLookup(self.theta.src_token_emb,
@@ -341,11 +355,14 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
     pos_embs = tf.expand_dims(
         self.src_pos_emb.FProp(self.theta.src_pos_emb, seq_len), 1)
     input_embs += pos_embs
+    if task_ids is not None and p.enc_task_emb:
+      input_embs += self.src_task_emb.EmbLookup(self.theta.src_task_emb,
+                                                task_ids)
     input_embs = self.src_dropout.FProp(self.theta.src_dropout, input_embs)
     return input_embs
 
   # To be used for decoding.
-  def GetDecoderEmbeddingsDefaultTheta(self, input_ids, t=None):
+  def GetDecoderEmbeddingsDefaultTheta(self, input_ids, task_ids=None, t=None):
     p = self.params
     seq_len = tf.shape(input_ids)[0]
     # [seq_len, batch, model_dim]
@@ -360,24 +377,38 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
           self.tgt_pos_emb.FProp(self.theta.tgt_pos_emb, p.max_seq_len), [t, 0],
           [1, p.token_emb.embedding_dim])
     input_embs += pos_embs
+    if task_ids is not None and p.dec_task_emb:
+      input_embs += self.tgt_task_emb.EmbLookup(self.theta.tgt_task_emb,
+                                                task_ids)
     input_embs = self.tgt_dropout.FProp(self.theta.tgt_dropout, input_embs)
     return input_embs
 
   def FProp(self, theta, source_id, source_paddings, target_id, target_paddings,
-            source_segment_id, target_segment_id, source_pos_id, target_pos_id):
+            source_segment_id, target_segment_id, source_pos_id, target_pos_id,
+            source_task_id, target_task_id):
     p = self.params
     with tf.name_scope(p.name):
+      src_task_emb, src_task_emb_theta = None, None
+      if p.enc_task_emb:
+        src_task_emb, src_task_emb_theta = self.src_task_emb, theta.src_task_emb
       source_vecs = self.GetEmbeddings(theta.src_token_emb, self.src_token_emb,
                                        theta.src_pos_emb, self.src_pos_emb,
                                        theta.src_dropout, self.src_dropout,
-                                       source_id, source_pos_id)
+                                       source_id, source_pos_id,
+                                       src_task_emb_theta, src_task_emb,
+                                       source_task_id)
       target_vecs = None
       if p.add_tgt_embedding_layer:
+        tgt_task_emb, tgt_task_emb_theta = None, None
+        if p.enc_task_emb:
+          tgt_task_emb, tgt_task_emb_theta = (self.tgt_task_emb,
+                                              theta.tgt_task_emb)
         target_vecs = self.GetEmbeddings(theta.tgt_token_emb,
                                          self.tgt_token_emb, theta.tgt_pos_emb,
                                          self.tgt_pos_emb, theta.tgt_dropout,
                                          self.tgt_dropout, target_id,
-                                         target_pos_id)
+                                         target_pos_id, tgt_task_emb_theta,
+                                         tgt_task_emb, target_task_id)
       return (source_vecs, source_paddings, target_vecs, target_paddings,
               source_segment_id, target_segment_id, None, None)
 
@@ -587,13 +618,13 @@ class GPipeTransformerStack(PipeliningLayer):
     assert len(decoders) == p.num_decoder_layers
     return decoders
 
-  def EncoderEmbedFPropDefaultTheta(self, source_id):
+  def EncoderEmbedFPropDefaultTheta(self, source_id, source_task_id=None):
     emb = self.children['cell_0'].children['emb']
-    return emb.GetEncoderEmbeddingsDefaultTheta(source_id)
+    return emb.GetEncoderEmbeddingsDefaultTheta(source_id, source_task_id)
 
-  def DecoderEmbedFPropDefaultTheta(self, tgt_id, t=None):
+  def DecoderEmbedFPropDefaultTheta(self, tgt_id, tgt_task_id=None, t=None):
     emb = self.children['cell_0'].children['emb']
-    return emb.GetDecoderEmbeddingsDefaultTheta(tgt_id, t)
+    return emb.GetDecoderEmbeddingsDefaultTheta(tgt_id, tgt_task_id, t)
 
   def EncoderFPropDefaultTheta(self,
                                source_vecs,
@@ -623,14 +654,16 @@ class GPipeTransformerStack(PipeliningLayer):
             labels=None,
             label_weights=None,
             source_pos_id=None,
-            target_pos_id=None):
+            target_pos_id=None,
+            source_task_id=None,
+            target_task_id=None):
     """Transforms source sequence of Tensors with Transformers layers.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      source_input:  A sequence of ints indicating source input ids of
-        [time, batch] shape.
+      source_input:  A sequence of ints indicating source input ids of [time,
+        batch] shape.
       source_paddings: A sequence of 0s and 1s indicating input paddings of
         [time, batch] shape.
       target_input: A sequence of ints indicating target input ids of [time,
@@ -641,11 +674,15 @@ class GPipeTransformerStack(PipeliningLayer):
       target_segment_id: A sequence of ints indicating target segment ids of
         [time, batch] shape.
       labels: A sequence of ints indicating label ids of [time, batch] shape.
-      label_weights: A sequence of floats indicates label weights of
-        [time, batch] shape.
+      label_weights: A sequence of floats indicates label weights of [time,
+        batch] shape.
       source_pos_id: A sequence of ints indicating source position ids of [time,
         batch] shape.
       target_pos_id: A sequence of ints indicating target position ids of [time,
+        batch] shape.
+      source_task_id: A sequence of ints indicating source task ids of [time,
+        batch] shape.
+      target_task_id: A sequence of ints indicating target task ids of [time,
         batch] shape.
 
     Returns:
@@ -664,7 +701,8 @@ class GPipeTransformerStack(PipeliningLayer):
     logits = super(GPipeTransformerStack,
                    self).FProp(theta, source_input, source_paddings,
                                target_input, target_paddings, source_segment_id,
-                               target_segment_id, source_pos_id, target_pos_id)
+                               target_segment_id, source_pos_id, target_pos_id,
+                               source_task_id, target_task_id)
     if not p.softmax_tpl:
       return logits
     label_weights = tf.reshape(label_weights, [-1])

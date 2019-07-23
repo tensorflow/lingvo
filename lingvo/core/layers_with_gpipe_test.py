@@ -311,7 +311,8 @@ def _TransformerParamsWithEmbeddings(num_decoder_layers=0,
                                      num_encoder_layers=4,
                                      splits=1,
                                      num_micro_batches=1,
-                                     has_softmax=False):
+                                     has_softmax=False,
+                                     use_task_ids=False):
   model_dim = 4
   params = GPipeTransformerStack.Params()
   params.name = 'transformer'
@@ -342,6 +343,11 @@ def _TransformerParamsWithEmbeddings(num_decoder_layers=0,
   # Default config for the position embedding.
   emb_params.position_emb.embedding_dim = model_dim
   emb_params.position_emb.trainable_scaling = False
+
+  # Task embeddings.
+  if use_task_ids:
+    emb_params.enc_task_emb = emb_params.token_emb.Copy()
+    emb_params.dec_task_emb = emb_params.token_emb.Copy()
   params.splits = splits
   params.random_seed = 0
   return params
@@ -351,7 +357,8 @@ def _EvolvedTransformerParamsWithEmbeddings(num_decoder_layers=0,
                                             num_encoder_layers=4,
                                             splits=1,
                                             num_micro_batches=1,
-                                            has_softmax=False):
+                                            has_softmax=False,
+                                            use_task_ids=False):
   model_dim = 4
   params = GPipeEvolvedTransformerStack.Params()
   params.name = 'evolved_transformer'
@@ -382,6 +389,11 @@ def _EvolvedTransformerParamsWithEmbeddings(num_decoder_layers=0,
   # Default config for the position embedding.
   emb_params.position_emb.embedding_dim = model_dim
   emb_params.position_emb.trainable_scaling = False
+
+  # Task embeddings.
+  if use_task_ids:
+    emb_params.enc_task_emb = emb_params.token_emb.Copy()
+    emb_params.dec_task_emb = emb_params.token_emb.Copy()
   params.splits = splits
   params.random_seed = 0
   return params
@@ -409,13 +421,17 @@ def _TransformerRandomInputs(batch):
 def _TransformerRandomInputsIds(batch):
   input_arr = np.array([[6] * batch, [4] * batch])
   paddings_arr = np.array([[0] * batch] * 2)
+  input_task_arr = np.array([[0] * batch, [0] * batch])
   tgt_input_arr = np.array([[3] * batch, [7] * batch, [9] * batch])
   tgt_paddings_arr = np.array([[0] * batch] * 3)
+  tgt_task_arr = np.array([[0] * batch] * 3)
   inputs = tf.constant(input_arr.tolist(), dtype=tf.int32)
   paddings = tf.constant(paddings_arr.tolist(), dtype=tf.float32)
+  input_tasks = tf.constant(input_task_arr.tolist(), dtype=tf.int32)
   tgt_inputs = tf.constant(tgt_input_arr.tolist(), dtype=tf.int32)
   tgt_paddings = tf.constant(tgt_paddings_arr.tolist(), dtype=tf.float32)
-  return inputs, paddings, tgt_inputs, tgt_paddings
+  tgt_tasks = tf.constant(tgt_task_arr.tolist(), dtype=tf.int32)
+  return inputs, paddings, tgt_inputs, tgt_paddings, input_tasks, tgt_tasks
 
 
 def _TransformerRandomInputsVecs(batch):
@@ -453,17 +469,22 @@ def _EvolvedTransformerRandomInputsIds(batch):
   padding_length = 10
   input_padding = [[0] * batch] * padding_length
   input_arr = np.array([[6] * batch] + input_padding + [[4] * batch])
+  input_task_arr = np.array([[0] * batch] + input_padding + [[0] * batch])
   padding_indexes = [[1] * batch] * padding_length
   paddings_arr = np.array([[0] * batch] + padding_indexes + [[0] * batch])
   tgt_input_arr = np.array([[3] * batch] + input_padding + [[7] * batch] +
                            input_padding + [[9] * batch])
+  tgt_task_arr = np.array([[0] * batch] + input_padding + [[0] * batch] +
+                          input_padding + [[0] * batch])
   tgt_paddings_arr = np.array([[0] * batch] + padding_indexes + [[0] * batch] +
                               padding_indexes + [[0] * batch])
   inputs = tf.constant(input_arr.tolist(), dtype=tf.int32)
   paddings = tf.constant(paddings_arr.tolist(), dtype=tf.float32)
+  input_tasks = tf.constant(input_task_arr.tolist(), dtype=tf.int32)
   tgt_inputs = tf.constant(tgt_input_arr.tolist(), dtype=tf.int32)
   tgt_paddings = tf.constant(tgt_paddings_arr.tolist(), dtype=tf.float32)
-  return inputs, paddings, tgt_inputs, tgt_paddings
+  tgt_tasks = tf.constant(tgt_task_arr.tolist(), dtype=tf.int32)
+  return inputs, paddings, tgt_inputs, tgt_paddings, input_tasks, tgt_tasks
 
 
 class GPipeTransformerStackTest(test_utils.TestCase,
@@ -491,7 +512,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
         xformer = GPipeTransformerStack(params)
         packed_xformer = GPipeTransformerStack(packed_params)
         # Prepare inputs
-        inputs, paddings, tgt_inputs, tgt_paddings = _TransformerRandomInputsIds(
+        inputs, paddings, tgt_inputs, tgt_paddings, _, _ = _TransformerRandomInputsIds(
             batch)
         packed_inputs = tf.reshape(inputs, [-1, 1])
         packed_tgt_inputs = tf.reshape(tgt_inputs, [-1, 1])
@@ -551,7 +572,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       params.transparent_merger_dropout_prob = 0.0
       xformer = GPipeTransformerStack(params)
 
-      input_ids, id_paddings, tgt_inputs, tgt_paddings = _TransformerRandomInputsIds(
+      input_ids, id_paddings, tgt_inputs, tgt_paddings, _, _ = _TransformerRandomInputsIds(
           batch=batch)
       inputs, paddings, _, _ = _TransformerRandomInputsVecs(batch=batch)
       tf.set_random_seed(1234)
@@ -658,7 +679,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       params.dtype = tf.float32
       xformer = stack_cls(params)
 
-      inputs, paddings, tgt_inputs, tgt_paddings = inputs_fn(batch)
+      inputs, paddings, tgt_inputs, tgt_paddings, _, _ = inputs_fn(batch)
 
       output = xformer.FProp(xformer.theta, inputs, paddings, tgt_inputs,
                              tgt_paddings)[2]
@@ -714,7 +735,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
         params.state_dtype = tf.float32
       xformer = stack_cls(params)
 
-      input_ids, id_paddings, _, _ = inputs_fn(batch=batch)
+      input_ids, id_paddings, _, _, _, _ = inputs_fn(batch=batch)
       labels = tf.ones([input_ids.shape.as_list()[0], batch], dtype=tf.int32)
       label_weights = tf.ones([input_ids.shape.as_list()[0], batch])
       tf.set_random_seed(1234)
@@ -742,6 +763,9 @@ class GPipeTransformerStackTest(test_utils.TestCase,
           'testcase_name': '_split2_nmb2',
           'splits': 2,
           'num_micro_batches': 2
+      }, {
+          'testcase_name': '_split1_task_embs',
+          'use_task_embs': True
       }), ({
           'testcase_name': '_transformer',
           'params_fn': _TransformerParamsWithEmbeddings,
@@ -758,7 +782,8 @@ class GPipeTransformerStackTest(test_utils.TestCase,
                                   stack_cls,
                                   inputs_fn,
                                   splits=1,
-                                  num_micro_batches=1):
+                                  num_micro_batches=1,
+                                  use_task_embs=False):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
     with self.session() as sess:
@@ -767,11 +792,12 @@ class GPipeTransformerStackTest(test_utils.TestCase,
             splits=splits,
             num_micro_batches=num_micro_batches,
             num_decoder_layers=2,
-            has_softmax=True)
+            has_softmax=True,
+            use_task_ids=use_task_embs)
         params.state_dtype = tf.float32
       xformer = stack_cls(params)
 
-      input_ids, id_paddings, tgt_inputs, tgt_paddings = (
+      input_ids, id_paddings, tgt_inputs, tgt_paddings, input_task_ids, tgt_task_ids = (
           inputs_fn(batch=batch))
       labels = tf.ones([tgt_inputs.shape.as_list()[0], batch], dtype=tf.int32)
       label_weights = tf.ones([tgt_inputs.shape.as_list()[0], batch])
@@ -779,7 +805,8 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       tf.global_variables_initializer().run()
       xent, logits = xformer.FProp(xformer.theta, input_ids, id_paddings,
                                    tgt_inputs, tgt_paddings, None, None, labels,
-                                   label_weights)
+                                   label_weights, None, None, input_task_ids,
+                                   tgt_task_ids)
       xent_out, logits_out = sess.run([xent, logits])
       print('xent_out={}'.format(xent_out))
       print('logits_out={}'.format(logits_out))
