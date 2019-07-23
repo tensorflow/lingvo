@@ -1139,6 +1139,52 @@ embs[indices, :] is the embedding vector for ids[indices].</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="lingvo.core.layers.OneHotEmbeddingLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers.</code><code class="descname">OneHotEmbeddingLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#OneHotEmbeddingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.OneHotEmbeddingLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Generates one-hot embeddings with uncertainties.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers.OneHotEmbeddingLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#OneHotEmbeddingLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.OneHotEmbeddingLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.OneHotEmbeddingLayer.EmbLookupDefaultTheta">
+<code class="descname">EmbLookupDefaultTheta</code><span class="sig-paren">(</span><em>ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#OneHotEmbeddingLayer.EmbLookupDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.OneHotEmbeddingLayer.EmbLookupDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lookups embedding vectors for ids.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.OneHotEmbeddingLayer.EmbLookup">
+<code class="descname">EmbLookup</code><span class="sig-paren">(</span><em>theta</em>, <em>ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#OneHotEmbeddingLayer.EmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.OneHotEmbeddingLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.OneHotEmbeddingLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#OneHotEmbeddingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.OneHotEmbeddingLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lookups embedding vectors for ids.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – Named tuple collection of weights for the layer.</li>
+<li><strong>ids</strong> – A rank-N int32 tensor.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A rank-(N+1) params.dtype tensor.
+embs[indices, :] is the embedding vector for ids[indices].</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.core.layers.PositionalEmbeddingLayer">
 <em class="property">class </em><code class="descclassname">lingvo.core.layers.</code><code class="descname">PositionalEmbeddingLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#PositionalEmbeddingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.PositionalEmbeddingLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
