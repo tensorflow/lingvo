@@ -2377,6 +2377,35 @@ class EmbeddingLayerTest(test_utils.TestCase):
       self.assertAllClose(expected_output / np.sqrt(p.embedding_dim),
                           actual_position_embs)
 
+  def testOneHotEmbeddingLayer(self):
+    with self.session(use_gpu=True):
+      params = layers.OneHotEmbeddingLayer.Params()
+      params.name = 'emb'
+      params.dtype = tf.float32
+      params.vocab_size = 4
+      params.embedding_dim = 4
+      emb_layer = layers.OneHotEmbeddingLayer(params)
+      ids = tf.constant([[0], [2]])
+      embs = emb_layer.EmbLookupDefaultTheta(ids)
+      tf.global_variables_initializer().run()
+      expected_output = [[[1., 0., 0., 0.]], [[0., 0., 1., 0.]]]
+      self.assertAllClose(expected_output, embs.eval())
+
+  def testOneHotEmbeddingLayerWithUncertainty(self):
+    with self.session(use_gpu=True):
+      params = layers.OneHotEmbeddingLayer.Params()
+      params.name = 'emb'
+      params.dtype = tf.float32
+      params.vocab_size = 4
+      params.embedding_dim = 4
+      params.uncertainty = 0.3
+      emb_layer = layers.OneHotEmbeddingLayer(params)
+      ids = tf.constant([[0], [2]])
+      embs = emb_layer.EmbLookupDefaultTheta(ids)
+      tf.global_variables_initializer().run()
+      expected_output = [[[0.7, 0.1, 0.1, 0.1]], [[0.1, 0.1, 0.7, 0.1]]]
+      self.assertAllClose(expected_output, embs.eval())
+
 
 class SoftmaxLayerTest(test_utils.TestCase):
 

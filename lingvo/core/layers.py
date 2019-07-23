@@ -2070,6 +2070,59 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     return tf.reshape(embs_result, out_shape)
 
 
+class OneHotEmbeddingLayer(base_layer.BaseLayer):
+  """Generates one-hot embeddings with uncertainties."""
+
+  @classmethod
+  def Params(cls):
+    p = super(OneHotEmbeddingLayer, cls).Params()
+    p.Define('vocab_size', 0,
+             'Depth of the input. I.e., the number of classes.')
+    p.Define('embedding_dim', 0, 'Depth of the output.')
+    p.Define('uncertainty', 0.0, 'Uncertainty of the correct ID.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(OneHotEmbeddingLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.vocab_size > 1
+    assert p.embedding_dim == p.vocab_size
+
+  def EmbLookupDefaultTheta(self, ids):
+    """Lookups embedding vectors for ids."""
+    return self.FProp(self.theta, ids)
+
+  def EmbLookup(self, theta, ids):
+    return self.FProp(theta, ids)
+
+  def FProp(self, theta, ids):
+    """Lookups embedding vectors for ids.
+
+    Args:
+      theta: Named tuple collection of weights for the layer.
+      ids: A rank-N int32 tensor.
+
+    Returns:
+      A rank-(N+1) params.dtype tensor.
+      embs[indices, :] is the embedding vector for ids[indices].
+    """
+    del theta
+    p = self.params
+    if not py_utils.use_xla():
+      ids = py_utils.with_dependencies(
+          [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
+    low_confidence = p.uncertainty / tf.to_float(p.vocab_size - 1)
+    high_confidence = 1.0 - p.uncertainty
+    embs_result = tf.one_hot(
+        ids,
+        depth=p.vocab_size,
+        on_value=high_confidence,
+        off_value=low_confidence)
+    return embs_result
+
+
 class PositionalEmbeddingLayer(base_layer.BaseLayer):
   """Generates sinusoidals with respect to the position in time and dimension.
 
