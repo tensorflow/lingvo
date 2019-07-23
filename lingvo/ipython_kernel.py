@@ -30,6 +30,7 @@ def main(_):
   notebookapp.open_browser = False
   notebookapp.ip = "0.0.0.0"
   notebookapp.port = 8888
+  notebookapp.port_retries = 0
   notebookapp.allow_origin_pat = "https://colab\\.[^.]+\\.google.com"
   notebookapp.allow_root = True
   notebookapp.token = ""
