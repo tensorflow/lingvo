@@ -46,7 +46,7 @@ class AsrEncoder(base_layer.BaseLayer):
     p = super(AsrEncoder, cls).Params()
     p.Define('specaugment_network',
              spectrum_augmenter.SpectrumAugmenter.Params(),
-             'Configs template for the agumentation network.')
+             'Configs template for the augmentation network.')
     p.Define('use_specaugment', False, 'Use specaugmentation or not.')
     p.Define('lstm_tpl', rnn_cell.LSTMCellSimple.Params(),
              'Configs template for the RNN layer.')
