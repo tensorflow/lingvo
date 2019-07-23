@@ -1709,7 +1709,8 @@ def ComputeGradients(
     vmap,
     grad_aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE,
     colocate_gradients_with_ops=True,
-    gate_gradients=False):
+    gate_gradients=False,
+    compute_gradients_fn=None):
   """Computes gradients of variables in vmap w.r.t loss.
 
   Args:
@@ -1722,6 +1723,9 @@ def ComputeGradients(
       corresponding op.
     gate_gradients: If True, add a tuple around the gradients returned for an
       operations. This avoids some race conditions.
+    compute_gradients_fn: Function to use to compute gradients. If None,
+      use default. compute_gradients_fn should have the same signature as
+      this function, but without the last argument.
 
   Returns:
     var_grad - a `.NestedMap` of (variable, gradient). You can view
@@ -1756,14 +1760,18 @@ def ComputeGradients(
   assert filtered_vmap is not None
   filtered_vlist = filtered_vmap.Flatten()
 
-  # tpu vs non-tpu is slightly different.
-  if use_tpu():
-    if nas_run():
-      take_grad = _ComputeGradientsTpuNas
-    else:
-      take_grad = _ComputeGradientsTpu
+  # Use caller-supplied gradient function if supplied.
+  if compute_gradients_fn is not None:
+    take_grad = compute_gradients_fn
   else:
-    take_grad = _ComputeGradientsSimple
+    # tpu vs non-tpu is slightly different.
+    if use_tpu():
+      if nas_run():
+        take_grad = _ComputeGradientsTpuNas
+      else:
+        take_grad = _ComputeGradientsTpu
+    else:
+      take_grad = _ComputeGradientsSimple
 
   grads = take_grad(loss, filtered_vlist, grad_aggregation_method,
                     colocate_gradients_with_ops, gate_gradients)
