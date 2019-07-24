@@ -512,7 +512,30 @@
     <span class="p">]</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialize variables: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
                     <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">uninitialized_vars</span><span class="p">])</span>
-    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span><span class="n">uninitialized_vars</span><span class="p">))</span></div></div>
+    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span><span class="n">uninitialized_vars</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Checkpointer.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Checkpointer.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;If global step is not initialized, load it from the checkpoint.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: tf.Session.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">uninitialized_vars</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;global_step&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">uninitialized_vars</span><span class="p">:</span>
+      <span class="k">return</span>
+
+    <span class="k">with</span> <span class="n">sess</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="n">gstep</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+      <span class="n">reader</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">NewCheckpointReader</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_tensor</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Restoring global step: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gstep</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initializing global step&#39;</span><span class="p">)</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gstep</span><span class="o">.</span><span class="n">initializer</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Controller"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller">[docs]</a><span class="k">class</span> <span class="nc">Controller</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
@@ -1040,7 +1063,14 @@
       <span class="k">return</span>
     <span class="c1"># Wait for _Loop to initialize variables first before attempting to infeed.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
-    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">TrainerTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">(</span><span class="n">op</span><span class="p">)</span></div>
+
+    <span class="c1"># The global step may not be initialized in this thread if the target server</span>
+    <span class="c1"># uses session state isolation (e.g. Cloud TPUs).</span>
+    <span class="n">sess</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">TrainerTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TrainerTpu._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Evaler/Controller jobs may find that the trial is infeasible and report</span>
