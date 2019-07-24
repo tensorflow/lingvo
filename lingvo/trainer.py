@@ -369,6 +369,29 @@ class Checkpointer(object):
                     [v.name for v in uninitialized_vars])
     sess.run(tf.variables_initializer(uninitialized_vars))
 
+  def RestoreGlobalStepIfNeeded(self, sess):
+    """If global step is not initialized, load it from the checkpoint.
+
+    Args:
+      sess: tf.Session.
+    """
+    uninitialized_vars = sess.run(self._uninitialized_vars)
+    if 'global_step' not in uninitialized_vars:
+      return
+
+    with sess.graph.as_default():
+      gstep = py_utils.GetGlobalStep()
+
+    path = tf.train.latest_checkpoint(self._train_dir)
+    if path:
+      reader = tf.train.NewCheckpointReader(path)
+      value = reader.get_tensor('global_step')
+      tf.logging.info('Restoring global step: %s', value)
+      sess.run(gstep.assign(value))
+    else:
+      tf.logging.info('Initializing global step')
+      sess.run(gstep.initializer)
+
 
 class Controller(base_runner.BaseRunner):
   """Controller for a training cluster."""
@@ -895,7 +918,14 @@ class TrainerTpu(base_runner.BaseRunner):
       return
     # Wait for _Loop to initialize variables first before attempting to infeed.
     self._initialized.wait()
-    return super(TrainerTpu, self)._LoopEnqueue(op)
+
+    # The global step may not be initialized in this thread if the target server
+    # uses session state isolation (e.g. Cloud TPUs).
+    sess = self._GetSession()
+    if FLAGS.checkpoint_in_trainer_tpu:
+      self.checkpointer.RestoreGlobalStepIfNeeded(sess)
+
+    return super(TrainerTpu, self)._LoopEnqueue(op, sess)
 
   def _Loop(self):
     # Evaler/Controller jobs may find that the trial is infeasible and report

@@ -231,10 +231,11 @@ class BaseRunner(object):
       time.sleep(15)
       os._exit(1)  # pylint: disable=protected-access
 
-  def _LoopEnqueue(self, op):
+  def _LoopEnqueue(self, op, session_override=None):
     """Runs the enqueue op in a loop."""
     p = self.params
-    with tf.container(self._container_id), self._GetSession() as sess:
+    sess = session_override or self._GetSession()
+    with tf.container(self._container_id), sess:
       if self.initialize_tables is not None:
         sess.run(self.initialize_tables)
       gsteps = py_utils.GetGlobalStep()
