@@ -79,7 +79,7 @@ class InputTest(test_utils.TestCase):
       for ex in tf_examples:
         outf.write(ex.SerializeToString())
 
-  def _GenerateSetup(self, append_eos_frame):
+  def _GenerateSetup(self, append_eos_frame, pad_to_max_seq_length=False):
     tfrecords_filepath = os.path.join(tf.test.get_temp_dir(),
                                       'simple.tfrecords')
     self._GenerateExamples(tfrecords_filepath)
@@ -90,6 +90,7 @@ class InputTest(test_utils.TestCase):
     p.bucket_upper_bound = [2560]
     p.bucket_batch_limit = [3]
     p.append_eos_frame = append_eos_frame
+    p.pad_to_max_seq_length = pad_to_max_seq_length
     return p
 
   def _AssertAllOnes(self, np_data):
@@ -119,9 +120,14 @@ class InputTest(test_utils.TestCase):
       # tgt.paddings    (3, 30)
       # tgt.weights     (3, 30)
       batch_size = p.bucket_batch_limit[0]
-      max_num_frames = np.amax([xdef[0] for xdef in self._example_def.values()])
-      if p.append_eos_frame:
-        max_num_frames += 1
+      if p.pad_to_max_seq_length:
+        max_num_frames = p.source_max_length
+      else:
+        max_num_frames = np.amax(
+            [xdef[0] for xdef in self._example_def.values()])
+        if p.append_eos_frame:
+          max_num_frames += 1
+
       tgt_shape = [batch_size, p.target_max_length]
       self._AssertShapesAsExpected(
           shapes, {
@@ -172,6 +178,10 @@ class InputTest(test_utils.TestCase):
 
   def testAsrInputWithoutEosFrame(self):
     p = self._GenerateSetup(append_eos_frame=False)
+    self._TestAsrInput(p)
+
+  def testAsrInputWithStaticShape(self):
+    p = self._GenerateSetup(append_eos_frame=False, pad_to_max_seq_length=True)
     self._TestAsrInput(p)
 
 

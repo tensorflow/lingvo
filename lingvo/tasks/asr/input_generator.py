@@ -25,7 +25,7 @@ from lingvo.core import generic_input
 from lingvo.core import py_utils
 import six
 
-from tensorflow.python.ops import inplace_ops
+from tensorflow.python.ops import inplace_ops  # pylint:disable=g-direct-tensorflow-import
 
 
 class AsrInput(base_input_generator.BaseSequenceInputGenerator):
@@ -116,6 +116,36 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
     tgt_ids = tf.squeeze(tgt_ids, axis=1)
     tgt_labels = tf.squeeze(tgt_labels, axis=1)
     tgt_paddings = tf.squeeze(tgt_paddings, axis=1)
+
+    if p.pad_to_max_seq_length:
+      assert p.source_max_length
+      assert p.target_max_length
+
+      if all(x == p.bucket_batch_limit[0] for x in p.bucket_batch_limit):
+        # Set the input batch size as an int rather than a tensor.
+        self._input_batch_size = self.scaled_bucket_batch_limit[0]
+        src_frames_shape = (self._input_batch_size, p.source_max_length,
+                            p.frame_size, 1)
+        src_paddings_shape = (self._input_batch_size, p.source_max_length)
+        tgt_shape = (self._input_batch_size, p.target_max_length)
+      else:
+        tf.logging.warning(
+            'Could not set static input shape since not all bucket batch sizes '
+            'are the same:', p.bucket_batch_limit)
+        src_frames_shape = None
+        src_paddings_shape = None
+        tgt_shape = None
+
+      src_frames = py_utils.PadSequenceDimension(
+          src_frames, p.source_max_length, 0, shape=src_frames_shape)
+      src_paddings = py_utils.PadSequenceDimension(
+          src_paddings, p.source_max_length, 1, shape=src_paddings_shape)
+      tgt_ids = py_utils.PadSequenceDimension(
+          tgt_ids, p.target_max_length, 0, shape=tgt_shape)
+      tgt_labels = py_utils.PadSequenceDimension(
+          tgt_labels, p.target_max_length, 0, shape=tgt_shape)
+      tgt_paddings = py_utils.PadSequenceDimension(
+          tgt_paddings, p.target_max_length, 1, shape=tgt_shape)
 
     tgt = py_utils.NestedMap(
         ids=tgt_ids,
