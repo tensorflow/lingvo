@@ -170,7 +170,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">import</span> <span class="nn">six</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">inplace_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">inplace_ops</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 
 
 <div class="viewcode-block" id="AsrInput"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.input_generator.html#lingvo.tasks.asr.input_generator.AsrInput">[docs]</a><span class="k">class</span> <span class="nc">AsrInput</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="p">):</span>
@@ -261,6 +261,36 @@
     <span class="n">tgt_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">tgt_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">tgt_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">tgt_labels</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">tgt_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">tgt_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span>
+
+      <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span><span class="p">):</span>
+        <span class="c1"># Set the input batch size as an int rather than a tensor.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaled_bucket_batch_limit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">src_frames_shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">,</span>
+                            <span class="n">p</span><span class="o">.</span><span class="n">frame_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">src_paddings_shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">)</span>
+        <span class="n">tgt_shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s1">&#39;Could not set static input shape since not all bucket batch sizes &#39;</span>
+            <span class="s1">&#39;are the same:&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span><span class="p">)</span>
+        <span class="n">src_frames_shape</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">src_paddings_shape</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">tgt_shape</span> <span class="o">=</span> <span class="kc">None</span>
+
+      <span class="n">src_frames</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span>
+          <span class="n">src_frames</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">src_frames_shape</span><span class="p">)</span>
+      <span class="n">src_paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span>
+          <span class="n">src_paddings</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">src_paddings_shape</span><span class="p">)</span>
+      <span class="n">tgt_ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span>
+          <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">tgt_shape</span><span class="p">)</span>
+      <span class="n">tgt_labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span>
+          <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">tgt_shape</span><span class="p">)</span>
+      <span class="n">tgt_paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span>
+          <span class="n">tgt_paddings</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">tgt_shape</span><span class="p">)</span>
 
     <span class="n">tgt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">ids</span><span class="o">=</span><span class="n">tgt_ids</span><span class="p">,</span>
