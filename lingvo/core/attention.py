@@ -2354,11 +2354,15 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     p = super(GmmMonotonicAttention, cls).Params()
     p.Define('source_dim', 0, 'Number of source nodes.')
     p.Define('query_dim', 0, 'Number of query nodes.')
-    p.Define('gmm_mlp_hidden_dim', 128,
+    p.Define('hidden_dim', 128,
              'Number of hidden units for the MLP that predicts GMM params.')
     p.Define('max_offset', -1,
              'Max offset to move attention pointer, Enabled only when > 0.')
     p.Define('num_mixtures', 5, 'Number of location GMM components.')
+
+    # TODO(ngyuzh): find a good initialize for both TTS and ASR. Consider split
+    # the layer if it's very sensitive to the initialization
+    p.params_init = py_utils.WeightInit.Xavier(0.1)
     return p
 
   @base_layer.initializer
@@ -2369,31 +2373,29 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     if p.atten_dropout_prob != 0:
       raise NotImplementedError('dropout is not supported.')
 
-    # TODO(ngyuzh): find a good initialize for both TTS and ASR.
-    # Consider split the layer if it's very sensitive to the initialization
-    # Compare Sigmoid and other activation functions.
+    # TODO(ngyuzh): Compare Sigmoid and other activation functions.
     with tf.variable_scope(p.name):
-      gmm_params = layers.FeedForwardNet.Params().Set(
+      ff_params = layers.FeedForwardNet.Params().Set(
           name=p.name,
           input_dim=p.query_dim,
-          hidden_layer_dims=[p.gmm_mlp_hidden_dim, p.num_mixtures * 3],
+          hidden_layer_dims=[p.hidden_dim, p.num_mixtures * 3],
           activation=['SIGMOID', 'NONE'],
-          params_init=py_utils.WeightInit.Xavier(0.1))
-      self.CreateChild('GMM', gmm_params)
+          params_init=p.params_init.Copy())
+      self.CreateChild('GMM', ff_params)
 
       # TODO(ngyuzh): change variance to scale to make it simpler.
-      def EvalGmmPdfs(encoder_positions, priors, means, variances):
-        """Evaluate the location GMMs on all encoder positions."""
+      def ComputeProbs(encoder_positions, priors, means, variances):
+        """Computes the location GMM probabilities at all encoder positions."""
         # encoder_positions: [batch, 1, timesteps, 1]
         # [batch, tb / sb, 1, num_mixtures]
         priors = tf.expand_dims(priors, 2)
         means = tf.expand_dims(means, 2)
         variances = tf.expand_dims(variances, 2)
         # [batch, tb / sb, timesteps, num_mixtures]
-        pdfs = ((priors * tf.rsqrt(2 * np.pi * variances + 1e-8)) * tf.exp(
-            -(encoder_positions - means)**2 / (2 * variances + 1e-8)))
-        # pdfs sized [batch, tb / sb, timesteps].
-        return tf.reduce_sum(pdfs, 3)
+        probs = priors * tf.rsqrt(2 * np.pi * variances + 1e-8) * tf.exp(
+            -(encoder_positions - means)**2 / (2 * variances + 1e-8))
+        # probs sized [batch, tb / sb, timesteps].
+        return tf.reduce_sum(probs, axis=3)
 
       # TODO(ngyuzh): remove unnecessary transpose.
       def Atten(source_padding, concated_source_vecs, concated_source_contexts,
@@ -2413,7 +2415,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
         means = tf.reshape(means, [-1, multiplier, p.num_mixtures])
         variances = tf.reshape(variances, [-1, multiplier, p.num_mixtures])
 
-        probs = EvalGmmPdfs(encoder_positions, priors, means, variances)
+        probs = ComputeProbs(encoder_positions, priors, means, variances)
         # [sl, tb / sb, sb]
         probs = tf.reshape(tf.transpose(probs, [2, 0, 1]), [-1, multiplier, sb])
 

@@ -1730,15 +1730,15 @@ class AttentionTest(test_utils.TestCase):
 
       params = attention.GmmMonotonicAttention.Params()
       params.name = 'gmm_atten'
-      params.params_init = py_utils.WeightInit.Gaussian(0.1, 12345)
+      params.params_init = py_utils.WeightInit.Xavier(0.1)
       params.source_dim = 4
       params.query_dim = 7
-      params.gmm_mlp_hidden_dim = 7
+      params.hidden_dim = 7
       params.num_mixtures = 2
       params.vn.global_vn = False
       params.vn.per_step_vn = False
 
-      atten = attention.GmmMonotonicAttention(params)
+      atten = params.Instantiate()
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding)
       # target_batch=6
