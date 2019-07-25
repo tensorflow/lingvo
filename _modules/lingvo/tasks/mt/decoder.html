@@ -950,24 +950,7 @@
 <div class="viewcode-block" id="MTDecoderV1._PostBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span>
                                   <span class="n">states</span><span class="p">):</span>
     <span class="c1"># There is nothing to do here.</span>
-    <span class="k">return</span> <span class="n">states</span></div>
-
-<div class="viewcode-block" id="MTDecoderV1.BeamSearchDecode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Performs beam-search based decoding.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      encoder_outputs: a NestedMap computed by encoder.</span>
-<span class="sd">      num_hyps_per_beam_override: If set to a value &lt;= 0, this parameter is</span>
-<span class="sd">        ignored. If set to a value &gt; 0, then this value will be used to</span>
-<span class="sd">        override `p.num_hyps_per_beam`.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      BeamSearchDecodeOutput, a namedtuple containing the decode results.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">states</span></div></div>
 
 
 <div class="viewcode-block" id="TransformerDecoder"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder">[docs]</a><span class="k">class</span> <span class="nc">TransformerDecoder</span><span class="p">(</span><span class="n">MTBaseDecoder</span><span class="p">):</span>
@@ -1494,12 +1477,6 @@
                                   <span class="n">states</span><span class="p">):</span>
     <span class="c1"># There is nothing to do here.</span>
     <span class="k">return</span> <span class="n">states</span></div>
-
-<div class="viewcode-block" id="TransformerDecoder.BeamSearchDecode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder._AddAttenProbsScalarSummary"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsScalarSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_AddAttenProbsScalarSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Add scalar summary of multi-headed transformer attention probs.</span>
