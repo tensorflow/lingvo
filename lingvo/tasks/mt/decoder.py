@@ -807,23 +807,6 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     # There is nothing to do here.
     return states
 
-  def BeamSearchDecode(self, encoder_outputs, num_hyps_per_beam_override=0):
-    """Performs beam-search based decoding.
-
-    Args:
-      encoder_outputs: a NestedMap computed by encoder.
-      num_hyps_per_beam_override: If set to a value <= 0, this parameter is
-        ignored. If set to a value > 0, then this value will be used to
-        override `p.num_hyps_per_beam`.
-
-    Returns:
-      BeamSearchDecodeOutput, a namedtuple containing the decode results.
-    """
-    return self.beam_search.BeamSearchDecode(
-        self.theta, encoder_outputs, num_hyps_per_beam_override,
-        self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
-        self._PostBeamSearchStepCallback)
-
 
 class TransformerDecoder(MTBaseDecoder):
   """Transformer decoder.
@@ -1349,12 +1332,6 @@ class TransformerDecoder(MTBaseDecoder):
                                   states):
     # There is nothing to do here.
     return states
-
-  def BeamSearchDecode(self, encoder_outputs, num_hyps_per_beam_override=0):
-    return self.beam_search.BeamSearchDecode(
-        self.theta, encoder_outputs, num_hyps_per_beam_override,
-        self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
-        self._PostBeamSearchStepCallback)
 
   def _AddAttenProbsScalarSummary(self, source_paddings, targets, atten_probs):
     """Add scalar summary of multi-headed transformer attention probs.
