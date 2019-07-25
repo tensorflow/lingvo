@@ -125,4 +125,8 @@ class BaseBeamSearchDecoder(BaseDecoder):
                                 theta,
                                 encoder_outputs,
                                 num_hyps_per_beam_override=0):
-    raise NotImplementedError('Abstract method: %s' % type(self))
+    return self.beam_search.BeamSearchDecode(theta, encoder_outputs,
+                                             num_hyps_per_beam_override,
+                                             self._InitBeamSearchStateCallback,
+                                             self._PreBeamSearchStepCallback,
+                                             self._PostBeamSearchStepCallback)
