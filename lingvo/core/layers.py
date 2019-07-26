@@ -862,8 +862,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     super(ProjectionLayer, self).__init__(params)
     p = self.params
     assert p.name
-    assert p.input_dim > 0
-    assert p.output_dim > 0
+    assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.input_dim) > 0
+    assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.output_dim) > 0
     assert p.activation == 'NONE' or p.activation in _ACTIVATIONS
     if p.batch_norm and p.has_bias:
       tf.logging.warning(
@@ -1011,7 +1011,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     b = theta.b if p.has_bias else None
     if p.weight_norm:
       w = tf.reshape((theta.g + 1.0) * tf.nn.l2_normalize(w, [0]),
-                     [p.input_dim, p.output_dim])
+                     py_utils.ToStaticShape([p.input_dim, p.output_dim]))
     if not self._is_bn_folded:
       return w, b
 
@@ -1062,7 +1062,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       Output tensor reshaped.
     """
     p = self.params
-    out = py_utils.Matmul(tf.reshape(inputs, [-1, p.input_dim]), w)
+    out = py_utils.Matmul(
+        tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
     if b is not None:
       out += b  # NOTE: Bias on matmul is never quantized.
     if with_activation and p.activation != 'NONE':
@@ -1075,8 +1076,12 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     if quant:
       out = self.QTensor(self._output_qt_name, out)
     out = tf.reshape(
-        out, tf.concat([py_utils.GetShape(inputs)[:-1], [p.output_dim]],
-                       axis=0))
+        out,
+        tf.concat([
+            py_utils.GetShape(inputs)[:-1],
+            py_utils.ToStaticShape([p.output_dim])
+        ],
+                  axis=0))
     return out
 
 
