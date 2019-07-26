@@ -498,7 +498,7 @@ class NestedMap(dict):
       return super(NestedMap, self).__getattribute__(key)
     except AttributeError as e:
       raise AttributeError('%s; available attributes: %s' %
-                           (e, list(self.__dict__.keys())))
+                           (e, sorted(list(self.__dict__.keys()))))
 
   def copy(self):  # Don't delegate w/ super: dict.copy() -> dict.
     return NestedMap(self)
