@@ -2530,58 +2530,103 @@
 
       <span class="c1"># TODO(ngyuzh): change variance to scale to make it simpler.</span>
       <span class="k">def</span> <span class="nf">ComputeProbs</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Computes the location GMM probabilities at all encoder positions.&quot;&quot;&quot;</span>
-        <span class="c1"># encoder_positions: [batch, 1, timesteps, 1]</span>
-        <span class="c1"># [batch, tb / sb, 1, num_mixtures]</span>
+        <span class="sd">&quot;&quot;&quot;Computes the location GMM probabilities at all encoder positions.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          encoder_positions: [source_batch, source_seq_length]</span>
+<span class="sd">          priors: [multiplier, source_batch, num_mixtures]</span>
+<span class="sd">          means: [multiplier, source_batch, num_mixtures]</span>
+<span class="sd">          variances: [multiplier, source_batch, num_mixtures]  Where multiplier</span>
+<span class="sd">            == target_batch / source_batch.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">          Calculated PDF: [multiplier, source_batch, source_seq_length]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># [multiplier, source_batch, 1, num_mixtures]</span>
         <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="c1"># [batch, tb / sb, timesteps, num_mixtures]</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">priors</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">variances</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
-            <span class="o">-</span><span class="p">(</span><span class="n">encoder_positions</span> <span class="o">-</span> <span class="n">means</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">variances</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">))</span>
-        <span class="c1"># probs sized [batch, tb / sb, timesteps].</span>
+        <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1e-8</span>
+
+        <span class="c1"># [source_batch, source_seq_length, 1]</span>
+        <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># [multiplier, source_batch, source_seq_length, num_mixtures]</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="p">((</span><span class="n">priors</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">variances</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">))</span> <span class="o">*</span>
+                 <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">encoder_positions</span> <span class="o">-</span> <span class="n">means</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span>
+                        <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">variances</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)))</span>
+
+        <span class="c1"># [multiplier, source_batch, source_seq_length]</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
-      <span class="c1"># TODO(ngyuzh): remove unnecessary transpose.</span>
       <span class="k">def</span> <span class="nf">Atten</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">,</span>
                 <span class="n">query_vec</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">encoder_positions</span><span class="p">,</span>
                 <span class="n">per_step_source_padding</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Computes the attention context vector.&quot;&quot;&quot;</span>
-        <span class="c1"># tb: target batch size</span>
-        <span class="c1"># sb: source batch size</span>
-        <span class="c1"># concated_source_vecs is of shape [sl, sb, context_dim]</span>
-        <span class="c1"># query_vec is of shape [tb, dims]</span>
+        <span class="sd">&quot;&quot;&quot;Computes the attention context vector.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          source_padding: [source_seq_length, source_batch]</span>
+<span class="sd">          concated_source_vecs: [source_seq_length, source_batch, hidden_dim]</span>
+<span class="sd">          concated_source_contexts: [source_batch, source_seq_length,</span>
+<span class="sd">            context_dim]</span>
+<span class="sd">          query_vec: [target_batch, query_dim]</span>
+<span class="sd">          priors: [target_batch, num_mixtures]</span>
+<span class="sd">          means: [target_batch, num_mixtures]</span>
+<span class="sd">          variances: [target_batch, num_mixtures]</span>
+<span class="sd">          encoder_positions: [source_batch, source_seq_length]</span>
+<span class="sd">          per_step_source_padding: [target_batch, source_seq_length]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">          Following tensors:</span>
+<span class="sd">            context vector: [target_batch, context_dim]</span>
+<span class="sd">            attention probabilities: [target_batch, source_seq_length]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Note: shape [target_batch] can be converted to</span>
+        <span class="c1"># [multiplier, source_batch], not [source_batch, multiplier].</span>
         <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-        <span class="n">sb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">tb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">multiplier</span> <span class="o">=</span> <span class="n">tb</span> <span class="o">//</span> <span class="n">sb</span>
-        <span class="c1"># [sb, tb / sb, num_mixtures]</span>
-        <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
-        <span class="n">means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
-        <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
+        <span class="n">source_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">target_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">multiplier</span> <span class="o">=</span> <span class="n">target_batch</span> <span class="o">//</span> <span class="n">source_batch</span>
 
+        <span class="c1"># [multiplier, source_batch, num_mixtures]</span>
+        <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
+        <span class="n">means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
+        <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span>
+                               <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
+
+        <span class="c1"># [multiplier, source_batch, source_seq_length]</span>
         <span class="n">probs</span> <span class="o">=</span> <span class="n">ComputeProbs</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">)</span>
-        <span class="c1"># [sl, tb / sb, sb]</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">sb</span><span class="p">])</span>
 
-        <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">sb</span><span class="p">])</span>
+        <span class="c1"># [source_batch, source_seq_length]</span>
+        <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)</span>
+
+        <span class="c1"># [multiplier, source_batch, source_seq_length]</span>
+        <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">,</span>
+                                             <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">source_padding</span> <span class="o">+=</span> <span class="n">per_step_source_padding</span>
         <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
 
+        <span class="c1"># [multiplier, source_batch, source_seq_length]</span>
         <span class="n">probs</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">source_padding</span><span class="p">)</span>
         <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddDebugTensor</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;atten_probs&#39;</span><span class="p">)</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tb</span><span class="p">]))</span>
-        <span class="c1"># [tb/sb, sb, sl]</span>
-        <span class="n">probs_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">sb</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="c1"># [sb, tb/sb, sl]</span>
-        <span class="n">probs_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs_reshaped</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
-        <span class="c1"># Batched matmul</span>
-        <span class="c1"># [sb, tb/sb, sl] * [sb, sl, context_dim] = [sb, tb/sb, context_dim]</span>
-        <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">probs_reshaped</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">)</span>
-        <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="n">tb</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">probs</span>
+
+        <span class="c1"># [source_batch, multiplier, source_seq_length]</span>
+        <span class="n">probs_transposed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+        <span class="c1"># Matmul:</span>
+        <span class="c1"># [source_batch, multiplier, source_seq_length]</span>
+        <span class="c1"># @ [source_batch, source_seq_length, context_dim]</span>
+        <span class="c1"># -&gt; [source_batch, multiplier, context_dim]</span>
+        <span class="n">context_vector_transposed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">probs_transposed</span><span class="p">,</span>
+                                              <span class="n">concated_source_contexts</span><span class="p">)</span>
+
+        <span class="c1"># [multiplier, source_batch, context_dim]</span>
+        <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">context_vector_transposed</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+        <span class="c1"># [target_batch, context_dim], [target_batch, source_seq_length]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span> <span class="o">=</span> <span class="n">Atten</span>
 
@@ -2606,28 +2651,30 @@
       <span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_encode_source</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_contexts</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="c1"># [time, batch_size, hidden_dim].</span>
+        <span class="c1"># [source_seq_length, source_batch, hidden_dim].</span>
         <span class="n">source_vecs</span><span class="o">=</span><span class="n">concated_source_vecs</span><span class="p">,</span>
-        <span class="c1"># [batch_size, time, context_dim].</span>
+        <span class="c1"># [source_batch, source_seq_length, context_dim].</span>
         <span class="c1"># Note the mismatch between `source_vecs` and `source_contexts`. In</span>
-        <span class="c1"># `source_vecs`, time is the first dim, while it is the second dim in</span>
-        <span class="c1"># `source_contexts`.</span>
+        <span class="c1"># `source_vecs`, `source_seq_length` is the first dim, while it is the</span>
+        <span class="c1"># second dim in `source_contexts`.</span>
         <span class="n">source_contexts</span><span class="o">=</span><span class="n">concated_source_contexts</span><span class="p">,</span>
-        <span class="c1"># [time, batch_size].</span>
+        <span class="c1"># [source_seq_length, source_batch].</span>
         <span class="n">source_padding</span><span class="o">=</span><span class="n">source_padding</span><span class="p">,</span>
-        <span class="c1"># [time, batch_size].</span>
+        <span class="c1"># [source_seq_length, source_batch].</span>
         <span class="n">source_segment_id</span><span class="o">=</span><span class="n">source_segment_id</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GmmMonotonicAttention.ZeroAttentionState"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.GmmMonotonicAttention.ZeroAttentionState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroAttentionState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_seq_length</span><span class="p">,</span> <span class="n">decoder_batch_size</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># [target_batch, num_mixtures]</span>
     <span class="n">position</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">position_offsets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
         <span class="p">[</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">atten_states</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">position</span><span class="p">,</span> <span class="n">position_offsets</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">priors</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">atten_states</span></div>
+
+    <span class="c1"># [target_batch, num_mixtures, 4]</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">position</span><span class="p">,</span> <span class="n">position_offsets</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">priors</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GmmMonotonicAttention.ComputeContextVectorWithSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.GmmMonotonicAttention.ComputeContextVectorWithSource">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeContextVectorWithSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                      <span class="n">theta</span><span class="p">,</span>
@@ -2643,18 +2690,16 @@
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      packed_src: A `.NestedMap` object returned by PackSource or</span>
 <span class="sd">        InitForSourcePacked.</span>
-<span class="sd">      query_vec: a tensor of shape [batch_size, query_dim].</span>
+<span class="sd">      query_vec: a tensor of shape [target_batch, query_dim].</span>
 <span class="sd">      attention_state: previous attention state, a tensor of shape</span>
-<span class="sd">        [batch_size, num_mixtures, 4].</span>
-
+<span class="sd">        [target_batch, num_mixtures, 4].</span>
 <span class="sd">        - attention_state[:, :, 0] contains previous location</span>
 <span class="sd">        - attention_state[:, :, 1] contains previous offset.</span>
 <span class="sd">        - attention_state[:, :, 2] contains previous variance.</span>
 <span class="sd">        - attention_state[:, :, 3] contains previous prior.</span>
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
-<span class="sd">        If not None, it should be of shape [target_batch_size,</span>
-<span class="sd">        source_seq_length].</span>
-<span class="sd">      query_segment_id: a tensor of shape [batch_size]</span>
+<span class="sd">        If not None, it should be of shape [target_batch, source_seq_length].</span>
+<span class="sd">      query_segment_id: a tensor of shape [target_batch].</span>
 
 <span class="sd">    Note: concated_source_vecs are the vectors that are used to compute the</span>
 <span class="sd">    attention score between the query_vec and each concated_source_vec.</span>
@@ -2665,27 +2710,31 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of 3 elements.</span>
-<span class="sd">        The attention context vector:</span>
-<span class="sd">          [batch_size, context_dim]</span>
-<span class="sd">        The attention probability vector:</span>
-<span class="sd">          [batch_size, time]</span>
-<span class="sd">        The new attention state vector:</span>
-<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
+<span class="sd">        The attention context vector: [target_batch, context_dim]</span>
+<span class="sd">        The attention probability vector: [target_batch, source_seq_length]</span>
+<span class="sd">        The new attention state vector: [target_batch, num_mixtures, 4]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">query_segment_id</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_vecs</span>
     <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_contexts</span>
     <span class="n">source_padding</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_padding</span>
-    <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">target_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">source_seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">source_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># [target_batch, source_seq_length]</span>
     <span class="k">if</span> <span class="n">per_step_source_padding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">zero</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">query_batch_size</span><span class="p">,</span> <span class="n">source_seq_length</span><span class="p">],</span>
-                                        <span class="n">zero</span><span class="p">)</span>
+      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">target_batch</span><span class="p">,</span> <span class="n">source_seq_length</span><span class="p">],</span>
+                                         <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
-        <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="p">[</span><span class="n">query_batch_size</span><span class="p">,</span> <span class="n">source_seq_length</span><span class="p">])</span>
+        <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="n">source_seq_length</span><span class="p">])</span>
+
+    <span class="c1"># [target_batch, num_mixtures * 3]</span>
     <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GMM</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">GMM</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+
+    <span class="c1"># [target_batch, num_mixtures]</span>
     <span class="n">priors_logits</span><span class="p">,</span> <span class="n">position_offset_logits</span><span class="p">,</span> <span class="n">log_variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
         <span class="n">out</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;GMM&#39;</span><span class="p">)</span>
     <span class="n">log_variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">log_variances</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LOG_SCALE_CLAMP_BOUND</span><span class="p">)</span>
@@ -2697,24 +2746,27 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">position_offset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">position_offset_logits</span><span class="p">)</span>
     <span class="n">new_position</span> <span class="o">=</span> <span class="n">attention_state</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">position_offset</span>
-    <span class="n">new_position</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">new_position</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">source_seq_length</span><span class="p">))</span>
+    <span class="n">new_position</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">new_position</span><span class="p">,</span>
+                              <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">source_seq_length</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
     <span class="n">variances</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddDebugTensor</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;variances&#39;</span><span class="p">)</span>
     <span class="n">priors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddDebugTensor</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;priors&#39;</span><span class="p">)</span>
-    <span class="c1"># Tile and reshape encoder_positions to [batch, 1, timesteps, 1] so that</span>
-    <span class="c1"># it can be evaluated by locations GMMs in a vectorized way.</span>
-    <span class="n">source_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Tile and reshape encoder_positions to [source_batch, source_seq_length]</span>
+    <span class="c1"># so that it can be evaluated by locations GMMs in a vectorized way.</span>
     <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">source_seq_length</span><span class="p">)),</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="p">(</span><span class="n">source_batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="c1"># [batch, timesteps, 1].</span>
-    <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">source_seq_length</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="p">[</span><span class="n">source_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># [target_batch, context_dim], [target_batch, source_seq_length]</span>
     <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span>
                                   <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span>
                                   <span class="n">new_position</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">encoder_positions</span><span class="p">,</span>
                                   <span class="n">per_step_source_padding</span><span class="p">)</span>
+
+    <span class="c1"># [target_batch, num_mixtures, 4]</span>
     <span class="n">new_atten_states</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
         <span class="p">[</span><span class="n">new_position</span><span class="p">,</span> <span class="n">position_offset</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">priors</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">new_atten_states</span></div></div>
 </pre></div>
 

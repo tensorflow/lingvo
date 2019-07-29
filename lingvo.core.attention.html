@@ -1053,20 +1053,16 @@ inspected or modified by its callers.</p>
 layer and its children layers.</li>
 <li><strong>packed_src</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object returned by PackSource or
 InitForSourcePacked.</li>
-<li><strong>query_vec</strong> – a tensor of shape [batch_size, query_dim].</li>
-<li><strong>attention_state</strong> – <p>previous attention state, a tensor of shape
-[batch_size, num_mixtures, 4].</p>
-<ul>
-<li>attention_state[:, :, 0] contains previous location</li>
-<li>attention_state[:, :, 1] contains previous offset.</li>
-<li>attention_state[:, :, 2] contains previous variance.</li>
-<li>attention_state[:, :, 3] contains previous prior.</li>
-</ul>
-</li>
+<li><strong>query_vec</strong> – a tensor of shape [target_batch, query_dim].</li>
+<li><strong>attention_state</strong> – previous attention state, a tensor of shape
+[target_batch, num_mixtures, 4].
+- attention_state[:, :, 0] contains previous location
+- attention_state[:, :, 1] contains previous offset.
+- attention_state[:, :, 2] contains previous variance.
+- attention_state[:, :, 3] contains previous prior.</li>
 <li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
-If not None, it should be of shape [target_batch_size,
-source_seq_length].</li>
-<li><strong>query_segment_id</strong> – a tensor of shape [batch_size]</li>
+If not None, it should be of shape [target_batch, source_seq_length].</li>
+<li><strong>query_segment_id</strong> – a tensor of shape [target_batch].</li>
 </ul>
 </td>
 </tr>
@@ -1084,15 +1080,9 @@ concated_source_vecs.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
 <dt>A tuple of 3 elements.</dt>
-<dd><dl class="first last docutils">
-<dt>The attention context vector:</dt>
-<dd>[batch_size, context_dim]</dd>
-<dt>The attention probability vector:</dt>
-<dd>[batch_size, time]</dd>
-<dt>The new attention state vector:</dt>
-<dd>possibly nested tuple of tensors with dimensions [target_batch, …]</dd>
-</dl>
-</dd>
+<dd>The attention context vector: [target_batch, context_dim]
+The attention probability vector: [target_batch, source_seq_length]
+The new attention state vector: [target_batch, num_mixtures, 4]</dd>
 </dl>
 </td>
 </tr>
