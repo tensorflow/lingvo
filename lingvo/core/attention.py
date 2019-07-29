@@ -2385,58 +2385,103 @@ class GmmMonotonicAttention(BaseAttentionLayer):
 
       # TODO(ngyuzh): change variance to scale to make it simpler.
       def ComputeProbs(encoder_positions, priors, means, variances):
-        """Computes the location GMM probabilities at all encoder positions."""
-        # encoder_positions: [batch, 1, timesteps, 1]
-        # [batch, tb / sb, 1, num_mixtures]
+        """Computes the location GMM probabilities at all encoder positions.
+
+        Args:
+          encoder_positions: [source_batch, source_seq_length]
+          priors: [multiplier, source_batch, num_mixtures]
+          means: [multiplier, source_batch, num_mixtures]
+          variances: [multiplier, source_batch, num_mixtures]  Where multiplier
+            == target_batch / source_batch.
+
+        Returns:
+          Calculated PDF: [multiplier, source_batch, source_seq_length]
+        """
+        # [multiplier, source_batch, 1, num_mixtures]
         priors = tf.expand_dims(priors, 2)
         means = tf.expand_dims(means, 2)
         variances = tf.expand_dims(variances, 2)
-        # [batch, tb / sb, timesteps, num_mixtures]
-        probs = priors * tf.rsqrt(2 * np.pi * variances + 1e-8) * tf.exp(
-            -(encoder_positions - means)**2 / (2 * variances + 1e-8))
-        # probs sized [batch, tb / sb, timesteps].
+        epsilon = 1e-8
+
+        # [source_batch, source_seq_length, 1]
+        encoder_positions = tf.expand_dims(encoder_positions, 2)
+
+        # [multiplier, source_batch, source_seq_length, num_mixtures]
+        probs = ((priors * tf.rsqrt(2 * np.pi * variances + epsilon)) *
+                 tf.exp(-(encoder_positions - means)**2 /
+                        (2 * variances + epsilon)))
+
+        # [multiplier, source_batch, source_seq_length]
         return tf.reduce_sum(probs, axis=3)
 
-      # TODO(ngyuzh): remove unnecessary transpose.
       def Atten(source_padding, concated_source_vecs, concated_source_contexts,
                 query_vec, priors, means, variances, encoder_positions,
                 per_step_source_padding):
-        """Computes the attention context vector."""
-        # tb: target batch size
-        # sb: source batch size
-        # concated_source_vecs is of shape [sl, sb, context_dim]
-        # query_vec is of shape [tb, dims]
+        """Computes the attention context vector.
+
+        Args:
+          source_padding: [source_seq_length, source_batch]
+          concated_source_vecs: [source_seq_length, source_batch, hidden_dim]
+          concated_source_contexts: [source_batch, source_seq_length,
+            context_dim]
+          query_vec: [target_batch, query_dim]
+          priors: [target_batch, num_mixtures]
+          means: [target_batch, num_mixtures]
+          variances: [target_batch, num_mixtures]
+          encoder_positions: [source_batch, source_seq_length]
+          per_step_source_padding: [target_batch, source_seq_length]
+
+        Returns:
+          Following tensors:
+            context vector: [target_batch, context_dim]
+            attention probabilities: [target_batch, source_seq_length]
+        """
+
+        # Note: shape [target_batch] can be converted to
+        # [multiplier, source_batch], not [source_batch, multiplier].
         p = self.params
-        sb = tf.shape(concated_source_vecs)[1]
-        tb = tf.shape(query_vec)[0]
-        multiplier = tb // sb
-        # [sb, tb / sb, num_mixtures]
-        priors = tf.reshape(priors, [-1, multiplier, p.num_mixtures])
-        means = tf.reshape(means, [-1, multiplier, p.num_mixtures])
-        variances = tf.reshape(variances, [-1, multiplier, p.num_mixtures])
+        source_batch = tf.shape(concated_source_vecs)[1]
+        target_batch = tf.shape(query_vec)[0]
+        multiplier = target_batch // source_batch
 
+        # [multiplier, source_batch, num_mixtures]
+        priors = tf.reshape(priors, [multiplier, source_batch, p.num_mixtures])
+        means = tf.reshape(means, [multiplier, source_batch, p.num_mixtures])
+        variances = tf.reshape(variances,
+                               [multiplier, source_batch, p.num_mixtures])
+
+        # [multiplier, source_batch, source_seq_length]
         probs = ComputeProbs(encoder_positions, priors, means, variances)
-        # [sl, tb / sb, sb]
-        probs = tf.reshape(tf.transpose(probs, [2, 0, 1]), [-1, multiplier, sb])
 
-        source_padding = tf.expand_dims(source_padding, 1)
-        per_step_source_padding = tf.reshape(
-            tf.transpose(per_step_source_padding), [-1, multiplier, sb])
+        # [source_batch, source_seq_length]
+        source_padding = tf.transpose(source_padding)
+
+        # [multiplier, source_batch, source_seq_length]
+        per_step_source_padding = tf.reshape(per_step_source_padding,
+                                             [multiplier, source_batch, -1])
         source_padding += per_step_source_padding
         source_padding = tf.minimum(source_padding, 1.0)
 
+        # [multiplier, source_batch, source_seq_length]
         probs *= (1.0 - source_padding)
         probs = py_utils.AddDebugTensor(probs, name='atten_probs')
-        probs = tf.transpose(tf.reshape(probs, [-1, tb]))
-        # [tb/sb, sb, sl]
-        probs_reshaped = tf.reshape(probs, [multiplier, sb, -1])
-        # [sb, tb/sb, sl]
-        probs_reshaped = tf.transpose(probs_reshaped, [1, 0, 2])
-        # Batched matmul
-        # [sb, tb/sb, sl] * [sb, sl, context_dim] = [sb, tb/sb, context_dim]
-        context_vector = tf.matmul(probs_reshaped, concated_source_contexts)
-        context_vector = tf.transpose(context_vector, [1, 0, 2])
-        return tf.reshape(context_vector, [tb, -1]), probs
+
+        # [source_batch, multiplier, source_seq_length]
+        probs_transposed = tf.transpose(probs, [1, 0, 2])
+
+        # Matmul:
+        # [source_batch, multiplier, source_seq_length]
+        # @ [source_batch, source_seq_length, context_dim]
+        # -> [source_batch, multiplier, context_dim]
+        context_vector_transposed = tf.matmul(probs_transposed,
+                                              concated_source_contexts)
+
+        # [multiplier, source_batch, context_dim]
+        context_vector = tf.transpose(context_vector_transposed, [1, 0, 2])
+
+        # [target_batch, context_dim], [target_batch, source_seq_length]
+        return (tf.reshape(context_vector, [target_batch, -1]),
+                tf.reshape(probs, [target_batch, -1]))
 
       self._ctx_vec = Atten
 
@@ -2461,28 +2506,30 @@ class GmmMonotonicAttention(BaseAttentionLayer):
       (concated_source_vecs, concated_source_contexts) = (
           self._encode_source(source_vecs, source_contexts))
     return py_utils.NestedMap(
-        # [time, batch_size, hidden_dim].
+        # [source_seq_length, source_batch, hidden_dim].
         source_vecs=concated_source_vecs,
-        # [batch_size, time, context_dim].
+        # [source_batch, source_seq_length, context_dim].
         # Note the mismatch between `source_vecs` and `source_contexts`. In
-        # `source_vecs`, time is the first dim, while it is the second dim in
-        # `source_contexts`.
+        # `source_vecs`, `source_seq_length` is the first dim, while it is the
+        # second dim in `source_contexts`.
         source_contexts=concated_source_contexts,
-        # [time, batch_size].
+        # [source_seq_length, source_batch].
         source_padding=source_padding,
-        # [time, batch_size].
+        # [source_seq_length, source_batch].
         source_segment_id=source_segment_id)
 
   def ZeroAttentionState(self, source_seq_length, decoder_batch_size):
     p = self.params
+
+    # [target_batch, num_mixtures]
     position = tf.zeros([decoder_batch_size, p.num_mixtures], dtype=p.dtype)
     position_offsets = tf.zeros(
         [decoder_batch_size, p.num_mixtures], dtype=p.dtype)
     variances = tf.ones([decoder_batch_size, p.num_mixtures], dtype=p.dtype)
     priors = tf.zeros([decoder_batch_size, p.num_mixtures], dtype=p.dtype)
-    atten_states = tf.stack(
-        [position, position_offsets, variances, priors], axis=2)
-    return atten_states
+
+    # [target_batch, num_mixtures, 4]
+    return tf.stack([position, position_offsets, variances, priors], axis=2)
 
   def ComputeContextVectorWithSource(self,
                                      theta,
@@ -2498,18 +2545,16 @@ class GmmMonotonicAttention(BaseAttentionLayer):
         layer and its children layers.
       packed_src: A `.NestedMap` object returned by PackSource or
         InitForSourcePacked.
-      query_vec: a tensor of shape [batch_size, query_dim].
+      query_vec: a tensor of shape [target_batch, query_dim].
       attention_state: previous attention state, a tensor of shape
-        [batch_size, num_mixtures, 4].
-
+        [target_batch, num_mixtures, 4].
         - attention_state[:, :, 0] contains previous location
         - attention_state[:, :, 1] contains previous offset.
         - attention_state[:, :, 2] contains previous variance.
         - attention_state[:, :, 3] contains previous prior.
       per_step_source_padding: Source sequence padding to apply at this step.
-        If not None, it should be of shape [target_batch_size,
-        source_seq_length].
-      query_segment_id: a tensor of shape [batch_size]
+        If not None, it should be of shape [target_batch, source_seq_length].
+      query_segment_id: a tensor of shape [target_batch].
 
     Note: concated_source_vecs are the vectors that are used to compute the
     attention score between the query_vec and each concated_source_vec.
@@ -2520,27 +2565,31 @@ class GmmMonotonicAttention(BaseAttentionLayer):
 
     Returns:
       A tuple of 3 elements.
-        The attention context vector:
-          [batch_size, context_dim]
-        The attention probability vector:
-          [batch_size, time]
-        The new attention state vector:
-          possibly nested tuple of tensors with dimensions [target_batch, ...]
+        The attention context vector: [target_batch, context_dim]
+        The attention probability vector: [target_batch, source_seq_length]
+        The new attention state vector: [target_batch, num_mixtures, 4]
     """
     del query_segment_id
     p = self.params
     concated_source_vecs = packed_src.source_vecs
     concated_source_contexts = packed_src.source_contexts
     source_padding = packed_src.source_padding
-    query_batch_size = tf.shape(query_vec)[0]
+
+    target_batch = tf.shape(query_vec)[0]
     source_seq_length = tf.shape(source_padding)[0]
+    source_batch = tf.shape(source_padding)[1]
+
+    # [target_batch, source_seq_length]
     if per_step_source_padding is None:
-      zero = tf.constant(0.0, dtype=query_vec.dtype)
-      per_step_source_padding = tf.fill([query_batch_size, source_seq_length],
-                                        zero)
+      per_step_source_padding = tf.zeros([target_batch, source_seq_length],
+                                         dtype=query_vec.dtype)
     per_step_source_padding = py_utils.HasShape(
-        per_step_source_padding, [query_batch_size, source_seq_length])
+        per_step_source_padding, [target_batch, source_seq_length])
+
+    # [target_batch, num_mixtures * 3]
     out = self.GMM.FProp(theta.GMM, query_vec)
+
+    # [target_batch, num_mixtures]
     priors_logits, position_offset_logits, log_variances = tf.split(
         out, 3, axis=1, name='GMM')
     log_variances = tf.minimum(log_variances, layers.LOG_SCALE_CLAMP_BOUND)
@@ -2552,22 +2601,25 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     else:
       position_offset = tf.exp(position_offset_logits)
     new_position = attention_state[:, :, 0] + position_offset
-    new_position = tf.minimum(new_position, tf.to_float(source_seq_length))
+    new_position = tf.minimum(new_position,
+                              tf.cast(source_seq_length, tf.float32))
     variances = py_utils.AddDebugTensor(variances, name='variances')
     priors = py_utils.AddDebugTensor(priors, name='priors')
-    # Tile and reshape encoder_positions to [batch, 1, timesteps, 1] so that
-    # it can be evaluated by locations GMMs in a vectorized way.
-    source_batch_size = tf.shape(source_padding)[1]
+
+    # Tile and reshape encoder_positions to [source_batch, source_seq_length]
+    # so that it can be evaluated by locations GMMs in a vectorized way.
     encoder_positions = tf.expand_dims(
-        tf.to_float(tf.range(source_seq_length)), 0)
-    encoder_positions = tf.tile(encoder_positions, (source_batch_size, 1))
-    # [batch, timesteps, 1].
-    encoder_positions = tf.expand_dims(encoder_positions, 1)
-    encoder_positions = tf.expand_dims(encoder_positions, 3)
+        tf.cast(tf.range(source_seq_length), tf.float32), 0)
+    encoder_positions = tf.tile(encoder_positions, [source_batch, 1])
+
+    # [target_batch, context_dim], [target_batch, source_seq_length]
     ctx_vec, prob = self._ctx_vec(source_padding, concated_source_vecs,
                                   concated_source_contexts, query_vec, priors,
                                   new_position, variances, encoder_positions,
                                   per_step_source_padding)
+
+    # [target_batch, num_mixtures, 4]
     new_atten_states = tf.stack(
         [new_position, position_offset, variances, priors], axis=2)
+
     return ctx_vec, prob, new_atten_states
