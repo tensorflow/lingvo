@@ -521,6 +521,19 @@ K.&nbsp;Irie, R.&nbsp;Prabhavalkar, A.&nbsp;Kannan, A.&nbsp;Bruguier, D.&nbsp;Ry
 
 </td>
 </tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="peyser2019numerics">26</a>]
+</td>
+<td class="bibtexitem">
+C.&nbsp;Peyser, H.&nbsp;Zhang, T.&nbsp;N. Sainath, and Z.&nbsp;Wu, &ldquo;Improving Performance of
+  End-to-End ASR on Numeric Sequences,&rdquo; in <em>Proc. Interspeech</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1907.01372">pdf</a>&nbsp;]
+
+</td>
+</tr>
 </table>
 
 ## Language understanding
