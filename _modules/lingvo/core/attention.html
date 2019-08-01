@@ -169,6 +169,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">quant_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
+
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.contrib.seq2seq.python.ops</span> <span class="k">import</span> <span class="n">attention_wrapper</span> <span class="k">as</span> <span class="n">contrib_attention_wrapper</span>
@@ -2504,6 +2506,11 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_offset&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
              <span class="s1">&#39;Max offset to move attention pointer, Enabled only when &gt; 0.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_mixtures&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;Number of location GMM components.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;normalize_probs&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to normalize probabilities computed by GMM. Otherwise, &#39;</span>
+        <span class="s1">&#39;the attention weights (i.e. probabilities) may not add up to &#39;</span>
+        <span class="s1">&#39;1.0.&#39;</span><span class="p">)</span>
 
     <span class="c1"># TODO(ngyuzh): find a good initialize for both TTS and ASR. Consider split</span>
     <span class="c1"># the layer if it&#39;s very sensitive to the initialization</span>
@@ -2571,6 +2578,11 @@
         <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
 
         <span class="n">probs</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">source_padding</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">normalize_probs</span><span class="p">:</span>
+          <span class="n">probs</span> <span class="o">/=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="mf">1e-12</span><span class="p">)</span>
+        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;gmm_probs_norm&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
         <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddDebugTensor</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;atten_probs&#39;</span><span class="p">)</span>
         <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tb</span><span class="p">]))</span>
         <span class="c1"># [tb/sb, sb, sl]</span>
@@ -2688,14 +2700,21 @@
     <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GMM</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">GMM</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
     <span class="n">priors_logits</span><span class="p">,</span> <span class="n">position_offset_logits</span><span class="p">,</span> <span class="n">log_variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
         <span class="n">out</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;GMM&#39;</span><span class="p">)</span>
+
     <span class="n">log_variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">log_variances</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LOG_SCALE_CLAMP_BOUND</span><span class="p">)</span>
     <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_variances</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;gmm_variances&#39;</span><span class="p">,</span> <span class="n">variances</span><span class="p">)</span>
+
     <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">priors_logits</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;gmm_weights&#39;</span><span class="p">,</span> <span class="n">priors</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_offset</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">position_offset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">position_offset_logits</span><span class="p">)</span>
       <span class="n">position_offset</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">max_offset</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">position_offset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">position_offset_logits</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;gmm_offsets&#39;</span><span class="p">,</span> <span class="n">position_offset</span><span class="p">)</span>
+
     <span class="n">new_position</span> <span class="o">=</span> <span class="n">attention_state</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">position_offset</span>
     <span class="n">new_position</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">new_position</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">source_seq_length</span><span class="p">))</span>
     <span class="n">variances</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddDebugTensor</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;variances&#39;</span><span class="p">)</span>
