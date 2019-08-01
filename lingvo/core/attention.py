@@ -24,6 +24,8 @@ from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
+from lingvo.core import summary_utils
+
 import numpy as np
 
 from tensorflow.contrib.seq2seq.python.ops import attention_wrapper as contrib_attention_wrapper
@@ -2359,6 +2361,11 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     p.Define('max_offset', -1,
              'Max offset to move attention pointer, Enabled only when > 0.')
     p.Define('num_mixtures', 5, 'Number of location GMM components.')
+    p.Define(
+        'normalize_probs', False,
+        'Whether to normalize probabilities computed by GMM. Otherwise, '
+        'the attention weights (i.e. probabilities) may not add up to '
+        '1.0.')
 
     # TODO(ngyuzh): find a good initialize for both TTS and ASR. Consider split
     # the layer if it's very sensitive to the initialization
@@ -2426,6 +2433,11 @@ class GmmMonotonicAttention(BaseAttentionLayer):
         source_padding = tf.minimum(source_padding, 1.0)
 
         probs *= (1.0 - source_padding)
+        if p.normalize_probs:
+          probs /= tf.maximum(
+              tf.reduce_sum(probs, axis=0, keepdims=True), 1e-12)
+        summary_utils.histogram('gmm_probs_norm', tf.reduce_sum(probs, axis=0))
+
         probs = py_utils.AddDebugTensor(probs, name='atten_probs')
         probs = tf.transpose(tf.reshape(probs, [-1, tb]))
         # [tb/sb, sb, sl]
@@ -2543,14 +2555,21 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     out = self.GMM.FProp(theta.GMM, query_vec)
     priors_logits, position_offset_logits, log_variances = tf.split(
         out, 3, axis=1, name='GMM')
+
     log_variances = tf.minimum(log_variances, layers.LOG_SCALE_CLAMP_BOUND)
     variances = tf.exp(log_variances)
+    summary_utils.histogram('gmm_variances', variances)
+
     priors = tf.nn.softmax(priors_logits)
+    summary_utils.histogram('gmm_weights', priors)
+
     if p.max_offset > 0:
       position_offset = tf.nn.sigmoid(position_offset_logits)
       position_offset *= p.max_offset
     else:
       position_offset = tf.exp(position_offset_logits)
+    summary_utils.histogram('gmm_offsets', position_offset)
+
     new_position = attention_state[:, :, 0] + position_offset
     new_position = tf.minimum(new_position, tf.to_float(source_seq_length))
     variances = py_utils.AddDebugTensor(variances, name='variances')

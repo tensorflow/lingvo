@@ -23,6 +23,7 @@ py_library(
         ":layers",
         ":py_utils",
         ":quant_utils",
+        ":summary_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],
