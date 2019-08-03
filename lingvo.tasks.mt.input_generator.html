@@ -164,64 +164,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-lingvo.tasks.mt.input_generator">
-<span id="lingvo-tasks-mt-input-generator-module"></span><h1>lingvo.tasks.mt.input_generator module<a class="headerlink" href="#module-lingvo.tasks.mt.input_generator" title="Permalink to this headline">¶</a></h1>
-<p>Machine translation input generator.</p>
-<dl class="class">
-<dt id="lingvo.tasks.mt.input_generator.NmtInput">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.mt.input_generator.</code><code class="descname">NmtInput</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtInput" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator" title="lingvo.core.base_input_generator.BaseSequenceInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseSequenceInputGenerator</span></code></a></p>
-<p>Generator for NMT.</p>
-<dl class="classmethod">
-<dt id="lingvo.tasks.mt.input_generator.NmtInput.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtInput.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtInput.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defaults params for <a class="reference internal" href="#lingvo.tasks.mt.input_generator.NmtInput" title="lingvo.tasks.mt.input_generator.NmtInput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NmtInput</span></code></a>.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.mt.input_generator.NmtInput._DataSourceFromFilePattern">
-<code class="descname">_DataSourceFromFilePattern</code><span class="sig-paren">(</span><em>file_pattern</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtInput._DataSourceFromFilePattern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtInput._DataSourceFromFilePattern" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read and return input batch from a string file_pattern.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>file_pattern</strong> – A string file pattern.</li>
-<li><strong>input_source_weights</strong> – A list of float input source weights to control
-input example mix in the batch. The records will be sampled from inputs
-proportionally to these weights. Defaults to None which should be
-treated as an empty list.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tuple of tf.Tensors where the tensors which contain the input data and
-have major dimension same as size of input batch.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.mt.input_generator.NmtInput.InputBatch">
-<code class="descname">InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtInput.InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtInput.InputBatch" title="Permalink to this definition">¶</a></dt>
-<dd><p>The current input batch, not preprocessed.</p>
-<p>This is meant to be overridden by subclasses, but not called directly.
-Callers should use <code class="xref py py-obj docutils literal notranslate"><span class="pre">GetPreprocessedInputBatch()</span></code>.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of input tensors. Each tensor’s dim-0 must be the same
-and denotes the batch dimension.</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-</dd></dl>
-
+  <div class="section" id="lingvo-tasks-mt-input-generator-module">
+<h1>lingvo.tasks.mt.input_generator module<a class="headerlink" href="#lingvo-tasks-mt-input-generator-module" title="Permalink to this headline">¶</a></h1>
 </div>
 
 

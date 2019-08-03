@@ -163,61 +163,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-lingvo.core.generic_input">
-<span id="lingvo-core-generic-input-module"></span><h1>lingvo.core.generic_input module<a class="headerlink" href="#module-lingvo.core.generic_input" title="Permalink to this headline">¶</a></h1>
-<p>Generic input.</p>
-<dl class="function">
-<dt id="lingvo.core.generic_input.GenericInput">
-<code class="descclassname">lingvo.core.generic_input.</code><code class="descname">GenericInput</code><span class="sig-paren">(</span><em>processor</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/generic_input.html#GenericInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.generic_input.GenericInput" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builds a generic input pipeline.</p>
-<p>Example usage:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">ParseRecord</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
-  <span class="c1"># Given a tf.string record, return a (NestedMap, bucketing key) pair.</span>
-  <span class="n">feature_map</span> <span class="o">=</span> <span class="o">...</span>
-  <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">)</span>
-  <span class="c1"># Each example is represented by a NestedMap of tensors (without a</span>
-  <span class="c1"># batch dimension).</span>
-  <span class="n">example</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">field1</span><span class="o">=...</span><span class="p">,</span> <span class="n">field2</span><span class="o">=...</span><span class="p">)</span>
-  <span class="c1"># bucketing_key is an int scalar tensor.</span>
-  <span class="c1"># Use 1 if all examples are of the same size.</span>
-  <span class="n">bucketing_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">example</span><span class="p">,</span> <span class="n">bucketing_key</span>
-
-<span class="n">input_batch</span> <span class="o">=</span> <span class="n">GenericInput</span><span class="p">(</span><span class="n">ParseRecord</span><span class="p">,</span> <span class="n">file_pattern</span><span class="o">=...</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
-<span class="c1"># input_batch is a NestedMap of tensors, where dim 0 of each tensor</span>
-<span class="c1"># represents the batch dimension.</span>
-<span class="n">input_batch</span><span class="o">.</span><span class="n">field1</span> <span class="o">=</span> <span class="o">...</span>
-</pre></div>
-</div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>processor</strong> – a function that takes a string record as input and returns a list
-of tensors or NestedMaps representing one example. The last return value
-of processor must be an int32 scalar tensor that represents the bucketing
-key (e.g., sequence length for sequence inputs).</li>
-<li><strong>*args</strong> – additional args for x_ops.generic_input.</li>
-<li><strong>**kwargs</strong> – additional keyword args for x_ops.generic_input.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
-<li>The bucket key is not included in the output.</li>
-<li>Every tensor will have an additional dimension 0 that represents the
-batch dimension.</li>
-</ul>
-</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">A list of tensors or NestedMaps, similar <code class="xref py py-obj docutils literal notranslate"><span class="pre">processor</span></code>’s return, except</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
+  <div class="section" id="lingvo-core-generic-input-module">
+<h1>lingvo.core.generic_input module<a class="headerlink" href="#lingvo-core-generic-input-module" title="Permalink to this headline">¶</a></h1>
 </div>
 
 

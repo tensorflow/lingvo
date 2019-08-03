@@ -164,87 +164,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-lingvo.tasks.asr.decoder_utils">
-<span id="lingvo-tasks-asr-decoder-utils-module"></span><h1>lingvo.tasks.asr.decoder_utils module<a class="headerlink" href="#module-lingvo.tasks.asr.decoder_utils" title="Permalink to this headline">¶</a></h1>
-<p>Common utilities for ASR decoders.</p>
-<dl class="function">
-<dt id="lingvo.tasks.asr.decoder_utils.SetRnnCellNodes">
-<code class="descclassname">lingvo.tasks.asr.decoder_utils.</code><code class="descname">SetRnnCellNodes</code><span class="sig-paren">(</span><em>decoder_params</em>, <em>rnn_cell_params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#SetRnnCellNodes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.SetRnnCellNodes" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="lingvo.tasks.asr.decoder_utils.Tokenize">
-<code class="descclassname">lingvo.tasks.asr.decoder_utils.</code><code class="descname">Tokenize</code><span class="sig-paren">(</span><em>string</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#Tokenize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.Tokenize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a list containing non-empty tokens from the given string.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="lingvo.tasks.asr.decoder_utils.ComputeWer">
-<code class="descclassname">lingvo.tasks.asr.decoder_utils.</code><code class="descname">ComputeWer</code><span class="sig-paren">(</span><em>hyps</em>, <em>refs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#ComputeWer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.ComputeWer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes word errors in hypotheses relative to reference transcripts.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>hyps</strong> – Hypotheses, represented as string tensors of shape [N].</li>
-<li><strong>refs</strong> – References, represented as string tensors of shape [N].</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">An int64 tensor, word_errs, of size [N, 2] where word_errs[i, 0] corresponds
-to the number of word errors in hyps[i] relative to refs[i]; word_errs[i, 1]
-corresponds to the number of words in refs[i].</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="lingvo.tasks.asr.decoder_utils.EditDistance">
-<code class="descclassname">lingvo.tasks.asr.decoder_utils.</code><code class="descname">EditDistance</code><span class="sig-paren">(</span><em>ref_str</em>, <em>hyp_str</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#EditDistance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.EditDistance" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes Levenshtein edit distance between reference and hypotheses.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>ref_str</strong> – A string of the ref sentence.</li>
-<li><strong>hyp_str</strong> – A string of one actual hyp.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">number of insertions.
-subs:        number of substitutions.
-del:         number of deletions.
-total:       total difference length.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ins</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="lingvo.tasks.asr.decoder_utils.EditDistanceInIds">
-<code class="descclassname">lingvo.tasks.asr.decoder_utils.</code><code class="descname">EditDistanceInIds</code><span class="sig-paren">(</span><em>ref_ids</em>, <em>hyp_ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#EditDistanceInIds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.EditDistanceInIds" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="lingvo.tasks.asr.decoder_utils.FilterEpsilon">
-<code class="descclassname">lingvo.tasks.asr.decoder_utils.</code><code class="descname">FilterEpsilon</code><span class="sig-paren">(</span><em>string</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#FilterEpsilon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.FilterEpsilon" title="Permalink to this definition">¶</a></dt>
-<dd><p>Filters out &lt;epsilon&gt; tokens from the given string.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="lingvo.tasks.asr.decoder_utils.FilterNoise">
-<code class="descclassname">lingvo.tasks.asr.decoder_utils.</code><code class="descname">FilterNoise</code><span class="sig-paren">(</span><em>string</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#FilterNoise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.FilterNoise" title="Permalink to this definition">¶</a></dt>
-<dd><p>Filters out &lt;noise&gt; tokens from the given string.</p>
-</dd></dl>
-
+  <div class="section" id="lingvo-tasks-asr-decoder-utils-module">
+<h1>lingvo.tasks.asr.decoder_utils module<a class="headerlink" href="#lingvo-tasks-asr-decoder-utils-module" title="Permalink to this headline">¶</a></h1>
 </div>
 
 
