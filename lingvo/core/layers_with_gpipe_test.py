@@ -46,9 +46,15 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
         [[0, 1, 0, 1, 0, 1, 0], [1, 0, 1, 0, 1, 0, 1]], dtype=dtype)
     source_padding = tf.transpose(source_padding)
     aux_source_paddings = tf.transpose(aux_source_paddings)
-    return (source_vecs, source_padding, aux_source_vecs, aux_source_paddings)
 
-  def testGPipeSoftmaxLayerInputfromEncoder(self):
+    input_task_arr = np.array([[0] * depth, [0] * depth])
+    tgt_task_arr = np.array([[0] * depth] * 3)
+    input_tasks = tf.constant(input_task_arr.tolist(), dtype=tf.int32)
+    tgt_tasks = tf.constant(tgt_task_arr.tolist(), dtype=tf.int32)
+    return (source_vecs, source_padding, aux_source_vecs, aux_source_paddings,
+            input_tasks, tgt_tasks)
+
+  def testGPipeSoftmaxLayerInputfromEncoder(self, use_task_ids=False):
     with self.session(use_gpu=True):
       depth = 4
       np.random.seed(6348575)
@@ -65,7 +71,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       softmax.num_classes = 2
       softmax.input_dim = depth
       softmax = softmax.Instantiate()
-      (source_vecs, _, _, _) = self._testInputs(depth=depth)
+      (source_vecs, _, _, _, _, _) = self._testInputs(depth=depth)
       source_padding = tf.zeros([5, 2])
       softmax_inputs = transformer.FPropDefaultTheta(source_vecs,
                                                      source_padding, None, None,
@@ -91,7 +97,8 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       softmax.num_classes = 2
       softmax.input_dim = depth
       softmax = softmax.Instantiate()
-      (source_vecs, _, aux_vecs, aux_paddings) = self._testInputs(depth=depth)
+      (source_vecs, _, aux_vecs, aux_paddings, _,
+       _) = self._testInputs(depth=depth)
       source_padding = tf.zeros([5, 2])
       softmax_inputs = transformer.FPropDefaultTheta(aux_vecs, aux_paddings,
                                                      source_vecs,
@@ -113,13 +120,15 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       p.tr_atten_tpl.num_attention_heads = 2
       transformer = GPipeTransformerLayer(p)
 
-      (source_vecs, _, aux_vecs, aux_paddings) = self._testInputs(depth=depth)
+      (source_vecs, _, aux_vecs, aux_paddings, input_tasks,
+       tgt_tasks) = self._testInputs(depth=depth)
       source_padding = tf.zeros([5, 2])
 
       output1 = transformer.FPropDefaultTheta(aux_vecs, aux_paddings,
                                               source_vecs, source_padding, None,
-                                              None, None, None)
+                                              None, input_tasks, tgt_tasks)
       h1 = output1[2]
+      out_src_task, out_tgt_task = output1[-2], output1[-1]
 
       h2 = []
       cached_source_vecs = tf.zeros([0, 2, 4])
@@ -138,6 +147,8 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       h1_v, h2_v = sess.run([h1, h2])
       self.assertAllClose(h1_v, h2_v)
+      self.assertAllClose(out_src_task, input_tasks)
+      self.assertAllClose(out_tgt_task, tgt_tasks)
       self.assertAllClose(h1_v[2][1],
                           [1.10429943, -1.64884555, 0.15726769, -0.00250494])
 
@@ -160,10 +171,12 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
       transformer = GPipeEvolvedTransformerEncoderLayer(p)
 
-      (source_vecs, source_padding, _, _) = self._testInputs(depth=depth)
+      (source_vecs, source_padding, _, _, _, _) = self._testInputs(depth=depth)
 
-      h = transformer.FPropDefaultTheta(source_vecs, source_padding, None, None,
-                                        None, None, None, None)[0]
+      output = transformer.FPropDefaultTheta(source_vecs, source_padding, None,
+                                             None, None, None, None, None, None,
+                                             None)
+      h = output[0]
 
       tf.global_variables_initializer().run()
       actual_layer_output = sess.run([h])[0]
@@ -209,12 +222,13 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
       transformer = GPipeEvolvedTransformerDecoderLayer(p)
 
-      (source_vecs, source_padding, aux_vecs,
-       aux_paddings) = self._testInputs(depth=depth)
+      (source_vecs, source_padding, aux_vecs, aux_paddings, _,
+       _) = self._testInputs(depth=depth)
 
-      h = transformer.FPropDefaultTheta(aux_vecs, aux_paddings, source_vecs,
-                                        source_padding, None, None, None,
-                                        None)[0]
+      output = transformer.FPropDefaultTheta(aux_vecs, aux_paddings,
+                                             source_vecs, source_padding, None,
+                                             None, None, None, None, None)
+      h = output[0]
 
       tf.global_variables_initializer().run()
       actual_layer_output = sess.run([h])[0]
@@ -254,19 +268,15 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
       et_decoder = GPipeEvolvedTransformerDecoderLayer(p)
 
-      (source_vecs, _, aux_vecs, aux_paddings) = self._testInputs(depth=depth)
+      (source_vecs, _, aux_vecs, aux_paddings, input_tasks,
+       tgt_tasks) = self._testInputs(depth=depth)
       source_padding = tf.zeros([5, 2])
 
-      h1 = et_decoder.FPropDefaultTheta(
-          aux_vecs,
-          aux_paddings,
-          source_vecs,
-          source_padding,
-          None,
-          None,
-          None,
-          None,
-      )[2]
+      output1 = et_decoder.FPropDefaultTheta(aux_vecs, aux_paddings,
+                                             source_vecs, source_padding, None,
+                                             None, input_tasks, tgt_tasks)
+      h1 = output1[2]
+      out_src_task, out_tgt_task = output1[-2], output1[-1]
       h2 = []
 
       double_head_attention_states = py_utils.NestedMap(
@@ -292,6 +302,8 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       h1_v, h2_v = sess.run([h1, h2])
       self.assertAllClose(h1_v, h2_v)
+      self.assertAllClose(out_src_task, input_tasks)
+      self.assertAllClose(out_tgt_task, tgt_tasks)
 
 
 def _AddClassesToTestParams(base_parameters_set, class_parameters_set):

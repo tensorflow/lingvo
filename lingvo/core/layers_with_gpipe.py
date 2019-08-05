@@ -66,16 +66,26 @@ def _common_gpipe_transformer_init(layer):
   assert p.name
 
 
-def _common_gpipe_transformer_encoder_fprop(layer, layer_class, theta,
-                                            source_vecs, source_paddings,
-                                            target_vecs, target_paddings,
-                                            source_segment_id,
-                                            target_segment_id, transparent_acc,
-                                            transparent_acc_helper):
+def _common_gpipe_transformer_encoder_fprop(
+    layer, layer_class, theta, source_vecs, source_paddings, target_vecs,
+    target_paddings, source_segment_id, target_segment_id, transparent_acc,
+    transparent_acc_helper, source_task_id, target_task_id):
   """GPipe encoder FProp."""
   p = layer.params
-  h, _ = super(layer_class, layer).FProp(
-      theta, source_vecs, source_paddings, source_segment_id=source_segment_id)
+  if source_task_id is not None or target_task_id is not None:
+    h, _ = super(layer_class, layer).FProp(
+        theta,
+        source_vecs,
+        source_paddings,
+        source_segment_id=source_segment_id,
+        source_task_id=source_task_id,
+        target_task_id=target_task_id)
+  else:
+    h, _ = super(layer_class, layer).FProp(
+        theta,
+        source_vecs,
+        source_paddings,
+        source_segment_id=source_segment_id)
   h.set_shape(source_vecs.shape)
   if p.is_transparent:
     if p.transparent_merger_tpl is not None:
@@ -91,30 +101,52 @@ def _common_gpipe_transformer_encoder_fprop(layer, layer_class, theta,
       transparent_acc_helper = transparent_acc_helper[1:]
   if p.normalize_output:
     h = layer.layer_norm.FProp(theta.layer_norm, h)
-  return (h, source_paddings, target_vecs, target_paddings, source_segment_id,
-          target_segment_id, transparent_acc, transparent_acc_helper)
+
+  if source_task_id is not None or target_task_id is not None:
+    return (h, source_paddings, target_vecs, target_paddings, source_segment_id,
+            target_segment_id, transparent_acc, transparent_acc_helper,
+            source_task_id, target_task_id)
+  else:
+    return (h, source_paddings, target_vecs, target_paddings, source_segment_id,
+            target_segment_id, transparent_acc, transparent_acc_helper)
 
 
-def _common_gpipe_transformer_decoder_fprop(layer, layer_class, theta,
-                                            source_vecs, source_paddings,
-                                            target_vecs, target_paddings,
-                                            source_segment_id,
-                                            target_segment_id, transparent_acc,
-                                            transparent_acc_helper):
+def _common_gpipe_transformer_decoder_fprop(
+    layer, layer_class, theta, source_vecs, source_paddings, target_vecs,
+    target_paddings, source_segment_id, target_segment_id, transparent_acc,
+    transparent_acc_helper, source_task_id, target_task_id):
   """GPipe decoder FProp."""
   assert target_vecs is not None
   assert target_paddings is not None
-  h, _ = super(layer_class, layer).FProp(
-      theta,
-      target_vecs,
-      target_paddings,
-      aux_vecs=source_vecs,
-      aux_paddings=source_paddings,
-      source_segment_id=target_segment_id,
-      aux_segment_id=source_segment_id)
+  if source_task_id is not None or target_task_id is not None:
+    h, _ = super(layer_class, layer).FProp(
+        theta,
+        target_vecs,
+        target_paddings,
+        aux_vecs=source_vecs,
+        aux_paddings=source_paddings,
+        source_segment_id=target_segment_id,
+        aux_segment_id=source_segment_id,
+        source_task_id=source_task_id,
+        target_task_id=target_task_id)
+  else:
+    h, _ = super(layer_class, layer).FProp(
+        theta,
+        target_vecs,
+        target_paddings,
+        aux_vecs=source_vecs,
+        aux_paddings=source_paddings,
+        source_segment_id=target_segment_id,
+        aux_segment_id=source_segment_id)
   h.set_shape(target_vecs.shape)
-  return (source_vecs, source_paddings, h, target_paddings, source_segment_id,
-          target_segment_id, transparent_acc, transparent_acc_helper)
+
+  if source_task_id is not None or target_task_id is not None:
+    return (source_vecs, source_paddings, h, target_paddings, source_segment_id,
+            target_segment_id, transparent_acc, transparent_acc_helper,
+            source_task_id, target_task_id)
+  else:
+    return (source_vecs, source_paddings, h, target_paddings, source_segment_id,
+            target_segment_id, transparent_acc, transparent_acc_helper)
 
 
 def _common_gpipe_transformer_fprop_meta(p, inputs, *args):
@@ -149,21 +181,32 @@ class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
     super(GPipeTransformerLayer, self).__init__(params)
     _common_gpipe_transformer_init(self)
 
-  def FProp(self, theta, source_vecs, source_paddings, target_vecs,
-            target_paddings, source_segment_id, target_segment_id,
-            transparent_acc, transparent_acc_helper):
+  def FProp(self,
+            theta,
+            source_vecs,
+            source_paddings,
+            target_vecs,
+            target_paddings,
+            source_segment_id,
+            target_segment_id,
+            transparent_acc,
+            transparent_acc_helper,
+            source_task_id=None,
+            target_task_id=None):
     p = self.params
     with tf.name_scope(p.name):
       if p.has_aux_atten:  # Decoder FProp
         return _common_gpipe_transformer_decoder_fprop(
             self, GPipeTransformerLayer, theta, source_vecs, source_paddings,
             target_vecs, target_paddings, source_segment_id, target_segment_id,
-            transparent_acc, transparent_acc_helper)
+            transparent_acc, transparent_acc_helper, source_task_id,
+            target_task_id)
       else:  # Encoder FProp
         return _common_gpipe_transformer_encoder_fprop(
             self, GPipeTransformerLayer, theta, source_vecs, source_paddings,
             target_vecs, target_paddings, source_segment_id, target_segment_id,
-            transparent_acc, transparent_acc_helper)
+            transparent_acc, transparent_acc_helper, source_task_id,
+            target_task_id)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -184,14 +227,23 @@ class GPipeEvolvedTransformerEncoderLayer(
     super(GPipeEvolvedTransformerEncoderLayer, self).__init__(params)
     _common_gpipe_transformer_init(self)
 
-  def FProp(self, theta, source_vecs, source_paddings, target_vecs,
-            target_paddings, source_segment_id, target_segment_id,
-            transparent_acc, transparent_acc_helper):
+  def FProp(self,
+            theta,
+            source_vecs,
+            source_paddings,
+            target_vecs,
+            target_paddings,
+            source_segment_id,
+            target_segment_id,
+            transparent_acc,
+            transparent_acc_helper,
+            source_task_id=None,
+            target_task_id=None):
     with tf.name_scope(self.params.name):
       return _common_gpipe_transformer_encoder_fprop(
           self, GPipeEvolvedTransformerEncoderLayer, theta, source_vecs,
           source_paddings, target_vecs, target_paddings, source_segment_id,
-          target_segment_id, None, None)
+          target_segment_id, None, None, source_task_id, target_task_id)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -212,14 +264,24 @@ class GPipeEvolvedTransformerDecoderLayer(
     super(GPipeEvolvedTransformerDecoderLayer, self).__init__(params)
     _common_gpipe_transformer_init(self)
 
-  def FProp(self, theta, source_vecs, source_paddings, target_vecs,
-            target_paddings, source_segment_id, target_segment_id,
-            transparent_acc, transparent_acc_helper):
+  def FProp(self,
+            theta,
+            source_vecs,
+            source_paddings,
+            target_vecs,
+            target_paddings,
+            source_segment_id,
+            target_segment_id,
+            transparent_acc,
+            transparent_acc_helper,
+            source_task_id=None,
+            target_task_id=None):
     with tf.name_scope(self.params.name):
       return _common_gpipe_transformer_decoder_fprop(
           self, GPipeEvolvedTransformerDecoderLayer, theta, source_vecs,
           source_paddings, target_vecs, target_paddings, source_segment_id,
-          target_segment_id, transparent_acc, transparent_acc_helper)
+          target_segment_id, transparent_acc, transparent_acc_helper,
+          source_task_id, target_task_id)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -629,14 +691,25 @@ class GPipeTransformerStack(PipeliningLayer):
   def EncoderFPropDefaultTheta(self,
                                source_vecs,
                                source_paddings,
-                               source_segment_id=None):
+                               source_segment_id=None,
+                               source_task_id=None,
+                               target_task_id=None):
     p = self.params
     transparent_acc = None
     transparent_weights = None
     for encoder_l in self.GetEncoders():
-      encoder_outs = encoder_l.FProp(encoder_l.theta, source_vecs,
-                                     source_paddings, None, None, None, None,
-                                     transparent_acc, transparent_weights)
+      encoder_outs = encoder_l.FProp(
+          encoder_l.theta,
+          source_vecs,
+          source_paddings,
+          None,
+          None,
+          None,
+          None,
+          transparent_acc,
+          transparent_weights,
+          source_task_id=source_task_id,
+          target_task_id=target_task_id)
       source_vecs = encoder_outs[0]
       if p.is_transparent and len(encoder_outs) == 8:
         transparent_acc = encoder_outs[6]
