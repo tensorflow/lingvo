@@ -488,8 +488,9 @@ class GraphLayer(base_layer.BaseLayer):
   The exact BNF form of a signature is as follows:
 
     signature ::= [names] -> [names]
-    names ::= [name](,[name])*
-    name ::= [A-Za-z][A-Za-z0-9\_]\*
+    names     ::= [name](,[name])*
+    name      ::= [sub](.[sub])*
+    sub       ::= [A-Za-z][A-Za-z0-9\_]\*
 
   Example
     input: ['a', 'b']
@@ -506,6 +507,7 @@ class GraphLayer(base_layer.BaseLayer):
     p.Define('output_endpoints', [], 'Names of the output tensors.')
     # TODO(yonghui): Define a NamedTuple for this pair.
     p.Define('sub', [], 'A list of (signature, layer params) pairs.')
+    p.Define('dict_type', py_utils.NestedMap, 'Type of nested dicts.')
     return p
 
   @base_layer.initializer
@@ -526,11 +528,27 @@ class GraphLayer(base_layer.BaseLayer):
         self._seq.append((name, self.children[name]))
 
   @staticmethod
-  def AddNamedTensor(n, t, named_tensors):
-    """Add named tensors to 'named_tensors'."""
-    n = n.strip()
+  def AddNamedTensor(p, path, t, named_tensors):
+    """Add tensor 't' to 'named_tensors' at 'path'."""
+    names = path.strip().split('.')
+    while len(names) > 1:
+      n = names.pop(0)
+      if n not in named_tensors:
+        named_tensors[n] = (p.dict_type)()
+      named_tensors = named_tensors[n]
+    n = names.pop(0)
     assert n not in named_tensors
     named_tensors[n] = t
+
+  @staticmethod
+  def GetNamedTensor(p, named_tensors, path):
+    """Returns the tensor at 'path' in 'named_tensors'."""
+    names = path.strip().split('.')
+    while names:
+      assert isinstance(named_tensors, p.dict_type), named_tensors
+      n = names.pop(0)
+      assert n in named_tensors, '%s not found in %s' % (n, named_tensors)
+      named_tensors = named_tensors[n]
     return named_tensors
 
   @staticmethod
@@ -551,18 +569,23 @@ class GraphLayer(base_layer.BaseLayer):
   def FProp(self, theta, *args):
     p = self.params
 
-    named_tensors = {}
+    named_tensors = (p.dict_type)()
     with tf.name_scope(p.name):
       assert len(p.input_endpoints) == len(args)
       for n, t in zip(p.input_endpoints, args):
-        assert isinstance(t, tf.Tensor)
-        named_tensors = GraphLayer.AddNamedTensor(n, t, named_tensors)
+        if isinstance(t, py_utils.NestedMap):
+          assert all(isinstance(x, tf.Tensor) for x in t.Flatten()), t
+        else:
+          assert isinstance(t, tf.Tensor)
+        GraphLayer.AddNamedTensor(p, n, t, named_tensors)
 
       ch_out = None
       for i, (name, ch) in enumerate(self._seq):
         th = theta[name]
         i_tensors, o_tensors = GraphLayer.ParseSignature(p.sub[i][0])
-        input_args = [named_tensors[x] for x in i_tensors]
+        input_args = [
+            GraphLayer.GetNamedTensor(p, named_tensors, x) for x in i_tensors
+        ]
         tf.logging.vlog(1, 'signature: %s', p.sub[i][0])
         tf.logging.vlog(1, 'GraphLayer: call %s %s %d %s', ch.params.name, ch,
                         len(input_args), str(input_args))
@@ -571,9 +594,11 @@ class GraphLayer(base_layer.BaseLayer):
           ch_out = (ch_out,)
         assert len(ch_out) == len(o_tensors)
         for n, t in zip(o_tensors, ch_out):
-          named_tensors = GraphLayer.AddNamedTensor(n, t, named_tensors)
+          GraphLayer.AddNamedTensor(p, n, t, named_tensors)
 
-      layer_out = tuple(named_tensors[x] for x in p.output_endpoints)
+      layer_out = tuple(
+          GraphLayer.GetNamedTensor(p, named_tensors, x)
+          for x in p.output_endpoints)
       if len(layer_out) == 1:
         layer_out = layer_out[0]
 
@@ -583,25 +608,29 @@ class GraphLayer(base_layer.BaseLayer):
   def FPropMeta(cls, p, *args):
     py_utils.CheckShapes(args)
     total = 0
-    named_tensors = {}
+    named_tensors = (p.dict_type)()
 
     assert len(p.input_endpoints) == len(args)
     for n, t in zip(p.input_endpoints, args):
-      named_tensors = GraphLayer.AddNamedTensor(n, t, named_tensors)
+      GraphLayer.AddNamedTensor(p, n, t, named_tensors)
 
     ch_out = None
     for signature, sub in p.sub:
       i_tensors, o_tensors = GraphLayer.ParseSignature(signature)
-      input_args = [named_tensors[x] for x in i_tensors]
+      input_args = [
+          GraphLayer.GetNamedTensor(p, named_tensors, x) for x in i_tensors
+      ]
 
       meta = sub.cls.FPropMeta(sub, *input_args)
       total += meta.flops
       ch_out = meta.out_shapes
       assert len(ch_out) == len(o_tensors)
       for n, t in zip(o_tensors, ch_out):
-        named_tensors = GraphLayer.AddNamedTensor(n, t, named_tensors)
+        GraphLayer.AddNamedTensor(p, n, t, named_tensors)
 
-    layer_out = tuple(named_tensors[x] for x in p.output_endpoints)
+    layer_out = tuple(
+        GraphLayer.GetNamedTensor(p, named_tensors, x)
+        for x in p.output_endpoints)
     return py_utils.NestedMap(flops=total, out_shapes=layer_out)
 
 

@@ -328,26 +328,25 @@ class BuilderLayerTest(test_utils.TestCase):
       tf.set_random_seed(24332)
       p = layers.GraphLayer.Params().Set(
           name='graph',
-          input_endpoints=['a', 'b'], output_endpoints=['e'],
+          input_endpoints=['x'],
+          output_endpoints=['y'],
           sub=[
-              ('a->c', layers.FnLayer.Params().Set(
-                  fn=lambda x: 2 * x)),
-              ('b->d', layers.FnLayer.Params().Set(
-                  name='bar', fn=lambda x: x + 2)),
-              ('c,d->e', layers.FnLayer.Params().Set(
-                  name='baz', fn=lambda x, y: x + y)),
+              ('x.a->y.c', layers.FnLayer.Params().Set(fn=lambda x: 2 * x)),
+              ('x.b->y.d',
+               layers.FnLayer.Params().Set(name='bar', fn=lambda x: x + 2)),
+              ('y.c,y.d->y.e',
+               layers.FnLayer.Params().Set(name='baz', fn=lambda x, y: x + y)),
           ])
       p.is_eval = True
       l = p.Instantiate()
-      x = tf.constant(1.0)
-      y = tf.constant(2.0)
-      z = l.FProp(l.theta, x, y)
+      x = py_utils.NestedMap(a=tf.constant(1.0), b=tf.constant(2.0))
+      y = l.FProp(l.theta, x)
 
     with self.session(graph=g) as sess:
       sess.run(tf.global_variables_initializer())
-      z_val = sess.run(z)
-      print(z_val)
-      self.assertAllClose(6.0, z_val)
+      y_val = sess.run(y)
+      print(y_val)
+      self.assertEqual(py_utils.NestedMap(c=2.0, d=4.0, e=6.0), y_val)
 
   def testSoftCondLayer(self):
     num_experts = 100
