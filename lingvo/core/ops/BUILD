@@ -384,3 +384,17 @@ lingvo_proto_py(
     src = "hyps.proto",
     deps = [":hyps_proto"],
 )
+
+lingvo_proto_cc(
+    name = "record_proto",
+    src = "record.proto",
+    deps = [
+        # Implicit tensorflow proto dependency.
+    ],
+)
+
+lingvo_proto_py(
+    name = "record_py_pb2",
+    src = "record.proto",
+    deps = [":record_proto"],
+)
