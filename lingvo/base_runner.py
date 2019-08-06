@@ -168,13 +168,16 @@ class BaseRunner(object):
       tf.logging.info('%s done.', job_name)
       return
     except py_utils.transient_tf_errors + (tf.errors.OutOfRangeError,
-                                           tf.errors.DataLossError) as e:
+                                           tf.errors.DataLossError,
+                                           tf.errors.InvalidArgumentError) as e:
       # Retry on these three errors.
       #   FailedPreconditionError: variables are not initialized.
       #   AbortedError: processes restarts.
       #   OutOfRangeError: Test/dev datasets are exhausted.
       #   DataLossError: Race condition between evaler and trainer when saving
       #       or removing checkpoints.
+      #   InvalidArgumentError: variables were not initialized. Comes from
+      #       ResourceVariableOp.
       self._SetStatusMessage(
           '%s exception: %s\n' % (job_name, e), retrying=True)
 
