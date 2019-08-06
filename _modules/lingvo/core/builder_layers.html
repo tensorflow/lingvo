@@ -633,8 +633,9 @@
 <span class="sd">  The exact BNF form of a signature is as follows:</span>
 
 <span class="sd">    signature ::= [names] -&gt; [names]</span>
-<span class="sd">    names ::= [name](,[name])*</span>
-<span class="sd">    name ::= [A-Za-z][A-Za-z0-9\_]\*</span>
+<span class="sd">    names     ::= [name](,[name])*</span>
+<span class="sd">    name      ::= [sub](.[sub])*</span>
+<span class="sd">    sub       ::= [A-Za-z][A-Za-z0-9\_]\*</span>
 
 <span class="sd">  Example</span>
 <span class="sd">    input: [&#39;a&#39;, &#39;b&#39;]</span>
@@ -651,6 +652,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_endpoints&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Names of the output tensors.&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(yonghui): Define a NamedTuple for this pair.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of (signature, layer params) pairs.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dict_type&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">,</span> <span class="s1">&#39;Type of nested dicts.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -671,11 +673,27 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
 
 <div class="viewcode-block" id="GraphLayer.AddNamedTensor"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.AddNamedTensor">[docs]</a>  <span class="nd">@staticmethod</span>
-  <span class="k">def</span> <span class="nf">AddNamedTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Add named tensors to &#39;named_tensors&#39;.&quot;&quot;&quot;</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="n">n</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+  <span class="k">def</span> <span class="nf">AddNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add tensor &#39;t&#39; to &#39;named_tensors&#39; at &#39;path&#39;.&quot;&quot;&quot;</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">n</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">named_tensors</span><span class="p">:</span>
+        <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dict_type</span><span class="p">)()</span>
+      <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">named_tensors</span>
-    <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
+    <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span></div>
+
+<div class="viewcode-block" id="GraphLayer.GetNamedTensor"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.GetNamedTensor">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">GetNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the tensor at &#39;path&#39; in &#39;named_tensors&#39;.&quot;&quot;&quot;</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">names</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">named_tensors</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dict_type</span><span class="p">),</span> <span class="n">named_tensors</span>
+      <span class="n">n</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> not found in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+      <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">named_tensors</span></div>
 
 <div class="viewcode-block" id="GraphLayer.ParseSignature"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.ParseSignature">[docs]</a>  <span class="nd">@staticmethod</span>
@@ -696,18 +714,23 @@
 <div class="viewcode-block" id="GraphLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="n">named_tensors</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">named_tensors</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dict_type</span><span class="p">)()</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
-        <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+          <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()),</span> <span class="n">t</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+        <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
 
       <span class="n">ch_out</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="p">):</span>
         <span class="n">th</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
         <span class="n">i_tensors</span><span class="p">,</span> <span class="n">o_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">ParseSignature</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">input_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">named_tensors</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i_tensors</span><span class="p">]</span>
+        <span class="n">input_args</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">GraphLayer</span><span class="o">.</span><span class="n">GetNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i_tensors</span>
+        <span class="p">]</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;signature: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;GraphLayer: call </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ch</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span>
                         <span class="nb">len</span><span class="p">(</span><span class="n">input_args</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_args</span><span class="p">))</span>
@@ -716,9 +739,11 @@
           <span class="n">ch_out</span> <span class="o">=</span> <span class="p">(</span><span class="n">ch_out</span><span class="p">,)</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch_out</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">,</span> <span class="n">ch_out</span><span class="p">):</span>
-          <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+          <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
 
-      <span class="n">layer_out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">named_tensors</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
+      <span class="n">layer_out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+          <span class="n">GraphLayer</span><span class="o">.</span><span class="n">GetNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
       <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_out</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">layer_out</span> <span class="o">=</span> <span class="n">layer_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -728,25 +753,29 @@
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
     <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">named_tensors</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">named_tensors</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dict_type</span><span class="p">)()</span>
 
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-      <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+      <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
 
     <span class="n">ch_out</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">for</span> <span class="n">signature</span><span class="p">,</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
       <span class="n">i_tensors</span><span class="p">,</span> <span class="n">o_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">ParseSignature</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
-      <span class="n">input_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">named_tensors</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i_tensors</span><span class="p">]</span>
+      <span class="n">input_args</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">GraphLayer</span><span class="o">.</span><span class="n">GetNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i_tensors</span>
+      <span class="p">]</span>
 
       <span class="n">meta</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="o">*</span><span class="n">input_args</span><span class="p">)</span>
       <span class="n">total</span> <span class="o">+=</span> <span class="n">meta</span><span class="o">.</span><span class="n">flops</span>
       <span class="n">ch_out</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch_out</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">,</span> <span class="n">ch_out</span><span class="p">):</span>
-        <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+        <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
 
-    <span class="n">layer_out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">named_tensors</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
+    <span class="n">layer_out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+        <span class="n">GraphLayer</span><span class="o">.</span><span class="n">GetNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">layer_out</span><span class="p">)</span></div></div>
 
 

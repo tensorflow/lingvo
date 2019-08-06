@@ -687,8 +687,9 @@ reuse names assigned previous layer output or the input to this GraphLayer.</p>
 <p>The exact BNF form of a signature is as follows:</p>
 <blockquote>
 <div>signature ::= [names] -&gt; [names]
-names ::= [name](,[name])*
-name ::= [A-Za-z][A-Za-z0-9_]*</div></blockquote>
+names     ::= [name](,[name])*
+name      ::= [sub](.[sub])*
+sub       ::= [A-Za-z][A-Za-z0-9_]*</div></blockquote>
 <dl class="docutils">
 <dt>Example</dt>
 <dd>input: [‘a’, ‘b’]
@@ -704,8 +705,14 @@ name ::= [A-Za-z][A-Za-z0-9_]*</div></blockquote>
 
 <dl class="staticmethod">
 <dt id="lingvo.core.builder_layers.GraphLayer.AddNamedTensor">
-<em class="property">static </em><code class="descname">AddNamedTensor</code><span class="sig-paren">(</span><em>n</em>, <em>t</em>, <em>named_tensors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.AddNamedTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.AddNamedTensor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add named tensors to ‘named_tensors’.</p>
+<em class="property">static </em><code class="descname">AddNamedTensor</code><span class="sig-paren">(</span><em>p</em>, <em>path</em>, <em>t</em>, <em>named_tensors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.AddNamedTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.AddNamedTensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add tensor ‘t’ to ‘named_tensors’ at ‘path’.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.core.builder_layers.GraphLayer.GetNamedTensor">
+<em class="property">static </em><code class="descname">GetNamedTensor</code><span class="sig-paren">(</span><em>p</em>, <em>named_tensors</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.GetNamedTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.GetNamedTensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the tensor at ‘path’ in ‘named_tensors’.</p>
 </dd></dl>
 
 <dl class="staticmethod">
