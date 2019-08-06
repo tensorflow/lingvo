@@ -364,9 +364,7 @@ compatible encoder and contains:</p>
 resources.</p>
 <dl class="docutils">
 <dt>The frontend implements the following stages:</dt>
-<dd><code class="xref py py-obj docutils literal notranslate"><span class="pre">Framer</span> <span class="pre">-&gt;</span> <span class="pre">Window</span> <span class="pre">-&gt;</span> <span class="pre">FFT</span> <span class="pre">-&gt;</span> <span class="pre">FilterBank</span> <span class="pre">-&gt;</span> <span class="pre">MeanStdDev</span></code></dd>
-<dt>Also, if stack_left_context &gt; 0, this will further apply:</dt>
-<dd><code class="xref py py-obj docutils literal notranslate"><span class="pre">FrameStack</span> <span class="pre">-&gt;</span> <span class="pre">SubSample(stack_left_context</span> <span class="pre">+</span> <span class="pre">1)</span></code></dd>
+<dd><code class="xref py py-obj docutils literal notranslate"><span class="pre">Framer</span> <span class="pre">-&gt;</span> <span class="pre">Window</span> <span class="pre">-&gt;</span> <span class="pre">FFT</span> <span class="pre">-&gt;</span> <span class="pre">FilterBank</span> <span class="pre">-&gt;</span> <span class="pre">MeanStdDev</span> <span class="pre">-&gt;</span> <span class="pre">SubSample</span></code></dd>
 <dt>The FProp input to this layer can either have rank 3 or rank 4 shape:</dt>
 <dd>[batch_size, timestep, packet_size, channel_count]
 [batch_size, timestep * packet_size, channel_count]</dd>
@@ -479,6 +477,16 @@ compatible encoder and contains:</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._FPropDefault">
+<code class="descname">_FPropDefault</code><span class="sig-paren">(</span><em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._FPropDefault"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropDefault" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._StackSignal">
+<code class="descname">_StackSignal</code><span class="sig-paren">(</span><em>signal</em>, <em>stack_size</em>, <em>stride</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._StackSignal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._StackSignal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._PadAndReshapeSpec">
 <code class="descname">_PadAndReshapeSpec</code><span class="sig-paren">(</span><em>mel_spectrogram</em>, <em>mel_spectrogram_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._PadAndReshapeSpec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._PadAndReshapeSpec" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -495,7 +503,7 @@ compatible encoder and contains:</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk">
-<code class="descname">_FPropChunk</code><span class="sig-paren">(</span><em>theta</em>, <em>pcm_audio_chunk</em>, <em>pcm_audio_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._FPropChunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_FPropChunk</code><span class="sig-paren">(</span><em>pcm_audio_chunk</em>, <em>pcm_audio_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._FPropChunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

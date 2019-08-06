@@ -272,10 +272,7 @@
 <span class="sd">  resources.</span>
 
 <span class="sd">  The frontend implements the following stages:</span>
-<span class="sd">      `Framer -&gt; Window -&gt; FFT -&gt; FilterBank -&gt; MeanStdDev`</span>
-
-<span class="sd">  Also, if stack_left_context &gt; 0, this will further apply:</span>
-<span class="sd">      `FrameStack -&gt; SubSample(stack_left_context + 1)`</span>
+<span class="sd">      `Framer -&gt; Window -&gt; FFT -&gt; FilterBank -&gt; MeanStdDev -&gt; SubSample`</span>
 
 <span class="sd">  The FProp input to this layer can either have rank 3 or rank 4 shape:</span>
 <span class="sd">      [batch_size, timestep, packet_size, channel_count]</span>
@@ -314,10 +311,8 @@
              <span class="s1">&#39;The first-order filter coefficient used for preemphasis&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;noise_scale&#39;</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">,</span>
              <span class="s1">&#39;The amount of noise (in 16-bit LSB units) to add&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;window_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;HANNING&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;Window function to apply (valid values are &quot;HANNING&quot;, &#39;</span>
-        <span class="s1">&#39;and None)&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;window_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;HANNING&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Window function to apply (valid values are &quot;HANNING&quot;, and None)&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;pad_end&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Whether to pad the end of `signals` with zeros when the provided &#39;</span>
@@ -327,15 +322,20 @@
         <span class="s1">&#39;per_bin_mean&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Per-bin (num_bins) means for normalizing the spectrograms. &#39;</span>
         <span class="s1">&#39;Defaults to zeros.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;per_bin_stddev&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Per-bin (num_bins) standard deviations. &#39;</span>
-             <span class="s1">&#39;Defaults to ones.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;per_bin_stddev&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Per-bin (num_bins) standard deviations. Defaults to ones.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stack_left_context&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of left context frames to stack.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stack_right_context&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+             <span class="s1">&#39;Number of right context frames to stack.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;frame_stride&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The frame stride for sub-sampling.&#39;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="MelAsrFrontend.GetConfigFromParams"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend.GetConfigFromParams">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">GetConfigFromParams</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns an AsrFrontendConfig namedtuple with vital config settings.&quot;&quot;&quot;</span>
-    <span class="n">subsample_factor</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">num_bins</span> <span class="o">*</span> <span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">stack_left_context</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">context_size</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">stack_left_context</span> <span class="o">+</span> <span class="n">params</span><span class="o">.</span><span class="n">stack_right_context</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">subsample_factor</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">num_bins</span> <span class="o">*</span> <span class="n">context_size</span>
     <span class="n">frame_step</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">params</span><span class="o">.</span><span class="n">frame_step_ms</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">AsrFrontendConfig</span><span class="p">(</span>
         <span class="n">is_null</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -349,6 +349,9 @@
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">MelAsrFrontend</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">frame_stride</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;frame_stride must be positive.&#39;</span><span class="p">)</span>
+
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">channel_count</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Only 1 channel currently supported.&#39;</span>
     <span class="c1"># Make sure key params are in floating point.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">)</span>
@@ -465,11 +468,14 @@
 <span class="sd">        - &#39;paddings&#39;: a 0/1 tensor of shape [batch, time].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropDefault</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MelAsrFrontend._FPropDefault"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropDefault">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropDefault</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">pcm_audio_data</span><span class="p">,</span> <span class="n">pcm_audio_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeToMono2D</span><span class="p">(</span>
         <span class="n">input_batch</span><span class="o">.</span><span class="n">src_inputs</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">paddings</span><span class="p">)</span>
 
     <span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropChunk</span><span class="p">(</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="n">pcm_audio_data</span><span class="p">,</span> <span class="n">pcm_audio_paddings</span><span class="p">)</span>
+        <span class="n">pcm_audio_data</span><span class="p">,</span> <span class="n">pcm_audio_paddings</span><span class="p">)</span>
 
     <span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PadAndReshapeSpec</span><span class="p">(</span>
         <span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">mel_spectrogram_paddings</span><span class="p">)</span>
@@ -477,15 +483,25 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">src_inputs</span><span class="o">=</span><span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="n">mel_spectrogram_paddings</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="MelAsrFrontend._StackSignal"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._StackSignal">[docs]</a>  <span class="k">def</span> <span class="nf">_StackSignal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">stack_size</span><span class="p">,</span> <span class="n">stride</span><span class="p">):</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">frame</span><span class="p">(</span>
+        <span class="n">signal</span><span class="o">=</span><span class="n">signal</span><span class="p">,</span>
+        <span class="n">frame_length</span><span class="o">=</span><span class="n">stack_size</span><span class="p">,</span>
+        <span class="n">frame_step</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+        <span class="n">pad_end</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">signal</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">signal</span></div>
+
 <div class="viewcode-block" id="MelAsrFrontend._PadAndReshapeSpec"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._PadAndReshapeSpec">[docs]</a>  <span class="k">def</span> <span class="nf">_PadAndReshapeSpec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">mel_spectrogram_paddings</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">mel_spectrogram</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="c1"># Stack and sub-sample. Only subsampling with a stride of the stack size</span>
-    <span class="c1"># is supported.</span>
+    <span class="c1"># Stack and sub-sample.</span>
+    <span class="n">stack_size</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_left_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="c1"># Since left context is leading, pad the left by duplicating the first</span>
       <span class="c1"># frame.</span>
-      <span class="n">stack_size</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_left_context</span>
+      <span class="n">stack_size</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_left_context</span>
       <span class="n">mel_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
           <span class="p">[</span><span class="n">mel_spectrogram</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_left_context</span> <span class="o">+</span>
           <span class="p">[</span><span class="n">mel_spectrogram</span><span class="p">],</span>
@@ -495,20 +511,27 @@
           <span class="p">[</span><span class="n">mel_spectrogram_paddings</span><span class="p">],</span>
           <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-      <span class="c1"># Note that this is the maximum number of frames. Actual frame count</span>
-      <span class="c1"># depends on padding.</span>
-      <span class="n">stacked_frame_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">mel_spectrogram</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="n">stack_size</span>
-      <span class="n">mel_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">mel_spectrogram</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:(</span><span class="n">stack_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">stacked_frame_dim</span><span class="p">,</span> <span class="p">:],</span>
-          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">stacked_frame_dim</span><span class="p">,</span> <span class="n">stack_size</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_bins</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_right_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">stack_size</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_right_context</span>
+      <span class="n">mel_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">mel_spectrogram</span><span class="p">]</span> <span class="o">+</span>
+          <span class="p">[</span><span class="n">mel_spectrogram</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_right_context</span><span class="p">,</span>
+          <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">mel_spectrogram_paddings</span><span class="p">]</span> <span class="o">+</span>
+          <span class="p">[</span><span class="n">mel_spectrogram_paddings</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_right_context</span><span class="p">,</span>
+          <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_left_context</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_right_context</span><span class="p">:</span>
+      <span class="n">mel_spectrogram</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StackSignal</span><span class="p">(</span><span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">stack_size</span><span class="p">,</span>
+                                          <span class="n">p</span><span class="o">.</span><span class="n">frame_stride</span><span class="p">)</span>
+      <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StackSignal</span><span class="p">(</span><span class="n">mel_spectrogram_paddings</span><span class="p">,</span>
+                                                   <span class="n">stack_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">frame_stride</span><span class="p">)</span>
       <span class="c1"># After stacking paddings, pad if any source frame was padded.</span>
       <span class="c1"># Stacks into [batch_size, stacked_frame_dim, stack_size] like the</span>
       <span class="c1"># spectrogram stacking above, and then reduces the stack_size dim</span>
       <span class="c1"># to the max (effectively, making padding = 1.0 if any of the pre-stacked</span>
       <span class="c1"># frames were 1.0). Final shape is [batch_size, stacked_frame_dim].</span>
-      <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">mel_spectrogram_paddings</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:(</span><span class="n">stack_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">stacked_frame_dim</span><span class="p">],</span>
-          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">stacked_frame_dim</span><span class="p">,</span> <span class="n">stack_size</span><span class="p">])</span>
       <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">mel_spectrogram_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
     <span class="c1"># Add feature dim. Shape = [batch, time, features, 1]</span>
@@ -530,7 +553,7 @@
     <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">framed_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">mel_spectrogram_paddings</span></div>
 
-<div class="viewcode-block" id="MelAsrFrontend._FPropChunk"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropChunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">pcm_audio_chunk</span><span class="p">,</span> <span class="n">pcm_audio_paddings</span><span class="p">):</span>
+<div class="viewcode-block" id="MelAsrFrontend._FPropChunk"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropChunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pcm_audio_chunk</span><span class="p">,</span> <span class="n">pcm_audio_paddings</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">pcm_audio_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">pcm_audio_chunk</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="c1"># shape: [batch, time, _frame_size]</span>
