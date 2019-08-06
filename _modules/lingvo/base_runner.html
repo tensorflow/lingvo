@@ -313,13 +313,16 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done.&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
       <span class="k">return</span>
     <span class="k">except</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="o">+</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">OutOfRangeError</span><span class="p">,</span>
-                                           <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">DataLossError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                                           <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">DataLossError</span><span class="p">,</span>
+                                           <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
       <span class="c1"># Retry on these three errors.</span>
       <span class="c1">#   FailedPreconditionError: variables are not initialized.</span>
       <span class="c1">#   AbortedError: processes restarts.</span>
       <span class="c1">#   OutOfRangeError: Test/dev datasets are exhausted.</span>
       <span class="c1">#   DataLossError: Race condition between evaler and trainer when saving</span>
       <span class="c1">#       or removing checkpoints.</span>
+      <span class="c1">#   InvalidArgumentError: variables were not initialized. Comes from</span>
+      <span class="c1">#       ResourceVariableOp.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span>
           <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> exception: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">e</span><span class="p">),</span> <span class="n">retrying</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
