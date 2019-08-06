@@ -165,7 +165,6 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">pickle</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
 
@@ -482,11 +481,6 @@
     <span class="k">if</span> <span class="n">text_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">text_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">status_metrics</span><span class="p">))</span></div>
-
-<div class="viewcode-block" id="BaseRunner._WriteKeyValuePairs"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._WriteKeyValuePairs">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteKeyValuePairs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">key_value_pairs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Writes `key_value_pairs` to `filename`.&quot;&quot;&quot;</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-      <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">key_value_pairs</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="n">pickle</span><span class="o">.</span><span class="n">HIGHEST_PROTOCOL</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseRunner._ExportMetrics"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ExportMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">_ExportMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exports metrics externally.&quot;&quot;&quot;</span>

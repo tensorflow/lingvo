@@ -1502,13 +1502,15 @@
         <span class="n">decode_checkpoint</span><span class="o">=</span><span class="n">global_step</span><span class="p">,</span>
         <span class="n">dec_metrics</span><span class="o">=</span><span class="n">dec_metrics</span><span class="p">,</span>
         <span class="n">example_rate</span><span class="o">=</span><span class="n">example_rate</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">buffered_decode_out</span><span class="p">:</span>
-      <span class="c1"># global_step and the checkpoint id from the checkpoint file might be</span>
-      <span class="c1"># different. For consistency of checkpoint filename and decoder_out</span>
-      <span class="c1"># file, use the checkpoint id as derived from the checkpoint filename.</span>
-      <span class="n">checkpoint_id</span> <span class="o">=</span> <span class="n">_GetCheckpointIdForDecodeOut</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
-      <span class="n">decode_out_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetDecodeOutPath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_WriteKeyValuePairs</span><span class="p">(</span><span class="n">decode_out_path</span><span class="p">,</span> <span class="n">buffered_decode_out</span><span class="p">)</span>
+    <span class="c1"># global_step and the checkpoint id from the checkpoint file might be</span>
+    <span class="c1"># different. For consistency of checkpoint filename and decoder_out</span>
+    <span class="c1"># file, use the checkpoint id as derived from the checkpoint filename.</span>
+    <span class="n">checkpoint_id</span> <span class="o">=</span> <span class="n">_GetCheckpointIdForDecodeOut</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+    <span class="n">decode_out_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetDecodeOutPath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="p">)</span>
+
+    <span class="n">decode_finalize_args</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">DecodeFinalizeArgs</span><span class="p">(</span>
+        <span class="n">decode_out_path</span><span class="o">=</span><span class="n">decode_out_path</span><span class="p">,</span> <span class="n">decode_out</span><span class="o">=</span><span class="n">buffered_decode_out</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">DecodeFinalize</span><span class="p">(</span><span class="n">decode_finalize_args</span><span class="p">)</span>
 
     <span class="n">should_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>

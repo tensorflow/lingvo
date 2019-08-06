@@ -164,6 +164,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
@@ -181,7 +182,20 @@
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
 
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">decoder_lib</span>
 <span class="kn">from</span> <span class="nn">tensorflow.contrib.model_pruning.python</span> <span class="k">import</span> <span class="n">pruning</span> <span class="k">as</span> <span class="n">contrib_pruning</span>
+
+
+<div class="viewcode-block" id="DecodeFinalizeArgs"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DecodeFinalizeArgs">[docs]</a><span class="k">class</span> <span class="nc">DecodeFinalizeArgs</span><span class="p">(</span>
+    <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;DecodeFinalizeArgs&#39;</span><span class="p">,</span>
+                           <span class="p">[</span><span class="s1">&#39;decode_out_path&#39;</span><span class="p">,</span> <span class="s1">&#39;decode_out&#39;</span><span class="p">])):</span>
+  <span class="sd">&quot;&quot;&quot;Arguments to BaseTask.DecodeFinalize().</span>
+
+<span class="sd">  Attributes:</span>
+<span class="sd">   decode_out_path: Path to where decoder outputs can be written.</span>
+<span class="sd">   decode_out: A list of key value pairs aggregated from return values of.</span>
+<span class="sd">     PostProcessDecodeOut().</span>
+<span class="sd">  &quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="CreateTaskGlobalStep"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.CreateTaskGlobalStep">[docs]</a><span class="k">def</span> <span class="nf">CreateTaskGlobalStep</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
@@ -831,6 +845,17 @@
 <span class="sd">      (i.e. of type str, bytes, or unicode).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="BaseTask.DecodeFinalize"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.DecodeFinalize">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeFinalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decode_finalize_args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Finalize any work for decoding.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      decode_finalize_args: A DecodeFinalizeArgs namedtuple.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">decode_out_path</span> <span class="o">=</span> <span class="n">decode_finalize_args</span><span class="o">.</span><span class="n">decode_out_path</span>
+    <span class="n">decode_out</span> <span class="o">=</span> <span class="n">decode_finalize_args</span><span class="o">.</span><span class="n">decode_out</span>
+    <span class="k">if</span> <span class="n">decode_out</span><span class="p">:</span>
+      <span class="n">decoder_lib</span><span class="o">.</span><span class="n">WriteKeyValuePairs</span><span class="p">(</span><span class="n">decode_out_path</span><span class="p">,</span> <span class="n">decode_out</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

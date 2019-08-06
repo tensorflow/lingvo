@@ -166,6 +166,26 @@
   <div class="section" id="module-lingvo.core.base_model">
 <span id="lingvo-core-base-model-module"></span><h1>lingvo.core.base_model module<a class="headerlink" href="#module-lingvo.core.base_model" title="Permalink to this headline">¶</a></h1>
 <p>Base model.</p>
+<dl class="class">
+<dt id="lingvo.core.base_model.DecodeFinalizeArgs">
+<em class="property">class </em><code class="descclassname">lingvo.core.base_model.</code><code class="descname">DecodeFinalizeArgs</code><a class="reference internal" href="_modules/lingvo/core/base_model.html#DecodeFinalizeArgs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DecodeFinalizeArgs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.DecodeFinalizeArgs" title="lingvo.core.base_model.DecodeFinalizeArgs"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.DecodeFinalizeArgs</span></code></a></p>
+<p>Arguments to BaseTask.DecodeFinalize().</p>
+<dl class="attribute">
+<dt id="lingvo.core.base_model.DecodeFinalizeArgs.decode_out_path">
+<code class="descname">decode_out_path</code><a class="headerlink" href="#lingvo.core.base_model.DecodeFinalizeArgs.decode_out_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Path to where decoder outputs can be written.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.DecodeFinalizeArgs.decode_out">
+<code class="descname">decode_out</code><a class="headerlink" href="#lingvo.core.base_model.DecodeFinalizeArgs.decode_out" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of key value pairs aggregated from return values of.
+PostProcessDecodeOut().</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="lingvo.core.base_model.CreateTaskGlobalStep">
 <code class="descclassname">lingvo.core.base_model.</code><code class="descname">CreateTaskGlobalStep</code><span class="sig-paren">(</span><em>task_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#CreateTaskGlobalStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.CreateTaskGlobalStep" title="Permalink to this definition">¶</a></dt>
@@ -523,6 +543,20 @@ object as created by <a class="reference internal" href="#lingvo.core.base_model
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">output_key_value_pairs - a list of (key, value) pairs that can be saved
 (i.e. of type str, bytes, or unicode).</p>
 </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.DecodeFinalize">
+<code class="descname">DecodeFinalize</code><span class="sig-paren">(</span><em>decode_finalize_args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.DecodeFinalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.DecodeFinalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finalize any work for decoding.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>decode_finalize_args</strong> – A DecodeFinalizeArgs namedtuple.</td>
 </tr>
 </tbody>
 </table>
