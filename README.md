@@ -35,7 +35,7 @@ The prerequisites are:
 
 *   a TensorFlow [installation](https://www.tensorflow.org/install/) (for now
     tf-nightly is required),
-*   a `C++` compiler (only g++ 4.8 is officially supported), and
+*   a `C++` compiler (only g++ 7.3 is officially supported), and
 *   the bazel build system.
 
 Refer to [docker/dev.dockerfile](docker/dev.dockerfile) for more specific
