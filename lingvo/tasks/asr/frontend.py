@@ -127,10 +127,7 @@ class MelAsrFrontend(BaseAsrFrontend):
   resources.
 
   The frontend implements the following stages:
-      `Framer -> Window -> FFT -> FilterBank -> MeanStdDev`
-
-  Also, if stack_left_context > 0, this will further apply:
-      `FrameStack -> SubSample(stack_left_context + 1)`
+      `Framer -> Window -> FFT -> FilterBank -> MeanStdDev -> SubSample`
 
   The FProp input to this layer can either have rank 3 or rank 4 shape:
       [batch_size, timestep, packet_size, channel_count]
@@ -169,10 +166,8 @@ class MelAsrFrontend(BaseAsrFrontend):
              'The first-order filter coefficient used for preemphasis')
     p.Define('noise_scale', 8.0,
              'The amount of noise (in 16-bit LSB units) to add')
-    p.Define(
-        'window_fn', 'HANNING',
-        'Window function to apply (valid values are "HANNING", '
-        'and None)')
+    p.Define('window_fn', 'HANNING',
+             'Window function to apply (valid values are "HANNING", and None)')
     p.Define(
         'pad_end', False,
         'Whether to pad the end of `signals` with zeros when the provided '
@@ -182,15 +177,20 @@ class MelAsrFrontend(BaseAsrFrontend):
         'per_bin_mean', None,
         'Per-bin (num_bins) means for normalizing the spectrograms. '
         'Defaults to zeros.')
-    p.Define('per_bin_stddev', None, 'Per-bin (num_bins) standard deviations. '
-             'Defaults to ones.')
+    p.Define('per_bin_stddev', None,
+             'Per-bin (num_bins) standard deviations. Defaults to ones.')
     p.Define('stack_left_context', 0, 'Number of left context frames to stack.')
+    p.Define('stack_right_context', 0,
+             'Number of right context frames to stack.')
+    p.Define('frame_stride', 1, 'The frame stride for sub-sampling.')
+
     return p
 
   @staticmethod
   def GetConfigFromParams(params):
     """Returns an AsrFrontendConfig namedtuple with vital config settings."""
-    subsample_factor = params.num_bins * (params.stack_left_context + 1)
+    context_size = params.stack_left_context + params.stack_right_context + 1
+    subsample_factor = params.num_bins * context_size
     frame_step = round(params.sample_rate * params.frame_step_ms / 1000.0)
     return AsrFrontendConfig(
         is_null=False,
@@ -204,6 +204,9 @@ class MelAsrFrontend(BaseAsrFrontend):
   def __init__(self, params):
     super(MelAsrFrontend, self).__init__(params)
     p = self.params
+    if p.frame_stride < 1:
+      raise ValueError('frame_stride must be positive.')
+
     assert p.channel_count == 1, 'Only 1 channel currently supported.'
     # Make sure key params are in floating point.
     p.sample_rate = float(p.sample_rate)
@@ -320,11 +323,14 @@ class MelAsrFrontend(BaseAsrFrontend):
         - 'paddings': a 0/1 tensor of shape [batch, time].
     """
 
+    return self._FPropDefault(input_batch)
+
+  def _FPropDefault(self, input_batch):
     pcm_audio_data, pcm_audio_paddings = self._ReshapeToMono2D(
         input_batch.src_inputs, input_batch.paddings)
 
     mel_spectrogram, mel_spectrogram_paddings = self._FPropChunk(
-        theta, pcm_audio_data, pcm_audio_paddings)
+        pcm_audio_data, pcm_audio_paddings)
 
     mel_spectrogram, mel_spectrogram_paddings = self._PadAndReshapeSpec(
         mel_spectrogram, mel_spectrogram_paddings)
@@ -332,15 +338,25 @@ class MelAsrFrontend(BaseAsrFrontend):
     return py_utils.NestedMap(
         src_inputs=mel_spectrogram, paddings=mel_spectrogram_paddings)
 
+  def _StackSignal(self, signal, stack_size, stride):
+    signal = tf.signal.frame(
+        signal=signal,
+        frame_length=stack_size,
+        frame_step=stride,
+        pad_end=False,
+        axis=1,
+    )
+    signal = tf.reshape(signal, py_utils.GetShape(signal)[:2] + [-1])
+    return signal
+
   def _PadAndReshapeSpec(self, mel_spectrogram, mel_spectrogram_paddings):
     p = self.params
-    batch_size = py_utils.GetShape(mel_spectrogram)[0]
-    # Stack and sub-sample. Only subsampling with a stride of the stack size
-    # is supported.
+    # Stack and sub-sample.
+    stack_size = 1
     if p.stack_left_context > 0:
       # Since left context is leading, pad the left by duplicating the first
       # frame.
-      stack_size = 1 + p.stack_left_context
+      stack_size += p.stack_left_context
       mel_spectrogram = tf.concat(
           [mel_spectrogram[:, 0:1, :]] * p.stack_left_context +
           [mel_spectrogram],
@@ -350,20 +366,27 @@ class MelAsrFrontend(BaseAsrFrontend):
           [mel_spectrogram_paddings],
           axis=1)
 
-      # Note that this is the maximum number of frames. Actual frame count
-      # depends on padding.
-      stacked_frame_dim = tf.shape(mel_spectrogram)[1] // stack_size
-      mel_spectrogram = tf.reshape(
-          mel_spectrogram[:, 0:(stack_size) * stacked_frame_dim, :],
-          [batch_size, stacked_frame_dim, stack_size * p.num_bins])
+    if p.stack_right_context > 0:
+      stack_size += p.stack_right_context
+      mel_spectrogram = tf.concat(
+          [mel_spectrogram] +
+          [mel_spectrogram[:, -1:, :]] * p.stack_right_context,
+          axis=1)
+      mel_spectrogram_paddings = tf.concat(
+          [mel_spectrogram_paddings] +
+          [mel_spectrogram_paddings[:, -1:]] * p.stack_right_context,
+          axis=1)
+
+    if p.stack_left_context or p.stack_right_context:
+      mel_spectrogram = self._StackSignal(mel_spectrogram, stack_size,
+                                          p.frame_stride)
+      mel_spectrogram_paddings = self._StackSignal(mel_spectrogram_paddings,
+                                                   stack_size, p.frame_stride)
       # After stacking paddings, pad if any source frame was padded.
       # Stacks into [batch_size, stacked_frame_dim, stack_size] like the
       # spectrogram stacking above, and then reduces the stack_size dim
       # to the max (effectively, making padding = 1.0 if any of the pre-stacked
       # frames were 1.0). Final shape is [batch_size, stacked_frame_dim].
-      mel_spectrogram_paddings = tf.reshape(
-          mel_spectrogram_paddings[:, 0:(stack_size) * stacked_frame_dim],
-          [batch_size, stacked_frame_dim, stack_size])
       mel_spectrogram_paddings = tf.reduce_max(mel_spectrogram_paddings, axis=2)
 
     # Add feature dim. Shape = [batch, time, features, 1]
@@ -385,7 +408,7 @@ class MelAsrFrontend(BaseAsrFrontend):
     mel_spectrogram_paddings = tf.reduce_max(framed_paddings, axis=2)
     return mel_spectrogram_paddings
 
-  def _FPropChunk(self, theta, pcm_audio_chunk, pcm_audio_paddings):
+  def _FPropChunk(self, pcm_audio_chunk, pcm_audio_paddings):
     p = self.params
     pcm_audio_chunk = tf.cast(pcm_audio_chunk, tf.float32)
     # shape: [batch, time, _frame_size]
