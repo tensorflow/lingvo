@@ -27,6 +27,7 @@ from lingvo.core import gpipe
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
+from lingvo.core import symbolic
 from lingvo.core import test_utils
 import numpy as np
 from six.moves import range
@@ -2798,6 +2799,26 @@ class SoftmaxLayerTest(test_utils.TestCase):
     self._RunSimpleFullSoftmaxGradientChecker(3, 4, 0, 2)
     self._RunSimpleFullSoftmaxGradientChecker(3, 4, 2, 2)
     self._RunSimpleFullSoftmaxGradientChecker(3, 4, 5, 2)
+
+  def testSimpleFullSoftmax_SymbolicShape(self):
+    with self.session(use_gpu=False) as sess:
+      class_ids = tf.constant([1, 5, 10], dtype=tf.int32)
+      class_weights = tf.constant([1.0, 0.4, 0.8], dtype=tf.float32)
+      np.random.seed(12345)
+      inputs = [tf.constant(np.random.rand(3, 10), dtype=tf.float32)]
+
+      # Use a symbol to represent the input dim.
+      input_dim = symbolic.Symbol('input_dim')
+      params = layers.SimpleFullSoftmax.Params()
+      params.name = 'softmax'
+      params.input_dim = input_dim
+      params.num_classes = 32
+      with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES, {input_dim: 10}):
+        softmax = layers.SimpleFullSoftmax(params)
+        xent_loss = softmax.XentLoss(
+            inputs, class_weights=class_weights, class_ids=class_ids)
+        tf.global_variables_initializer().run()
+        sess.run(xent_loss.total_xent)
 
 
 class SoftmaxLayerLogitsTest(test_utils.TestCase):

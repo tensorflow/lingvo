@@ -2354,7 +2354,9 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
     shape_mid = tf.shape(inputs[0])[1:-1]
 
     # Reshape inputs to matrices, labels to vectors, etc.
-    inputs = [tf.reshape(x, [-1, p.input_dim]) for x in inputs]
+    inputs = [
+        tf.reshape(x, py_utils.ToStaticShape([-1, p.input_dim])) for x in inputs
+    ]
     class_weights = tf.reshape(class_weights, [-1])
     if class_ids is not None:
       class_ids = tf.reshape(class_ids, [-1, 1])
