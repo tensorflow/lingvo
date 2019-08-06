@@ -205,7 +205,15 @@ class AsrModel(base_model.BaseTask):
       encoder_outputs = self._FrontendAndEncoderFProp(theta, input_batch.src)
       decoder_outs = self.decoder.BeamSearchDecodeWithTheta(
           theta.decoder, encoder_outputs)
-      return self._ComputeDecoderMetrics(decoder_outs, input_batch)
+
+      if py_utils.use_tpu():
+        # Decoder metric computation contains arbitrary execution
+        # that may not run on TPU.
+        decoder_metrics = py_utils.RunOnTpuHost(self._ComputeDecoderMetrics,
+                                                decoder_outs, input_batch)
+      else:
+        decoder_metrics = self._ComputeDecoderMetrics(decoder_outs, input_batch)
+      return decoder_metrics
 
   def _GetTargetForDecoderMetrics(self, input_batch):
     """Returns targets which will be used to compute decoder metrics.
@@ -235,8 +243,6 @@ class AsrModel(base_model.BaseTask):
     """
     p = self.params
     topk = self._GetTopK(decoder_outs)
-
-    utt_ids = input_batch.sample_ids
     tgt = self._GetTargetForDecoderMetrics(input_batch)
     transcripts = self.input_generator.IdsToStrings(
         tgt.labels,
@@ -260,7 +266,6 @@ class AsrModel(base_model.BaseTask):
         'target_labels': tgt.labels,
         'target_weights': tgt.weights,
         'target_paddings': tgt.paddings,
-        'utt_id': utt_ids,
         'transcripts': transcripts,
         'topk_decoded': topk.decoded,
         'topk_ids': topk.ids,
@@ -269,6 +274,9 @@ class AsrModel(base_model.BaseTask):
         'norm_wer_errors': norm_wer_errors,
         'norm_wer_words': norm_wer_words,
     }
+
+    if not py_utils.use_tpu():
+      ret_dict['utt_id'] = input_batch.sample_ids
 
     ret_dict.update(
         self.AddAdditionalDecoderMetricsToGraph(topk, filtered_hyps,
@@ -311,7 +319,9 @@ class AsrModel(base_model.BaseTask):
     topk_scores = dec_out_dict['topk_scores']
     topk_decoded = dec_out_dict['topk_decoded']
     transcripts = dec_out_dict['transcripts']
-    utt_id = dec_out_dict['utt_id']
+    if not py_utils.use_tpu():
+      utt_id = dec_out_dict['utt_id']
+      assert len(utt_id) == len(transcripts)
     norm_wer_errors = dec_out_dict['norm_wer_errors']
     norm_wer_words = dec_out_dict['norm_wer_words']
     target_labels = dec_out_dict['target_labels']
@@ -321,7 +331,6 @@ class AsrModel(base_model.BaseTask):
     assert len(transcripts) == len(target_labels)
     assert len(transcripts) == len(target_paddings)
     assert len(transcripts) == len(topk_decoded)
-    assert len(utt_id) == len(transcripts)
     assert (len(topk_ids) == p.decoder.beam_search.num_hyps_per_beam *
             len(transcripts))
     assert len(norm_wer_errors) == len(transcripts)
@@ -348,7 +357,8 @@ class AsrModel(base_model.BaseTask):
     key_value_pairs = []
     for i in range(len(transcripts)):
       ref_str = transcripts[i]
-      tf.logging.info('utt_id: %s', utt_id[i])
+      if not py_utils.use_tpu():
+        tf.logging.info('utt_id: %s', utt_id[i])
       tf.logging.info('  ref_str: %s', ref_str)
       hyps = topk_decoded[i]
       ref_ids = GetRefIds(target_labels[i], target_paddings[i])
