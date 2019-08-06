@@ -196,6 +196,14 @@ py_test(
 )
 
 py_library(
+    name = "decoder_lib",
+    srcs = ["decoder_lib.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+    ],
+)
+
+py_library(
     name = "base_model",
     srcs = ["base_model.py"],
     srcs_version = "PY2AND3",
@@ -212,6 +220,7 @@ py_library(
         ":schedule",
         ":summary_utils",
         ":task_scheduler",
+        "//lingvo/core:decoder_lib",
         "//lingvo:compat",
         # Implicit six dependency.
     ],

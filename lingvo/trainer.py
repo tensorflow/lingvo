@@ -1357,13 +1357,15 @@ class Decoder(base_runner.BaseRunner):
         decode_checkpoint=global_step,
         dec_metrics=dec_metrics,
         example_rate=example_rate)
-    if buffered_decode_out:
-      # global_step and the checkpoint id from the checkpoint file might be
-      # different. For consistency of checkpoint filename and decoder_out
-      # file, use the checkpoint id as derived from the checkpoint filename.
-      checkpoint_id = _GetCheckpointIdForDecodeOut(checkpoint_path, global_step)
-      decode_out_path = self.GetDecodeOutPath(self._decoder_dir, checkpoint_id)
-      self._WriteKeyValuePairs(decode_out_path, buffered_decode_out)
+    # global_step and the checkpoint id from the checkpoint file might be
+    # different. For consistency of checkpoint filename and decoder_out
+    # file, use the checkpoint id as derived from the checkpoint filename.
+    checkpoint_id = _GetCheckpointIdForDecodeOut(checkpoint_path, global_step)
+    decode_out_path = self.GetDecodeOutPath(self._decoder_dir, checkpoint_id)
+
+    decode_finalize_args = base_model.DecodeFinalizeArgs(
+        decode_out_path=decode_out_path, decode_out=buffered_decode_out)
+    self._model_task.DecodeFinalize(decode_finalize_args)
 
     should_stop = global_step >= self.params.train.max_steps
     if self._should_report_metrics:

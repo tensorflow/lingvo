@@ -20,7 +20,6 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import pickle
 import time
 import traceback
 
@@ -337,11 +336,6 @@ class BaseRunner(object):
     if text_filename is not None:
       with tf.gfile.GFile(text_filename, 'w') as f:
         f.write('\n'.join(status_metrics))
-
-  def _WriteKeyValuePairs(self, filename, key_value_pairs):
-    """Writes `key_value_pairs` to `filename`."""
-    with open(filename, 'wb') as f:
-      pickle.dump(key_value_pairs, f, protocol=pickle.HIGHEST_PROTOCOL)
 
   def _ExportMetrics(self, **kwargs):
     """Exports metrics externally."""

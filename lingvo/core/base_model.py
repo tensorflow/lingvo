@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import re
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -36,7 +37,20 @@ from lingvo.core import task_scheduler
 import six
 from six.moves import range
 
+from lingvo.core import decoder_lib
 from tensorflow.contrib.model_pruning.python import pruning as contrib_pruning
+
+
+class DecodeFinalizeArgs(
+    collections.namedtuple('DecodeFinalizeArgs',
+                           ['decode_out_path', 'decode_out'])):
+  """Arguments to BaseTask.DecodeFinalize().
+
+  Attributes:
+   decode_out_path: Path to where decoder outputs can be written.
+   decode_out: A list of key value pairs aggregated from return values of.
+     PostProcessDecodeOut().
+  """
 
 
 def CreateTaskGlobalStep(task_name):
@@ -686,6 +700,17 @@ class BaseTask(base_layer.BaseLayer):
       (i.e. of type str, bytes, or unicode).
     """
     pass
+
+  def DecodeFinalize(self, decode_finalize_args):
+    """Finalize any work for decoding.
+
+    Args:
+      decode_finalize_args: A DecodeFinalizeArgs namedtuple.
+    """
+    decode_out_path = decode_finalize_args.decode_out_path
+    decode_out = decode_finalize_args.decode_out
+    if decode_out:
+      decoder_lib.WriteKeyValuePairs(decode_out_path, decode_out)
 
   @property
   def loss(self):
