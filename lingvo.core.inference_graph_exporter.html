@@ -163,8 +163,267 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-core-inference-graph-exporter-module">
-<h1>lingvo.core.inference_graph_exporter module<a class="headerlink" href="#lingvo-core-inference-graph-exporter-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.core.inference_graph_exporter">
+<span id="lingvo-core-inference-graph-exporter-module"></span><h1>lingvo.core.inference_graph_exporter module<a class="headerlink" href="#module-lingvo.core.inference_graph_exporter" title="Permalink to this headline">¶</a></h1>
+<p>Utility for exporting an InferenceGraph proto from model params.</p>
+<dl class="class">
+<dt id="lingvo.core.inference_graph_exporter.InferenceDeviceOptions">
+<em class="property">class </em><code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">InferenceDeviceOptions</code><span class="sig-paren">(</span><em>device</em>, <em>retain_device_placement</em>, <em>var_options</em>, <em>gen_init_op</em>, <em>dtype_override</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceDeviceOptions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="method">
+<dt id="lingvo.core.inference_graph_exporter.InferenceDeviceOptions._asdict">
+<code class="descname">_asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceDeviceOptions._asdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new OrderedDict which maps field names to their values</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.inference_graph_exporter.InferenceDeviceOptions._fields">
+<code class="descname">_fields</code><em class="property"> = ('device', 'retain_device_placement', 'var_options', 'gen_init_op', 'dtype_override')</em><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceDeviceOptions._fields" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.inference_graph_exporter.InferenceDeviceOptions._make">
+<em class="property">classmethod </em><code class="descname">_make</code><span class="sig-paren">(</span><em>iterable</em>, <em>new=&lt;built-in method __new__ of type object at 0x8f9920&gt;</em>, <em>len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceDeviceOptions._make" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a new InferenceDeviceOptions object from a sequence or iterable</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.inference_graph_exporter.InferenceDeviceOptions._replace">
+<code class="descname">_replace</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceDeviceOptions._replace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new InferenceDeviceOptions object replacing specified fields with new values</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.inference_graph_exporter.InferenceDeviceOptions.device">
+<code class="descname">device</code><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceDeviceOptions.device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.inference_graph_exporter.InferenceDeviceOptions.dtype_override">
+<code class="descname">dtype_override</code><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceDeviceOptions.dtype_override" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.inference_graph_exporter.InferenceDeviceOptions.gen_init_op">
+<code class="descname">gen_init_op</code><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceDeviceOptions.gen_init_op" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.inference_graph_exporter.InferenceDeviceOptions.retain_device_placement">
+<code class="descname">retain_device_placement</code><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceDeviceOptions.retain_device_placement" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.inference_graph_exporter.InferenceDeviceOptions.var_options">
+<code class="descname">var_options</code><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceDeviceOptions.var_options" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter.NoConstGuaranteeScope">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">NoConstGuaranteeScope</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#NoConstGuaranteeScope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.NoConstGuaranteeScope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disallow const gauranteeing variable with-in scope.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter.MaybeGuaranteeConstGetter">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">MaybeGuaranteeConstGetter</code><span class="sig-paren">(</span><em>getter</em>, <em>name</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#MaybeGuaranteeConstGetter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.MaybeGuaranteeConstGetter" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter.ConstGuaranteeScope">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">ConstGuaranteeScope</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#ConstGuaranteeScope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.ConstGuaranteeScope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Treats all variables under this scope as constants.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter._DummyScope">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">_DummyScope</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#_DummyScope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter._DummyScope" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter._GetVarName">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">_GetVarName</code><span class="sig-paren">(</span><em>v</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#_GetVarName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter._GetVarName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter._MakeVariableDictionary">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">_MakeVariableDictionary</code><span class="sig-paren">(</span><em>variables</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#_MakeVariableDictionary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter._MakeVariableDictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary with name -&gt; tf.Variable() mapping.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter.IsTpu">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">IsTpu</code><span class="sig-paren">(</span><em>device_options</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#IsTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.IsTpu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter.ShouldForceBfloat16ForWeightsAndActivations">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">ShouldForceBfloat16ForWeightsAndActivations</code><span class="sig-paren">(</span><em>device_options</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#ShouldForceBfloat16ForWeightsAndActivations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.ShouldForceBfloat16ForWeightsAndActivations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter.ConvertSubgraphDictToProto">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">ConvertSubgraphDictToProto</code><span class="sig-paren">(</span><em>subgraphs_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#ConvertSubgraphDictToProto"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.ConvertSubgraphDictToProto" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts dict of subgraphs/feeds/fetches to InferenceGraph.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>subgraphs_dict</strong> – Dict of (fetches, feeds) where each fetches/feeds is a
+NestedMap.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Equivalent InferenceGraph.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter.GetOutputOpNames">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">GetOutputOpNames</code><span class="sig-paren">(</span><em>graph</em>, <em>inference_graph_proto</em>, <em>preserve_colocation_nodes=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#GetOutputOpNames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.GetOutputOpNames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets output op names from an inference graph.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>graph</strong> – The tf graph.</li>
+<li><strong>inference_graph_proto</strong> – an InferenceGraph proto.</li>
+<li><strong>preserve_colocation_nodes</strong> – a Python bool, default to True. Preserves nodes
+colocating with the closure of output ops in the returned array.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Array of tf op names that should be preserved in the graph.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter._ParamExists">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">_ParamExists</code><span class="sig-paren">(</span><em>param_obj</em>, <em>param_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#_ParamExists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter._ParamExists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tests whether param_name is contained in param_obj.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter._FreezeGraphFromCheckpoint">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">_FreezeGraphFromCheckpoint</code><span class="sig-paren">(</span><em>graph</em>, <em>saver</em>, <em>checkpoint</em>, <em>output_op_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#_FreezeGraphFromCheckpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter._FreezeGraphFromCheckpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Freezes a graph from a checkpoint.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>graph</strong> – tf.Graph.</li>
+<li><strong>saver</strong> – The tf.Saver to use for restoration.</li>
+<li><strong>checkpoint</strong> – The checkpoint to restore.</li>
+<li><strong>output_op_names</strong> – Names of output ops.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Resulting tf.GraphDef.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.inference_graph_exporter._FreezeDefaults">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">_FreezeDefaults</code><span class="sig-paren">(</span><em>graph</em>, <em>output_op_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#_FreezeDefaults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter._FreezeDefaults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default initializes a graph and freezes it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>graph</strong> – tf.Graph.</li>
+<li><strong>output_op_names</strong> – Names of output ops.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Resulting tf.GraphDef.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.inference_graph_exporter.InferenceGraphExporter">
+<em class="property">class </em><code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">InferenceGraphExporter</code><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#InferenceGraphExporter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceGraphExporter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class for exporting inference graphs.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.inference_graph_exporter.InferenceGraphExporter.Export">
+<em class="property">classmethod </em><code class="descname">Export</code><span class="sig-paren">(</span><em>model_cfg</em>, <em>model_task_name=None</em>, <em>device_options=InferenceDeviceOptions(device=''</em>, <em>retain_device_placement=False</em>, <em>var_options=None</em>, <em>gen_init_op=True</em>, <em>dtype_override=None)</em>, <em>freeze_checkpoint=None</em>, <em>freeze_defaults=False</em>, <em>export_path=None</em>, <em>subgraph_filter=None</em>, <em>random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#InferenceGraphExporter.Export"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceGraphExporter.Export" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exports a InferenceGraph proto with piecewise subgraphs.</p>
+<p>Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>model_cfg</strong> – a Params instance as returned by
+model_registry.GetParams(modelname, ‘Test’) or model_params.Model().</li>
+<li><strong>model_task_name</strong> – The task to generate an inference graph for. Should be
+None for single-task models.</li>
+<li><strong>device_options</strong> – Device options for the accelerator used for serving.</li>
+<li><strong>freeze_checkpoint</strong> – The checkpoint to load. Loads and freezes the model if
+given.</li>
+<li><strong>freeze_defaults</strong> – Default initializes the graph and freeze. Useful for
+early testing of downstream tools without having a checkpoint.</li>
+<li><strong>export_path</strong> – If not None, write the inference graph in ASCII to this path.</li>
+<li><strong>subgraph_filter</strong> – A list of subgraph names. If not None or empty, export
+only this list of inference subgraphs.</li>
+<li><strong>random_seed</strong> – Fixes the random seed in the exported inference graph.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">InferenceGraph proto.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – if the model does not support the listed subgraphs.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.inference_graph_exporter.InferenceGraphExporter._SetClusterParams">
+<em class="property">classmethod </em><code class="descname">_SetClusterParams</code><span class="sig-paren">(</span><em>cluster_params</em>, <em>device_options</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#InferenceGraphExporter._SetClusterParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceGraphExporter._SetClusterParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets cluster params.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>cluster_params</strong> – Model().cluster config.</li>
+<li><strong>device_options</strong> – InferenceDeviceOptions.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.inference_graph_exporter.InferenceGraphExporter._DeviceSupportsFreezing">
+<em class="property">classmethod </em><code class="descname">_DeviceSupportsFreezing</code><span class="sig-paren">(</span><em>device_options</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#InferenceGraphExporter._DeviceSupportsFreezing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceGraphExporter._DeviceSupportsFreezing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 
 

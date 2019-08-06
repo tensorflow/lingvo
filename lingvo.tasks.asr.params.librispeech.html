@@ -166,8 +166,260 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-tasks-asr-params-librispeech-module">
-<h1>lingvo.tasks.asr.params.librispeech module<a class="headerlink" href="#lingvo-tasks-asr-params-librispeech-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.tasks.asr.params.librispeech">
+<span id="lingvo-tasks-asr-params-librispeech-module"></span><h1>lingvo.tasks.asr.params.librispeech module<a class="headerlink" href="#module-lingvo.tasks.asr.params.librispeech" title="Permalink to this headline">¶</a></h1>
+<p>Models for Librispeech dataset.</p>
+<dl class="function">
+<dt id="lingvo.tasks.asr.params.librispeech.LibrispeechCommonAsrInputParams">
+<code class="descclassname">lingvo.tasks.asr.params.librispeech.</code><code class="descname">LibrispeechCommonAsrInputParams</code><span class="sig-paren">(</span><em>is_eval</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#LibrispeechCommonAsrInputParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.LibrispeechCommonAsrInputParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Input generator params for Librispeech.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.params.librispeech.</code><code class="descname">Librispeech960Base</code><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams" title="lingvo.core.base_model_params.SingleTaskModelParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model_params.SingleTaskModelParams</span></code></a></p>
+<p>Base parameters for Librispeech 960 hour task.</p>
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base.DATADIR">
+<code class="descname">DATADIR</code><em class="property"> = '/tmp/librispeech'</em><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base.DATADIR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base.TRAIN_BUCKET_UPPER_BOUNDS">
+<code class="descname">TRAIN_BUCKET_UPPER_BOUNDS</code><em class="property"> = [639, 1062, 1275, 1377, 1449, 1506, 1563, 1710]</em><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base.TRAIN_BUCKET_UPPER_BOUNDS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base.DEVTEST_BUCKET_UPPER_BOUNDS">
+<code class="descname">DEVTEST_BUCKET_UPPER_BOUNDS</code><em class="property"> = [639, 1062, 1275, 1377, 1449, 1506, 1563, 3600]</em><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base.DEVTEST_BUCKET_UPPER_BOUNDS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base.BATCH_LIMITS">
+<code class="descname">BATCH_LIMITS</code><em class="property"> = [96, 48, 48, 48, 48, 48, 48, 48]</em><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base.BATCH_LIMITS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base._TFRecordPath">
+<em class="property">classmethod </em><code class="descname">_TFRecordPath</code><span class="sig-paren">(</span><em>file_pattern</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Base._TFRecordPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base._TFRecordPath" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base.SetBucketSizes">
+<em class="property">classmethod </em><code class="descname">SetBucketSizes</code><span class="sig-paren">(</span><em>params</em>, <em>bucket_upper_bound</em>, <em>bucket_batch_limit</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Base.SetBucketSizes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base.SetBucketSizes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets bucket sizes for batches in params.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base.Train">
+<em class="property">classmethod </em><code class="descname">Train</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Base.Train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the training dataset.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base.Dev">
+<em class="property">classmethod </em><code class="descname">Dev</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Base.Dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the development dataset.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base.Devother">
+<em class="property">classmethod </em><code class="descname">Devother</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Base.Devother"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Devother" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base.Test">
+<em class="property">classmethod </em><code class="descname">Test</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Base.Test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the testing dataset.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base.Testother">
+<em class="property">classmethod </em><code class="descname">Testother</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Base.Testother"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Testother" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Base.Task">
+<em class="property">classmethod </em><code class="descname">Task</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Base.Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns task params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.params.librispeech.</code><code class="descname">Librispeech960Grapheme</code><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Grapheme"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base" title="lingvo.tasks.asr.params.librispeech.Librispeech960Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.params.librispeech.Librispeech960Base</span></code></a></p>
+<p>Base params for Librispeech 960 hour experiments using grapheme models.</p>
+<p>With 8 workers using asynchronous gradient descent on 16 (8x2) GPUs, the model
+achieves the following error rates after ~853.2K steps:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="64%" />
+<col width="36%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>Dev</td>
+<td>5.2%</td>
+</tr>
+<tr class="row-even"><td>DevOther</td>
+<td>15.2%</td>
+</tr>
+<tr class="row-odd"><td>Test</td>
+<td>5.4%</td>
+</tr>
+<tr class="row-even"><td>TestOther</td>
+<td>15.5%</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.GRAPHEME_TARGET_SEQUENCE_LENGTH">
+<code class="descname">GRAPHEME_TARGET_SEQUENCE_LENGTH</code><em class="property"> = 620</em><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.GRAPHEME_TARGET_SEQUENCE_LENGTH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.GRAPHEME_VOCAB_SIZE">
+<code class="descname">GRAPHEME_VOCAB_SIZE</code><em class="property"> = 76</em><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.GRAPHEME_VOCAB_SIZE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.InitializeTokenizer">
+<em class="property">classmethod </em><code class="descname">InitializeTokenizer</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Grapheme.InitializeTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.InitializeTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes a grapheme tokenizer.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Train">
+<em class="property">classmethod </em><code class="descname">Train</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Grapheme.Train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the training dataset.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Dev">
+<em class="property">classmethod </em><code class="descname">Dev</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Grapheme.Dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the development dataset.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Devother">
+<em class="property">classmethod </em><code class="descname">Devother</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Grapheme.Devother"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Devother" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Test">
+<em class="property">classmethod </em><code class="descname">Test</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Grapheme.Test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the testing dataset.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Testother">
+<em class="property">classmethod </em><code class="descname">Testother</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Grapheme.Testother"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Testother" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Task">
+<em class="property">classmethod </em><code class="descname">Task</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Grapheme.Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns task params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.params.librispeech.</code><code class="descname">Librispeech960Wpm</code><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Wpm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Base" title="lingvo.tasks.asr.params.librispeech.Librispeech960Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.params.librispeech.Librispeech960Base</span></code></a></p>
+<p>Base params for Librispeech 960 hour experiments using Word Piece Models.</p>
+<p>With 8 workers using asynchronous gradient descent on 16 (8x2) GPUs, the model
+achieves the following error rates after ~632.6K steps:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="64%" />
+<col width="36%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>Dev</td>
+<td>4.3%</td>
+</tr>
+<tr class="row-even"><td>DevOther</td>
+<td>13.0%</td>
+</tr>
+<tr class="row-odd"><td>Test</td>
+<td>4.5%</td>
+</tr>
+<tr class="row-even"><td>TestOther</td>
+<td>13.2%</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.WPM_SYMBOL_TABLE_FILEPATH">
+<code class="descname">WPM_SYMBOL_TABLE_FILEPATH</code><em class="property"> = 'lingvo/tasks/asr/wpm_16k_librispeech.vocab'</em><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.WPM_SYMBOL_TABLE_FILEPATH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.WPM_TARGET_SEQUENCE_LENGTH">
+<code class="descname">WPM_TARGET_SEQUENCE_LENGTH</code><em class="property"> = 140</em><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.WPM_TARGET_SEQUENCE_LENGTH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.WPM_VOCAB_SIZE">
+<code class="descname">WPM_VOCAB_SIZE</code><em class="property"> = 16328</em><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.WPM_VOCAB_SIZE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.EMBEDDING_DIMENSION">
+<code class="descname">EMBEDDING_DIMENSION</code><em class="property"> = 96</em><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.EMBEDDING_DIMENSION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.NUM_TRAINING_WORKERS">
+<code class="descname">NUM_TRAINING_WORKERS</code><em class="property"> = 8</em><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.NUM_TRAINING_WORKERS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.InitializeTokenizer">
+<em class="property">classmethod </em><code class="descname">InitializeTokenizer</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Wpm.InitializeTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.InitializeTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes a Word Piece Tokenizer.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Train">
+<em class="property">classmethod </em><code class="descname">Train</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Wpm.Train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the training dataset.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Dev">
+<em class="property">classmethod </em><code class="descname">Dev</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Wpm.Dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the development dataset.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Devother">
+<em class="property">classmethod </em><code class="descname">Devother</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Wpm.Devother"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Devother" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Test">
+<em class="property">classmethod </em><code class="descname">Test</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Wpm.Test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the testing dataset.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Testother">
+<em class="property">classmethod </em><code class="descname">Testother</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Wpm.Testother"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Testother" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Task">
+<em class="property">classmethod </em><code class="descname">Task</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/params/librispeech.html#Librispeech960Wpm.Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns task params.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

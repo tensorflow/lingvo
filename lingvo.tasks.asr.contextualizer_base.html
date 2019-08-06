@@ -164,8 +164,243 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-tasks-asr-contextualizer-base-module">
-<h1>lingvo.tasks.asr.contextualizer_base module<a class="headerlink" href="#lingvo-tasks-asr-contextualizer-base-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.tasks.asr.contextualizer_base">
+<span id="lingvo-tasks-asr-contextualizer-base-module"></span><h1>lingvo.tasks.asr.contextualizer_base module<a class="headerlink" href="#module-lingvo.tasks.asr.contextualizer_base" title="Permalink to this headline">¶</a></h1>
+<p>API for context injection into a speech decoder.</p>
+<dl class="class">
+<dt id="lingvo.tasks.asr.contextualizer_base.ContextualizerBase">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.contextualizer_base.</code><code class="descname">ContextualizerBase</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#ContextualizerBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.ContextualizerBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Base class for a contextualizer.</p>
+<p>Typical usage of a contextualizer is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">contextualizer</span><span class="o">.</span><span class="n">SetContextMap</span><span class="p">(</span><span class="n">context_map</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>  <span class="c1"># Set context map.</span>
+<span class="n">contextualizer</span><span class="o">.</span><span class="n">InitAttention</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>             <span class="c1"># Initalize attn sources.</span>
+<span class="n">context</span> <span class="o">=</span> <span class="n">contextualizer</span><span class="o">.</span><span class="n">ZeroAttention</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>   <span class="c1"># Initalize attn state.</span>
+<span class="n">context</span> <span class="o">=</span> <span class="n">contextualizer</span><span class="o">.</span><span class="n">QueryAttention</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># Call on each decoding step.</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">context</span></code> is a per-decoding-step context vector that augments the standard
+LAS model with additional context.</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">context_map</span></code> can include data needed for initialization.</p>
+<p>After parameters of the contextualizer are set, these accessors can be used:</p>
+<ul class="simple">
+<li>contextualizer.GetContextDim()</li>
+</ul>
+<dl class="method">
+<dt id="lingvo.tasks.asr.contextualizer_base.ContextualizerBase.SetContextMap">
+<code class="descname">SetContextMap</code><span class="sig-paren">(</span><em>context_map</em>, <em>theta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#ContextualizerBase.SetContextMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.SetContextMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the context map.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context_map</strong> – A NestedMap object containing the context from which
+attention vectors will be computed.</li>
+<li><strong>theta</strong> – NestedMap, parameters needed for embedding.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.contextualizer_base.ContextualizerBase.InitAttention">
+<code class="descname">InitAttention</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>misc_states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#ContextualizerBase.InitAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.InitAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialized the contextualizer’s attention.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>packed_src</strong> – A NestedMap object into which attention source vectors will be
+placed.</li>
+<li><strong>misc_states</strong> – A NestedMap object into which attention states will be
+placed.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.contextualizer_base.ContextualizerBase.ZeroAttention">
+<code class="descname">ZeroAttention</code><span class="sig-paren">(</span><em>theta</em>, <em>dec_bs</em>, <em>misc_states</em>, <em>audio_context</em>, <em>packed_src</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#ContextualizerBase.ZeroAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.ZeroAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the contextualizer ‘zero’ context vector.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>dec_bs</strong> – int32, the decoding batch size.</li>
+<li><strong>misc_states</strong> – A NestedMap object into which attention states will be
+placed.</li>
+<li><strong>audio_context</strong> – Tensor of shape [dec_bs, aud_dim] representing the
+audio-based context vector.</li>
+<li><strong>packed_src</strong> – A NestedMap object into which attention source vectors will be
+placed.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A ‘zero’ context vector of shape [dec_bs, aud_dim + context_dim]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.contextualizer_base.ContextualizerBase.QueryAttention">
+<code class="descname">QueryAttention</code><span class="sig-paren">(</span><em>theta</em>, <em>attn_query</em>, <em>misc_states</em>, <em>audio_context</em>, <em>packed_src</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#ContextualizerBase.QueryAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.QueryAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Query the contextualizer’s attention.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>attn_query</strong> – Tensor of shape [dec_bs, …] representing the query vectors.</li>
+<li><strong>misc_states</strong> – A NestedMap object into which attention states will be
+placed.</li>
+<li><strong>audio_context</strong> – Tensor of shape [dec_bs, aud_dim] representing the
+audio-based context vector.</li>
+<li><strong>packed_src</strong> – A NestedMap object into which attention source vectors will be
+placed.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A context vector of shape [dec_bs, aud_dim + context_dim]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.contextualizer_base.ContextualizerBase.GetContextDim">
+<code class="descname">GetContextDim</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#ContextualizerBase.GetContextDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.GetContextDim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the context dimension.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.asr.contextualizer_base.NullContextualizer">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.contextualizer_base.</code><code class="descname">NullContextualizer</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#NullContextualizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.NullContextualizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.contextualizer_base.ContextualizerBase" title="lingvo.tasks.asr.contextualizer_base.ContextualizerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.contextualizer_base.ContextualizerBase</span></code></a></p>
+<p>An ‘empty’ or no-op contextualizer.</p>
+<dl class="method">
+<dt id="lingvo.tasks.asr.contextualizer_base.NullContextualizer.SetContextMap">
+<code class="descname">SetContextMap</code><span class="sig-paren">(</span><em>context_map</em>, <em>theta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#NullContextualizer.SetContextMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.NullContextualizer.SetContextMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the context map.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context_map</strong> – A NestedMap object containing the context from which
+attention vectors will be computed.</li>
+<li><strong>theta</strong> – NestedMap, parameters needed for embedding.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.contextualizer_base.NullContextualizer.InitAttention">
+<code class="descname">InitAttention</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#NullContextualizer.InitAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.NullContextualizer.InitAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialized the contextualizer’s attention.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>packed_src</strong> – A NestedMap object into which attention source vectors will be
+placed.</li>
+<li><strong>misc_states</strong> – A NestedMap object into which attention states will be
+placed.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.contextualizer_base.NullContextualizer.ZeroAttention">
+<code class="descname">ZeroAttention</code><span class="sig-paren">(</span><em>theta</em>, <em>dec_bs</em>, <em>misc_states</em>, <em>audio_context</em>, <em>packed_src</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#NullContextualizer.ZeroAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.NullContextualizer.ZeroAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the contextualizer ‘zero’ context vector.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>dec_bs</strong> – int32, the decoding batch size.</li>
+<li><strong>misc_states</strong> – A NestedMap object into which attention states will be
+placed.</li>
+<li><strong>audio_context</strong> – Tensor of shape [dec_bs, aud_dim] representing the
+audio-based context vector.</li>
+<li><strong>packed_src</strong> – A NestedMap object into which attention source vectors will be
+placed.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A ‘zero’ context vector of shape [dec_bs, aud_dim + context_dim]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.contextualizer_base.NullContextualizer.QueryAttention">
+<code class="descname">QueryAttention</code><span class="sig-paren">(</span><em>theta</em>, <em>attn_query</em>, <em>misc_states</em>, <em>audio_context</em>, <em>packed_src</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#NullContextualizer.QueryAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.NullContextualizer.QueryAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Query the contextualizer’s attention.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>attn_query</strong> – Tensor of shape [dec_bs, …] representing the query vectors.</li>
+<li><strong>misc_states</strong> – A NestedMap object into which attention states will be
+placed.</li>
+<li><strong>audio_context</strong> – Tensor of shape [dec_bs, aud_dim] representing the
+audio-based context vector.</li>
+<li><strong>packed_src</strong> – A NestedMap object into which attention source vectors will be
+placed.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A context vector of shape [dec_bs, aud_dim + context_dim]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.contextualizer_base.NullContextualizer.GetContextDim">
+<code class="descname">GetContextDim</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#NullContextualizer.GetContextDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.NullContextualizer.GetContextDim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the context dimension.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

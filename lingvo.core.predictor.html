@@ -163,8 +163,142 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-core-predictor-module">
-<h1>lingvo.core.predictor module<a class="headerlink" href="#lingvo-core-predictor-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.core.predictor">
+<span id="lingvo-core-predictor-module"></span><h1>lingvo.core.predictor module<a class="headerlink" href="#module-lingvo.core.predictor" title="Permalink to this headline">¶</a></h1>
+<p>Predictor does inference using a saved inference graph.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">params</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;MyModel&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">)</span>
+<span class="n">inference_graph</span> <span class="o">=</span> <span class="n">inference_graph_exporter</span><span class="o">.</span><span class="n">InferenceGraphExporter</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">)</span>
+<span class="n">pred</span> <span class="o">=</span> <span class="n">Predictor</span><span class="p">(</span><span class="n">inference_graph</span><span class="o">=</span><span class="n">inference_graph</span><span class="p">)</span>
+<span class="n">pred</span><span class="o">.</span><span class="n">Load</span><span class="p">(</span><span class="s2">&quot;/tmp/logdir/train/ckpt-00000000&quot;</span><span class="p">)</span>
+<span class="p">[</span><span class="n">topk_hyps</span><span class="p">]</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">Run</span><span class="p">([</span><span class="s2">&quot;topk_hyps&quot;</span><span class="p">],</span> <span class="n">src_strings</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Hello World&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<dl class="function">
+<dt id="lingvo.core.predictor.LoadInferenceGraph">
+<code class="descclassname">lingvo.core.predictor.</code><code class="descname">LoadInferenceGraph</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#LoadInferenceGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.LoadInferenceGraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the given path as an InferenceGraph proto.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> – The path to the file to load.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An InferenceGraph object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.predictor.Predictor">
+<em class="property">class </em><code class="descclassname">lingvo.core.predictor.</code><code class="descname">Predictor</code><span class="sig-paren">(</span><em>inference_graph</em>, <em>subgraph_name=None</em>, <em>checkpoint=None</em>, <em>device_type='gpu'</em>, <em>tf_master=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Loads a model and does inference.</p>
+<p>See model.Inference() documentation for list of fetches and feeds.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>inference_graph</strong> – A saved InferenceGraph proto.</li>
+<li><strong>subgraph_name</strong> – The subgraph to use for prediction.</li>
+<li><strong>checkpoint</strong> – An optional checkpoint to load.</li>
+<li><strong>device_type</strong> – Device type string. Either “cpu”, “gpu”, or “tpu”.</li>
+<li><strong>tf_master</strong> – The tf_master.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="lingvo.core.predictor.Predictor.fetch_keys">
+<code class="descname">fetch_keys</code><a class="headerlink" href="#lingvo.core.predictor.Predictor.fetch_keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.predictor.Predictor.feed_keys">
+<code class="descname">feed_keys</code><a class="headerlink" href="#lingvo.core.predictor.Predictor.feed_keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.predictor.Predictor._CreateNewSession">
+<code class="descname">_CreateNewSession</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor._CreateNewSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor._CreateNewSession" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates self._sess with a new session.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.predictor.Predictor._MaybeCreateNewSession">
+<code class="descname">_MaybeCreateNewSession</code><span class="sig-paren">(</span><em>sess_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor._MaybeCreateNewSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor._MaybeCreateNewSession" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new session if sess_id is the current session.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sess_id</strong> – The id of a session that no longer works.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.predictor.Predictor._RunWithValidSession">
+<code class="descname">_RunWithValidSession</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor._RunWithValidSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor._RunWithValidSession" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensures <code class="xref py py-obj docutils literal notranslate"><span class="pre">fn</span></code> is called while self._sess is a valid session.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.predictor.Predictor.Load">
+<code class="descname">Load</code><span class="sig-paren">(</span><em>checkpoint</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads parameters from a checkpoint.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>checkpoint</strong> – The checkpoint path to restore.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.predictor.Predictor.Run">
+<code class="descname">Run</code><span class="sig-paren">(</span><em>fetch_keys</em>, <em>validate_fetches=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs predictor.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fetch_keys</strong> – a list of keys in the fetch dictionary to fetch.</li>
+<li><strong>validate_fetches</strong> – if True, raises a KeyError if a specified fetch is
+invalid. If False, returns None for invalid fetches instead.</li>
+<li><strong>**kwargs</strong> – a dict of inputs to feed.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A list of predictions corresponding to the order of fetch_keys.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">InvalidArgumentError</span></code> – the number of inputs does not meet requirements.</li>
+<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code> – a feed specified in kwargs is invalid, or a fetch in fetch_keys
+is invalid and validate_fetches is True.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.predictor.main">
+<code class="descclassname">lingvo.core.predictor.</code><code class="descname">main</code><span class="sig-paren">(</span><em>_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 
 

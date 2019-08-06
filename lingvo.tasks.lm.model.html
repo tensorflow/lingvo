@@ -164,8 +164,142 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-tasks-lm-model-module">
-<h1>lingvo.tasks.lm.model module<a class="headerlink" href="#lingvo-tasks-lm-model-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.tasks.lm.model">
+<span id="lingvo-tasks-lm-model-module"></span><h1>lingvo.tasks.lm.model module<a class="headerlink" href="#module-lingvo.tasks.lm.model" title="Permalink to this headline">¶</a></h1>
+<p>LM models.</p>
+<dl class="class">
+<dt id="lingvo.tasks.lm.model.LanguageModel">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.lm.model.</code><code class="descname">LanguageModel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#LanguageModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.LanguageModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseTask</span></code></a></p>
+<p>Language model.</p>
+<dl class="classmethod">
+<dt id="lingvo.tasks.lm.model.LanguageModel.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#LanguageModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.LanguageModel.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.model.LanguageModel._TrimIfPossibleThenTranspose">
+<code class="descname">_TrimIfPossibleThenTranspose</code><span class="sig-paren">(</span><em>ids</em>, <em>paddings</em>, <em>labels</em>, <em>weights</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#LanguageModel._TrimIfPossibleThenTranspose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.LanguageModel._TrimIfPossibleThenTranspose" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.model.LanguageModel.FPropTower">
+<code class="descname">FPropTower</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#LanguageModel.FPropTower"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.LanguageModel.FPropTower" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation through one tower of the model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task
+copied to this tower’s devices.</li>
+<li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A dict containing str keys and (metric, weight) pairs as values, where
+one of the keys is expected to be ‘loss’.
+A dict containing arbitrary tensors describing something about each
+training example, where the first dimension of each tensor is the batch
+index.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Two dicts</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.model.LanguageModel.AdjustGradients">
+<code class="descname">AdjustGradients</code><span class="sig-paren">(</span><em>var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#LanguageModel.AdjustGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.LanguageModel.AdjustGradients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clip LSTM gradients.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>var_grad</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient). You can view
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">var_grad</span></code> as an ordered list of (key, (var, grad)) tuples. Every
+key of <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_grad</span></code> exists in <code class="xref py py-obj docutils literal notranslate"><span class="pre">vmap</span></code>. Every variable in <code class="xref py py-obj docutils literal notranslate"><span class="pre">vmap</span></code> that
+contributes to loss must exist in <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_grad</span></code>. Every var of <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_grad</span></code>
+must exist in <code class="xref py py-obj docutils literal notranslate"><span class="pre">vmap</span></code>. <code class="xref py py-obj docutils literal notranslate"><span class="pre">grad</span></code> is the corresponding gradient computed
+for <code class="xref py py-obj docutils literal notranslate"><span class="pre">var</span></code>. <code class="xref py py-obj docutils literal notranslate"><span class="pre">grad</span></code> is guaranteed to be not None.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">adjusted version of <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_grad</span></code> that has clipped the LSTM gradients
+if <code class="xref py py-obj docutils literal notranslate"><span class="pre">self.params.max_lstm_gradient_norm</span></code> is set.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.model.LanguageModel.Inference">
+<code class="descname">Inference</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#LanguageModel.Inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.LanguageModel.Inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the inference subgraphs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(fetches, feeds)}</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">{‘subgraph_name’</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.model.LanguageModel._InferenceSubgraph_Default">
+<code class="descname">_InferenceSubgraph_Default</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#LanguageModel._InferenceSubgraph_Default"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.LanguageModel._InferenceSubgraph_Default" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default inference subgraph.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li>fetches: A dictionary of fetches, containing:<ul>
+<li>log_pplx_per_token: A matrix of shape [batch, time]. [i, j]
+is i-th input text’s j-th token’s log prob.</li>
+<li>paddings: A matrix of shape [batch, time]. The padding mask.</li>
+<li>log_pplx_per_sample: A vector of shape [batch]. [i]
+is i-th input text’s log prob.</li>
+<li>num_oovs_per_sample: A vector of shape [batch] counting the total
+number of out-of-vocabulary tokens in each input.</li>
+<li>tokens_from_labels: A vector of shape [batch] returning the predicted
+tokens as a sequence after mapping them back to strings from ids using
+the vocabulary.</li>
+<li>ids: A matrix of shape [batch, time]. [i, j]
+is i-th input text’s j-th token’s id.</li>
+</ul>
+</li>
+<li>feeds: A dictionary of feeds, containing:<ul>
+<li>text: A placeholder for a vector of strings.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(fetches, feeds), with</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.lm.model.FixedShapeInputLanguageModel">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.lm.model.</code><code class="descname">FixedShapeInputLanguageModel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#FixedShapeInputLanguageModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.FixedShapeInputLanguageModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.model.LanguageModel" title="lingvo.tasks.lm.model.LanguageModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.model.LanguageModel</span></code></a></p>
+<dl class="method">
+<dt id="lingvo.tasks.lm.model.FixedShapeInputLanguageModel._TrimIfPossibleThenTranspose">
+<code class="descname">_TrimIfPossibleThenTranspose</code><span class="sig-paren">(</span><em>ids</em>, <em>paddings</em>, <em>labels</em>, <em>weights</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#FixedShapeInputLanguageModel._TrimIfPossibleThenTranspose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.FixedShapeInputLanguageModel._TrimIfPossibleThenTranspose" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 
 
