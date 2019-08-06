@@ -779,8 +779,8 @@ def ToStaticShape(shape):
     return shape
 
 
-def Zeros(shape):
-  return tf.zeros(ToStaticShape(shape))
+def Zeros(shape, *args, **kwargs):
+  return tf.zeros(ToStaticShape(shape), *args, **kwargs)
 
 
 class RNNCellStateInit(object):

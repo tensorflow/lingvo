@@ -23,6 +23,7 @@ import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import layers as lingvo_layers
 from lingvo.core import py_utils
+from lingvo.core import symbolic
 from lingvo.core import test_utils
 from lingvo.core.ops.hyps_pb2 import Hypothesis
 from lingvo.tasks.asr import decoder
@@ -626,6 +627,23 @@ class DecoderTest(test_utils.TestCase):
               dec.theta, encoder_outputs, random_seed=tf.to_int32(123456)))
       # Get different sequences.
       self.assertNotAllClose(expected_ids, decoder_output3.ids)
+
+  def testDecoderFPropWithSymbolicShape(self):
+    """Create decoder with default params, and verify that FProp runs."""
+    with self.session() as sess:
+      p = self._DecoderParams(
+          vn_config=py_utils.VariationalNoiseParams(None, True, False))
+      p.rnn_cell_dim = symbolic.Symbol('rnn_cell_dim')
+
+      with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES,
+                                     {p.rnn_cell_dim: 6}):
+        loss, per_sequence_loss = self._testDecoderFPropHelper(params=p)
+        tf.global_variables_initializer().run()
+        loss_val, per_sequence_loss_val = sess.run([loss, per_sequence_loss])
+
+      print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
+      # Target batch size is 4. Therefore, we should expect 4 here.
+      self.assertEqual(per_sequence_loss_val.shape, (4,))
 
 
 if __name__ == '__main__':

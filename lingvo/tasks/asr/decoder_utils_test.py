@@ -19,10 +19,56 @@ from __future__ import division
 from __future__ import print_function
 
 import lingvo.compat as tf
+from lingvo.core import rnn_cell
+from lingvo.core import symbolic
 from lingvo.core import test_utils
+from lingvo.tasks.asr import decoder
 from lingvo.tasks.asr import decoder_utils
 
 FLAGS = tf.flags.FLAGS
+
+
+class DecoderUtilsSetRnnCellNodesTest(test_utils.TestCase):
+
+  def testSetRnnCellNodes(self):
+    decoder_p = decoder.AsrDecoder.Params()
+    base_rnn_p = rnn_cell.LSTMCellSimple.Params().Set(num_output_nodes=4)
+
+    # rnn_cell_dim > 0.
+    decoder_p.rnn_cell_dim = 8
+    rnn_p = base_rnn_p.Copy()
+    decoder_utils.SetRnnCellNodes(decoder_p, rnn_p)
+    self.assertEqual(rnn_p.num_output_nodes, decoder_p.rnn_cell_dim)
+
+    # rnn_cell_dim <= 0.
+    decoder_p.rnn_cell_dim = 0
+    rnn_p = base_rnn_p.Copy()
+    decoder_utils.SetRnnCellNodes(decoder_p, rnn_p)
+    self.assertEqual(rnn_p.num_output_nodes, base_rnn_p.num_output_nodes)
+
+    # rnn_cell_dim is a symbol.
+    decoder_p.rnn_cell_dim = symbolic.Symbol("rnn_cell_dim")
+    rnn_p = base_rnn_p.Copy()
+    decoder_utils.SetRnnCellNodes(decoder_p, rnn_p)
+    self.assertIs(rnn_p.num_output_nodes, decoder_p.rnn_cell_dim)
+
+    # rnn_cell_hidden_dim > 0.
+    decoder_p.rnn_cell_hidden_dim = 16
+    rnn_p = base_rnn_p.Copy()
+    decoder_utils.SetRnnCellNodes(decoder_p, rnn_p)
+    self.assertEqual(rnn_p.num_hidden_nodes, decoder_p.rnn_cell_hidden_dim)
+
+    # rnn_cell_hidden_dim <= 0.
+    decoder_p.rnn_cell_hidden_dim = 0
+    rnn_p = base_rnn_p.Copy()
+    decoder_utils.SetRnnCellNodes(decoder_p, rnn_p)
+    self.assertEqual(rnn_p.num_hidden_nodes, base_rnn_p.num_hidden_nodes)
+
+    # rnn_cell_hidden_dim is a symbol.
+    decoder_p.rnn_cell_hidden_dim = symbolic.Symbol("rnn_cell_hidden_dim")
+    rnn_p = base_rnn_p.Copy()
+    decoder_utils.SetRnnCellNodes(decoder_p, rnn_p)
+    self.assertIs(rnn_p.num_hidden_nodes, decoder_p.rnn_cell_hidden_dim)
 
 
 class DecoderUtilsTokenizeTest(test_utils.TestCase):

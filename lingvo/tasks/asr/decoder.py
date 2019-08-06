@@ -416,8 +416,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         self.atten.ComputeContextVectorWithSource(
             theta.atten,
             packed_src,
-            tf.zeros([bs, self.rnn_cell[0].params.num_output_nodes],
-                     dtype=py_utils.FPropDtype(p)),
+            py_utils.Zeros([bs, self.rnn_cell[0].params.num_output_nodes],
+                           dtype=py_utils.FPropDtype(p)),
             zero_atten_state,
             per_step_source_padding=per_step_source_padding))
     atten_context = self.contextualizer.ZeroAttention(
@@ -615,7 +615,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     metrics = {
         'loss': (loss, loss_weight),
         # add log_pplx for compatibility with the mt/decoder.py
-        'log_pplx': (per_token_avg_loss, target_weights_sum)
+        'log_pplx': (per_token_avg_loss, target_weights_sum),
+        'token_normed_prob': (tf.exp(-per_token_avg_loss), target_weights_sum),
     }
     if not py_utils.use_tpu():
       metrics['fraction_of_correct_next_step_preds'] = (accuracy,
@@ -1014,8 +1015,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       atten_context_dim = self._GetAttenContextDim()
       rnn_output_dim = self.rnn_cell[-1].params.num_output_nodes
       out_dim = rnn_output_dim + atten_context_dim
-      state0.step_outs = tf.zeros([dec_bs, out_dim],
-                                  dtype=py_utils.FPropDtype(p))
+      state0.step_outs = py_utils.Zeros([dec_bs, out_dim],
+                                        dtype=py_utils.FPropDtype(p))
       target_embs = self.emb.EmbLookup(theta.emb, targets.ids)
       target_embs = self._ApplyDropout(theta, target_embs)
       inputs = py_utils.NestedMap(

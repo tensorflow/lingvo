@@ -111,6 +111,7 @@ py_library(
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
+        "//lingvo/core:symbolic",
         # Implicit six dependency.
     ],
 )
@@ -119,8 +120,11 @@ py_test(
     name = "decoder_utils_test",
     srcs = ["decoder_utils_test.py"],
     deps = [
+        ":decoder",
         ":decoder_utils",
         "//lingvo:compat",
+        "//lingvo/core:rnn_cell",
+        "//lingvo/core:symbolic",
         "//lingvo/core:test_utils",
     ],
 )
@@ -170,6 +174,7 @@ py_test(
         "//lingvo/core:cluster_factory",
         "//lingvo/core:layers",
         "//lingvo/core:py_utils",
+        "//lingvo/core:symbolic",
         "//lingvo/core:test_utils",
         "//lingvo/core/ops:hyps_py_pb2",
         # Implicit numpy dependency.
