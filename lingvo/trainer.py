@@ -698,6 +698,13 @@ class TrainerTpu(base_runner.BaseRunner):
     self._steps_per_loop = min(self.params.train.tpu_steps_per_loop,
                                self.params.train.max_steps)
 
+    if self._cluster.params.worker.targets:
+      self._cluster_def = tf.train.ClusterSpec({
+          'worker': self._cluster.params.worker.targets.split(',')
+      }).as_cluster_def()
+    else:
+      self._cluster_def = None
+
     self._initialized = threading.Event()
 
     tf.logging.info(
@@ -805,6 +812,10 @@ class TrainerTpu(base_runner.BaseRunner):
     # Saves the graph def.
     tf.train.write_graph(self._graph.as_graph_def(), self._train_dir,
                          'train.pbtxt')
+
+  def _GetSession(self, **kwargs):
+    return super(TrainerTpu, self)._GetSession(
+        cluster_def=self._cluster_def, **kwargs)
 
   def _OutfeedEnqueue(self, per_example_tensors):
     if not per_example_tensors:
@@ -1392,6 +1403,20 @@ class Decoder(base_runner.BaseRunner):
       self.DecodeCheckpoint(sess, path)
 
 
+def _GetClusterSpecDict():
+  """Parses the cluster_spec flag and returns a dict."""
+  job_specs = FLAGS.cluster_spec.split('@')
+  cluster_spec_dict = {}
+  for job_spec in job_specs:
+    # ps_host=worker1:1231,worker2:1234
+    job_machines = job_spec.split('=')
+    if len(job_machines) != 2:
+      raise ValueError('Invalid job specification: %s', job_spec)
+    cluster_spec_dict[job_machines[0]] = job_machines[1].split(',')
+
+  return cluster_spec_dict
+
+
 class RunnerManager(object):
   """Helper class for managing runners."""
 
@@ -1421,14 +1446,7 @@ class RunnerManager(object):
     if not target.startswith('localhost'):
       # E.g., trainer_client is configured w/ FLAGS.tf_master pointing to
       # another job. In that case, start a local server.
-      job_specs = FLAGS.cluster_spec.split('@')
-      cluster_spec_dict = {}
-      for job_spec in job_specs:
-        # ps_host=worker1:1231,worker2:1234
-        job_machines = job_spec.split('=')
-        if len(job_machines) != 2:
-          raise ValueError('Invalid job specification: %s', job_spec)
-        cluster_spec_dict[job_machines[0]] = job_machines[1].split(',')
+      cluster_spec_dict = _GetClusterSpecDict()
       self._tf_server = tf.train.Server(
           tf.train.ClusterSpec(cluster_spec_dict),
           job_name=FLAGS.job,
@@ -1474,13 +1492,7 @@ class RunnerManager(object):
     if not FLAGS.cluster_spec:
       return
     job_specs = FLAGS.cluster_spec.split('@')
-    cluster_spec_dict = {}
-    for job_spec in job_specs:
-      # ps_host=worker1:1231,worker2:1234
-      job_machines = job_spec.split('=')
-      if len(job_machines) != 2:
-        raise ValueError('Invalid job specification: %s', job_spec)
-      cluster_spec_dict[job_machines[0]] = job_machines[1].split(',')
+    cluster_spec_dict = _GetClusterSpecDict()
     if FLAGS.job == 'trainer_client':
       FLAGS.tf_master = 'grpc://%s' % cluster_spec_dict['worker'][FLAGS.task]
     for job in cluster_spec_dict.keys():
@@ -1494,17 +1506,18 @@ class RunnerManager(object):
         assert ',' not in job_specs[0], 'Only single machine supported'
         FLAGS.evaler_job = '/job:%s' % job
         FLAGS.evaler_replicas = 1
-      if FLAGS.mode == 'sync' and FLAGS.job in ('controller', 'trainer_client',
-                                                'worker'):
-        FLAGS.worker_job = '/job:worker'
-        FLAGS.worker_replicas = len(cluster_spec_dict['worker'])
-        FLAGS.ps_job = '/job:worker'
-        FLAGS.ps_replicas = FLAGS.worker_replicas
-      if FLAGS.mode == 'async' and FLAGS.job in ('controller', 'trainer', 'ps'):
-        FLAGS.worker_job = '/job:trainer'
-        FLAGS.worker_replicas = len(cluster_spec_dict['trainer'])
-        FLAGS.ps_job = '/job:ps'
-        FLAGS.ps_replicas = len(cluster_spec_dict['ps'])
+
+    if FLAGS.mode == 'sync' and FLAGS.job in ('controller', 'trainer_client',
+                                              'worker'):
+      FLAGS.worker_job = '/job:worker'
+      FLAGS.worker_replicas = len(cluster_spec_dict['worker'])
+      FLAGS.ps_job = '/job:worker'
+      FLAGS.ps_replicas = FLAGS.worker_replicas
+    if FLAGS.mode == 'async' and FLAGS.job in ('controller', 'trainer', 'ps'):
+      FLAGS.worker_job = '/job:trainer'
+      FLAGS.worker_replicas = len(cluster_spec_dict['trainer'])
+      FLAGS.ps_job = '/job:ps'
+      FLAGS.ps_replicas = len(cluster_spec_dict['ps'])
 
   def MaybeConfigCloudTpu(self):
     """If given `FLAGS.tpu`, update flags for running on a Cloud TPU."""
@@ -1515,18 +1528,18 @@ class RunnerManager(object):
         tpu=FLAGS.tpu,
         project=FLAGS.gcp_project,
         zone=FLAGS.tpu_zone,
-        job_name='tpu_worker',
         coordinator_name='trainer_client',
         coordinator_address='localhost:0')
     cluster_spec_dict = cluster_resolver.cluster_spec().as_dict()
 
     FLAGS.job = 'trainer_client'
-    FLAGS.tf_master = cluster_resolver.get_master()
+    FLAGS.tf_master = cluster_resolver.master()
 
-    FLAGS.worker_job = '/job:tpu_worker'
-    FLAGS.worker_replicas = len(cluster_spec_dict['tpu_worker'])
-    FLAGS.worker_num_tpu_hosts = FLAGS.worker_replicas
-    FLAGS.worker_tpus = cluster_resolver.num_accelerators()['TPU']
+    FLAGS.worker_job = '/job:worker'
+    FLAGS.worker_replicas = 1
+    FLAGS.worker_num_tpu_hosts = len(cluster_spec_dict['worker'])
+    FLAGS.worker_tpus = (
+        cluster_resolver.num_accelerators()['TPU'] * FLAGS.worker_num_tpu_hosts)
     FLAGS.ps_job = FLAGS.worker_job
     FLAGS.ps_replicas = FLAGS.worker_replicas
 
@@ -1553,6 +1566,10 @@ class RunnerManager(object):
     cluster.worker.tpus_per_replica = FLAGS.worker_tpus
     cluster.worker.num_tpu_hosts = FLAGS.worker_num_tpu_hosts
     cluster.worker.devices_per_split = FLAGS.worker_split_size
+    if FLAGS.tpu:
+      job_name = cluster.worker.name.replace('/job:', '', 1)
+      worker_hosts = _GetClusterSpecDict()[job_name]
+      cluster.worker.targets = ','.join(worker_hosts)
 
     cluster.ps.name = FLAGS.ps_job
     cluster.ps.replicas = FLAGS.ps_replicas

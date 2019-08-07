@@ -446,12 +446,13 @@ def GetTpuDeviceAssignment():
   return _tpu_device_assignment
 
 
-def SessionConfig(soft_placement=True, inline=True):
+def SessionConfig(soft_placement=True, inline=True, cluster_def=None):
   """Returns a session config proto.
 
   Args:
     soft_placement: Turns allow_soft_placement on iff True.
     inline: Turns do_function_inlining on iff True.
+    cluster_def: A tf.train.ClusterDef describing the cluster.
 
   Returns:
     A TF session config proto.
@@ -460,7 +461,8 @@ def SessionConfig(soft_placement=True, inline=True):
       allow_soft_placement=soft_placement,
       graph_options=tf.GraphOptions(
           optimizer_options=tf.OptimizerOptions(
-              opt_level=tf.OptimizerOptions.L1, do_function_inlining=inline)))
+              opt_level=tf.OptimizerOptions.L1, do_function_inlining=inline)),
+      cluster_def=cluster_def)
   # Disable layout optimizer which increases GPU memory usage.
   session_config.graph_options.rewrite_options.layout_optimizer = (
       rewriter_config_pb2.RewriterConfig.OFF)
