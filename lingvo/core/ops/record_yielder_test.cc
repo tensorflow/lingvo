@@ -376,5 +376,24 @@ TEST(RecordYielder, RegisterFakeIterator) {
   yielder->Close();
 }
 
+TEST(RecordYielder, Iota) {
+  BasicRecordYielder::Options opts;
+  opts.file_pattern = "iota:100";
+  opts.bufsize = 16;
+  opts.parallelism = 1;
+  BasicRecordYielder* yielder = BasicRecordYielder::New(opts);
+  std::vector<string> vals;
+  Rope v;
+  for (int i = 0; i < 100; ++i) {
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    VLOG(1) << i << " " << v;
+    vals.emplace_back(string(v));
+  }
+  std::sort(vals.begin(), vals.end());
+  auto new_end = std::unique(vals.begin(), vals.end());
+  EXPECT_EQ(new_end, vals.end());
+  yielder->Close();
+}
+
 }  // namespace lingvo
 }  // namespace tensorflow

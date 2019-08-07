@@ -25,6 +25,7 @@ limitations under the License.
 #include "tensorflow/core/lib/io/compression.h"
 #include "tensorflow/core/lib/io/random_inputstream.h"
 #include "tensorflow/core/lib/io/record_reader.h"
+#include "tensorflow/core/lib/strings/numbers.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
@@ -253,6 +254,29 @@ class TFRecordIterator : public RecordIterator {
   }
 };
 
+// An iterator generates [0 .. max_).
+class IotaIterator : public RecordIterator {
+ public:
+  IotaIterator(const string& filename) {
+    if (filename.empty() || !strings::safe_strto64(filename, &max_)) {
+      max_ = kint64max;
+    }
+  }
+
+  bool Next(string* key, Rope* value) override {
+    if (num_ >= max_) {
+      return false;
+    }
+    *key = strings::Printf("%010lld", num_++);
+    *value = *key;
+    return true;
+  }
+
+ private:
+  int64 max_ = kint64max;
+  int64 num_ = 0;
+};
+
 namespace {
 
 bool register_text_iterator = RecordIterator::Register(
@@ -267,6 +291,14 @@ bool register_tf_record_iterator =
 bool register_tf_record_gzip_iterator =
     RecordIterator::Register("tfrecord_gzip", [](const string& filename) {
       return new TFRecordIterator(filename, io::compression::kGzip);
+    });
+
+bool register_iota_iterator = RecordIterator::RegisterWithPatternParser(
+    "iota", [](const string& filename) { return new IotaIterator(filename); },
+    [](const string& pattern, std::vector<string>* outs) {
+      // The pattern is just a stringified number.
+      *outs = {pattern};
+      return Status::OK();
     });
 
 }  // namespace
