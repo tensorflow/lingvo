@@ -35,6 +35,31 @@ class PlotTest(test_utils.TestCase):
     self.assertEqual(plot.ToUnicode(str_str), uni_str)
     self.assertEqual(plot.ToUnicode(str_str), plot.ToUnicode(uni_str))
 
+  def testMatrix(self):
+    summary = plot.Matrix('summary', (4, 4), np.random.rand(10, 10))
+    self.assertEqual(len(summary.value), 1)
+    value = summary.value[0]
+    self.assertGreater(value.image.width, 0)
+    self.assertGreater(value.image.height, 0)
+
+  def testScatter(self):
+    summary = plot.Scatter(
+        'summary', (4, 4), xs=np.random.rand(10), ys=np.random.rand(10))
+    self.assertEqual(len(summary.value), 1)
+    value = summary.value[0]
+    self.assertGreater(value.image.width, 0)
+    self.assertGreater(value.image.height, 0)
+
+  def testScatter3D(self):
+    # Passing `zs` means the plot tries to use '3d' projection, which is not
+    # installed by default, so raises a ValueError.
+    with self.assertRaisesRegexp(ValueError, 'Unknown projection'):
+      _ = plot.Scatter(
+          'summary', (4, 4),
+          xs=np.random.rand(10),
+          ys=np.random.rand(10),
+          zs=np.random.rand(10))
+
 
 class MatplotlibFigureSummaryTest(test_utils.TestCase):
 
@@ -219,31 +244,6 @@ class MatplotlibFigureSummaryTest(test_utils.TestCase):
       summary_str = s.run(im)
     summary = tf.summary.Summary.FromString(summary_str)
     self.assertEqual(len(summary.value), 1)
-
-  def testMatrix(self):
-    summary = plot.Matrix('summary', (4, 4), np.random.rand(10, 10))
-    self.assertEqual(len(summary.value), 1)
-    value = summary.value[0]
-    self.assertGreater(value.image.width, 0)
-    self.assertGreater(value.image.height, 0)
-
-  def testScatter(self):
-    summary = plot.Scatter(
-        'summary', (4, 4), xs=np.random.rand(10), ys=np.random.rand(10))
-    self.assertEqual(len(summary.value), 1)
-    value = summary.value[0]
-    self.assertGreater(value.image.width, 0)
-    self.assertGreater(value.image.height, 0)
-
-  def testScatter3D(self):
-    # Passing `zs` means the plot tries to use '3d' projection, which is not
-    # installed by default, so raises a ValueError.
-    with self.assertRaisesRegexp(ValueError, 'Unknown projection'):
-      _ = plot.Scatter(
-          'summary', (4, 4),
-          xs=np.random.rand(10),
-          ys=np.random.rand(10),
-          zs=np.random.rand(10))
 
 
 if __name__ == '__main__':
