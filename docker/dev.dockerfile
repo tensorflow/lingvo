@@ -66,7 +66,9 @@ RUN pip --no-cache-dir install \
         sklearn \
         sphinx \
         sphinx_rtd_theme \
-	sympy \
+        sympy \
+        google-api-python-client \
+        oauth2client \
         && \
     python -m ipykernel.kernelspec
 
