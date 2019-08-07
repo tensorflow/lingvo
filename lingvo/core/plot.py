@@ -138,10 +138,16 @@ class MatplotlibFigureSummary(object):
   Typical usage::
 
       >>> fig_helper = plot.MatplotlibFigureSummary(
-      ...    'summary_name', shared_subplot_kwargs={'xlabel': 'Time'})
+      ...     'summary_name', shared_subplot_kwargs={'xlabel': 'Time'})
       >>> fig_helper.AddSubplot([tensor1], title='tensor1')
       >>> fig_helper.AddSubplot([tensor2], title='tensor2', ylabel='Frequency')
       >>> image_summary = fig_helper.Finalize()
+
+  Can also be used as a context manager if the caller does not need the return
+  value from Finalize(), e.g.
+
+      >>> with plot.MatplotlibFigureSummary('figure') as fig:
+      ...     fig.AddSubplot([tensor1])
   """
 
   def __init__(self,
@@ -179,6 +185,12 @@ class MatplotlibFigureSummary(object):
     self._shared_subplot_kwargs = (
         shared_subplot_kwargs if shared_subplot_kwargs else {})
     self._subplots = []
+
+  def __enter__(self):
+    return self
+
+  def __exit__(self, unused_exc_type, unused_exc_value, unused_tb):
+    self.Finalize()
 
   def AddSubplot(self, tensor_list, plot_func=None, **kwargs):
     r"""Adds a subplot from tensors using plot_fun to populate the subplot axes.
