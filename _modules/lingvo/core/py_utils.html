@@ -591,12 +591,13 @@
   <span class="k">return</span> <span class="n">_tpu_device_assignment</span>
 
 
-<span class="k">def</span> <span class="nf">SessionConfig</span><span class="p">(</span><span class="n">soft_placement</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inline</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">SessionConfig</span><span class="p">(</span><span class="n">soft_placement</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inline</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cluster_def</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a session config proto.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    soft_placement: Turns allow_soft_placement on iff True.</span>
 <span class="sd">    inline: Turns do_function_inlining on iff True.</span>
+<span class="sd">    cluster_def: A tf.train.ClusterDef describing the cluster.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A TF session config proto.</span>
@@ -605,7 +606,8 @@
       <span class="n">allow_soft_placement</span><span class="o">=</span><span class="n">soft_placement</span><span class="p">,</span>
       <span class="n">graph_options</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphOptions</span><span class="p">(</span>
           <span class="n">optimizer_options</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">OptimizerOptions</span><span class="p">(</span>
-              <span class="n">opt_level</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">OptimizerOptions</span><span class="o">.</span><span class="n">L1</span><span class="p">,</span> <span class="n">do_function_inlining</span><span class="o">=</span><span class="n">inline</span><span class="p">)))</span>
+              <span class="n">opt_level</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">OptimizerOptions</span><span class="o">.</span><span class="n">L1</span><span class="p">,</span> <span class="n">do_function_inlining</span><span class="o">=</span><span class="n">inline</span><span class="p">)),</span>
+      <span class="n">cluster_def</span><span class="o">=</span><span class="n">cluster_def</span><span class="p">)</span>
   <span class="c1"># Disable layout optimizer which increases GPU memory usage.</span>
   <span class="n">session_config</span><span class="o">.</span><span class="n">graph_options</span><span class="o">.</span><span class="n">rewrite_options</span><span class="o">.</span><span class="n">layout_optimizer</span> <span class="o">=</span> <span class="p">(</span>
       <span class="n">rewriter_config_pb2</span><span class="o">.</span><span class="n">RewriterConfig</span><span class="o">.</span><span class="n">OFF</span><span class="p">)</span>

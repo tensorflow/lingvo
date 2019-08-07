@@ -843,6 +843,13 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span><span class="p">,</span>
                                <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ClusterSpec</span><span class="p">({</span>
+          <span class="s1">&#39;worker&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+      <span class="p">})</span><span class="o">.</span><span class="n">as_cluster_def</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span> <span class="o">=</span> <span class="kc">None</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -950,6 +957,10 @@
     <span class="c1"># Saves the graph def.</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
                          <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TrainerTpu._GetSession"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._GetSession">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSession</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">TrainerTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span>
+        <span class="n">cluster_def</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TrainerTpu._OutfeedEnqueue"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._OutfeedEnqueue">[docs]</a>  <span class="k">def</span> <span class="nf">_OutfeedEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">per_example_tensors</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">per_example_tensors</span><span class="p">:</span>
@@ -1537,6 +1548,20 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">DecodeCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="_GetClusterSpecDict"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer._GetClusterSpecDict">[docs]</a><span class="k">def</span> <span class="nf">_GetClusterSpecDict</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Parses the cluster_spec flag and returns a dict.&quot;&quot;&quot;</span>
+  <span class="n">job_specs</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_spec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
+  <span class="n">cluster_spec_dict</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">for</span> <span class="n">job_spec</span> <span class="ow">in</span> <span class="n">job_specs</span><span class="p">:</span>
+    <span class="c1"># ps_host=worker1:1231,worker2:1234</span>
+    <span class="n">job_machines</span> <span class="o">=</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">job_machines</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid job specification: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_spec</span><span class="p">)</span>
+    <span class="n">cluster_spec_dict</span><span class="p">[</span><span class="n">job_machines</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">job_machines</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">cluster_spec_dict</span></div>
+
+
 <div class="viewcode-block" id="RunnerManager"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager">[docs]</a><span class="k">class</span> <span class="nc">RunnerManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Helper class for managing runners.&quot;&quot;&quot;</span>
 
@@ -1566,14 +1591,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">target</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;localhost&#39;</span><span class="p">):</span>
       <span class="c1"># E.g., trainer_client is configured w/ FLAGS.tf_master pointing to</span>
       <span class="c1"># another job. In that case, start a local server.</span>
-      <span class="n">job_specs</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_spec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
-      <span class="n">cluster_spec_dict</span> <span class="o">=</span> <span class="p">{}</span>
-      <span class="k">for</span> <span class="n">job_spec</span> <span class="ow">in</span> <span class="n">job_specs</span><span class="p">:</span>
-        <span class="c1"># ps_host=worker1:1231,worker2:1234</span>
-        <span class="n">job_machines</span> <span class="o">=</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">job_machines</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid job specification: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_spec</span><span class="p">)</span>
-        <span class="n">cluster_spec_dict</span><span class="p">[</span><span class="n">job_machines</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">job_machines</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+      <span class="n">cluster_spec_dict</span> <span class="o">=</span> <span class="n">_GetClusterSpecDict</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tf_server</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Server</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ClusterSpec</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">),</span>
           <span class="n">job_name</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span><span class="p">,</span>
@@ -1619,13 +1637,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_spec</span><span class="p">:</span>
       <span class="k">return</span>
     <span class="n">job_specs</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_spec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
-    <span class="n">cluster_spec_dict</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">job_spec</span> <span class="ow">in</span> <span class="n">job_specs</span><span class="p">:</span>
-      <span class="c1"># ps_host=worker1:1231,worker2:1234</span>
-      <span class="n">job_machines</span> <span class="o">=</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
-      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">job_machines</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid job specification: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_spec</span><span class="p">)</span>
-      <span class="n">cluster_spec_dict</span><span class="p">[</span><span class="n">job_machines</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">job_machines</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+    <span class="n">cluster_spec_dict</span> <span class="o">=</span> <span class="n">_GetClusterSpecDict</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">:</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span> <span class="o">=</span> <span class="s1">&#39;grpc://</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;worker&#39;</span><span class="p">][</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">task</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">cluster_spec_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -1639,17 +1651,18 @@
         <span class="k">assert</span> <span class="s1">&#39;,&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">job_specs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;Only single machine supported&#39;</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_job</span> <span class="o">=</span> <span class="s1">&#39;/job:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_replicas</span> <span class="o">=</span> <span class="mi">1</span>
-      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sync&#39;</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span>
-                                                <span class="s1">&#39;worker&#39;</span><span class="p">):</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:worker&#39;</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;worker&#39;</span><span class="p">])</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="s1">&#39;/job:worker&#39;</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span>
-      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;async&#39;</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;ps&#39;</span><span class="p">):</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;trainer&#39;</span><span class="p">])</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="s1">&#39;/job:ps&#39;</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;ps&#39;</span><span class="p">])</span></div>
+
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sync&#39;</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span>
+                                              <span class="s1">&#39;worker&#39;</span><span class="p">):</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:worker&#39;</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;worker&#39;</span><span class="p">])</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="s1">&#39;/job:worker&#39;</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;async&#39;</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;ps&#39;</span><span class="p">):</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;trainer&#39;</span><span class="p">])</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="s1">&#39;/job:ps&#39;</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;ps&#39;</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="RunnerManager.MaybeConfigCloudTpu"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigCloudTpu">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeConfigCloudTpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If given `FLAGS.tpu`, update flags for running on a Cloud TPU.&quot;&quot;&quot;</span>
@@ -1660,18 +1673,18 @@
         <span class="n">tpu</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu</span><span class="p">,</span>
         <span class="n">project</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">gcp_project</span><span class="p">,</span>
         <span class="n">zone</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu_zone</span><span class="p">,</span>
-        <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;tpu_worker&#39;</span><span class="p">,</span>
         <span class="n">coordinator_name</span><span class="o">=</span><span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span>
         <span class="n">coordinator_address</span><span class="o">=</span><span class="s1">&#39;localhost:0&#39;</span><span class="p">)</span>
     <span class="n">cluster_spec_dict</span> <span class="o">=</span> <span class="n">cluster_resolver</span><span class="o">.</span><span class="n">cluster_spec</span><span class="p">()</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
 
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer_client&#39;</span>
-    <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span> <span class="o">=</span> <span class="n">cluster_resolver</span><span class="o">.</span><span class="n">get_master</span><span class="p">()</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span> <span class="o">=</span> <span class="n">cluster_resolver</span><span class="o">.</span><span class="n">master</span><span class="p">()</span>
 
-    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:tpu_worker&#39;</span>
-    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;tpu_worker&#39;</span><span class="p">])</span>
-    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_num_tpu_hosts</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span>
-    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_tpus</span> <span class="o">=</span> <span class="n">cluster_resolver</span><span class="o">.</span><span class="n">num_accelerators</span><span class="p">()[</span><span class="s1">&#39;TPU&#39;</span><span class="p">]</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:worker&#39;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_num_tpu_hosts</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;worker&#39;</span><span class="p">])</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_tpus</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">cluster_resolver</span><span class="o">.</span><span class="n">num_accelerators</span><span class="p">()[</span><span class="s1">&#39;TPU&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_num_tpu_hosts</span><span class="p">)</span>
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span>
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span>
 
@@ -1698,6 +1711,10 @@
     <span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_tpus</span>
     <span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_num_tpu_hosts</span>
     <span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">devices_per_split</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_split_size</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu</span><span class="p">:</span>
+      <span class="n">job_name</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/job:&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">worker_hosts</span> <span class="o">=</span> <span class="n">_GetClusterSpecDict</span><span class="p">()[</span><span class="n">job_name</span><span class="p">]</span>
+      <span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">targets</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">worker_hosts</span><span class="p">)</span>
 
     <span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span>
     <span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span>
