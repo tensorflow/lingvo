@@ -283,10 +283,16 @@
 <span class="sd">  Typical usage::</span>
 
 <span class="sd">      &gt;&gt;&gt; fig_helper = plot.MatplotlibFigureSummary(</span>
-<span class="sd">      ...    &#39;summary_name&#39;, shared_subplot_kwargs={&#39;xlabel&#39;: &#39;Time&#39;})</span>
+<span class="sd">      ...     &#39;summary_name&#39;, shared_subplot_kwargs={&#39;xlabel&#39;: &#39;Time&#39;})</span>
 <span class="sd">      &gt;&gt;&gt; fig_helper.AddSubplot([tensor1], title=&#39;tensor1&#39;)</span>
 <span class="sd">      &gt;&gt;&gt; fig_helper.AddSubplot([tensor2], title=&#39;tensor2&#39;, ylabel=&#39;Frequency&#39;)</span>
 <span class="sd">      &gt;&gt;&gt; image_summary = fig_helper.Finalize()</span>
+
+<span class="sd">  Can also be used as a context manager if the caller does not need the return</span>
+<span class="sd">  value from Finalize(), e.g.</span>
+
+<span class="sd">      &gt;&gt;&gt; with plot.MatplotlibFigureSummary(&#39;figure&#39;) as fig:</span>
+<span class="sd">      ...     fig.AddSubplot([tensor1])</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -324,6 +330,12 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_shared_subplot_kwargs</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">shared_subplot_kwargs</span> <span class="k">if</span> <span class="n">shared_subplot_kwargs</span> <span class="k">else</span> <span class="p">{})</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_subplots</span> <span class="o">=</span> <span class="p">[]</span>
+
+  <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span>
+
+  <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_exc_type</span><span class="p">,</span> <span class="n">unused_exc_value</span><span class="p">,</span> <span class="n">unused_tb</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span>
 
 <div class="viewcode-block" id="MatplotlibFigureSummary.AddSubplot"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.MatplotlibFigureSummary.AddSubplot">[docs]</a>  <span class="k">def</span> <span class="nf">AddSubplot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tensor_list</span><span class="p">,</span> <span class="n">plot_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Adds a subplot from tensors using plot_fun to populate the subplot axes.</span>
