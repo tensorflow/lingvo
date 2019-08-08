@@ -340,6 +340,8 @@
       <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">evaler</span><span class="o">.</span><span class="n">replicas</span>
     <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sync&#39;</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;decoder&#39;</span><span class="p">:</span>
       <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">replicas</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sync&#39;</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">&gt;=</span> <span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span><span class="p">)</span>
 
@@ -351,6 +353,8 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">evaler</span>
     <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;decoder&#39;</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">worker</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -426,6 +430,9 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">synchronous</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">:</span>
       <span class="c1"># One client drives all the workers.</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_replica</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_replicas</span>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">synchronous</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">:</span>
+      <span class="c1"># One client drives all the workers.</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_replica</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_replicas</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># One client colocates with one worker and drives the worker only.</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_replica</span>
@@ -450,6 +457,10 @@
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;trainer_client&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">synchronous</span><span class="p">:</span>
       <span class="c1"># In sync mode, trainer_client can use every device.</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;executor_tpu&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">synchronous</span><span class="p">:</span>
+      <span class="c1"># executor_tpu can use every device.</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;evaler&#39;</span><span class="p">,</span> <span class="s1">&#39;decoder&#39;</span><span class="p">):</span>

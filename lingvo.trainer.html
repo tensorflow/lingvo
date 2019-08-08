@@ -86,6 +86,7 @@
 <li class="toctree-l3"><a class="reference internal" href="lingvo.base_runner.html">lingvo.base_runner module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.base_trial.html">lingvo.base_trial module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.compat.html">lingvo.compat module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.executor.html">lingvo.executor module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.ipython_kernel.html">lingvo.ipython_kernel module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_imports.html">lingvo.model_imports module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_registry.html">lingvo.model_registry module</a></li>
@@ -185,95 +186,6 @@ $ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>im
 <dt id="lingvo.trainer._ModelAnalysis">
 <code class="descclassname">lingvo.trainer.</code><code class="descname">_ModelAnalysis</code><span class="sig-paren">(</span><em>model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#_ModelAnalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer._ModelAnalysis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a text showing variable sizes and their total size.</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="lingvo.trainer.Checkpointer">
-<em class="property">class </em><code class="descclassname">lingvo.trainer.</code><code class="descname">Checkpointer</code><span class="sig-paren">(</span><em>train_dir</em>, <em>model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Checkpointing utility class.</p>
-<p>Needs to be created within a graph context.</p>
-<dl class="method">
-<dt id="lingvo.trainer.Checkpointer._GetSaver">
-<code class="descname">_GetSaver</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer._GetSaver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer._GetSaver" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a saver.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.Checkpointer.RestoreFromPath">
-<code class="descname">RestoreFromPath</code><span class="sig-paren">(</span><em>sess</em>, <em>checkpoint_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer.RestoreFromPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer.RestoreFromPath" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load the checkpoint from specified path.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.Checkpointer.MaybeSave">
-<code class="descname">MaybeSave</code><span class="sig-paren">(</span><em>sess</em>, <em>gsteps</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer.MaybeSave"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer.MaybeSave" title="Permalink to this definition">¶</a></dt>
-<dd><p>If it’s time to save, save the checkpoint.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>sess</strong> – tf.Session.</li>
-<li><strong>gsteps</strong> – Current global step.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.Checkpointer.Save">
-<code class="descname">Save</code><span class="sig-paren">(</span><em>sess</em>, <em>gsteps</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer.Save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer.Save" title="Permalink to this definition">¶</a></dt>
-<dd><p>Save the checkpoint.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>sess</strong> – tf.Session.</li>
-<li><strong>gsteps</strong> – Current global step.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.Checkpointer._Restore">
-<code class="descname">_Restore</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer._Restore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer._Restore" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.Checkpointer.RestoreIfNeeded">
-<code class="descname">RestoreIfNeeded</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer.RestoreIfNeeded"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer.RestoreIfNeeded" title="Permalink to this definition">¶</a></dt>
-<dd><p>If vars are not initialized, restore frome checkpoint.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sess</strong> – tf.Session.</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.trainer.Checkpointer.RestoreGlobalStepIfNeeded">
-<code class="descname">RestoreGlobalStepIfNeeded</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Checkpointer.RestoreGlobalStepIfNeeded"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Checkpointer.RestoreGlobalStepIfNeeded" title="Permalink to this definition">¶</a></dt>
-<dd><p>If global step is not initialized, load it from the checkpoint.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sess</strong> – tf.Session.</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="class">
@@ -790,6 +702,32 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.trainer.RunnerManager.ExecutorTpu">
+<em class="property">class </em><code class="descname">ExecutorTpu</code><span class="sig-paren">(</span><em>task_dict</em>, <em>program_schedule_params</em>, <em>model_task_name</em>, <em>logdir</em>, <em>tf_master</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.ExecutorTpu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>This is an experimental BaseRunner that does arbitrary multi-program execution on a TPU.</p>
+<p>Overview of operation:</p>
+<ul class="simple">
+<li>During construction, all programs construct their sub-graphs, in a sense
+creating a mega-graph.</li>
+<li>A sequence of programs is then executed in-whole associated with that task.
+eg: [train x 1000 steps, checkpoint, eval 4 steps, decode 2 steps]</li>
+<li>In this manner, programs and higher-level tasks cooperatively time-slice
+share the TPU.</li>
+</ul>
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.ExecutorTpu.Start">
+<code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.ExecutorTpu.Start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.ExecutorTpu._Loop">
+<code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.ExecutorTpu._Loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="method">
 <dt id="lingvo.trainer.RunnerManager.MaybeLaunchTensorFlow">
 <code class="descname">MaybeLaunchTensorFlow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.MaybeLaunchTensorFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.MaybeLaunchTensorFlow" title="Permalink to this definition">¶</a></dt>
@@ -800,6 +738,12 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 <dt id="lingvo.trainer.RunnerManager.GetParamsForDataset">
 <code class="descname">GetParamsForDataset</code><span class="sig-paren">(</span><em>job_name</em>, <em>dataset_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.GetParamsForDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.GetParamsForDataset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns params for job <code class="xref py py-obj docutils literal notranslate"><span class="pre">job_name</span></code> on the dataset <code class="xref py py-obj docutils literal notranslate"><span class="pre">dataset_name</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.GetProgramScheduleParams">
+<code class="descname">GetProgramScheduleParams</code><span class="sig-paren">(</span><em>job_name</em>, <em>dataset_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.GetProgramScheduleParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.GetProgramScheduleParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns ProgramSchedule  params for job <code class="xref py py-obj docutils literal notranslate"><span class="pre">job_name</span></code> and  datasets <code class="xref py py-obj docutils literal notranslate"><span class="pre">dataset_name</span></code>.</p>
 </dd></dl>
 
 <dl class="method">

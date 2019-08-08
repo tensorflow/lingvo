@@ -184,10 +184,12 @@
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">base_trial</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">executor</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_registry</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model_params</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">checkpointer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">inference_graph_exporter</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">metrics</span>
@@ -381,163 +383,6 @@
   <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">total</span></div>
 
 
-<div class="viewcode-block" id="Checkpointer"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Checkpointer">[docs]</a><span class="k">class</span> <span class="nc">Checkpointer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Checkpointing utility class.</span>
-
-<span class="sd">  Needs to be created within a graph context.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Initialize Checkpointer.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">     train_dir: Training directory for saving checkpoints.</span>
-<span class="sd">     model: Model.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">train_dir</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">params</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">GLOBAL_VARIABLES</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">report_uninitialized_variables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="s1">&#39;ckpt&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_model_tasks</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">tasks</span>
-
-    <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval_seconds</span> <span class="o">=</span> <span class="n">tp</span><span class="o">.</span><span class="n">save_interval_seconds</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSaver</span><span class="p">()</span>
-
-<div class="viewcode-block" id="Checkpointer._GetSaver"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Checkpointer._GetSaver">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSaver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a saver.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Using EMA for evaluation.&#39;</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">())</span>
-    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span>
-        <span class="n">sharded</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">max_to_keep</span><span class="o">=</span><span class="n">tp</span><span class="o">.</span><span class="n">save_max_to_keep</span><span class="p">,</span>
-        <span class="n">keep_checkpoint_every_n_hours</span><span class="o">=</span><span class="n">tp</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span><span class="p">,</span>
-        <span class="n">pad_step_number</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># %08d</span>
-        <span class="n">write_version</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">SaverDef</span><span class="o">.</span><span class="n">V2</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="Checkpointer.RestoreFromPath"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Checkpointer.RestoreFromPath">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreFromPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Load the checkpoint from specified path.&quot;&quot;&quot;</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load from checkpoint </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="Checkpointer.MaybeSave"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Checkpointer.MaybeSave">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeSave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;If it&#39;s time to save, save the checkpoint.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      sess: tf.Session.</span>
-<span class="sd">      gsteps: Current global step.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">now</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval_seconds</span></div>
-
-<div class="viewcode-block" id="Checkpointer.Save"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Checkpointer.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Save the checkpoint.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      sess: tf.Session.</span>
-<span class="sd">      gsteps: Current global step.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint&#39;</span><span class="p">)</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint done: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="Checkpointer._Restore"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Checkpointer._Restore">[docs]</a>  <span class="k">def</span> <span class="nf">_Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">RestoreFromPath</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">path</span></div>
-
-<div class="viewcode-block" id="Checkpointer.RestoreIfNeeded"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Checkpointer.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;If vars are not initialized, restore frome checkpoint.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      sess: tf.Session.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span><span class="p">))</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">uninitialized_var_names</span><span class="p">:</span>
-      <span class="k">return</span>
-
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Uninitialized var list: </span><span class="si">%s</span><span class="s1"> &#39;</span><span class="p">,</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
-      <span class="k">return</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span>
-                <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_tasks</span><span class="p">)</span> <span class="ow">and</span>
-        <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">):</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialize ALL variables: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
-      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_vars</span><span class="p">])</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialize variables done.&#39;</span><span class="p">)</span>
-      <span class="k">return</span>
-
-    <span class="c1"># There was a race in local run. Another thread will get unblocked once</span>
-    <span class="c1"># _initialize_all is called. OverrideVarsFromCheckpoints</span>
-    <span class="c1"># might not happen at the right time.</span>
-    <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
-      <span class="n">tp</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
-      <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                        <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">,</span>
-                                             <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
-      <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                      <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-      <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">,</span>
-                                           <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-
-    <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span><span class="p">))</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">uninitialized_var_names</span><span class="p">:</span>
-      <span class="k">return</span>
-
-    <span class="c1"># uninitialized_var_names is a list of strings without &quot;:0&quot; suffix.</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
-
-    <span class="c1"># Need to retrieve vars, removing &quot;:0&quot; suffix from names.</span>
-    <span class="n">uninitialized_vars</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="ow">in</span> <span class="n">uninitialized_var_names</span>
-    <span class="p">]</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialize variables: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                    <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">uninitialized_vars</span><span class="p">])</span>
-    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span><span class="n">uninitialized_vars</span><span class="p">))</span></div>
-
-<div class="viewcode-block" id="Checkpointer.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Checkpointer.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;If global step is not initialized, load it from the checkpoint.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      sess: tf.Session.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">uninitialized_vars</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span><span class="p">)</span>
-    <span class="k">if</span> <span class="s1">&#39;global_step&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">uninitialized_vars</span><span class="p">:</span>
-      <span class="k">return</span>
-
-    <span class="k">with</span> <span class="n">sess</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
-      <span class="n">gstep</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
-
-    <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
-      <span class="n">reader</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">NewCheckpointReader</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-      <span class="n">value</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_tensor</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Restoring global step: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gstep</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initializing global step&#39;</span><span class="p">)</span>
-      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gstep</span><span class="o">.</span><span class="n">initializer</span><span class="p">)</span></div></div>
-
-
 <div class="viewcode-block" id="Controller"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller">[docs]</a><span class="k">class</span> <span class="nc">Controller</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Controller for a training cluster.&quot;&quot;&quot;</span>
 
@@ -574,7 +419,7 @@
 
 <div class="viewcode-block" id="Controller._CreateCheckpointer"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller._CreateCheckpointer">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrapper method for override purposes.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">Checkpointer</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Controller.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
@@ -945,7 +790,8 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
 
       <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span> <span class="o">=</span> <span class="n">Checkpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
+                                                      <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CLOSE_QUEUE_OPS</span><span class="p">)</span>
@@ -1232,7 +1078,8 @@
       <span class="c1"># No queues are allowed for eval models.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span> <span class="o">=</span> <span class="n">Checkpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
+                                                    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
 
     <span class="c1"># Saves the graph def.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">)</span>
@@ -1414,7 +1261,8 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
       <span class="c1"># No queues are allowed for decoder models.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span> <span class="o">=</span> <span class="n">Checkpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
+                                                    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span>
 
     <span class="c1"># Saves the graph def.</span>
@@ -1575,6 +1423,7 @@
   <span class="n">TrainerTpu</span> <span class="o">=</span> <span class="n">TrainerTpu</span>
   <span class="n">Evaler</span> <span class="o">=</span> <span class="n">Evaler</span>
   <span class="n">Decoder</span> <span class="o">=</span> <span class="n">Decoder</span>
+  <span class="n">ExecutorTpu</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">ExecutorTpu</span>
   <span class="c1"># pylint: enable=invalid-name</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
@@ -1632,6 +1481,18 @@
       <span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_keep_checkpoint_every_n_hours</span>
     <span class="k">return</span> <span class="n">cfg</span></div>
 
+<div class="viewcode-block" id="RunnerManager.GetProgramScheduleParams"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.GetProgramScheduleParams">[docs]</a>  <span class="k">def</span> <span class="nf">GetProgramScheduleParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">dataset_names</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns ProgramSchedule  params for job `job_name` and  datasets `dataset_name`.&quot;&quot;&quot;</span>
+    <span class="c1"># Get the current cluster and update its params from flags.</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">):</span>
+      <span class="n">ps_cfg</span><span class="p">,</span> <span class="n">model_cfg_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetProgramSchedule</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="n">dataset_names</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">model_cfg_dict</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">v</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">ps_cfg</span><span class="p">,</span> <span class="n">model_cfg_dict</span></div>
+
 <div class="viewcode-block" id="RunnerManager.MaybeConfigRunDistributed"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigRunDistributed">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeConfigRunDistributed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If given a `FLAGS.cluster_spec`, update flags for running distributed.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_spec</span><span class="p">:</span>
@@ -1651,9 +1512,8 @@
         <span class="k">assert</span> <span class="s1">&#39;,&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">job_specs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;Only single machine supported&#39;</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_job</span> <span class="o">=</span> <span class="s1">&#39;/job:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_replicas</span> <span class="o">=</span> <span class="mi">1</span>
-
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sync&#39;</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span>
-                                              <span class="s1">&#39;worker&#39;</span><span class="p">):</span>
+                                              <span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">):</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:worker&#39;</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;worker&#39;</span><span class="p">])</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="s1">&#39;/job:worker&#39;</span>
@@ -1761,6 +1621,11 @@
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Decoder</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;ps&#39;</span><span class="p">,</span> <span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;input&#39;</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tf_server</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+      <span class="c1"># TODO(blee): Fix the instantiation of ExecutorTpu</span>
+      <span class="n">program_schedule</span><span class="p">,</span> <span class="n">task_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetProgramScheduleParams</span><span class="p">(</span>
+          <span class="s1">&#39;executor_tpu&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">])</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ExecutorTpu</span><span class="p">(</span><span class="n">task_dict</span><span class="p">,</span> <span class="n">program_schedule</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span>
+                              <span class="n">logdir</span><span class="p">,</span> <span class="n">tf_master</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;job </span><span class="si">%s</span><span class="s1"> is not supported&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="p">)</span></div>
 
@@ -1809,17 +1674,18 @@
       <span class="n">t</span><span class="o">.</span><span class="n">daemon</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
       <span class="n">threads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Total num runner.enqueue_ops: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
-                      <span class="nb">len</span><span class="p">(</span><span class="n">runner</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">))</span>
-      <span class="k">for</span> <span class="n">enqueue_op</span> <span class="ow">in</span> <span class="n">runner</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">runner</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Total num runner.enqueue_ops: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">runner</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">enqueue_op</span> <span class="ow">in</span> <span class="n">runner</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">:</span>
 
-        <span class="k">def</span> <span class="nf">StartEnqueue</span><span class="p">(</span><span class="n">runner</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting enqueue op </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-          <span class="k">return</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">runner</span><span class="o">.</span><span class="n">StartEnqueueOp</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+          <span class="k">def</span> <span class="nf">StartEnqueue</span><span class="p">(</span><span class="n">runner</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting enqueue op </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">return</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">runner</span><span class="o">.</span><span class="n">StartEnqueueOp</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
 
-        <span class="n">tq</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">StartEnqueue</span><span class="p">(</span><span class="n">runner</span><span class="p">,</span> <span class="n">enqueue_op</span><span class="p">))</span>
-        <span class="n">tq</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-        <span class="n">threads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tq</span><span class="p">)</span>
+          <span class="n">tq</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">StartEnqueue</span><span class="p">(</span><span class="n">runner</span><span class="p">,</span> <span class="n">enqueue_op</span><span class="p">))</span>
+          <span class="n">tq</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+          <span class="n">threads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tq</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Waiting for runners to finish...&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>

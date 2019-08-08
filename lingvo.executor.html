@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.model_imports module &mdash; Lingvo  documentation</title>
+  <title>lingvo.executor module &mdash; Lingvo  documentation</title>
   
 
   
@@ -35,8 +35,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.model_registry module" href="lingvo.model_registry.html" />
-    <link rel="prev" title="lingvo.ipython_kernel module" href="lingvo.ipython_kernel.html" /> 
+    <link rel="next" title="lingvo.ipython_kernel module" href="lingvo.ipython_kernel.html" />
+    <link rel="prev" title="lingvo.compat module" href="lingvo.compat.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -87,9 +87,9 @@
 <li class="toctree-l3"><a class="reference internal" href="lingvo.base_runner.html">lingvo.base_runner module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.base_trial.html">lingvo.base_trial module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.compat.html">lingvo.compat module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="lingvo.executor.html">lingvo.executor module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">lingvo.executor module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.ipython_kernel.html">lingvo.ipython_kernel module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">lingvo.model_imports module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.model_imports.html">lingvo.model_imports module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_registry.html">lingvo.model_registry module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.models_test_helper.html">lingvo.models_test_helper module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.trainer.html">lingvo.trainer module</a></li>
@@ -144,13 +144,13 @@
         
           <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
         
-      <li>lingvo.model_imports module</li>
+      <li>lingvo.executor module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/lingvo.model_imports.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/lingvo.executor.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -163,10 +163,35 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-lingvo.model_imports">
-<span id="lingvo-model-imports-module"></span><h1>lingvo.model_imports module<a class="headerlink" href="#module-lingvo.model_imports" title="Permalink to this headline">¶</a></h1>
-<p>Global import for model hyper-parameters.</p>
-<p>Using this module any ModelParams can be accessed via GetParams.</p>
+  <div class="section" id="module-lingvo.executor">
+<span id="lingvo-executor-module"></span><h1>lingvo.executor module<a class="headerlink" href="#module-lingvo.executor" title="Permalink to this headline">¶</a></h1>
+<p>An experimental new unified TPU executor.</p>
+<dl class="class">
+<dt id="lingvo.executor.ExecutorTpu">
+<em class="property">class </em><code class="descclassname">lingvo.executor.</code><code class="descname">ExecutorTpu</code><span class="sig-paren">(</span><em>task_dict</em>, <em>program_schedule_params</em>, <em>model_task_name</em>, <em>logdir</em>, <em>tf_master</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>This is an experimental BaseRunner that does arbitrary multi-program execution on a TPU.</p>
+<p>Overview of operation:</p>
+<ul class="simple">
+<li>During construction, all programs construct their sub-graphs, in a sense
+creating a mega-graph.</li>
+<li>A sequence of programs is then executed in-whole associated with that task.
+eg: [train x 1000 steps, checkpoint, eval 4 steps, decode 2 steps]</li>
+<li>In this manner, programs and higher-level tasks cooperatively time-slice
+share the TPU.</li>
+</ul>
+<dl class="method">
+<dt id="lingvo.executor.ExecutorTpu.Start">
+<code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu.Start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.executor.ExecutorTpu._Loop">
+<code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu._Loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 
 
@@ -177,10 +202,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.model_registry.html" class="btn btn-neutral float-right" title="lingvo.model_registry module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.ipython_kernel.html" class="btn btn-neutral float-right" title="lingvo.ipython_kernel module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.ipython_kernel.html" class="btn btn-neutral float-left" title="lingvo.ipython_kernel module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.compat.html" class="btn btn-neutral float-left" title="lingvo.compat module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

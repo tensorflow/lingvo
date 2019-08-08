@@ -229,6 +229,10 @@
     <span class="sd">&quot;&quot;&quot;Returns the current counter value.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span></div>
 
+<div class="viewcode-block" id="StatsCounter.Var"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.StatsCounter.Var">[docs]</a>  <span class="k">def</span> <span class="nf">Var</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the variable.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var</span></div>
+
 <div class="viewcode-block" id="StatsCounter.IncBy"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.StatsCounter.IncBy">[docs]</a>  <span class="k">def</span> <span class="nf">IncBy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">delta</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Increment the counter by delta and return the new value.&quot;&quot;&quot;</span>
     <span class="c1"># NOTE: We must ensure _value is computed (_var + 0) before</span>
@@ -452,7 +456,7 @@
     <span class="c1"># p.train can be None if this task is the teacher/student task in a</span>
     <span class="c1"># DistillationTask.</span>
     <span class="k">if</span> <span class="n">tp</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span>
-                                   <span class="s1">&#39;controller&#39;</span><span class="p">):</span>
+                                   <span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_SetLearnerFromLegacyParams</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
@@ -923,6 +927,15 @@
   <span class="k">def</span> <span class="nf">total_examples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the total number of training examples processed so far.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span><span class="o">.</span><span class="n">Value</span><span class="p">()</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">total_examples_var</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a variable of the total number examples processed so far.</span>
+
+<span class="sd">    The total_examples Value() is inaccessible outisde the TPU context</span>
+<span class="sd">    if it&#39;s created within a @tpu_function.on_device_training_loop.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span><span class="o">.</span><span class="n">Var</span><span class="p">()</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">trainer_verbose_tensors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

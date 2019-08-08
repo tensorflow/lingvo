@@ -87,6 +87,7 @@
 <li class="toctree-l3"><a class="reference internal" href="lingvo.base_runner.html">lingvo.base_runner module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.base_trial.html">lingvo.base_trial module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.compat.html">lingvo.compat module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.executor.html">lingvo.executor module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.ipython_kernel.html">lingvo.ipython_kernel module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_imports.html">lingvo.model_imports module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">lingvo.model_registry module</a></li>
@@ -280,6 +281,28 @@ directory information into the key to avoid future model name conflicts.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Full <a class="reference internal" href="lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params" title="lingvo.core.hyperparams.Params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code></a> for the model class.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.model_registry._ModelRegistryHelper.GetProgramSchedule">
+<em class="property">classmethod </em><code class="descname">GetProgramSchedule</code><span class="sig-paren">(</span><em>class_key</em>, <em>dataset_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper.GetProgramSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper.GetProgramSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve the ProgramSchedule and a dict of task params.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>class_key</strong> – String class key (i.e. <code class="xref py py-obj docutils literal notranslate"><span class="pre">image.mnist.LeNet5</span></code>).</li>
+<li><strong>dataset_names</strong> – List of dataset name strings.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">ProgramSchedule.Params()
+A dict of dataset_name -&gt; task Params()</p>
 </td>
 </tr>
 </tbody>
