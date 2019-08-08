@@ -122,26 +122,25 @@ def AddAttentionSummary(attention_tensors,
   name = attention_tensors[0].name + '/Attention'
   if not _ShouldAddSummary():
     return
-  fig = plot.MatplotlibFigureSummary(name, max_outputs=max_outputs)
-  src_lens = SequenceLength(tf.transpose(src_paddings))
-  tgt_lens = SequenceLength(tf.transpose(tgt_paddings))
-  for n, atten in enumerate(attention_tensors):
-    # Diagnostic metric that decreases as attention picks up.
-    max_entropy = tf.log(tf.cast(src_lens, tf.float32))
-    max_entropy = tf.expand_dims(tf.expand_dims(max_entropy, 0), -1)
-    atten_normalized_entropy = -atten * tf.log(atten + 1e-10) / max_entropy
-    scalar('Attention/average_normalized_entropy/%d' % n,
-           tf.reduce_mean(atten_normalized_entropy))
-    args = [tf.transpose(atten, [1, 0, 2]), src_lens, tgt_lens]
-    if transcripts is not None and n == 0:
-      args.append(transcripts)
-    fig.AddSubplot(
-        args,
-        TrimPaddingAndPlotAttention,
-        title=atten.name,
-        xlabel='Input',
-        ylabel='Output')
-  fig.Finalize()
+  with plot.MatplotlibFigureSummary(name, max_outputs=max_outputs) as fig:
+    src_lens = SequenceLength(tf.transpose(src_paddings))
+    tgt_lens = SequenceLength(tf.transpose(tgt_paddings))
+    for n, atten in enumerate(attention_tensors):
+      # Diagnostic metric that decreases as attention picks up.
+      max_entropy = tf.log(tf.cast(src_lens, tf.float32))
+      max_entropy = tf.expand_dims(tf.expand_dims(max_entropy, 0), -1)
+      atten_normalized_entropy = -atten * tf.log(atten + 1e-10) / max_entropy
+      scalar('Attention/average_normalized_entropy/%d' % n,
+             tf.reduce_mean(atten_normalized_entropy))
+      args = [tf.transpose(atten, [1, 0, 2]), src_lens, tgt_lens]
+      if transcripts is not None and n == 0:
+        args.append(transcripts)
+      fig.AddSubplot(
+          args,
+          TrimPaddingAndPlotAttention,
+          title=atten.name,
+          xlabel='Input',
+          ylabel='Output')
 
 
 def AddNormSummary(name, vs_gs):

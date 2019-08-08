@@ -280,13 +280,6 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       atten_probs: a list of attention probs, each element is of shape [tgt_len,
         tgt_batch, src_len].
     """
-    num_rows = len(atten_probs)
-    fig = plot.MatplotlibFigureSummary(
-        'decoder_example',
-        figsize=(6, 3 * num_rows),
-        max_outputs=1,
-        subplot_grid_shape=(num_rows, 1))
-
     def PlotAttention(fig, axes, cur_atten_probs, title, set_x_label):
       plot.AddImage(fig, axes, cur_atten_probs, title=title)
       axes.set_ylabel(plot.ToUnicode('Output sequence index'), wrap=True)
@@ -297,17 +290,21 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
     srclen = tf.cast(tf.reduce_sum(1 - source_paddings[:, index]), tf.int32)
     tgtlen = tf.cast(tf.reduce_sum(1 - targets.paddings[index, :]), tf.int32)
 
-    for i, probs in enumerate(atten_probs):
-      # Extract first entry in batch of attention prob matrices
-      # [tgt_len, src_len]
-      probs = probs[:, index, :]
-      probs = tf.expand_dims(probs[:tgtlen, :srclen], 0)
-      fig.AddSubplot(
-          [probs],
-          PlotAttention,
-          title='atten_probs_%d' % i,
-          set_x_label=(i == len(atten_probs) - 1))
-    fig.Finalize()
+    num_rows = len(atten_probs)
+    with plot.MatplotlibFigureSummary(
+        'decoder_example',
+        figsize=(6, 3 * num_rows),
+        max_outputs=1,
+        subplot_grid_shape=(num_rows, 1)) as fig:
+      for i, probs in enumerate(atten_probs):
+        # Extract first entry in batch of attention prob matrices
+        # [tgt_len, src_len]
+        probs = probs[:, index, :]
+        probs = tf.expand_dims(probs[:tgtlen, :srclen], 0)
+        fig.AddSubplot([probs],
+                       PlotAttention,
+                       title='atten_probs_%d' % i,
+                       set_x_label=(i == len(atten_probs) - 1))
 
 
 class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):

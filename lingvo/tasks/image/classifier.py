@@ -43,28 +43,28 @@ class BaseClassifier(base_model.BaseTask):
 
   def _AddSummary(self, batch, prediction):
     """Adds image summaries for the batch."""
-    if self.params.is_eval:
+    if not self.params.is_eval:
       # Image summaries only works in evaler/decoder.
-      fig = plot.MatplotlibFigureSummary(
-          'examples', figsize=(1, 1), max_outputs=10)
+      return
 
-      def Draw(fig, axes, img, label, pred):
-        plot.AddImage(
-            fig=fig,
-            axes=axes,
-            data=img[:, :, 0] / 256.,
-            show_colorbar=False,
-            suppress_xticks=True,
-            suppress_yticks=True)
-        axes.text(
-            x=0.5,
-            y=0,
-            s=u'%d vs. %d' % (label, pred),
-            transform=axes.transAxes,
-            horizontalalignment='center')
+    def Draw(fig, axes, img, label, pred):
+      plot.AddImage(
+          fig=fig,
+          axes=axes,
+          data=img[:, :, 0] / 256.,
+          show_colorbar=False,
+          suppress_xticks=True,
+          suppress_yticks=True)
+      axes.text(
+          x=0.5,
+          y=0,
+          s=u'%d vs. %d' % (label, pred),
+          transform=axes.transAxes,
+          horizontalalignment='center')
 
+    with plot.MatplotlibFigureSummary(
+        'examples', figsize=(1, 1), max_outputs=10) as fig:
       fig.AddSubplot([batch.raw, batch.label, prediction], Draw)
-      fig.Finalize()
 
   def _Accuracy(self, k, logits, labels, weights):
     """Compute top-k accuracy.

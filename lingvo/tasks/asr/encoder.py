@@ -469,18 +469,15 @@ class AsrEncoder(base_layer.BaseLayer):
       final_out = rnn_in
 
       if self.cluster.add_summary:
-        fig = plot.MatplotlibFigureSummary(
-            'encoder_example', figsize=(8, len(plots) * 3.5))
-
-        # Order layers from bottom to top.
-        plots.reverse()
-        for tensor, seq_len in plots:
-          fig.AddSubplot(
-              [tensor, seq_len],
-              summary_utils.TrimPaddingAndPlotSequence,
-              title=tensor.name,
-              xlabel='Time')
-        fig.Finalize()
+        with plot.MatplotlibFigureSummary(
+            'encoder_example', figsize=(8, len(plots) * 3.5)) as fig:
+          # Order layers from bottom to top.
+          plots.reverse()
+          for tensor, seq_len in plots:
+            fig.AddSubplot([tensor, seq_len],
+                           summary_utils.TrimPaddingAndPlotSequence,
+                           title=tensor.name,
+                           xlabel='Time')
 
       outputs['encoded'] = final_out
       outputs['padding'] = tf.squeeze(rnn_padding, [2])
