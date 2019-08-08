@@ -221,6 +221,28 @@ class _ModelRegistryHelper(object):
     _MaybeUpdateParamsFromFlags(cfg)
     return cfg
 
+  @classmethod
+  def GetProgramSchedule(cls, class_key, dataset_names):
+    """Retrieve the ProgramSchedule and a dict of task params.
+
+    Args:
+      class_key: String class key (i.e. `image.mnist.LeNet5`).
+      dataset_names: List of dataset name strings.
+
+    Returns:
+      ProgramSchedule.Params()
+      A dict of dataset_name -> task Params()
+    """
+    model_params_cls = cls.GetClass(class_key)
+    model_cfg_dict = {}
+    for dataset_name in dataset_names:
+      model_cfg = model_params_cls.Model()
+      model_cfg.input = model_params_cls.GetDatasetParams(dataset_name)
+      model_cfg_dict[dataset_name] = model_cfg.Copy()
+
+    program_schedule_cfg = model_params_cls.ProgramSchedule()
+
+    return program_schedule_cfg, model_cfg_dict
 
 # pyformat: disable
 # pylint: disable=invalid-name
@@ -229,5 +251,6 @@ RegisterMultiTaskModel = _ModelRegistryHelper.RegisterMultiTaskModel
 GetAllRegisteredClasses = _ModelRegistryHelper.GetAllRegisteredClasses
 GetClass = _ModelRegistryHelper.GetClass
 GetParams = _ModelRegistryHelper.GetParams
+GetProgramSchedule = _ModelRegistryHelper.GetProgramSchedule
 # pylint: enable=invalid-name
 # pyformat: enable

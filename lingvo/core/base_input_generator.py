@@ -244,6 +244,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
     for _ in range(p.tpu_infeed_parallelism):
       tf.add_to_collection(py_utils.ENQUEUE_OPS, tpu_infeed_op)
 
+    # For executor-driven multiple programs, we need more fine-grained
+    # access rather than using a single global graph collection.
+    self.tpu_infeed_op = tpu_infeed_op
+
     with tf.device(tf.tpu.core(0)):
       tensors = queues[0].generate_dequeue_op()
     return batch.Pack(tensors)

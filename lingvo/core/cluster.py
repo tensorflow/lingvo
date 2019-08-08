@@ -195,6 +195,8 @@ class _Cluster(object):
       assert 0 <= p.task and p.task < p.evaler.replicas
     elif p.mode == 'sync' and p.job == 'decoder':
       assert 0 <= p.task and p.task < p.decoder.replicas
+    elif p.mode == 'sync' and p.job == 'executor_tpu':
+      assert p.worker.replicas >= 1
     else:
       assert False, (p.mode, p.job)
 
@@ -206,6 +208,8 @@ class _Cluster(object):
       self._job_spec = p.evaler
     elif p.job == 'decoder':
       self._job_spec = p.decoder
+    elif p.job == 'executor_tpu':
+      self._job_spec = p.worker
 
   @property
   def params(self):
@@ -281,6 +285,9 @@ class _Cluster(object):
     if self.synchronous and self.job == 'trainer_client':
       # One client drives all the workers.
       return self.num_splits_per_replica * self.num_replicas
+    elif self.synchronous and self.job == 'executor_tpu':
+      # One client drives all the workers.
+      return self.num_splits_per_replica * self.num_replicas
     else:
       # One client colocates with one worker and drives the worker only.
       return self.num_splits_per_replica
@@ -305,6 +312,10 @@ class _Cluster(object):
 
     if self.job == 'trainer_client' and self.synchronous:
       # In sync mode, trainer_client can use every device.
+      return self.ListDevices(self._job_spec)
+
+    if self.job == 'executor_tpu' and self.synchronous:
+      # executor_tpu can use every device.
       return self.ListDevices(self._job_spec)
 
     if self.job in ('controller', 'evaler', 'decoder'):

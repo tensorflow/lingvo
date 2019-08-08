@@ -1372,3 +1372,25 @@ py_library(
         # Implicit tensorflow dependency.
     ],
 )
+
+py_library(
+    name = "checkpointer_lib",
+    srcs = ["checkpointer.py"],
+    deps = [
+        ":py_utils",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "program_lib",
+    srcs = ["program.py"],
+    deps = [
+        ":checkpointer_lib",
+        ":hyperparams",
+        ":metrics",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow grpc dependency.
+    ],
+)

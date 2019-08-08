@@ -39,10 +39,12 @@ import re
 import threading
 import time
 from lingvo import base_trial
+from lingvo import executor
 from lingvo import model_registry
 import lingvo.compat as tf
 from lingvo.core import base_model
 from lingvo.core import base_model_params
+from lingvo.core import checkpointer
 from lingvo.core import cluster_factory
 from lingvo.core import inference_graph_exporter
 from lingvo.core import metrics
@@ -236,163 +238,6 @@ def _ModelAnalysis(model):
   return output, analyzer.total
 
 
-class Checkpointer(object):
-  """Checkpointing utility class.
-
-  Needs to be created within a graph context.
-  """
-
-  def __init__(self, train_dir, model):
-    """Initialize Checkpointer.
-
-    Args:
-     train_dir: Training directory for saving checkpoints.
-     model: Model.
-    """
-    self._train_dir = train_dir
-    self._model = model
-    self._params = model.params
-
-    self._vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
-    self._uninitialized_vars = tf.report_uninitialized_variables(self._vars)
-    self._initialize_vars = tf.global_variables_initializer()
-
-    self._save_path = os.path.join(self._train_dir, 'ckpt')
-    self._model_tasks = model.tasks
-
-    tp = self._params.train
-    self._save_interval_seconds = tp.save_interval_seconds
-    self._next_checkpoint_seconds = 0
-    self._saver = self._GetSaver()
-
-  def _GetSaver(self):
-    """Returns a saver."""
-    p = self._params
-    if p.is_eval and self._model.ema:
-      tf.logging.info('Using EMA for evaluation.')
-      return tf.train.Saver(self._model.ema.variables_to_restore())
-    tp = p.train
-    return tf.train.Saver(
-        sharded=True,
-        max_to_keep=tp.save_max_to_keep,
-        keep_checkpoint_every_n_hours=tp.save_keep_checkpoint_every_n_hours,
-        pad_step_number=True,  # %08d
-        write_version=tf.train.SaverDef.V2)
-
-  def RestoreFromPath(self, sess, checkpoint_path):
-    """Load the checkpoint from specified path."""
-    tf.logging.info('Load from checkpoint %s.', checkpoint_path)
-    self._saver.restore(sess, checkpoint_path)
-    tf.logging.info('Load checkpoint done.')
-
-  def MaybeSave(self, sess, gsteps):
-    """If it's time to save, save the checkpoint.
-
-    Args:
-      sess: tf.Session.
-      gsteps: Current global step.
-    """
-    now = time.time()
-    if now >= self._next_checkpoint_seconds:
-      self.Save(sess, gsteps)
-      self._next_checkpoint_seconds = now + self._save_interval_seconds
-
-  def Save(self, sess, gsteps):
-    """Save the checkpoint.
-
-    Args:
-      sess: tf.Session.
-      gsteps: Current global step.
-    """
-    tf.logging.info('Save checkpoint')
-    path = self._saver.save(sess, self._save_path, gsteps)
-    tf.logging.info('Save checkpoint done: %s', path)
-
-  def _Restore(self, sess):
-    path = tf.train.latest_checkpoint(self._train_dir)
-    if path:
-      self.RestoreFromPath(sess, path)
-    return path
-
-  def RestoreIfNeeded(self, sess):
-    """If vars are not initialized, restore frome checkpoint.
-
-    Args:
-      sess: tf.Session.
-    """
-    uninitialized_var_names = list(sess.run(self._uninitialized_vars))
-    if not uninitialized_var_names:
-      return
-
-    tf.logging.info('Uninitialized var list: %s ', uninitialized_var_names)
-    if self._Restore(sess):
-      return
-
-    if (not any(task.params.train.init_from_checkpoint_rules
-                for task in self._model_tasks) and
-        not self._params.train.init_from_checkpoint_rules):
-      tf.logging.info('Initialize ALL variables: %s', uninitialized_var_names)
-      sess.run([self._initialize_vars])
-      tf.logging.info('Initialize variables done.')
-      return
-
-    # There was a race in local run. Another thread will get unblocked once
-    # _initialize_all is called. OverrideVarsFromCheckpoints
-    # might not happen at the right time.
-    for task in self._model.tasks:
-      tp = task.params.train
-      if tp.init_from_checkpoint_rules:
-        tf.logging.info('OverrideVarsFromCheckpoints %s',
-                        tp.init_from_checkpoint_rules)
-        py_utils.OverrideVarsFromCheckpoints(sess, self._vars,
-                                             tp.init_from_checkpoint_rules)
-
-    if self._params.train.init_from_checkpoint_rules:
-      tp = self._params.train
-      tf.logging.info('OverrideVarsFromCheckpoints %s',
-                      tp.init_from_checkpoint_rules)
-      py_utils.OverrideVarsFromCheckpoints(sess, self._vars,
-                                           tp.init_from_checkpoint_rules)
-
-    uninitialized_var_names = list(sess.run(self._uninitialized_vars))
-    if not uninitialized_var_names:
-      return
-
-    # uninitialized_var_names is a list of strings without ":0" suffix.
-    assert all(isinstance(s, str) for s in uninitialized_var_names)
-
-    # Need to retrieve vars, removing ":0" suffix from names.
-    uninitialized_vars = [
-        v for v in self._vars if v.name[:-2] in uninitialized_var_names
-    ]
-    tf.logging.info('Initialize variables: %s',
-                    [v.name for v in uninitialized_vars])
-    sess.run(tf.variables_initializer(uninitialized_vars))
-
-  def RestoreGlobalStepIfNeeded(self, sess):
-    """If global step is not initialized, load it from the checkpoint.
-
-    Args:
-      sess: tf.Session.
-    """
-    uninitialized_vars = sess.run(self._uninitialized_vars)
-    if 'global_step' not in uninitialized_vars:
-      return
-
-    with sess.graph.as_default():
-      gstep = py_utils.GetGlobalStep()
-
-    path = tf.train.latest_checkpoint(self._train_dir)
-    if path:
-      reader = tf.train.NewCheckpointReader(path)
-      value = reader.get_tensor('global_step')
-      tf.logging.info('Restoring global step: %s', value)
-      sess.run(gstep.assign(value))
-    else:
-      tf.logging.info('Initializing global step')
-      sess.run(gstep.initializer)
-
-
 class Controller(base_runner.BaseRunner):
   """Controller for a training cluster."""
 
@@ -429,7 +274,7 @@ class Controller(base_runner.BaseRunner):
 
   def _CreateCheckpointer(self, train_dir, model):
     """Wrapper method for override purposes."""
-    return Checkpointer(train_dir, model)
+    return checkpointer.Checkpointer(train_dir, model)
 
   def Start(self):
     self._RunLoop('controller', self._Loop)
@@ -800,7 +645,8 @@ class TrainerTpu(base_runner.BaseRunner):
       self._initialize_local_vars = tf.local_variables_initializer()
 
       if FLAGS.checkpoint_in_trainer_tpu:
-        self.checkpointer = Checkpointer(self._train_dir, self._model)
+        self.checkpointer = checkpointer.Checkpointer(self._train_dir,
+                                                      self._model)
 
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       assert not tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
@@ -1087,7 +933,8 @@ class Evaler(base_runner.BaseRunner):
       # No queues are allowed for eval models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       assert not self.enqueue_ops
-      self.checkpointer = Checkpointer(self._train_dir, self._model)
+      self.checkpointer = checkpointer.Checkpointer(self._train_dir,
+                                                    self._model)
 
     # Saves the graph def.
     self._WriteToLog(self.params.ToText(), self._eval_dir, 'params.txt')
@@ -1269,7 +1116,8 @@ class Decoder(base_runner.BaseRunner):
       self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for decoder models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
-      self.checkpointer = Checkpointer(self._train_dir, self._model)
+      self.checkpointer = checkpointer.Checkpointer(self._train_dir,
+                                                    self._model)
       assert not self.enqueue_ops
 
     # Saves the graph def.
@@ -1430,6 +1278,7 @@ class RunnerManager(object):
   TrainerTpu = TrainerTpu
   Evaler = Evaler
   Decoder = Decoder
+  ExecutorTpu = executor.ExecutorTpu
   # pylint: enable=invalid-name
 
   def __init__(self, model):
@@ -1487,6 +1336,18 @@ class RunnerManager(object):
       cfg.train.save_keep_checkpoint_every_n_hours = FLAGS.saver_keep_checkpoint_every_n_hours
     return cfg
 
+  def GetProgramScheduleParams(self, job_name, dataset_names):
+    """Returns ProgramSchedule  params for job `job_name` and  datasets `dataset_name`."""
+    # Get the current cluster and update its params from flags.
+    cluster = cluster_factory.Current()
+    self.UpdateClusterParamsFromFlags(cluster.params, job_name)
+    with cluster_factory.Cluster(cluster.params):
+      ps_cfg, model_cfg_dict = self.model_registry.GetProgramSchedule(
+          self._model_name, dataset_names)
+      for v in model_cfg_dict.values():
+        v.cluster = cluster.params
+    return ps_cfg, model_cfg_dict
+
   def MaybeConfigRunDistributed(self):
     """If given a `FLAGS.cluster_spec`, update flags for running distributed."""
     if not FLAGS.cluster_spec:
@@ -1506,9 +1367,8 @@ class RunnerManager(object):
         assert ',' not in job_specs[0], 'Only single machine supported'
         FLAGS.evaler_job = '/job:%s' % job
         FLAGS.evaler_replicas = 1
-
     if FLAGS.mode == 'sync' and FLAGS.job in ('controller', 'trainer_client',
-                                              'worker'):
+                                              'worker', 'executor_tpu'):
       FLAGS.worker_job = '/job:worker'
       FLAGS.worker_replicas = len(cluster_spec_dict['worker'])
       FLAGS.ps_job = '/job:worker'
@@ -1616,6 +1476,11 @@ class RunnerManager(object):
       return self.Decoder(dataset_name.lower(), cfg, *common_args)
     elif job in ('ps', 'worker', 'input'):
       self._tf_server.join()
+      # TODO(blee): Fix the instantiation of ExecutorTpu
+      program_schedule, task_dict = self.GetProgramScheduleParams(
+          'executor_tpu', ['Train', 'Test'])
+      return self.ExecutorTpu(task_dict, program_schedule, model_task_name,
+                              logdir, tf_master)
     else:
       raise ValueError('job %s is not supported' % job)
 
@@ -1664,17 +1529,18 @@ class RunnerManager(object):
       t.daemon = True
       t.start()
       threads.append(t)
-      tf.logging.info('Total num runner.enqueue_ops: %d',
-                      len(runner.enqueue_ops))
-      for enqueue_op in runner.enqueue_ops:
+      if runner.enqueue_ops:
+        tf.logging.info('Total num runner.enqueue_ops: %d',
+                        len(runner.enqueue_ops))
+        for enqueue_op in runner.enqueue_ops:
 
-        def StartEnqueue(runner, op):
-          tf.logging.info('Starting enqueue op %s', op.name)
-          return lambda: runner.StartEnqueueOp(op)
+          def StartEnqueue(runner, op):
+            tf.logging.info('Starting enqueue op %s', op.name)
+            return lambda: runner.StartEnqueueOp(op)
 
-        tq = threading.Thread(target=StartEnqueue(runner, enqueue_op))
-        tq.start()
-        threads.append(tq)
+          tq = threading.Thread(target=StartEnqueue(runner, enqueue_op))
+          tq.start()
+          threads.append(tq)
     tf.logging.info('Waiting for runners to finish...')
     for t in threads:
       while True:

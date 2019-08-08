@@ -84,6 +84,10 @@ class StatsCounter(object):
     """Returns the current counter value."""
     return self._value
 
+  def Var(self):
+    """Returns the variable."""
+    return self._var
+
   def IncBy(self, params, delta):
     """Increment the counter by delta and return the new value."""
     # NOTE: We must ensure _value is computed (_var + 0) before
@@ -307,7 +311,7 @@ class BaseTask(base_layer.BaseLayer):
     # p.train can be None if this task is the teacher/student task in a
     # DistillationTask.
     if tp and self.cluster.job in ('worker', 'trainer', 'trainer_client',
-                                   'controller'):
+                                   'controller', 'executor_tpu'):
       self._SetLearnerFromLegacyParams(tp)
       if tp.learner is not None:
         if isinstance(tp.learner, (list, tuple)):
@@ -778,6 +782,15 @@ class BaseTask(base_layer.BaseLayer):
   def total_examples(self):
     """Returns the total number of training examples processed so far."""
     return self._total_examples.Value()
+
+  @property
+  def total_examples_var(self):
+    """Returns a variable of the total number examples processed so far.
+
+    The total_examples Value() is inaccessible outisde the TPU context
+    if it's created within a @tpu_function.on_device_training_loop.
+    """
+    return self._total_examples.Var()
 
   @property
   def trainer_verbose_tensors(self):

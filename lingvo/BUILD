@@ -161,6 +161,7 @@ py_library(
     deps = [
         ":base_trial",
         ":compat",
+        ":executor_lib",
         ":model_imports_no_params",
         ":model_registry",
         # Implicit network file system dependency.
@@ -168,6 +169,7 @@ py_library(
         # Implicit IPython dependency.
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
+        "//lingvo/core:checkpointer_lib",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:inference_graph_exporter",
         "//lingvo/core:metrics",
@@ -277,5 +279,30 @@ genrule(
     tools = [
         "//lingvo/tools:generate_proto_def",
         "//lingvo/tools:generate_tf_dot_protos",
+    ],
+)
+
+py_library(
+    name = "executor_lib",
+    srcs = ["executor.py"],
+    deps = [
+        ":base_runner",
+        ":base_trial",
+        ":model_imports_no_params",
+        ":model_registry",
+        # Implicit network file system dependency.
+        # Implicit IPython dependency.
+        "//lingvo/core:base_model",
+        "//lingvo/core:base_model_params",
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:inference_graph_exporter",
+        "//lingvo/core:metrics",
+        "//lingvo/core:program_lib",
+        "//lingvo/core:py_utils",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow py proto dependency.
+        # Implicit tensorflow grpc dependency.
     ],
 )
