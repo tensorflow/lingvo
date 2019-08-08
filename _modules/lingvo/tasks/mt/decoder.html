@@ -425,13 +425,6 @@
 <span class="sd">      atten_probs: a list of attention probs, each element is of shape [tgt_len,</span>
 <span class="sd">        tgt_batch, src_len].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">num_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span>
-    <span class="n">fig</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">MatplotlibFigureSummary</span><span class="p">(</span>
-        <span class="s1">&#39;decoder_example&#39;</span><span class="p">,</span>
-        <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">num_rows</span><span class="p">),</span>
-        <span class="n">max_outputs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">subplot_grid_shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_rows</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-
     <span class="k">def</span> <span class="nf">PlotAttention</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">cur_atten_probs</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">set_x_label</span><span class="p">):</span>
       <span class="n">plot</span><span class="o">.</span><span class="n">AddImage</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">cur_atten_probs</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">)</span>
       <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">plot</span><span class="o">.</span><span class="n">ToUnicode</span><span class="p">(</span><span class="s1">&#39;Output sequence index&#39;</span><span class="p">),</span> <span class="n">wrap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -442,17 +435,21 @@
     <span class="n">srclen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">source_paddings</span><span class="p">[:,</span> <span class="n">index</span><span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">tgtlen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">probs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">):</span>
-      <span class="c1"># Extract first entry in batch of attention prob matrices</span>
-      <span class="c1"># [tgt_len, src_len]</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="n">probs</span><span class="p">[:,</span> <span class="n">index</span><span class="p">,</span> <span class="p">:]</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">probs</span><span class="p">[:</span><span class="n">tgtlen</span><span class="p">,</span> <span class="p">:</span><span class="n">srclen</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="n">fig</span><span class="o">.</span><span class="n">AddSubplot</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">probs</span><span class="p">],</span>
-          <span class="n">PlotAttention</span><span class="p">,</span>
-          <span class="n">title</span><span class="o">=</span><span class="s1">&#39;atten_probs_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span>
-          <span class="n">set_x_label</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="n">fig</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span></div></div>
+    <span class="n">num_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">plot</span><span class="o">.</span><span class="n">MatplotlibFigureSummary</span><span class="p">(</span>
+        <span class="s1">&#39;decoder_example&#39;</span><span class="p">,</span>
+        <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">num_rows</span><span class="p">),</span>
+        <span class="n">max_outputs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">subplot_grid_shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_rows</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="k">as</span> <span class="n">fig</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">probs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">):</span>
+        <span class="c1"># Extract first entry in batch of attention prob matrices</span>
+        <span class="c1"># [tgt_len, src_len]</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">probs</span><span class="p">[:,</span> <span class="n">index</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">probs</span><span class="p">[:</span><span class="n">tgtlen</span><span class="p">,</span> <span class="p">:</span><span class="n">srclen</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">AddSubplot</span><span class="p">([</span><span class="n">probs</span><span class="p">],</span>
+                       <span class="n">PlotAttention</span><span class="p">,</span>
+                       <span class="n">title</span><span class="o">=</span><span class="s1">&#39;atten_probs_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span>
+                       <span class="n">set_x_label</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="MTDecoderV1"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1">[docs]</a><span class="k">class</span> <span class="nc">MTDecoderV1</span><span class="p">(</span><span class="n">MTBaseDecoder</span><span class="p">,</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>

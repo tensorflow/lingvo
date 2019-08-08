@@ -188,28 +188,28 @@
 
 <div class="viewcode-block" id="BaseClassifier._AddSummary"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.BaseClassifier._AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">prediction</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Adds image summaries for the batch.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
       <span class="c1"># Image summaries only works in evaler/decoder.</span>
-      <span class="n">fig</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">MatplotlibFigureSummary</span><span class="p">(</span>
-          <span class="s1">&#39;examples&#39;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">max_outputs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+      <span class="k">return</span>
 
-      <span class="k">def</span> <span class="nf">Draw</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
-        <span class="n">plot</span><span class="o">.</span><span class="n">AddImage</span><span class="p">(</span>
-            <span class="n">fig</span><span class="o">=</span><span class="n">fig</span><span class="p">,</span>
-            <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span>
-            <span class="n">data</span><span class="o">=</span><span class="n">img</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">256.</span><span class="p">,</span>
-            <span class="n">show_colorbar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">suppress_xticks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">suppress_yticks</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">axes</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
-            <span class="n">x</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-            <span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">s</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> vs. </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">pred</span><span class="p">),</span>
-            <span class="n">transform</span><span class="o">=</span><span class="n">axes</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
-            <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Draw</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
+      <span class="n">plot</span><span class="o">.</span><span class="n">AddImage</span><span class="p">(</span>
+          <span class="n">fig</span><span class="o">=</span><span class="n">fig</span><span class="p">,</span>
+          <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span>
+          <span class="n">data</span><span class="o">=</span><span class="n">img</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">256.</span><span class="p">,</span>
+          <span class="n">show_colorbar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">suppress_xticks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+          <span class="n">suppress_yticks</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">axes</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+          <span class="n">x</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+          <span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+          <span class="n">s</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> vs. </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">pred</span><span class="p">),</span>
+          <span class="n">transform</span><span class="o">=</span><span class="n">axes</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+          <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
 
-      <span class="n">fig</span><span class="o">.</span><span class="n">AddSubplot</span><span class="p">([</span><span class="n">batch</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="n">batch</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">prediction</span><span class="p">],</span> <span class="n">Draw</span><span class="p">)</span>
-      <span class="n">fig</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span></div>
+    <span class="k">with</span> <span class="n">plot</span><span class="o">.</span><span class="n">MatplotlibFigureSummary</span><span class="p">(</span>
+        <span class="s1">&#39;examples&#39;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">max_outputs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="k">as</span> <span class="n">fig</span><span class="p">:</span>
+      <span class="n">fig</span><span class="o">.</span><span class="n">AddSubplot</span><span class="p">([</span><span class="n">batch</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="n">batch</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">prediction</span><span class="p">],</span> <span class="n">Draw</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseClassifier._Accuracy"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.BaseClassifier._Accuracy">[docs]</a>  <span class="k">def</span> <span class="nf">_Accuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute top-k accuracy.</span>
