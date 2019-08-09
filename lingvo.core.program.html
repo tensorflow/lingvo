@@ -288,12 +288,6 @@ available to be executed on demand without significant delay.</p>
 the existing Evaler as the input generator is not recreated
 per-eval. Thus different random samples are selected each
 evaluation.</p>
-<dl class="classmethod">
-<dt id="lingvo.core.program.EvalProgram.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>“Defaults parameters for Programs.</p>
-</dd></dl>
-
 <dl class="method">
 <dt id="lingvo.core.program.EvalProgram.BuildTpuSubgraph">
 <code class="descname">BuildTpuSubgraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram.BuildTpuSubgraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram.BuildTpuSubgraph" title="Permalink to this definition">¶</a></dt>
@@ -305,6 +299,35 @@ evaluation.</p>
 <dl class="method">
 <dt id="lingvo.core.program.EvalProgram.Run">
 <code class="descname">Run</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram.Run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram.Run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.program.DecodeProgram">
+<em class="property">class </em><code class="descclassname">lingvo.core.program.</code><code class="descname">DecodeProgram</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
+<p>DecodeProgram.</p>
+<p>Note that this currently has different infeed semantics compared to
+the existing Decoder as the input generator is not recreated
+per-eval. Thus different random samples are selected each
+decoder run.</p>
+<dl class="method">
+<dt id="lingvo.core.program.DecodeProgram._WriteSummaries">
+<code class="descname">_WriteSummaries</code><span class="sig-paren">(</span><em>job_name</em>, <em>global_step</em>, <em>summaries</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._WriteSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._WriteSummaries" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.program.DecodeProgram.BuildTpuSubgraph">
+<code class="descname">BuildTpuSubgraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.BuildTpuSubgraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.BuildTpuSubgraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sub classes should construct a model/graph to be executed by Run.</p>
+<p>Specific to TPU execution, this may involve a
+&#64;tpu_function.on_device_training_loop etc.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.program.DecodeProgram.Run">
+<code class="descname">Run</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.Run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.Run" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -336,7 +359,7 @@ Run all the eval_programs</p>
 
 <dl class="function">
 <dt id="lingvo.core.program.SimpleProgramScheduleForTask">
-<code class="descclassname">lingvo.core.program.</code><code class="descname">SimpleProgramScheduleForTask</code><span class="sig-paren">(</span><em>train_dataset_name</em>, <em>train_steps_per_loop</em>, <em>eval_dataset_names</em>, <em>eval_steps_per_loop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.program.</code><code class="descname">SimpleProgramScheduleForTask</code><span class="sig-paren">(</span><em>train_dataset_name</em>, <em>train_steps_per_loop</em>, <em>eval_dataset_names</em>, <em>eval_steps_per_loop</em>, <em>decode_steps_per_loop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenient helper method for common case.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -347,6 +370,7 @@ Run all the eval_programs</p>
 <li><strong>train_steps_per_loop</strong> – Number of steps to execute the training program.</li>
 <li><strong>eval_dataset_names</strong> – List of eval dataset_name strings, eg: [‘Train’].</li>
 <li><strong>eval_steps_per_loop</strong> – Number of steps to execute the eval program.</li>
+<li><strong>decode_steps_per_loop</strong> – Number of steps to execute the decode program.</li>
 </ul>
 </td>
 </tr>
