@@ -354,7 +354,7 @@ class BuilderLayerTest(test_utils.TestCase):
       tf.set_random_seed(24332)
       p = layers.SoftCondLayer.Params().Set(
           name='soft_cond',
-          input_dim=2,
+          cond_dim=2,
           num_experts=num_experts,
           body=lingvo_layers.FCLayer.Params().Set(input_dim=2, output_dim=2))
       l = p.Instantiate()

@@ -193,7 +193,7 @@ class RepeatLayer(base_layer.BaseLayer):
 
 
 class SoftCondLayer(base_layer.BaseLayer):
-  r"""A wrapper layer implements soft condition computation.
+  r"""A wrapper layer implements soft conditional computation.
 
   This layer computes
 
@@ -211,13 +211,13 @@ class SoftCondLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super(SoftCondLayer, cls).Params()
+    p.Define('num_tasks', None, 'The Params for the main network layer.')
     p.Define('body', None, 'The Params for the main network layer.')
     p.Define('num_experts', None, 'Number of experts.')
     p.Define(
-        'input_dim', None,
-        'Depth of the input tensor (last dimension). This layer maintains '
-        'a weight matrix of shape [input_dim, num_experts] to map from '
-        'input encoding to the expert dimension.')
+        'cond_dim', None,
+        'This layer maintains a weight matrix of shape [cond_dim, num_experts] '
+        'to map from inputs to the expert dimension.')
     return p
 
   @base_layer.initializer
@@ -226,29 +226,38 @@ class SoftCondLayer(base_layer.BaseLayer):
     p = self.params
     assert p.name
     assert p.num_experts
-    assert p.input_dim
+    assert p.cond_dim
     with tf.variable_scope(p.name):
       # Create Variables for task weight mapping.
+      collections = [
+          self.__class__.__name__ + '_vars',
+      ]
       w_p = py_utils.WeightParams(
-          shape=[p.input_dim, p.num_experts],
+          shape=[p.cond_dim, p.num_experts],
           init=p.params_init,  # TODO(huangyp): try zero init instead.
           dtype=p.dtype,
-          collections=[self.__class__.__name__ + '_vars'])
+          collections=collections)
       self.CreateVariable('w', w_p)
       # Prepends p.num_experts to the tensor shape of every variable created
       # by p.body.
       with py_utils.VariableShapePrefixContext(p.num_experts):
         self.CreateChild('body', p.body)
 
-  def FProp(self, theta, inputs):
+  def _GetExpertDist(self, theta, inputs, *args):
+    """Get the task id from inputs tensors."""
+    # TODO(huangyp): support the more general case when batch size is not 1.
+    # Input shape can be either [batch, length, dim] or [length, batch, dim]
+    per_example_emb = tf.reduce_sum(
+        tf.reshape(inputs, [-1, self.params.cond_dim]), 0)
+    expert_dist = tf.nn.sigmoid(tf.einsum('i,ij->j', per_example_emb, theta.w))
+    return expert_dist
+
+  def FProp(self, theta, inputs, *args):
     p = self.params
     with tf.name_scope(p.name) as scope:
-      # TODO(huangyp): generalize for inputs with arbitrary batch size.
-      inputs = py_utils.HasShape(inputs, [1], 1)
-      per_example_emb = tf.reduce_sum(tf.reshape(inputs, [-1, p.input_dim]), 0)
-      task_w = tf.nn.sigmoid(tf.einsum('i,ij->j', per_example_emb, theta.w))
+      expert_dist = self._GetExpertDist(theta, inputs, *args)
       if not p.is_eval:
-        summary_utils.histogram('soft_cond_{}'.format(scope), task_w)
+        summary_utils.histogram('soft_cond_{}'.format(scope), expert_dist)
 
       # Excludes non-variable extra_theta like global_step.
       var_set = set([key for key, _ in self.body.vars.FlattenItems()])
@@ -256,10 +265,10 @@ class SoftCondLayer(base_layer.BaseLayer):
       for key, value in theta.body.FlattenItems():
         if key in var_set and value is not None:
           # Weighted average for all variables created in the body layer.
-          value = tf.einsum('i,i...->...', task_w, value)
+          value = tf.einsum('i,i...->...', expert_dist, value)
         values.append(value)
       weighted_theta = theta.body.Pack(values)
-      return self.body.FProp(weighted_theta, inputs)
+      return self.body.FProp(weighted_theta, inputs, *args)
 
 
 class ParallelRepeatLayer(RepeatLayer):
