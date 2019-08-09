@@ -80,6 +80,7 @@ class _Cluster(object):
         'job', 'trainer', 'The role of this job in the training cluster. '
         'E.g., trainer_client, trainer, controller,  etc.')
     p.Define('task', 0, 'This process is the task-th task in the job.')
+    p.Define('logdir', '', 'The log directory.')
 
     # How the cluster is composed.
     #
