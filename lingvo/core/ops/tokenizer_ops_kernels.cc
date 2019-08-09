@@ -23,6 +23,7 @@ limitations under the License.
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
+#include "tensorflow/core/lib/strings/numbers.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/env.h"
 
@@ -278,8 +279,13 @@ class BpeWordsToIdsOp : public OpKernel {
       // Each line:
       // string int1,int2,int3,...,intn
       std::vector<string> parts = str_util::Split(line, ' ');
+      std::vector<string> split_parts_1 = str_util::Split(parts[1], ',');
       std::vector<int32> ids;
-      str_util::SplitAndParseAsInts(parts[1], ',', &ids);
+      for (const string& str_id : split_parts_1) {
+        int32 id;
+        strings::safe_strto32(str_id, &id);
+        ids.push_back(id);
+      }
       string_to_ids_map_[parts[0]] = ids;
     }
   }
