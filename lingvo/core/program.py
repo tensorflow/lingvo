@@ -86,6 +86,9 @@ class BaseProgram(object):
     self.num_splits_per_client = p.num_splits_per_client
     self.data_parallelism = p.num_splits_per_client
 
+    # Thread Pool for infeed.
+    self._infeed_pool = multiprocessing.dummy.Pool(1)
+
   def _SummarizeValue(self, steps, tag, value):
     self._summary_writer.add_summary(
         metrics.CreateScalarSummary(tag, value), steps)
@@ -126,8 +129,6 @@ class TrainProgram(BaseProgram):
   def __init__(self, params):
     super(TrainProgram, self).__init__(params)
     self._time_steps = []  # A short history of (timestamp, global_step)
-    # Thread Pool for infeed.
-    self._infeed_pool = multiprocessing.dummy.Pool(1)
 
   def _CreateCheckpointer(self, train_dir, model):
     return checkpointer.Checkpointer(train_dir, model)
@@ -325,16 +326,6 @@ class EvalProgram(BaseProgram):
   evaluation.
   """
 
-  def __init__(self, params):
-    super(EvalProgram, self).__init__(params)
-    # Thread Pool for infeed.
-    self._infeed_pool = multiprocessing.dummy.Pool(1)
-
-  @classmethod
-  def Params(cls):
-    p = super(EvalProgram, cls).Params()
-    return p
-
   def BuildTpuSubgraph(self):
     with py_utils.OpportunisticVariableReuseScope(True):
       self._eval_metrics = metrics.TpuEvalMetrics()
@@ -386,6 +377,73 @@ class EvalProgram(BaseProgram):
     global_step = sess.run(gsteps)
     for key, (val, _) in sorted(six.iteritems(eval_metrics)):
       self._SummarizeValue(global_step, key, val)
+
+
+class DecodeProgram(BaseProgram):
+  """DecodeProgram.
+
+  Note that this currently has different infeed semantics compared to
+  the existing Decoder as the input generator is not recreated
+  per-eval. Thus different random samples are selected each
+  decoder run.
+  """
+
+  def _WriteSummaries(self, job_name, global_step, summaries):
+    for unused_name, summary in sorted(summaries.items()):
+      self._summary_writer.add_summary(summary, global_step)
+      if summary.value:
+        for value in summary.value:
+          if value.HasField('simple_value'):
+            tf.logging.info('%s summary on checkpoint@%d %s = %.8g', job_name,
+                            global_step, value.tag, value.simple_value)
+      self._summary_writer.flush()
+
+  def BuildTpuSubgraph(self):
+    py_utils.ResetStepSeed()
+
+    def _DecodeFn():
+      with py_utils.OpportunisticVariableReuseScope(True):
+        self._model = self._task_params.Instantiate()
+        self._model_task = self._model.GetTask()
+        input_batch = self._model_task.GetInputBatch()
+        metrics_dict = self._model_task.Decode(input_batch)
+        self.metrics_nm = py_utils.NestedMap(metrics_dict)
+        return self.metrics_nm.Flatten()
+
+    batch_parallel_res = tf.tpu.batch_parallel(
+        _DecodeFn,
+        num_shards=self.data_parallelism,
+        device_assignment=py_utils.GetTpuDeviceAssignment())
+
+    self._checkpointer = checkpointer.Checkpointer(self._checkpoint_dir,
+                                                   self._model)
+
+    self.metrics = py_utils.NestedMap(self.metrics_nm)
+    self.metrics = self.metrics.Pack(batch_parallel_res)
+    return None
+
+  def Run(self, sess):
+    self._checkpointer.RestoreIfNeeded(sess)
+    gsteps = py_utils.GetGlobalStep()
+    global_step = sess.run(gsteps)
+
+    self._infeed_pool.apply_async(self._InfeedLoop, args=(sess,))
+    dec_metrics = self._model_task.CreateDecoderMetrics()
+    start_time = time.time()
+    for i in range(self._steps_per_loop):
+      metrics_values = sess.run(self.metrics)
+      self._model_task.PostProcessDecodeOut(metrics_values, dec_metrics)
+      tf.logging.info('step: %d %f' %
+                      (i, dec_metrics['num_samples_in_batch'].total_value))
+
+    num_examples_metric = dec_metrics['num_samples_in_batch']
+    summaries = {k: v.Summary(k) for k, v in six.iteritems(dec_metrics)}
+    elapsed_secs = time.time() - start_time
+    example_rate = num_examples_metric.total_value / elapsed_secs
+    summaries['examples/sec'] = tf.Summary(
+        value=[tf.Summary.Value(tag='examples/sec', simple_value=example_rate)])
+    self._WriteSummaries(
+        os.path.basename(self._program_dir), global_step, summaries)
 
 
 class SimpleProgramSchedule(object):
@@ -445,7 +503,8 @@ class SimpleProgramSchedule(object):
 
 
 def SimpleProgramScheduleForTask(train_dataset_name, train_steps_per_loop,
-                                 eval_dataset_names, eval_steps_per_loop):
+                                 eval_dataset_names, eval_steps_per_loop,
+                                 decode_steps_per_loop):
   """Convenient helper method for common case.
 
   Args:
@@ -453,6 +512,7 @@ def SimpleProgramScheduleForTask(train_dataset_name, train_steps_per_loop,
     train_steps_per_loop: Number of steps to execute the training program.
     eval_dataset_names: List of eval dataset_name strings, eg: ['Train'].
     eval_steps_per_loop: Number of steps to execute the eval program.
+    decode_steps_per_loop: Number of steps to execute the decode program.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -466,11 +526,20 @@ def SimpleProgramScheduleForTask(train_dataset_name, train_steps_per_loop,
   program_schedule_params.train_program = train_program_params
 
   for dataset_name in eval_dataset_names:
-    eval_program_params = EvalProgram.Params()
-    eval_program_params.name = 'eval_tpu'
-    # TODO(blee): This should be derived from the Dataset size.
-    eval_program_params.steps_per_loop = eval_steps_per_loop
-    eval_program_params.dataset_name = dataset_name
-    program_schedule_params.eval_programs.append(eval_program_params)
+    if eval_steps_per_loop > 0:
+      eval_program_params = EvalProgram.Params()
+      eval_program_params.name = 'eval_tpu'
+      # TODO(blee): This should be derived from the Dataset size.
+      eval_program_params.steps_per_loop = eval_steps_per_loop
+      eval_program_params.dataset_name = dataset_name
+      program_schedule_params.eval_programs.append(eval_program_params)
+
+    if decode_steps_per_loop > 0:
+      decode_program_params = DecodeProgram.Params()
+      decode_program_params.name = 'decode_tpu'
+      # TODO(blee): This should be derived from the Dataset size.
+      decode_program_params.steps_per_loop = decode_steps_per_loop
+      decode_program_params.dataset_name = dataset_name
+      program_schedule_params.eval_programs.append(decode_program_params)
 
   return program_schedule_params
