@@ -348,7 +348,7 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dt id="lingvo.core.builder_layers.SoftCondLayer">
 <em class="property">class </em><code class="descclassname">lingvo.core.builder_layers.</code><code class="descname">SoftCondLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SoftCondLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SoftCondLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
-<p>A wrapper layer implements soft condition computation.</p>
+<p>A wrapper layer implements soft conditional computation.</p>
 <p>This layer computes</p>
 <p>output = p.body.FProp( sum_i w_i theta_i, *inputs)</p>
 <p>where the theta passed to p.body is the weighted average over p.num_experts
@@ -364,8 +364,14 @@ Soft Conditional Computation, B. Yang, G. Bender, Q.V. Le, J. Ngiam
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.core.builder_layers.SoftCondLayer._GetExpertDist">
+<code class="descname">_GetExpertDist</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SoftCondLayer._GetExpertDist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SoftCondLayer._GetExpertDist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the task id from inputs tensors.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.core.builder_layers.SoftCondLayer.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SoftCondLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SoftCondLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SoftCondLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SoftCondLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
 calls <a class="reference internal" href="#lingvo.core.builder_layers.SoftCondLayer.FProp" title="lingvo.core.builder_layers.SoftCondLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
