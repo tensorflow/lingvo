@@ -2692,13 +2692,14 @@ def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
     if padded is None:
       padded = tf.zeros_like(x)
     if broadcast:
-      padding *= tf.ones_like(x)  # Broadcast padding to the full shape.
-    return tf.where(padding > 0.0, padded, x)
+      # Broadcast padding to the full shape.
+      padding = tf.cast(padding, x.dtype) * tf.ones_like(x)
+    return tf.where(padding > tf.zeros_like(padding), padded, x)
   else:
-    if padded is None:
-      return x * (1.0 - padding)
-    else:
-      return x * (1.0 - padding) + padded * padding
+    result = x * tf.cast(1.0 - padding, x.dtype)
+    if padded is not None:
+      result += padded * tf.cast(padding, padded.dtype)
+    return result
 
 
 def LengthsFromPaddings(paddings):
