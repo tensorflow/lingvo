@@ -2837,13 +2837,14 @@
     <span class="k">if</span> <span class="n">padded</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">broadcast</span><span class="p">:</span>
-      <span class="n">padding</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># Broadcast padding to the full shape.</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">padding</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">padded</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+      <span class="c1"># Broadcast padding to the full shape.</span>
+      <span class="n">padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">padding</span> <span class="o">&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">padding</span><span class="p">),</span> <span class="n">padded</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">padded</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">padding</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">padding</span><span class="p">)</span> <span class="o">+</span> <span class="n">padded</span> <span class="o">*</span> <span class="n">padding</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">padding</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">padded</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">result</span> <span class="o">+=</span> <span class="n">padded</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">padded</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span>
 
 
 <span class="k">def</span> <span class="nf">LengthsFromPaddings</span><span class="p">(</span><span class="n">paddings</span><span class="p">):</span>
