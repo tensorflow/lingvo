@@ -225,6 +225,10 @@ class _Cluster(object):
     return self.params.job
 
   @property
+  def logdir(self):
+    return self.params.logdir
+
+  @property
   def task(self):
     return self.params.task
 
