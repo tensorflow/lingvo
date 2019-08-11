@@ -206,8 +206,10 @@
         <span class="n">bucket_key</span> <span class="o">+=</span> <span class="mi">1</span>
       <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span><span class="n">fval</span><span class="p">[</span><span class="s1">&#39;transcript&#39;</span><span class="p">])</span>
       <span class="n">src_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">fval</span><span class="p">[</span><span class="s1">&#39;frames&#39;</span><span class="p">])[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">fval</span><span class="p">[</span><span class="s1">&#39;uttid&#39;</span><span class="p">],</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_paddings</span><span class="p">,</span> <span class="n">fval</span><span class="p">[</span>
-          <span class="s1">&#39;frames&#39;</span><span class="p">],</span> <span class="n">src_paddings</span><span class="p">,</span> <span class="n">bucket_key</span>
+      <span class="k">return</span> <span class="p">[</span>
+          <span class="n">fval</span><span class="p">[</span><span class="s1">&#39;uttid&#39;</span><span class="p">],</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_paddings</span><span class="p">,</span> <span class="n">fval</span><span class="p">[</span><span class="s1">&#39;frames&#39;</span><span class="p">],</span>
+          <span class="n">src_paddings</span>
+      <span class="p">],</span> <span class="n">bucket_key</span>
 
     <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
         <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>

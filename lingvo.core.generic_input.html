@@ -178,9 +178,9 @@
   <span class="c1"># Each example is represented by a NestedMap of tensors (without a</span>
   <span class="c1"># batch dimension).</span>
   <span class="n">example</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">field1</span><span class="o">=...</span><span class="p">,</span> <span class="n">field2</span><span class="o">=...</span><span class="p">)</span>
-  <span class="c1"># bucketing_key is an int scalar tensor.</span>
+  <span class="c1"># bucketing_key is a scalar convertible to tf.int32.</span>
   <span class="c1"># Use 1 if all examples are of the same size.</span>
-  <span class="n">bucketing_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">bucketing_key</span> <span class="o">=</span> <span class="mi">1</span>
   <span class="k">return</span> <span class="n">example</span><span class="p">,</span> <span class="n">bucketing_key</span>
 
 <span class="n">input_batch</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">GenericInput</span><span class="p">(</span><span class="n">ParseRecord</span><span class="p">,</span> <span class="n">file_pattern</span><span class="o">=...</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
@@ -194,19 +194,20 @@
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>processor</strong> – a function that takes a string record as input and returns a list
-of tensors or NestedMaps representing one example. The last return value
-of processor must be an int32 scalar tensor that represents the bucketing
-key (e.g., sequence length for sequence inputs).</li>
+<li><strong>processor</strong> – a function that takes a string record as input and returns a
+tuple (output, bucketing_key). <code class="xref py py-obj docutils literal notranslate"><span class="pre">output</span></code> must be a NestedMap or a list of
+tensors representing one example. The <code class="xref py py-obj docutils literal notranslate"><span class="pre">bucketing_key</span></code> must be a scalar
+convertible to a tf.int32 tensor that represents the bucketing key (e.g.,
+sequence length for sequence inputs).</li>
 <li><strong>*args</strong> – additional args for x_ops.generic_input.</li>
 <li><strong>**kwargs</strong> – additional keyword args for x_ops.generic_input.</li>
 </ul>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
-<li>outputs: a list of tensors or NestedMaps, similar to <code class="xref py py-obj docutils literal notranslate"><span class="pre">processor</span></code>’s return,
-except every tensor will have an additional dimension 0 that represents
-the batch dimension.</li>
+<li>outputs: a NestedMap or a list of tensors, similar to <code class="xref py py-obj docutils literal notranslate"><span class="pre">processor</span></code>’s
+return,  except every tensor will have an additional dimension 0 that
+represents the batch dimension.</li>
 <li>bucket_keys: a tf.int32 vector.</li>
 </ul>
 </p>

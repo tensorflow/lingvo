@@ -184,9 +184,9 @@
 <span class="sd">      # Each example is represented by a NestedMap of tensors (without a</span>
 <span class="sd">      # batch dimension).</span>
 <span class="sd">      example = py_utils.NestedMap(field1=..., field2=...)</span>
-<span class="sd">      # bucketing_key is an int scalar tensor.</span>
+<span class="sd">      # bucketing_key is a scalar convertible to tf.int32.</span>
 <span class="sd">      # Use 1 if all examples are of the same size.</span>
-<span class="sd">      bucketing_key = tf.to_int32(1)</span>
+<span class="sd">      bucketing_key = 1</span>
 <span class="sd">      return example, bucketing_key</span>
 
 <span class="sd">    input_batch, bucket_keys = GenericInput(ParseRecord, file_pattern=..., ...)</span>
@@ -195,38 +195,48 @@
 <span class="sd">    input_batch.field1 = ...</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    processor: a function that takes a string record as input and returns a list</span>
-<span class="sd">      of tensors or NestedMaps representing one example. The last return value</span>
-<span class="sd">      of processor must be an int32 scalar tensor that represents the bucketing</span>
-<span class="sd">      key (e.g., sequence length for sequence inputs).</span>
+<span class="sd">    processor: a function that takes a string record as input and returns a</span>
+<span class="sd">      tuple (output, bucketing_key). `output` must be a NestedMap or a list of</span>
+<span class="sd">      tensors representing one example. The `bucketing_key` must be a scalar</span>
+<span class="sd">      convertible to a tf.int32 tensor that represents the bucketing key (e.g.,</span>
+<span class="sd">      sequence length for sequence inputs).</span>
 <span class="sd">    *args: additional args for x_ops.generic_input.</span>
 <span class="sd">    **kwargs: additional keyword args for x_ops.generic_input.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A tuple of (outputs, bucket_keys):</span>
-<span class="sd">    - outputs: a list of tensors or NestedMaps, similar to `processor`&#39;s return,</span>
-<span class="sd">      except every tensor will have an additional dimension 0 that represents</span>
-<span class="sd">      the batch dimension.</span>
+<span class="sd">    - outputs: a NestedMap or a list of tensors, similar to `processor`&#39;s</span>
+<span class="sd">      return,  except every tensor will have an additional dimension 0 that</span>
+<span class="sd">      represents the batch dimension.</span>
 <span class="sd">    - bucket_keys: a tf.int32 vector.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">output_tmpl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
   <span class="k">def</span> <span class="nf">_FlatOutputProcessor</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a flattened list of &#39;processor(inputs)&#39;.&quot;&quot;&quot;</span>
-    <span class="n">outputs</span> <span class="o">=</span> <span class="n">processor</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Processor outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">outputs</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="n">outputs</span>
-    <span class="c1"># Add &#39;outputs&#39; as a list so that each element will be flattened.</span>
-    <span class="n">output_tmpl</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
-    <span class="n">flat_outputs</span> <span class="o">=</span> <span class="n">output_tmpl</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Processor flat outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">flat_outputs</span><span class="p">)</span>
+    <span class="n">output</span><span class="p">,</span> <span class="n">bucketing_key</span> <span class="o">=</span> <span class="n">processor</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">assert</span> <span class="n">output</span>
+      <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">output</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">output</span>
+      <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span>
+          <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">output</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+              <span class="n">output</span><span class="o">.</span><span class="n">DebugString</span><span class="p">())</span>
+    <span class="n">bucketing_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">bucketing_key</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Processor outputs=</span><span class="si">%s</span><span class="s1"> bucketing_key=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span>
+                     <span class="n">bucketing_key</span><span class="p">)</span>
+    <span class="n">output_tmpl</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">output</span>
+    <span class="n">flat_output_tmpl</span> <span class="o">=</span> <span class="n">output_tmpl</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Processor flat outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">flat_output_tmpl</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;extra_inputs=</span><span class="si">%s</span><span class="s1"> extra_args=</span><span class="si">%s</span><span class="s1"> extra_vars=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
                      <span class="n">function</span><span class="o">.</span><span class="n">get_extra_inputs</span><span class="p">(),</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">(),</span>
                      <span class="n">function</span><span class="o">.</span><span class="n">get_extra_vars</span><span class="p">())</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">(),</span> <span class="p">(</span>
         <span class="s1">&#39;fns </span><span class="si">{}</span><span class="s1"> is not pure: extra_args=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span>
                                                    <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">()))</span>
-    <span class="k">return</span> <span class="n">flat_outputs</span>
+    <span class="k">return</span> <span class="n">flat_output_tmpl</span> <span class="o">+</span> <span class="p">[</span><span class="n">bucketing_key</span><span class="p">]</span>
 
   <span class="n">proc_fn</span> <span class="o">=</span> <span class="n">function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)(</span><span class="n">_FlatOutputProcessor</span><span class="p">)</span>
 
@@ -237,10 +247,7 @@
   <span class="n">flat_outputs</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">gen_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="p">(</span>
       <span class="n">processor</span><span class="o">=</span><span class="n">proc_fn</span><span class="p">,</span> <span class="n">out_types</span><span class="o">=</span><span class="n">out_types</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;x_ops.generic_input flat_outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">flat_outputs</span><span class="p">)</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">output_tmpl</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">flat_outputs</span>
   <span class="c1"># Pack flat_outputs to outputs.</span>
-  <span class="n">output_tmpl</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
   <span class="n">outputs</span> <span class="o">=</span> <span class="n">output_tmpl</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_outputs</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;x_ops.generic_input outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">outputs</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">bucket_keys</span></div>
