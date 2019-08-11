@@ -75,7 +75,7 @@ class GenericInputOpTest(test_utils.TestCase):
 
       # Samples random records from the data files and processes them
       # to generate batches.
-      inputs = self.get_test_input(
+      inputs, _ = self.get_test_input(
           tmp, bucket_upper_bound=[1], processor=_process)
       if use_nested_map:
         input_map = inputs[0]
@@ -112,7 +112,7 @@ class GenericInputOpTest(test_utils.TestCase):
 
       # Samples random records from the data files and processes them
       # to generate batches.
-      vals_t, transposed_vals_t = self.get_test_input(
+      (vals_t, transposed_vals_t), _ = self.get_test_input(
           tmp,
           bucket_upper_bound=[10],
           processor=_process,
@@ -170,7 +170,7 @@ class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
 
       # Samples random records from the data files and processes them
       # to generate batches.
-      strs, vals = generic_input.GenericInput(
+      (strs, vals), buckets = generic_input.GenericInput(
           file_pattern=','.join(
               ['tfrecord:' + path1, 'tfrecord:' + path2, 'tfrecord:' + path3]),
           input_source_weights=[0.2, 0.3, 0.5],
@@ -185,11 +185,12 @@ class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
       tags_count = collections.defaultdict(int)
       total_count = 10000
       for _ in range(total_count):
-        ans_strs, ans_vals = sess.run([strs, vals])
+        ans_strs, ans_vals, ans_buckets = sess.run([strs, vals, buckets])
         for s in ans_strs:
           tags_count[s.split(b':')[0]] += 1
         self.assertEqual(ans_strs.shape, (8,))
         self.assertEqual(ans_vals.shape, (8,))
+        self.assertAllEqual(ans_buckets, [1] * 8)
       self.assertEqual(sum(tags_count.values()), total_count * 8)
       mix_ratios = {}
       for k, v in six.iteritems(tags_count):

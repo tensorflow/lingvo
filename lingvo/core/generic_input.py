@@ -24,6 +24,9 @@ from lingvo.core import py_utils
 from tensorflow.python.framework import function
 
 
+# TODO(zhifengc): Changes processor's requirement to return a
+# tuple of (output, bucket_key) to be consistent w/ the return
+# value of GenericInput().
 def GenericInput(processor, *args, **kwargs):
   """Builds a generic input pipeline.
 
@@ -41,7 +44,7 @@ def GenericInput(processor, *args, **kwargs):
       bucketing_key = tf.to_int32(1)
       return example, bucketing_key
 
-    input_batch = GenericInput(ParseRecord, file_pattern=..., ...)
+    input_batch, bucket_keys = GenericInput(ParseRecord, file_pattern=..., ...)
     # input_batch is a NestedMap of tensors, where dim 0 of each tensor
     # represents the batch dimension.
     input_batch.field1 = ...
@@ -55,10 +58,11 @@ def GenericInput(processor, *args, **kwargs):
     **kwargs: additional keyword args for x_ops.generic_input.
 
   Returns:
-    A list of tensors or NestedMaps, similar `processor`'s return, except:
-      * The bucket key is not included in the output.
-      * Every tensor will have an additional dimension 0 that represents the
-        batch dimension.
+    A tuple of (outputs, bucket_keys):
+    - outputs: a list of tensors or NestedMaps, similar to `processor`'s return,
+      except every tensor will have an additional dimension 0 that represents
+      the batch dimension.
+    - bucket_keys: a tf.int32 vector.
   """
   output_tmpl = py_utils.NestedMap()
 
@@ -85,7 +89,7 @@ def GenericInput(processor, *args, **kwargs):
       tf.DType(a.type) for a in proc_fn.definition.signature.output_arg
   ]
   assert out_types[-1] == tf.int32, ('%s is not expected.' % out_types[-1])
-  flat_outputs = ops.gen_x_ops.generic_input(
+  flat_outputs, bucket_keys = ops.gen_x_ops.generic_input(
       processor=proc_fn, out_types=out_types[:-1], *args, **kwargs)
   tf.logging.debug('x_ops.generic_input flat_outputs=%s', flat_outputs)
   if not output_tmpl:
@@ -94,4 +98,4 @@ def GenericInput(processor, *args, **kwargs):
   output_tmpl.values.pop(-1)
   outputs = output_tmpl.Pack(flat_outputs).values
   tf.logging.debug('x_ops.generic_input outputs=%s', outputs)
-  return outputs
+  return outputs, bucket_keys

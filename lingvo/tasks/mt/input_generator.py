@@ -81,7 +81,8 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
     self.natural_order_model = p.natural_order_model
 
     (self._src_ids, self._src_paddings, self._tgt_ids, self._tgt_paddings,
-     self._tgt_labels, self._tgt_weights) = self._BuildDataSource()
+     self._tgt_labels,
+     self._tgt_weights), self._bucket_keys = self._BuildDataSource()
 
     if p.pad_to_max_seq_length:
       assert p.source_max_length
@@ -116,6 +117,8 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
 
   def InputBatch(self):
     ret = py_utils.NestedMap()
+
+    ret.bucket_keys = self._bucket_keys
 
     ret.src = py_utils.NestedMap()
     ret.src.ids = tf.cast(self._src_ids, dtype=tf.int32)

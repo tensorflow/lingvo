@@ -177,6 +177,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
         host_device = '/task:{}/device:CPU:0'.format(task_id)
         with tf.device(host_device):
           batch = self.GetPreprocessedInputBatch()
+          if 'bucket_keys' in batch:
+            # Hack: bucket_keys are not needed on TPU.
+            del batch['bucket_keys']
           tf.logging.info('host_device: %s, batch: %r', host_device, batch)
 
           if tpu_embedding is not None:

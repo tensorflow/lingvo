@@ -334,7 +334,7 @@ void RecordBatcher::ProcessorLoop() {
       // Invariant is either we don't need to flush this bucket after adding a
       // new element to it, or to_flush_ is empty and we can flush this bucket.
       CHECK(buckets_[id].size() + 1 < batch_limit || to_flush_.empty());
-      buckets_[id].push_back(std::move(sample));
+      buckets_[id].push_back({bucket, std::move(sample)});
       if (buckets_[id].size() == batch_limit) {
         to_flush_.push_back({id, std::move(buckets_[id])});
         buckets_[id].clear();
@@ -369,6 +369,7 @@ void RecordBatcher::ProcessorLoop() {
 
 void RecordBatcher::MergerLoop() {
   FlushList to_flush;
+  std::vector<TensorVec> samples;
   TensorVec merged;
   while (true) {
     {
@@ -383,13 +384,21 @@ void RecordBatcher::MergerLoop() {
     // batch unless flush_every_n is > 0.
     for (auto& p : to_flush) {
       const int64 id = p.first;
-      auto* samples = &p.second;
+      const int32 num = p.second.size();
+      Tensor bucket_keys(DT_INT32, {num});
+      auto t_bucket_keys = bucket_keys.flat<int32>();
+      for (int i = 0; i < num; ++i) {
+        auto processed = p.second[i];
+        t_bucket_keys(i) = processed.bucket_key;
+        samples.push_back(std::move(processed.sample));
+      }
       merged.clear();
-      Status s = processor_->Merge(bucket_upper_bound_[id], *samples, &merged);
-      samples->clear();
+      Status s = processor_->Merge(bucket_upper_bound_[id], samples, &merged);
+      samples.clear();
       if (!s.ok()) {
         LOG(WARNING) << "Failed to create a batch: " << s;
       } else {
+        merged.push_back(bucket_keys);
         MutexLock l(&mu_);
         WaitForCurrEmpty();
         if (stop_) return;

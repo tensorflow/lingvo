@@ -43,7 +43,7 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
     p = self.params
     p.fixed_input_shape = p.fixed_input_shape or py_utils.use_tpu()
 
-    text, self._word_count = self._BuildDataSource()
+    (text, self._word_count), self._bucket_keys = self._BuildDataSource()
     self._ids, self._labels, self._paddings = self.StringsToIds(text)
     self._input_batch_size = tf.shape(self._ids)[0]
     tf.summary.histogram('examples/sequence_length',
@@ -84,6 +84,7 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
 
   def InputBatch(self):
     ret = py_utils.NestedMap()
+    ret.bucket_key = self._bucket_keys
     ret.ids = self._ids
     ret.labels = self._labels
     ret.paddings = self._paddings

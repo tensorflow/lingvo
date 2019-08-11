@@ -99,7 +99,7 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
     p = self.params
 
     (utt_ids, tgt_ids, tgt_labels, tgt_paddings, src_frames,
-     src_paddings) = self._BuildDataSource()
+     src_paddings), self._bucket_keys = self._BuildDataSource()
 
     self._input_batch_size = tf.shape(utt_ids)[0]
     self._sample_ids = utt_ids
@@ -159,10 +159,9 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
 
   def InputBatch(self):
     batch = py_utils.NestedMap()
-
+    batch.bucket_keys = self._bucket_keys
     batch.src = self._src
     batch.tgt = self._tgt
     if not py_utils.use_tpu():
       batch.sample_ids = self._sample_ids
-
     return batch

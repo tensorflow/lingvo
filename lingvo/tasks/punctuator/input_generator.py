@@ -109,7 +109,8 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
 
     # Build the input processing graph.
     (self._src_ids, self._src_paddings, self._tgt_ids, self._tgt_paddings,
-     self._tgt_labels, self._tgt_weights) = self._BuildDataSource()
+     self._tgt_labels,
+     self._tgt_weights), self._bucket_keys = self._BuildDataSource()
 
     self._input_batch_size = tf.shape(self._src_ids)[0]
     self._sample_ids = tf.range(0, self._input_batch_size, 1)
@@ -117,6 +118,8 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
   def InputBatch(self):
     """Returns a single batch as a `.NestedMap` to be passed to the model."""
     ret = py_utils.NestedMap()
+
+    ret.bucket_keys = self._bucket_keys
 
     ret.src = py_utils.NestedMap()
     ret.src.ids = tf.cast(self._src_ids, dtype=tf.int32)

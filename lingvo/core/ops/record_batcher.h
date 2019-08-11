@@ -99,7 +99,11 @@ class RecordBatcher {
 
  private:
   typedef RecordBatcher ME;
-  typedef std::vector<TensorVec> Batch;
+  struct Processed {
+    int64 bucket_key;
+    TensorVec sample;
+  };
+  typedef std::vector<Processed> Batch;
   // FlushList is a list of bucket id and one batch for that bucket.
   typedef std::vector<std::pair<int64, Batch>> FlushList;
 

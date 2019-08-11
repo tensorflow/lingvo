@@ -17,7 +17,8 @@ limitations under the License.
 #define LINGVO_CORE_OPS_X_OPS_HELPER_H_
 
 #define INPUT_ATTRS                                   \
-  Attr("file_pattern: string")                        \
+  Output("bucket_keys: int32")                        \
+      .Attr("file_pattern: string")                   \
       .Attr("input_source_weights: list(float) = []") \
       .Attr("file_random_seed: int = 301")            \
       .Attr("file_buffer_size: int = 10000")          \
