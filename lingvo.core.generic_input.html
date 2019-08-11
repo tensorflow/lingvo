@@ -183,7 +183,7 @@
   <span class="n">bucketing_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">example</span><span class="p">,</span> <span class="n">bucketing_key</span>
 
-<span class="n">input_batch</span> <span class="o">=</span> <span class="n">GenericInput</span><span class="p">(</span><span class="n">ParseRecord</span><span class="p">,</span> <span class="n">file_pattern</span><span class="o">=...</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+<span class="n">input_batch</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">GenericInput</span><span class="p">(</span><span class="n">ParseRecord</span><span class="p">,</span> <span class="n">file_pattern</span><span class="o">=...</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
 <span class="c1"># input_batch is a NestedMap of tensors, where dim 0 of each tensor</span>
 <span class="c1"># represents the batch dimension.</span>
 <span class="n">input_batch</span><span class="o">.</span><span class="n">field1</span> <span class="o">=</span> <span class="o">...</span>
@@ -204,14 +204,15 @@ key (e.g., sequence length for sequence inputs).</li>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
-<li>The bucket key is not included in the output.</li>
-<li>Every tensor will have an additional dimension 0 that represents the
-batch dimension.</li>
+<li>outputs: a list of tensors or NestedMaps, similar to <code class="xref py py-obj docutils literal notranslate"><span class="pre">processor</span></code>’s return,
+except every tensor will have an additional dimension 0 that represents
+the batch dimension.</li>
+<li>bucket_keys: a tf.int32 vector.</li>
 </ul>
 </p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">A list of tensors or NestedMaps, similar <code class="xref py py-obj docutils literal notranslate"><span class="pre">processor</span></code>’s return, except</p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">A tuple of (outputs, bucket_keys)</p>
 </td>
 </tr>
 </tbody>

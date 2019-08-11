@@ -169,6 +169,9 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
 
 
+<span class="c1"># TODO(zhifengc): Changes processor&#39;s requirement to return a</span>
+<span class="c1"># tuple of (output, bucket_key) to be consistent w/ the return</span>
+<span class="c1"># value of GenericInput().</span>
 <div class="viewcode-block" id="GenericInput"><a class="viewcode-back" href="../../../lingvo.core.generic_input.html#lingvo.core.generic_input.GenericInput">[docs]</a><span class="k">def</span> <span class="nf">GenericInput</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Builds a generic input pipeline.</span>
 
@@ -186,7 +189,7 @@
 <span class="sd">      bucketing_key = tf.to_int32(1)</span>
 <span class="sd">      return example, bucketing_key</span>
 
-<span class="sd">    input_batch = GenericInput(ParseRecord, file_pattern=..., ...)</span>
+<span class="sd">    input_batch, bucket_keys = GenericInput(ParseRecord, file_pattern=..., ...)</span>
 <span class="sd">    # input_batch is a NestedMap of tensors, where dim 0 of each tensor</span>
 <span class="sd">    # represents the batch dimension.</span>
 <span class="sd">    input_batch.field1 = ...</span>
@@ -200,10 +203,11 @@
 <span class="sd">    **kwargs: additional keyword args for x_ops.generic_input.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A list of tensors or NestedMaps, similar `processor`&#39;s return, except:</span>
-<span class="sd">      * The bucket key is not included in the output.</span>
-<span class="sd">      * Every tensor will have an additional dimension 0 that represents the</span>
-<span class="sd">        batch dimension.</span>
+<span class="sd">    A tuple of (outputs, bucket_keys):</span>
+<span class="sd">    - outputs: a list of tensors or NestedMaps, similar to `processor`&#39;s return,</span>
+<span class="sd">      except every tensor will have an additional dimension 0 that represents</span>
+<span class="sd">      the batch dimension.</span>
+<span class="sd">    - bucket_keys: a tf.int32 vector.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">output_tmpl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
@@ -230,7 +234,7 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">DType</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">proc_fn</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">output_arg</span>
   <span class="p">]</span>
   <span class="k">assert</span> <span class="n">out_types</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is not expected.&#39;</span> <span class="o">%</span> <span class="n">out_types</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-  <span class="n">flat_outputs</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">gen_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="p">(</span>
+  <span class="n">flat_outputs</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">gen_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="p">(</span>
       <span class="n">processor</span><span class="o">=</span><span class="n">proc_fn</span><span class="p">,</span> <span class="n">out_types</span><span class="o">=</span><span class="n">out_types</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;x_ops.generic_input flat_outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">flat_outputs</span><span class="p">)</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="n">output_tmpl</span><span class="p">:</span>
@@ -239,7 +243,7 @@
   <span class="n">output_tmpl</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
   <span class="n">outputs</span> <span class="o">=</span> <span class="n">output_tmpl</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_outputs</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;x_ops.generic_input outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">outputs</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">outputs</span></div>
+  <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">bucket_keys</span></div>
 </pre></div>
 
            </div>
