@@ -61,8 +61,10 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
         bucket_key += 1
       tgt_ids, tgt_labels, tgt_paddings = self.StringsToIds(fval['transcript'])
       src_paddings = tf.zeros([tf.shape(fval['frames'])[0]], dtype=tf.float32)
-      return fval['uttid'], tgt_ids, tgt_labels, tgt_paddings, fval[
-          'frames'], src_paddings, bucket_key
+      return [
+          fval['uttid'], tgt_ids, tgt_labels, tgt_paddings, fval['frames'],
+          src_paddings
+      ], bucket_key
 
     return generic_input.GenericInput(
         file_pattern=file_pattern,

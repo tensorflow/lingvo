@@ -82,7 +82,7 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
     out_tensors = [
         src_ids, src_paddings, tgt_ids, tgt_paddings, tgt_labels, tgt_weights
     ]
-    return [tf.squeeze(t, axis=0) for t in out_tensors] + [bucket_key]
+    return [tf.squeeze(t, axis=0) for t in out_tensors], bucket_key
 
   def _DataSourceFromFilePattern(self, file_pattern):
     """Create the input processing op.

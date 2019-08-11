@@ -64,7 +64,7 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
           tf.maximum(
               tf.reduce_sum(1.0 - features['source_padding']),
               tf.reduce_sum(1.0 - features['target_padding'])))
-      return [features[k] for k, _ in outputs] + [bucket_key]
+      return [features[k] for k, _ in outputs], bucket_key
 
     return generic_input.GenericInput(
         file_pattern=file_pattern,

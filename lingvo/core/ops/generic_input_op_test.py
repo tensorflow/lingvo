@@ -69,16 +69,16 @@ class GenericInputOpTest(test_utils.TestCase):
         num, = tf.py_func(str_to_num, [record], [tf.float32])
         num = tf.stack([num, tf.square(num)])
         if use_nested_map:
-          return py_utils.NestedMap(record=record, num=num), tf.to_int32(1)
+          return py_utils.NestedMap(record=record, num=num), 1
         else:
-          return record, num, tf.to_int32(1)
+          return [record, num], 1
 
       # Samples random records from the data files and processes them
       # to generate batches.
       inputs, _ = self.get_test_input(
           tmp, bucket_upper_bound=[1], processor=_process)
       if use_nested_map:
-        input_map = inputs[0]
+        input_map = inputs
         strs, vals = input_map.record, input_map.num
       else:
         strs, vals = inputs
@@ -108,7 +108,7 @@ class GenericInputOpTest(test_utils.TestCase):
       def _process(record):
         num = tf.py_func(pickle.loads, [record], tf.int32)
         bucket_key = tf.shape(num)[0]
-        return num, tf.transpose(num, [1, 0, 2]), bucket_key
+        return [num, tf.transpose(num, [1, 0, 2])], bucket_key
 
       # Samples random records from the data files and processes them
       # to generate batches.
@@ -139,16 +139,6 @@ class GenericInputOpTest(test_utils.TestCase):
 class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
   # Runs all GenericInputOp tests plus some more.
 
-  def get_test_input(self, path, **kwargs):
-    return generic_input.GenericInput(
-        file_pattern=','.join(['tfrecord:' + path, 'tfrecord:' + path]),
-        input_source_weights=[0.3, 0.7],
-        file_random_seed=0,
-        file_buffer_size=32,
-        file_parallelism=4,
-        bucket_batch_limit=[8],
-        **kwargs)
-
   def testMix(self):
     # Generate couple files.
     def generate_test_data(tag, cnt):
@@ -166,7 +156,7 @@ class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
     with g.as_default():
       # A record processor written in TF graph.
       def _process(record):
-        return record, record, tf.to_int32(1)
+        return [record, record], 1
 
       # Samples random records from the data files and processes them
       # to generate batches.

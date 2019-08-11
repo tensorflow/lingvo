@@ -75,7 +75,7 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
     def ReadInput(line):
       word_count = tf.size(tf.strings.split([line]))
       strlen = tf.size(tf.strings.split([line], ''))
-      return line, word_count, strlen
+      return [line, word_count], strlen
 
     return generic_input.GenericInput(
         file_pattern=file_pattern,
