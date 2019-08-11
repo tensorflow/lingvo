@@ -20,6 +20,7 @@ limitations under the License.
 #include "tensorflow/core/lib/io/buffered_inputstream.h"
 #include "tensorflow/core/lib/io/random_inputstream.h"
 #include "tensorflow/core/lib/io/record_reader.h"
+#include "tensorflow/core/lib/strings/numbers.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/util/event.pb.h"
@@ -104,17 +105,22 @@ class BestStepOp : public OpKernel {
           new io::RandomAccessInputStream(file.get()));
       io::BufferedInputStream in(input_stream.get(), 4 << 10);
       string line;
-      std::vector<float> rec;
       while (true) {
         const Status s = in.ReadLine(&line);
         if (errors::IsOutOfRange(s)) break;
         TF_CHECK_OK(s);
-        CHECK(str_util::SplitAndParseAsFloats(line, ' ', &rec));
-        CHECK_EQ(rec.size(), 2);
+        std::vector<string> split_line = str_util::Split(line, ' ');
+        CHECK_EQ(split_line.size(), 2);
+
+        int x;
+        CHECK(strings::safe_strto32(split_line[0], &x));
+        float y;
+        CHECK(strings::safe_strtof(split_line[1], &y));
+
         if (minimize_) {
-          step_value->insert(std::pair<int, float>(rec[0], rec[1]));
+          step_value->insert(std::pair<int, float>(x, y));
         } else {  // Negate the value if it's the larger the better.
-          step_value->insert(std::pair<int, float>(rec[0], -rec[1]));
+          step_value->insert(std::pair<int, float>(x, -y));
         }
       }
     } else {
