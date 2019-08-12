@@ -218,14 +218,14 @@ fully deterministic.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>source_vecs</strong> – A single tensor of shape [time, batch_size, source_dim].</li>
 <li><strong>source_contexts</strong> – A single tensor of shape [time, batch_size, some_dim].</li>
 <li><strong>source_padding</strong> – A tensor of shape [time, batch_size].</li>
-<li><strong>source_segment_id</strong> – A tensor of shape [time, batch_size].
-source_segment_id is not None for packed inputs where one training
-example may pack multiple sequences.</li>
+<li><strong>source_segment_id</strong> – A tensor of shape [time, batch_size]. source_segment_id
+is not None for packed inputs where one training example may pack
+multiple sequences.</li>
 </ul>
 </td>
 </tr>
@@ -281,14 +281,14 @@ inspected or modified by its callers.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>packed_src</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object returned by PackSource or
 InitForSourcePacked.</li>
 <li><strong>query_vec</strong> – a tensor of shape [batch_size, query_dim].</li>
 <li><strong>attention_state</strong> – previous attention state.</li>
 <li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step. If
-not None, it should have shape [target_batch_size, source_seq_length].</li>
+not None, it should have shape [target_batch_size, source_length].</li>
 <li><strong>query_segment_id</strong> – a tensor of shape [batch_size].</li>
 </ul>
 </td>
@@ -326,13 +326,12 @@ source tensors, <a class="reference internal" href="#lingvo.core.attention.BaseA
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>query_vec</strong> – a tensor of shape [batch_size, query_dim].</li>
 <li><strong>attention_state</strong> – previous attention state.</li>
-<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
-If not None, it should be of shape [target_batch_size,
-source_seq_length].</li>
+<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step. If
+not None, it should be of shape [target_batch_size, source_length].</li>
 <li><strong>query_segment_id</strong> – a tensor of shape [batch_size].</li>
 </ul>
 </td>
@@ -380,12 +379,9 @@ example, for attention computations to span session runs.</td>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>new_init_state</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> matching what was returned from</li>
-<li><strong>which will return this layer to that</strong> (<em>GetInitializationSourceState</em><em>,</em>) – </li>
-<li><strong>state.</strong> (<em>initialization</em>) – </li>
-</ul>
-</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>new_init_state</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> matching what was returned from
+<a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer.GetInitializationSourceState" title="lingvo.core.attention.BaseAttentionLayer.GetInitializationSourceState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GetInitializationSourceState</span></code></a>, which will return this layer to that
+initialization state.</td>
 </tr>
 </tbody>
 </table>
@@ -407,8 +403,8 @@ implementations with a version that is numerically correct.</p>
 <li><strong>logits</strong> – Logits.</li>
 <li><strong>padding</strong> – Padding (must be the same shape as logits).</li>
 <li><strong>narrow_to_asym_bit_depth</strong> – Narrows the bit depth, removing the upper limit
-value. This is to accommodate certain interpreters that would cover a
-0 …. 2**bits - 1 range for quantization.</li>
+value. This is to accommodate certain interpreters that would cover a 0
+…. 2**bits - 1 range for quantization.</li>
 </ul>
 </td>
 </tr>
@@ -465,14 +461,15 @@ ICLR 2015.
 <dl class="method">
 <dt id="lingvo.core.attention.AdditiveAttention.PackSource">
 <code class="descname">PackSource</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_contexts</em>, <em>source_padding</em>, <em>source_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#AdditiveAttention.PackSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.AdditiveAttention.PackSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Packs source vectors. Does not change attention state.</p>
+<dd><p>Packs source vectors.</p>
+<p>Does not change attention state.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>source_vecs</strong> – A single tensor of shape [time, batch_size, source_dim].</li>
 <li><strong>source_contexts</strong> – A single tensor of shape [time, batch_size, some_dim].</li>
 <li><strong>source_padding</strong> – A tensor of shape [time, batch_size].</li>
@@ -489,7 +486,7 @@ layer and its children layers.</li>
 
 <dl class="method">
 <dt id="lingvo.core.attention.AdditiveAttention.ZeroAttentionState">
-<code class="descname">ZeroAttentionState</code><span class="sig-paren">(</span><em>source_seq_length</em>, <em>decoder_batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#AdditiveAttention.ZeroAttentionState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.AdditiveAttention.ZeroAttentionState" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ZeroAttentionState</code><span class="sig-paren">(</span><em>source_length</em>, <em>decoder_batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#AdditiveAttention.ZeroAttentionState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.AdditiveAttention.ZeroAttentionState" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -507,16 +504,15 @@ The attention context vector is computed as a weighted average of the
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>packed_src</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object returned by PackSource or
 InitForSourcePacked.</li>
 <li><strong>query_vec</strong> – a tensor of shape [batch_size, query_dim].</li>
 <li><strong>attention_state</strong> – previous attention state. It is not used in
 <a class="reference internal" href="#lingvo.core.attention.AdditiveAttention" title="lingvo.core.attention.AdditiveAttention"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AdditiveAttention</span></code></a>, and is simply passed through.</li>
-<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
-If not None, it should be of shape [target_batch_size,
-source_seq_length].</li>
+<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step. If
+not None, it should be of shape [target_batch_size, source_length].</li>
 <li><strong>query_segment_id</strong> – a tensor of shape [batch_size]</li>
 </ul>
 </td>
@@ -564,14 +560,15 @@ EMNLP 2015.
 <dl class="method">
 <dt id="lingvo.core.attention.DotProductAttention.PackSource">
 <code class="descname">PackSource</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_contexts</em>, <em>source_padding</em>, <em>source_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#DotProductAttention.PackSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.DotProductAttention.PackSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Packs source vectors. Does not change attention state.</p>
+<dd><p>Packs source vectors.</p>
+<p>Does not change attention state.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>source_vecs</strong> – A tensor of shape [time, source_batch, source_dim].</li>
 <li><strong>source_contexts</strong> – A tensor of shape [time, source_batch, context_dim].</li>
 <li><strong>source_padding</strong> – A tensor of shape [time, source_batch].</li>
@@ -592,7 +589,7 @@ hidden_dim], <code class="xref py py-obj docutils literal notranslate"><span cla
 
 <dl class="method">
 <dt id="lingvo.core.attention.DotProductAttention.ZeroAttentionState">
-<code class="descname">ZeroAttentionState</code><span class="sig-paren">(</span><em>source_seq_length</em>, <em>decoder_batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#DotProductAttention.ZeroAttentionState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.DotProductAttention.ZeroAttentionState" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ZeroAttentionState</code><span class="sig-paren">(</span><em>source_length</em>, <em>decoder_batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#DotProductAttention.ZeroAttentionState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.DotProductAttention.ZeroAttentionState" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -604,18 +601,18 @@ hidden_dim], <code class="xref py py-obj docutils literal notranslate"><span cla
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>packed_src</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object returned by PackSource or
 InitForSourcePacked.</li>
-<li><strong>query_vec</strong> – a tensor of shape [target_batch, query_dim], where
-target_batch = n * source_batch (e.g., n = num_hyps_per_beam in
-beamsearch). Along the target_batch dimension, there are n groups of
-consecutive rows, each group containing source_batch rows.</li>
+<li><strong>query_vec</strong> – a tensor of shape [target_batch, query_dim], where target_batch
+= n * source_batch (e.g., n = num_hyps_per_beam in beamsearch). Along
+the target_batch dimension, there are n groups of consecutive rows, each
+group containing source_batch rows.</li>
 <li><strong>attention_state</strong> – previous attention state. It is not used in
 AdditiveAttention, and is simply passed through.</li>
-<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
-If not None, it should be of shape [target_batch, source_seq_length].</li>
+<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step. If
+not None, it should be of shape [target_batch, source_length].</li>
 <li><strong>query_segment_id</strong> – Query segment id with shape [target_batch].</li>
 </ul>
 </td>
@@ -765,7 +762,7 @@ inspected or modified by its callers.</p>
 
 <dl class="method">
 <dt id="lingvo.core.attention.LocationSensitiveAttention.ZeroAttentionState">
-<code class="descname">ZeroAttentionState</code><span class="sig-paren">(</span><em>source_seq_length</em>, <em>decoder_batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#LocationSensitiveAttention.ZeroAttentionState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.LocationSensitiveAttention.ZeroAttentionState" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ZeroAttentionState</code><span class="sig-paren">(</span><em>source_length</em>, <em>decoder_batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#LocationSensitiveAttention.ZeroAttentionState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.LocationSensitiveAttention.ZeroAttentionState" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -777,35 +774,36 @@ inspected or modified by its callers.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>packed_src</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object returned by PackSource or
 InitForSourcePacked.</li>
 <li><strong>query_vec</strong> – a tensor of shape [batch_size, query_dim].</li>
-<li><strong>attention_state</strong> – <p>If
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">params().location_features</span> <span class="pre">==</span> <span class="pre">['PREV_PROBS',</span> <span class="pre">'CUMULATIVE_PROBS']</span></code>,
-then <code class="xref py py-obj docutils literal notranslate"><span class="pre">attention_state</span></code> is a tensor of shape [batch_size, 2, src_len].</p>
+<li><strong>attention_state</strong> – <p>If <code class="xref py py-obj docutils literal notranslate"><span class="pre">params().location_features</span> <span class="pre">==</span> <span class="pre">['PREV_PROBS',</span>
+<span class="pre">'CUMULATIVE_PROBS']</span></code>, then <code class="xref py py-obj docutils literal notranslate"><span class="pre">attention_state</span></code> is a tensor of shape
+[batch_size, 2, src_len].</p>
 <ul>
-<li>attention_state[:, 0, :] contains previous attention probabilities</li>
+<li>attention_state[:, 0, :] contains previous attention probabilities.</li>
 <li>attention_state[:, 1, :] contains a sum over previous timesteps of
 attention probabilities.</li>
 </ul>
 </li>
-<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
-If not None, it should be of shape [target_batch_size,
-source_seq_length].</li>
+<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step. If
+not None, it should be of shape [target_batch_size, source_length].</li>
 <li><strong>query_segment_id</strong> – Query segment id with shape [batch_size].</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
-<p>Note: concated_source_vecs are the vectors that are used to compute the
-attention score between the query_vec and each concated_source_vec.
-The concated_source_contexts are the vectors that compose the result.
-The attention context vector is computed as a weighted average of the
+<dl class="docutils">
+<dt>Note: concated_source_vecs are the vectors that are used to compute the</dt>
+<dd>attention score between the query_vec and each concated_source_vec. The
+concated_source_contexts are the vectors that compose the result. The
+attention context vector is computed as a weighted average of the
 concated_source_contexts, using the scores that were computed using
-concated_source_vecs.</p>
+concated_source_vecs.</dd>
+</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -926,7 +924,7 @@ inspected or modified by its callers.</p>
 
 <dl class="method">
 <dt id="lingvo.core.attention.MonotonicAttention.ZeroAttentionState">
-<code class="descname">ZeroAttentionState</code><span class="sig-paren">(</span><em>source_seq_length</em>, <em>decoder_batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MonotonicAttention.ZeroAttentionState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MonotonicAttention.ZeroAttentionState" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ZeroAttentionState</code><span class="sig-paren">(</span><em>source_length</em>, <em>decoder_batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MonotonicAttention.ZeroAttentionState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MonotonicAttention.ZeroAttentionState" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -944,27 +942,28 @@ inspected or modified by its callers.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>packed_src</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object returned by PackSource or
 InitForSourcePacked.</li>
 <li><strong>query_vec</strong> – a tensor of shape [batch_size, query_dim].</li>
 <li><strong>attention_state</strong> – The attention probs computed at the previous timestep.</li>
-<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
-If not None, it should be of shape [target_batch_size,
-source_seq_length].</li>
+<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step. If
+not None, it should be of shape [target_batch_size, source_length].</li>
 <li><strong>query_segment_id</strong> – a tensor of shape [batch_size].</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
-<p>Note: concated_source_vecs are the vectors that are used to compute the
-attention score between the query_vec and each concated_source_vec.
-The concated_source_contexts are the vectors that compose the result.
-The attention context vector is computed as a weighted average of the
+<dl class="docutils">
+<dt>Note: concated_source_vecs are the vectors that are used to compute the</dt>
+<dd>attention score between the query_vec and each concated_source_vec. The
+concated_source_contexts are the vectors that compose the result. The
+attention context vector is computed as a weighted average of the
 concated_source_contexts, using the scores that were computed using
-concated_source_vecs.</p>
+concated_source_vecs.</dd>
+</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1037,7 +1036,7 @@ inspected or modified by its callers.</p>
 
 <dl class="method">
 <dt id="lingvo.core.attention.GmmMonotonicAttention.ZeroAttentionState">
-<code class="descname">ZeroAttentionState</code><span class="sig-paren">(</span><em>source_seq_length</em>, <em>decoder_batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#GmmMonotonicAttention.ZeroAttentionState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.GmmMonotonicAttention.ZeroAttentionState" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ZeroAttentionState</code><span class="sig-paren">(</span><em>source_length</em>, <em>decoder_batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#GmmMonotonicAttention.ZeroAttentionState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.GmmMonotonicAttention.ZeroAttentionState" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1049,50 +1048,42 @@ inspected or modified by its callers.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>packed_src</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object returned by PackSource or
 InitForSourcePacked.</li>
-<li><strong>query_vec</strong> – a tensor of shape [batch_size, query_dim].</li>
-<li><strong>attention_state</strong> – <p>previous attention state, a tensor of shape
-[batch_size, num_mixtures, 4].</p>
-<ul>
-<li>attention_state[:, :, 0] contains previous location</li>
-<li>attention_state[:, :, 1] contains previous offset.</li>
-<li>attention_state[:, :, 2] contains previous variance.</li>
-<li>attention_state[:, :, 3] contains previous prior.</li>
-</ul>
-</li>
-<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
-If not None, it should be of shape [target_batch_size,
-source_seq_length].</li>
-<li><strong>query_segment_id</strong> – a tensor of shape [batch_size]</li>
+<li><strong>query_vec</strong> – a tensor of shape [target_batch, query_dim].</li>
+<li><strong>attention_state</strong> – previous attention state, a tensor of shape
+[target_batch, num_mixtures, 4].
+- attention_state[:, :, 0] contains previous location
+- attention_state[:, :, 1] contains previous offset.
+- attention_state[:, :, 2] contains previous variance.
+- attention_state[:, :, 3] contains previous prior.</li>
+<li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step. If
+not None, it should be of shape [target_batch, source_length].</li>
+<li><strong>query_segment_id</strong> – a tensor of shape [target_batch].</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
-<p>Note: concated_source_vecs are the vectors that are used to compute the
-attention score between the query_vec and each concated_source_vec.
-The concated_source_contexts are the vectors that compose the result.
-The attention context vector is computed as a weighted average of the
+<dl class="docutils">
+<dt>Note: concated_source_vecs are the vectors that are used to compute the</dt>
+<dd>attention score between the query_vec and each concated_source_vec. The
+concated_source_contexts are the vectors that compose the result. The
+attention context vector is computed as a weighted average of the
 concated_source_contexts, using the scores that were computed using
-concated_source_vecs.</p>
+concated_source_vecs.</dd>
+</dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
 <dt>A tuple of 3 elements.</dt>
-<dd><dl class="first last docutils">
-<dt>The attention context vector:</dt>
-<dd>[batch_size, context_dim]</dd>
-<dt>The attention probability vector:</dt>
-<dd>[batch_size, time]</dd>
-<dt>The new attention state vector:</dt>
-<dd>possibly nested tuple of tensors with dimensions [target_batch, …]</dd>
-</dl>
-</dd>
+<dd>The attention context vector: [target_batch, context_dim]
+The attention probability vector: [target_batch, source_length]
+The new attention state vector: [target_batch, num_mixtures, 4]</dd>
 </dl>
 </td>
 </tr>
