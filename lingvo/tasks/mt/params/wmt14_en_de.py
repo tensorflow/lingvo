@@ -36,55 +36,58 @@ class WmtEnDeTransformerBase(base_model_params.SingleTaskModelParams):
   VOCAB_SIZE = 32000
 
   @classmethod
-  def Train(cls):
+  def _CommonInputParams(cls, is_eval):
+    """Input generator params for WMT'14 En->De."""
     p = input_generator.NmtInput.Params()
 
-    p.file_random_seed = 0
-    p.file_parallelism = 16
-    p.file_buffer_size = 10000000
+    p.tokenizer.vocab_size = cls.VOCAB_SIZE
+
+    if is_eval:
+      p.file_random_seed = 27182818
+      p.file_parallelism = 1
+      p.file_buffer_size = 1
+      p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 137, 200]
+      p.bucket_batch_limit = [16] * 8 + [4] * 2
+    else:
+      p.file_random_seed = 0
+      p.file_parallelism = 16
+      p.file_buffer_size = 10000000
+      p.bucket_upper_bound = ([8, 10, 12, 14, 16, 20, 24, 28] +
+                              [32, 40, 48, 56, 64, 80, 96])
+      p.bucket_batch_limit = ([512, 409, 341, 292, 256, 204, 170, 146] +
+                              [128, 102, 85, 73, 64, 51, 42])
+
+    return p
+
+  @classmethod
+  def Train(cls):
+    p = cls._CommonInputParams(is_eval=False)
 
     p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR,
                                                 'train.tfrecords-*')
     p.tokenizer.token_vocab_filepath = os.path.join(cls.DATADIR, 'wpm-ende.voc')
-
-    p.tokenizer.vocab_size = cls.VOCAB_SIZE
     p.num_samples = 4492447
-    p.bucket_upper_bound = (
-        [8, 10, 12, 14, 16, 20, 24, 28] + [32, 40, 48, 56, 64, 80, 96])
-    p.bucket_batch_limit = ([512, 409, 341, 292, 256, 204, 170, 146] +
-                            [128, 102, 85, 73, 64, 51, 42])
+
     return p
 
   @classmethod
   def Dev(cls):
-    p = input_generator.NmtInput.Params()
-    p.file_random_seed = 27182818
-    p.file_parallelism = 1
-    p.file_buffer_size = 1
+    p = cls._CommonInputParams(is_eval=True)
 
     p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR, 'dev.tfrecords')
     p.tokenizer.token_vocab_filepath = os.path.join(cls.DATADIR, 'wpm-ende.voc')
-
-    p.tokenizer.vocab_size = cls.VOCAB_SIZE
     p.num_samples = 3000
-    p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 137, 200]
-    p.bucket_batch_limit = [16] * 8 + [4] * 2
+
     return p
 
   @classmethod
   def Test(cls):
-    p = input_generator.NmtInput.Params()
-    p.file_random_seed = 27182818
-    p.file_parallelism = 1
-    p.file_buffer_size = 1
+    p = cls._CommonInputParams(is_eval=True)
 
     p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR, 'test.tfrecords')
     p.tokenizer.token_vocab_filepath = os.path.join(cls.DATADIR, 'wpm-ende.voc')
-
-    p.tokenizer.vocab_size = cls.VOCAB_SIZE
     p.num_samples = 2737
-    p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 137, 200]
-    p.bucket_batch_limit = [16] * 8 + [4] * 2
+
     return p
 
   @classmethod
@@ -128,61 +131,44 @@ class WmtEnDeTransformerSmall(WmtEnDeTransformerBase):
 
 
 @model_registry.RegisterSingleTaskModel
-class WmtEnDeRNMT(base_model_params.SingleTaskModelParams):
+class WmtEnDeTransformerSmallCloudTpu(WmtEnDeTransformerSmall):
+  """Small Transformer Params for WMT'14 En->De on TPU."""
+
+  @classmethod
+  def _CommonInputParams(cls, is_eval):
+    p = super(WmtEnDeTransformerSmallCloudTpu, cls)._CommonInputParams(is_eval)
+
+    p.pad_to_max_seq_length = True
+    p.source_max_length = p.bucket_upper_bound[-1]
+    p.bucket_batch_limit = [64] * len(p.bucket_upper_bound)
+
+    return p
+
+  @classmethod
+  def Task(cls):
+    p = super(WmtEnDeTransformerSmallCloudTpu, cls).Task()
+
+    p.decoder.token_emb.max_num_shards = 1
+    p.encoder.token_emb.max_num_shards = 1
+
+    return p
+
+
+@model_registry.RegisterSingleTaskModel
+class WmtEnDeRNMT(WmtEnDeTransformerBase):
   """Params for WMT'14 En->De in sync training."""
 
-  # Generated using scripts in lingvo/mt/tools.
-  DATADIR = '/tmp/wmt14/wpm/'
-  VOCAB_SIZE = 32000
-
   @classmethod
-  def Train(cls):
-    p = input_generator.NmtInput.Params()
+  def _CommonInputParams(cls, is_eval):
+    p = super(WmtEnDeRNMT, cls)._CommonInputParams(is_eval)
 
-    p.file_random_seed = 0
-    p.file_parallelism = 16
-    p.file_buffer_size = 10000000
+    if is_eval:
+      p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 200]
+      p.bucket_batch_limit = [128] * 8 + [32]
+    else:
+      p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98]
+      p.bucket_batch_limit = [128] * 7 + [64]
 
-    p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR,
-                                                'train.tfrecords-*')
-    p.tokenizer.token_vocab_filepath = os.path.join(cls.DATADIR, 'wpm-ende.voc')
-
-    p.tokenizer.vocab_size = cls.VOCAB_SIZE
-    p.num_samples = 4492447
-    p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98]
-    p.bucket_batch_limit = [128] * 7 + [64]
-    return p
-
-  @classmethod
-  def Dev(cls):
-    p = input_generator.NmtInput.Params()
-    p.file_random_seed = 27182818
-    p.file_parallelism = 1
-    p.file_buffer_size = 1
-
-    p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR, 'dev.tfrecords')
-    p.tokenizer.token_vocab_filepath = os.path.join(cls.DATADIR, 'wpm-ende.voc')
-
-    p.tokenizer.vocab_size = cls.VOCAB_SIZE
-    p.num_samples = 3000
-    p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 200]
-    p.bucket_batch_limit = [128] * 8 + [32]
-    return p
-
-  @classmethod
-  def Test(cls):
-    p = input_generator.NmtInput.Params()
-    p.file_random_seed = 27182818
-    p.file_parallelism = 1
-    p.file_buffer_size = 1
-
-    p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR, 'test.tfrecords')
-    p.tokenizer.token_vocab_filepath = os.path.join(cls.DATADIR, 'wpm-ende.voc')
-
-    p.tokenizer.vocab_size = cls.VOCAB_SIZE
-    p.num_samples = 2737
-    p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 200]
-    p.bucket_batch_limit = [128] * 8 + [32]
     return p
 
   @classmethod
@@ -209,4 +195,28 @@ class WmtEnDeRNMT(base_model_params.SingleTaskModelParams):
         adam_epsilon=1e-6,
     )
     p.eval.samples_per_summary = 7500
+    return p
+
+
+@model_registry.RegisterSingleTaskModel
+class WmtEnDeRNMTCloudTpu(WmtEnDeRNMT):
+  """Params for WMT'14 En->De in sync training on TPU."""
+
+  @classmethod
+  def _CommonInputParams(cls, is_eval):
+    p = super(WmtEnDeRNMTCloudTpu, cls)._CommonInputParams(is_eval)
+
+    p.pad_to_max_seq_length = True
+    p.source_max_length = p.bucket_upper_bound[-1]
+    p.bucket_batch_limit = [16] * len(p.bucket_upper_bound)
+
+    return p
+
+  @classmethod
+  def Task(cls):
+    p = super(WmtEnDeRNMTCloudTpu, cls).Task()
+
+    p.encoder.emb.max_num_shards = 1
+    p.decoder.emb.max_num_shards = 1
+
     return p
