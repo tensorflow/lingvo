@@ -190,6 +190,57 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  def testSpectrumAugmenterWithPerDomainPolicyFreqMask(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      tf.set_random_seed(1234)
+      inputs = tf.ones([6, 5, 4, 2], dtype=tf.float32)
+      input_domain_ids = tf.constant(
+          [[1] * 5, [2] * 5, [0] * 5, [2] * 5, [0] * 5, [1] * 5],
+          dtype=tf.float32)
+      paddings = tf.zeros([3, 5])
+      p = spectrum_augmenter.SpectrumAugmenter.Params()
+      p.name = 'specAug_layers'
+      p.domain_ids = [0, 1, 2]
+      p.freq_mask_max_bins = [0, 6, 8]
+      p.time_mask_max_frames = 0
+      p.random_seed = 1234
+      specaug_layer = p.Instantiate()
+      expected_output = np.array([[[[0., 0.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[0., 0.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[0., 0.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[0., 0.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[0., 0.], [0., 0.], [0., 0.], [0., 0.]]],
+                                  [[[1., 1.], [1., 1.], [0., 0.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [0., 0.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [0., 0.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [0., 0.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [0., 0.], [1., 1.]]],
+                                  [[[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]]],
+                                  [[[1., 1.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[1., 1.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[1., 1.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[1., 1.], [0., 0.], [0., 0.], [0., 0.]],
+                                   [[1., 1.], [0., 0.], [0., 0.], [0., 0.]]],
+                                  [[[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.], [1., 1.], [1., 1.]]],
+                                  [[[1., 1.], [1., 1.], [0., 0.], [0., 0.]],
+                                   [[1., 1.], [1., 1.], [0., 0.], [0., 0.]],
+                                   [[1., 1.], [1., 1.], [0., 0.], [0., 0.]],
+                                   [[1., 1.], [1., 1.], [0., 0.], [0., 0.]],
+                                   [[1., 1.], [1., 1.], [0., 0.], [0., 0.]]]])
+      h, _ = specaug_layer.FPropDefaultTheta(
+          inputs, paddings, domain_ids=input_domain_ids)
+      actual_layer_output = sess.run(h)
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
 
 if __name__ == '__main__':
   tf.test.main()

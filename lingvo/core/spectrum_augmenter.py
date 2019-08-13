@@ -52,15 +52,49 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     p.Define('unstack', False,
              'Whether to unstack features before applying SpecAugment')
     p.Define('stack_height', 3, 'Number of frames stacked on top of each other')
+    p.Define(
+        'domain_ids', [0],
+        'If domain ids was given, this parameters describe which domain '
+        'will be augmented, e.g. '
+        'p.domain_ids = [2, 7, 1] '
+        'p.time_mask_count = [1, 2, 0] '
+        'implies domain 2 will have 1, 7 has 2 and 1 has 0 time masks. '
+        'All other domain will not augmented if it exists.')
     return p
 
   @base_layer.initializer
   def __init__(self, params):
     super(SpectrumAugmenter, self).__init__(params)
     p = self.params
+    num_domains = len(p.domain_ids)
+    if isinstance(p.freq_mask_max_bins, (list, tuple)):
+      assert len(p.freq_mask_max_bins) == num_domains
+    else:
+      p.freq_mask_max_bins = [p.freq_mask_max_bins] * num_domains
+    if isinstance(p.freq_mask_count, (list, tuple)):
+      assert len(p.freq_mask_count) == num_domains
+    else:
+      p.freq_mask_count = [p.freq_mask_count] * num_domains
+    if isinstance(p.time_mask_max_frames, (list, tuple)):
+      assert len(p.time_mask_max_frames) == num_domains
+    else:
+      p.time_mask_max_frames = [p.time_mask_max_frames] * num_domains
+    if isinstance(p.time_mask_count, (list, tuple)):
+      assert len(p.time_mask_count) == num_domains
+    else:
+      p.time_mask_count = [p.time_mask_count] * num_domains
+    if isinstance(p.time_mask_max_ratio, (list, tuple)):
+      assert len(p.time_mask_max_ratio) == num_domains
+    else:
+      p.time_mask_max_ratio = [p.time_mask_max_ratio] * num_domains
+    if isinstance(p.use_dynamic_time_mask_max_frames, (list, tuple)):
+      assert len(p.use_dynamic_time_mask_max_frames) == num_domains
+    else:
+      p.use_dynamic_time_mask_max_frames = (
+          [p.use_dynamic_time_mask_max_frames] * num_domains)
     # TODO(ngyuzh): adding time warping.
-    assert p.freq_mask_max_bins > -1
-    assert p.time_mask_max_frames > -1
+    assert p.freq_mask_max_bins[0] > -1
+    assert p.time_mask_max_frames[0] > -1
 
   def _GetMask(self,
                batch_size,
@@ -121,7 +155,11 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       mask = tf.cast(mask, p.fprop_dtype)
     return mask
 
-  def _FrequencyMask(self, inputs, num_freq=80, dtype=tf.float32):
+  def _FrequencyMask(self,
+                     inputs,
+                     num_freq=80,
+                     dtype=tf.float32,
+                     domain_id_index=0):
     """Applies frequency masking with given degree to inputs.
 
     Args:
@@ -129,6 +167,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         num_freq, channels).
       num_freq: Number of frequencies.
       dtype: Data type.
+      domain_id_index: domain id index.
 
     Returns:
       Inputs with random frequency masking applied.
@@ -136,11 +175,11 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     # If maximum mask length is zero, do nothing
     p = self.params
-    if p.freq_mask_max_bins == 0:
+    if p.freq_mask_max_bins[domain_id_index] == 0:
       return inputs
     # Choose random masked length
     max_length = tf.random.uniform((tf.shape(inputs)[0],),
-                                   maxval=p.freq_mask_max_bins,
+                                   maxval=p.freq_mask_max_bins[domain_id_index],
                                    dtype=tf.int32,
                                    seed=p.random_seed)
     # Create masks in frequency direction and apply
@@ -160,7 +199,8 @@ class SpectrumAugmenter(base_layer.BaseLayer):
                 max_ratio=1.0,
                 time_length=2560,
                 noisify=False,
-                dtype=tf.float32):
+                dtype=tf.float32,
+                domain_id_index=0):
     """Applies time masking with given degree to inputs.
 
     Args:
@@ -172,18 +212,20 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       time_length: Total length of time series.
       noisify: whether to noisify the masked out regions.
       dtype: Data type.
+      domain_id_index: domain id index.
 
     Returns:
       Inputs with random time masking applied.
     """
     p = self.params
     # If maximum mask length is zero, do nothing
-    if (p.time_mask_max_frames == 0 and not p.use_dynamic_time_mask_max_frames):
+    if (p.time_mask_max_frames[domain_id_index] == 0 and
+        not p.use_dynamic_time_mask_max_frames[domain_id_index]):
       return inputs
     seq_lengths = tf.cast(seq_lengths, tf.int32)
     batch_size = tf.shape(inputs)[0]
     # Choose random masked length
-    if p.use_dynamic_time_mask_max_frames:
+    if p.use_dynamic_time_mask_max_frames[domain_id_index]:
       # TODO(ngyuzh): if an utterance is too short, it will never been masked.
       length_range = tf.cast(seq_lengths, dtype=tf.float32) * max_ratio
       max_length = tf.cast(
@@ -191,10 +233,11 @@ class SpectrumAugmenter(base_layer.BaseLayer):
               (batch_size,), maxval=1.0, seed=p.random_seed) * length_range,
           tf.int32)
     else:
-      max_length = tf.random.uniform((batch_size,),
-                                     maxval=p.time_mask_max_frames,
-                                     dtype=tf.int32,
-                                     seed=p.random_seed)
+      max_length = tf.random.uniform(
+          (batch_size,),
+          maxval=p.time_mask_max_frames[domain_id_index],
+          dtype=tf.int32,
+          seed=p.random_seed)
     # Create masks in time direction and apply
     block_arrays = self._GetMask(
         batch_size,
@@ -244,7 +287,12 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     src_paddings = 1 - tf.cast(mask, tf.int32)
     return src_inputs, src_paddings
 
-  def _AugmentationNetwork(self, series_length, num_freq, inputs, paddings):
+  def _AugmentationNetwork(self,
+                           series_length,
+                           num_freq,
+                           inputs,
+                           paddings,
+                           domain_id_index=0):
     """Returns augmented features.
 
     Args:
@@ -253,6 +301,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       inputs: Batch of input features of shape (batch_size, time_length,
         num_freq, channels).
       paddings: Batch of padding vectors of shape (batch_size, time_length).
+      domain_id_index: domain id index.
 
     Returns:
       output: Batch of output features of shape
@@ -270,16 +319,21 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       series_length *= p.stack_height
 
     lengths = tf.reduce_sum(1 - paddings, 1)
-    for _ in range(p.time_mask_count):
+    for _ in range(p.time_mask_count[domain_id_index]):
       inputs = self._TimeMask(
           inputs,
           lengths,
-          max_ratio=p.time_mask_max_ratio,
+          max_ratio=p.time_mask_max_ratio[domain_id_index],
           time_length=series_length,
           noisify=p.use_noise,
-          dtype=dtype)
-    for _ in range(p.freq_mask_count):
-      inputs = self._FrequencyMask(inputs, num_freq=num_freq, dtype=dtype)
+          dtype=dtype,
+          domain_id_index=domain_id_index)
+    for _ in range(p.freq_mask_count[domain_id_index]):
+      inputs = self._FrequencyMask(
+          inputs,
+          num_freq=num_freq,
+          dtype=dtype,
+          domain_id_index=domain_id_index)
 
     # Restack the features after applying specaugment.
     if p.unstack:
@@ -290,7 +344,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     return inputs
 
-  def FProp(self, theta, inputs, paddings):
+  def FProp(self, theta, inputs, paddings, domain_ids=None):
     """Applies data augmentation by randomly mask spectrum in inputs.
 
     Args:
@@ -298,12 +352,40 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         children layers.
       inputs: A tensor of shape [batch, time, freq, num_channels].
       paddings: A 0/1 tensor of shape [batch, time].
+      domain_ids: input domain_ids of shape [batch, time].
 
     Returns:
       augmented_inputs: An tensor of shape [batch, time, freq, num_channels].
       paddings: A 0/1 tensor of shape [batch, time].
     """
-    _, series_length, num_freq, _ = py_utils.GetShape(inputs)
-    augmented_inputs = self._AugmentationNetwork(series_length, num_freq,
-                                                 inputs, paddings)
+    p = self.params
+
+    batch_size, series_length, num_freq, _ = py_utils.GetShape(inputs)
+    if len(p.domain_ids) > 1:
+      augmented_inputs = tf.zeros_like(inputs)
+      original_inputs = inputs
+      for i, domain_id in enumerate(p.domain_ids):
+        augmented_domain = self._AugmentationNetwork(
+            series_length, num_freq, inputs, paddings, domain_id_index=i)
+        target_domain = tf.cast(
+            tf.expand_dims(tf.tile([domain_id], [batch_size]), -1),
+            dtype=p.dtype)
+        # [batch, time]
+        domain_mask = tf.cast(
+            tf.equal(domain_ids, target_domain), dtype=p.dtype)
+        augmented_domain = tf.einsum(
+            'bxyc,bx->bxyc',
+            augmented_domain,
+            domain_mask,
+            name='einsum_domainmasking')
+        original_inputs = tf.einsum(
+            'bxyc,bx->bxyc',
+            original_inputs,
+            1.0 - domain_mask,
+            name='einsum_domainmasking2')
+        augmented_inputs = augmented_domain + augmented_inputs
+      augmented_inputs = original_inputs + augmented_inputs
+    else:
+      augmented_inputs = self._AugmentationNetwork(
+          series_length, num_freq, inputs, paddings, domain_id_index=0)
     return augmented_inputs, paddings
