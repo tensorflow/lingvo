@@ -306,69 +306,6 @@ have major dimension same as size of input batch.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildWithinBatchMixingDataSource">
-<code class="descname">_BuildWithinBatchMixingDataSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._BuildWithinBatchMixingDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildWithinBatchMixingDataSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read and return input batch from a p.file_pattern list.</p>
-<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code> should be a list of (file_pattern, weight) pairs. Examples
-in the batch will be mixed together from different file_pattern source
-proportionally to the weights.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor same as
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code>.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If unknown token type.</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildChainingDataSource">
-<code class="descname">_BuildChainingDataSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._BuildChainingDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildChainingDataSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read and return input batch from a p.file_pattern list.</p>
-<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code> should be a list of file_patterns. file_patterns will
-be consumed consequtively.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor same as
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code>.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If unknown token type.</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource">
-<code class="descname">_BuildCrossBatchMixingDataSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read and return input batch from a p.file_pattern list.</p>
-<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code> should be a list of (file_pattern, weight,
-optional_bprop_filter) tuples. Every batch returned will be filled from one
-source only and batches will be mixed proportionally to the weights.
-Additionally some backprop filters may be applied for different input
-sources.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tuple which contains the output of <code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code>
-and a tensor of size [batch_size, number of data sources] which contains
-the source selected for each element in the input batch. With cross batch
-mixing the complete input batch comes from the same source.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If unknown token type.</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
 <dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSourceWithMetadata">
 <code class="descname">_BuildDataSourceWithMetadata</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._BuildDataSourceWithMetadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSourceWithMetadata" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read and return input batch from <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code>.</p>
@@ -381,11 +318,16 @@ examples from different sources may be mixed together.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tuple of tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor same as
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code> and a tensor of size
-[batch_size, number of data sources] or None.</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">data: a tuple of tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of
+tf.Tensor same as <code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code>, source_selected: a
+tensor of size [batch_size, number of data sources] or None.
+selected_bprop: a tensor of size [number of data sources] or None.
+bprop_variable_filters: a list of bprop_variable filters for each source
+or None</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If unknown token type.</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">A NestedMap containing</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If file_datasource is not set</td>
 </tr>
 </tbody>
 </table>

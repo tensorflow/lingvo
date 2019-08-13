@@ -166,15 +166,14 @@
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">datasource</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">input_generator_helper</span> <span class="k">as</span> <span class="n">ig_helper</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tokenizers</span>
 <span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">map</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
@@ -309,8 +308,8 @@
       <span class="n">input_ops_list</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">queues</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)</span>
-      <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="p">(</span><span class="n">tpu_embedding_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                       <span class="k">if</span> <span class="n">tpu_embedding_collection</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tpu_embedding_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">tpu_embedding_collection</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
 
       <span class="n">tpu_emb_input_keys</span> <span class="o">=</span> <span class="p">(</span>
           <span class="nb">list</span><span class="p">(</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">feature_to_config_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
@@ -436,9 +435,9 @@
     <span class="sd">&quot;&quot;&quot;Defaults params for input generators.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="c1"># TODO(tilarids): Consider renaming this param to make it clear it may</span>
-        <span class="c1"># be a set of file patterns with weights and filters and not just a</span>
-        <span class="c1"># simple string pattern.</span>
+        <span class="c1"># NOTE: file_pattern is deprecated.  New params should use</span>
+        <span class="c1"># file_datasource instead.</span>
+        <span class="c1"># TODO(b/139345706) remove file_pattern parameter</span>
         <span class="s1">&#39;file_pattern&#39;</span><span class="p">,</span>
         <span class="s1">&#39;&#39;</span><span class="p">,</span>
         <span class="s1">&#39;A single file pattern string, a list of file pattern strings or a list&#39;</span>
@@ -448,6 +447,9 @@
         <span class="s1">&#39;In the later 2 cases, probablistic samples are from the inputs &#39;</span>
         <span class="s1">&#39;proportional to their weights. Typically, values are binary &#39;</span>
         <span class="s1">&#39;protocol buffers containing train/eval samples. Keys are not used.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;file_datasource&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A DataSource describing the file sources &#39;</span>
+        <span class="s1">&#39;including any weights and bprop_variable_filters required.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;file_random_seed&#39;</span><span class="p">,</span> <span class="mi">301</span><span class="p">,</span>
              <span class="s1">&#39;Random seed for shuffling the input data.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -472,11 +474,17 @@
         <span class="s1">&#39; This is intended for unit tests. Setting this automatically disables &#39;</span>
         <span class="s1">&#39;file_random_seed, file_buffer_size, file_parallelism, &#39;</span>
         <span class="s1">&#39;num_batcher_threads, and requires a single file_pattern.&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO(b/139345706) when file_pattern is deleted use_within_batch_mixing</span>
+    <span class="c1"># will be specified by passing a WithinBatchMixingDataSource to</span>
+    <span class="c1"># p.file_datasource and this param should be deleted as well.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_within_batch_mixing&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to mix records from &#39;</span>
         <span class="s1">&#39;different input sources within batch or across batches (the &#39;</span>
         <span class="s1">&#39;default option). This option only takes effect when file_pattern&#39;</span>
         <span class="s1">&#39; is a list of file patterns with weights.&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO(b/139345706) when file_pattern is deleted use_chaining</span>
+    <span class="c1"># will be specified by passing a ChainingDataSource to</span>
+    <span class="c1"># p.file_datasource and this param should be deleted as well.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_chaining&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to output records from &#39;</span>
         <span class="s1">&#39;different input sources one after another, i.e., first all records &#39;</span>
@@ -491,14 +499,81 @@
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;file_random_seed needs to be 0 when &#39;</span>
                        <span class="s1">&#39;use_per_host_infeed == True.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Some subclasses have deleted the &#39;file_pattern&#39; param to</span>
+    <span class="c1"># include alternate data source descriptions. This maintains compatibility</span>
+    <span class="c1"># with these alternates.</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="s1">&#39;file_pattern&#39;</span> <span class="ow">in</span> <span class="n">p</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span>
+               <span class="p">),</span> <span class="s1">&#39;Only one of file_pattern and data_source can be specified&#39;</span>
+
+    <span class="c1"># TODO(b/139345706) remove support for file_pattern</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="ow">and</span> <span class="s1">&#39;file_pattern&#39;</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">file_pattern</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">]):</span>
+          <span class="c1"># While this violates the documentation and intended use, there are</span>
+          <span class="c1"># subclasses that have used a tuple of strings, rather than a list of</span>
+          <span class="c1"># string, weight tuples.  Rather than treating lists and tuples</span>
+          <span class="c1"># differently, support both here until p.file_pattern is removed.</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+              <span class="n">file_pattern</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_within_batch_mixing</span><span class="p">:</span>
+          <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span><span class="p">,</span> <span class="s2">&quot;Can&#39;t both use chaining and mixing&quot;</span>
+
+          <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)))</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># Within batch mixing doesn&#39;t work with backprop filters, i.e. when</span>
+            <span class="c1"># file_pattern param contains a list of</span>
+            <span class="c1"># &lt;file_pattern, weight, [bprop_variable_filter]&gt; tuples.</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list of pairs, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                             <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,))</span>
+
+          <span class="n">file_patterns</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">))</span>
+
+          <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">WithinBatchMixingDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+          <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+              <span class="n">file_patterns</span><span class="o">=</span><span class="n">file_patterns</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span><span class="p">:</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">ChainingDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+              <span class="n">file_patterns</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="c1"># Otherwise fall back to MixByWeight-based approach.</span>
+          <span class="n">file_patterns</span> <span class="o">=</span> <span class="p">[]</span>
+          <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
+          <span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="p">[]</span>
+          <span class="k">for</span> <span class="n">input_entry</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_entry</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+              <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                  <span class="s1">&#39;Should explicitly specify weights, got string: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                  <span class="p">(</span><span class="n">input_entry</span><span class="p">,))</span>
+            <span class="n">file_pattern</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">file_patterns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">)</span>
+            <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+            <span class="n">bprop_variable_filter</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span>
+                <span class="n">input_entry</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+            <span class="n">bprop_variable_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bprop_variable_filter</span><span class="p">)</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">CrossBatchMixingDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+          <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+              <span class="n">file_patterns</span><span class="o">=</span><span class="n">file_patterns</span><span class="p">,</span>
+              <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+              <span class="n">bprop_variable_filters</span><span class="o">=</span><span class="n">bprop_variable_filters</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot parse p.file_pattern into a datasource.&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">args</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
+                                        <span class="n">datasource</span><span class="o">.</span><span class="n">ChainingDataSource</span><span class="p">):</span>
+      <span class="c1"># If a user provides a ChainingDataSource make sure that the</span>
+      <span class="c1"># param is set correctly when passed to the InputOp</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
         <span class="s1">&#39;file_random_seed&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span><span class="p">,</span>
         <span class="s1">&#39;file_buffer_size&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">,</span>
@@ -534,124 +609,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildWithinBatchMixingDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildWithinBatchMixingDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildWithinBatchMixingDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Read and return input batch from a p.file_pattern list.</span>
-
-<span class="sd">    `p.file_pattern` should be a list of (file_pattern, weight) pairs. Examples</span>
-<span class="sd">    in the batch will be mixed together from different file_pattern source</span>
-<span class="sd">    proportionally to the weights.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      A tf.Tensor or `.NestedMap` of tf.Tensor same as</span>
-<span class="sd">      `self._DataSourceFromFilePattern()`.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">      ValueError: If unknown token type.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,))</span>
-    <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)))</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
-      <span class="c1"># Within batch mixing doesn&#39;t work with backprop filters, i.e. when</span>
-      <span class="c1"># file_pattern param contains a list of</span>
-      <span class="c1"># &lt;file_pattern, weight, [bprop_variable_filter]&gt; tuples.</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list of pairs, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,))</span>
-
-    <span class="n">file_patterns</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">))</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">file_pattern</span> <span class="ow">in</span> <span class="n">file_patterns</span><span class="p">:</span>
-      <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">file_pattern</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Can not use commas in file_pattern when within-batch &#39;</span>
-                         <span class="s1">&#39;mixing is used. file_pattern: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">file_pattern</span><span class="p">,))</span>
-
-    <span class="c1"># Do not set self._bprop_onehot as it shouldn&#39;t be used later on.</span>
-    <span class="k">try</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">),</span> <span class="n">weights</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-          <span class="s1">&#39;The function may not be fully implemented. Have you added &#39;</span> <span class="o">+</span>
-          <span class="s1">&#39;input_source_weights as params? Original exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildChainingDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildChainingDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildChainingDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Read and return input batch from a p.file_pattern list.</span>
-
-<span class="sd">    `p.file_pattern` should be a list of file_patterns. file_patterns will</span>
-<span class="sd">    be consumed consequtively.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      A tf.Tensor or `.NestedMap` of tf.Tensor same as</span>
-<span class="sd">      `self._DataSourceFromFilePattern()`.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">      ValueError: If unknown token type.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,))</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">):</span>
-      <span class="c1"># Chaining doesn&#39;t work with weights or backprop filters, i.e. when</span>
-      <span class="c1"># file_pattern param contains a list of</span>
-      <span class="c1"># &lt;file_pattern, weight, [bprop_variable_filter]&gt; tuples.</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list of strings, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,))</span>
-
-    <span class="n">file_patterns</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">)</span>
-    <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">file_pattern</span> <span class="ow">in</span> <span class="n">file_patterns</span><span class="p">:</span>
-      <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">file_pattern</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Can not use commas in file_pattern when chaining &#39;</span>
-                         <span class="s1">&#39;is used. file_pattern: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">file_pattern</span><span class="p">,))</span>
-
-    <span class="c1"># Do not set self._bprop_onehot as it shouldn&#39;t be used later on.</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">),</span> <span class="n">weights</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildCrossBatchMixingDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Read and return input batch from a p.file_pattern list.</span>
-
-<span class="sd">    `p.file_pattern` should be a list of (file_pattern, weight,</span>
-<span class="sd">    optional_bprop_filter) tuples. Every batch returned will be filled from one</span>
-<span class="sd">    source only and batches will be mixed proportionally to the weights.</span>
-<span class="sd">    Additionally some backprop filters may be applied for different input</span>
-<span class="sd">    sources.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      A tuple which contains the output of `self._DataSourceFromFilePattern()`</span>
-<span class="sd">      and a tensor of size [batch_size, number of data sources] which contains</span>
-<span class="sd">      the source selected for each element in the input batch. With cross batch</span>
-<span class="sd">      mixing the complete input batch comes from the same source.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">      ValueError: If unknown token type.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">input_file_pattern</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span>
-
-    <span class="k">def</span> <span class="nf">_MakeDataSourceFromFilePatternFunc</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">):</span>
-      <span class="c1"># It&#39;s important to invoke self._DataSourceFromFilePattern() inside the</span>
-      <span class="c1"># lambda to make sure that the record is drawn from data source</span>
-      <span class="c1"># only if it will be used.</span>
-      <span class="k">return</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">)</span>
-
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">input_entry</span> <span class="ow">in</span> <span class="n">input_file_pattern</span><span class="p">:</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_entry</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Should explicitly specify weights, got string: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                         <span class="p">(</span><span class="n">input_entry</span><span class="p">,))</span>
-      <span class="n">file_pattern</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
-      <span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_MakeDataSourceFromFilePatternFunc</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">))</span>
-      <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
-      <span class="n">bprop_variable_filter</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_entry</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bprop_variable_filter</span><span class="p">)</span>
-    <span class="n">data_source</span><span class="p">,</span> <span class="n">selected_bprop</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MixByWeight</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
-    <span class="c1"># TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to</span>
-    <span class="c1"># use source_selected from input_batch.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span> <span class="o">=</span> <span class="n">selected_bprop</span>
-    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">data_source</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">data_source</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">selected_bprop</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span></div>
-
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildDataSourceWithMetadata"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSourceWithMetadata">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildDataSourceWithMetadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Read and return input batch from `p.file_pattern`.</span>
 
@@ -662,32 +619,31 @@
 <span class="sd">    examples from different sources may be mixed together.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A tuple of tf.Tensor or `.NestedMap` of tf.Tensor same as</span>
-<span class="sd">      `self._DataSourceFromFilePattern()` and a tensor of size</span>
-<span class="sd">      [batch_size, number of data sources] or None.</span>
+<span class="sd">      A NestedMap containing: data: a tuple of tf.Tensor or `.NestedMap` of</span>
+<span class="sd">      tf.Tensor same as `self._DataSourceFromFilePattern()`, source_selected: a</span>
+<span class="sd">      tensor of size [batch_size, number of data sources] or None.</span>
+<span class="sd">      selected_bprop: a tensor of size [number of data sources] or None.</span>
+<span class="sd">      bprop_variable_filters: a list of bprop_variable filters for each source</span>
+<span class="sd">      or None</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">      ValueError: If unknown token type.</span>
+<span class="sd">      ValueError: If file_datasource is not set</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">input_file_pattern</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span>
-    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_file_pattern</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-      <span class="n">data</span><span class="p">,</span> <span class="n">source_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span>
-          <span class="n">input_file_pattern</span><span class="p">),</span> <span class="kc">None</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_file_pattern</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_within_batch_mixing</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span><span class="p">,</span> <span class="s2">&quot;Can&#39;t both use chaining and mixing&quot;</span>
-        <span class="n">data</span><span class="p">,</span> <span class="n">source_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildWithinBatchMixingDataSource</span><span class="p">(),</span> <span class="kc">None</span>
-      <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span><span class="p">:</span>
-        <span class="n">data</span><span class="p">,</span> <span class="n">source_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildChainingDataSource</span><span class="p">(),</span> <span class="kc">None</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Otherwise fall back to MixByWeight-based approach.</span>
-        <span class="n">data</span><span class="p">,</span> <span class="n">source_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildCrossBatchMixingDataSource</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">:</span>
+      <span class="c1"># This is a workaround for subclasses which have defined</span>
+      <span class="c1"># their own data source-like functionality.</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">source_selected</span> <span class="o">=</span> <span class="n">source_selected</span>
+      <span class="n">data_source</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="n">data_source</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;selected_bprop&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">selected_bprop</span>
+    <span class="k">if</span> <span class="s1">&#39;bprop_variable_filters&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span>
+    <span class="k">if</span> <span class="s1">&#39;source_selected&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">source_selected</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">ret</span></div>
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
