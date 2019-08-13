@@ -103,6 +103,26 @@ py_test(
     ],
 )
 
+py_library(
+    name = "compare_params_lib",
+    srcs = ["compare_params.py"],
+    deps = [
+        "//lingvo:compat",
+        "//lingvo:model_registry",
+    ],
+)
+
+py_test(
+    name = "compare_params_test",
+    srcs = ["compare_params_test.py"],
+    deps = [
+        ":compare_params_lib",
+        "//lingvo:compat",
+        "//lingvo/core:hyperparams",
+        "//lingvo/core:test_utils",
+    ],
+)
+
 py_binary(
     name = "create_asr_features",
     srcs = ["create_asr_features.py"],
