@@ -220,7 +220,7 @@ fully contained within the corresponding sequence.</li>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask">
-<code class="descname">_FrequencyMask</code><span class="sig-paren">(</span><em>inputs</em>, <em>num_freq=80</em>, <em>dtype=tf.float32</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._FrequencyMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_FrequencyMask</code><span class="sig-paren">(</span><em>inputs</em>, <em>num_freq=80</em>, <em>dtype=tf.float32</em>, <em>domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._FrequencyMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies frequency masking with given degree to inputs.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -231,6 +231,7 @@ fully contained within the corresponding sequence.</li>
 num_freq, channels).</li>
 <li><strong>num_freq</strong> – Number of frequencies.</li>
 <li><strong>dtype</strong> – Data type.</li>
+<li><strong>domain_id_index</strong> – domain id index.</li>
 </ul>
 </td>
 </tr>
@@ -243,7 +244,7 @@ num_freq, channels).</li>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask">
-<code class="descname">_TimeMask</code><span class="sig-paren">(</span><em>inputs</em>, <em>seq_lengths</em>, <em>max_ratio=1.0</em>, <em>time_length=2560</em>, <em>noisify=False</em>, <em>dtype=tf.float32</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._TimeMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_TimeMask</code><span class="sig-paren">(</span><em>inputs</em>, <em>seq_lengths</em>, <em>max_ratio=1.0</em>, <em>time_length=2560</em>, <em>noisify=False</em>, <em>dtype=tf.float32</em>, <em>domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._TimeMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies time masking with given degree to inputs.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -258,6 +259,7 @@ num_freq, channels).</li>
 <li><strong>time_length</strong> – Total length of time series.</li>
 <li><strong>noisify</strong> – whether to noisify the masked out regions.</li>
 <li><strong>dtype</strong> – Data type.</li>
+<li><strong>domain_id_index</strong> – domain id index.</li>
 </ul>
 </td>
 </tr>
@@ -276,7 +278,7 @@ num_freq, channels).</li>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork">
-<code class="descname">_AugmentationNetwork</code><span class="sig-paren">(</span><em>series_length</em>, <em>num_freq</em>, <em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._AugmentationNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_AugmentationNetwork</code><span class="sig-paren">(</span><em>series_length</em>, <em>num_freq</em>, <em>inputs</em>, <em>paddings</em>, <em>domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._AugmentationNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns augmented features.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -288,6 +290,7 @@ num_freq, channels).</li>
 <li><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
 num_freq, channels).</li>
 <li><strong>paddings</strong> – Batch of padding vectors of shape (batch_size, time_length).</li>
+<li><strong>domain_id_index</strong> – domain id index.</li>
 </ul>
 </td>
 </tr>
@@ -309,7 +312,7 @@ obtained by applying random augmentations to inputs.</p>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>domain_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies data augmentation by randomly mask spectrum in inputs.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -320,6 +323,7 @@ obtained by applying random augmentations to inputs.</p>
 children layers.</li>
 <li><strong>inputs</strong> – A tensor of shape [batch, time, freq, num_channels].</li>
 <li><strong>paddings</strong> – A 0/1 tensor of shape [batch, time].</li>
+<li><strong>domain_ids</strong> – input domain_ids of shape [batch, time].</li>
 </ul>
 </td>
 </tr>
