@@ -40,6 +40,10 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
              'If not None, use these as the targets instead of generating '
              'random targets and set target padding to 0.  Must have same '
              'shape as target_shape.')
+    p.Define(
+        'fixed_target_ids', None,
+        'If not None, use these as the target_ids instead of generating '
+        'random targets.  Must have same shape as target_shape.')
     p.Define('cur_iter_in_seed', True, 'use current iter value in seed '
              'computation.')
     p.Define('integer_source_max', None, 'Generate integers as source values '
@@ -176,9 +180,15 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     if p.cur_iter_in_seed:
       self._cur_iter += 1
     random_seed = p.random_seed * 2000 * self._cur_iter
-    tids = tf.cast(
-        tf.random_uniform(target_shape, seed=random_seed) *
-        p.tokenizer.vocab_size, tf.int32)
+
+    if p.fixed_target_ids is None:
+      tids = tf.cast(
+          tf.random_uniform(target_shape, seed=random_seed) *
+          p.tokenizer.vocab_size, tf.int32)
+    else:
+      tids = p.fixed_target_ids
+      assert tids.shape_as_list() == target_shape
+
     if p.fixed_target_labels is None:
       tlabels = tf.cast(
           tf.random_uniform(target_shape, seed=random_seed + 1) *
