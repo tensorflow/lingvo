@@ -1394,7 +1394,7 @@ class AsrDecoder(AsrDecoderBase):
     hyps are to be computed in a different way, e.g., when the format of inputs
     change.
     Args:
-      source_encs: A Tensor of [dim, batch] dimension with source encodings.
+      source_encs: A Tensor of [time, batch, dim] dimension with source encodings.
       num_hyps_per_beam: Int, the number of hypothesis per example in the beam.
     Returns:
       A Tensor with value batch * num_hyps_per_beam.
