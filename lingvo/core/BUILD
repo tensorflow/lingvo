@@ -133,6 +133,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_layer",
+        ":datasource",
         ":hyperparams",
         ":input_generator_helper",
         ":py_utils",
@@ -364,6 +365,30 @@ lingvo_cuda_py2and3_test(
         ":test_utils",
         "//lingvo:compat",
         # Implicit six dependency.
+    ],
+)
+
+py_library(
+    name = "datasource",
+    srcs = ["datasource.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":hyperparams",
+        "//lingvo:compat",
+        # Implicit six dependency.
+    ],
+)
+
+py_test(
+    name = "datasource_test",
+    size = "small",
+    srcs = ["datasource_test.py"],
+    deps = [
+        ":datasource",
+        ":hyperparams",
+        ":test_helper",
+        ":test_utils",
+        "//lingvo:compat",
     ],
 )
 
