@@ -169,7 +169,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="k">import</span> <span class="n">frontend</span> <span class="k">as</span> <span class="n">asr_frontend</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.contrib.framework.python.ops</span> <span class="k">import</span> <span class="n">audio_ops</span> <span class="k">as</span> <span class="n">contrib_audio</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">gen_audio_ops</span> <span class="k">as</span> <span class="n">audio_ops</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 
 
 <span class="c1"># There are two ways to decode a wav in tensorflow:</span>
@@ -200,7 +200,7 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A pair of Tensor for sample rate, decoded samples.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">result</span> <span class="o">=</span> <span class="n">contrib_audio</span><span class="o">.</span><span class="n">decode_wav</span><span class="p">(</span><span class="n">input_bytes</span><span class="p">)</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="n">audio_ops</span><span class="o">.</span><span class="n">decode_wav</span><span class="p">(</span><span class="n">input_bytes</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">audio</span></div>
 
 
@@ -208,12 +208,12 @@
                 <span class="n">num_coefficients</span><span class="p">):</span>
   <span class="n">window_size_samples</span> <span class="o">=</span> <span class="n">sample_rate</span> <span class="o">*</span> <span class="n">window_size_ms</span> <span class="o">//</span> <span class="mi">1000</span>
   <span class="n">window_stride_samples</span> <span class="o">=</span> <span class="n">sample_rate</span> <span class="o">*</span> <span class="n">window_stride_ms</span> <span class="o">//</span> <span class="mi">1000</span>
-  <span class="n">spectrogram</span> <span class="o">=</span> <span class="n">contrib_audio</span><span class="o">.</span><span class="n">audio_spectrogram</span><span class="p">(</span>
+  <span class="n">spectrogram</span> <span class="o">=</span> <span class="n">audio_ops</span><span class="o">.</span><span class="n">audio_spectrogram</span><span class="p">(</span>
       <span class="n">audio</span><span class="p">,</span>
       <span class="n">window_size</span><span class="o">=</span><span class="n">window_size_samples</span><span class="p">,</span>
       <span class="n">stride</span><span class="o">=</span><span class="n">window_stride_samples</span><span class="p">,</span>
       <span class="n">magnitude_squared</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-  <span class="n">mfcc</span> <span class="o">=</span> <span class="n">contrib_audio</span><span class="o">.</span><span class="n">mfcc</span><span class="p">(</span>
+  <span class="n">mfcc</span> <span class="o">=</span> <span class="n">audio_ops</span><span class="o">.</span><span class="n">mfcc</span><span class="p">(</span>
       <span class="n">spectrogram</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="n">dct_coefficient_count</span><span class="o">=</span><span class="n">num_coefficients</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">mfcc</span></div>
 

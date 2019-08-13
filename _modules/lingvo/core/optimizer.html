@@ -169,8 +169,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.contrib.opt.python.training</span> <span class="k">import</span> <span class="n">weight_decay_optimizers</span>
-
 
 <div class="viewcode-block" id="Base"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base">[docs]</a><span class="k">class</span> <span class="nc">Base</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for all optimizers.&quot;&quot;&quot;</span>
@@ -353,36 +351,6 @@
 
 <div class="viewcode-block" id="Adam.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Adam.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;adam_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
-
-
-<div class="viewcode-block" id="AdamW"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.AdamW">[docs]</a><span class="k">class</span> <span class="nc">AdamW</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Adam with weight decay.</span>
-
-<span class="sd">  Wrapper for the optimizer in: Decoupled Weight Decay Regularization</span>
-<span class="sd">  https://arxiv.org/abs/1711.05101</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="AdamW.Params"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.AdamW.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AdamW</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;beta1&#39;</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="s1">&#39;Beta1 for Adam.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;beta2&#39;</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">,</span> <span class="s1">&#39;Beta2 for Adam.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="s1">&#39;Epsilon for Adam.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight_decay&#39;</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="s1">&#39;Weight decay multiplier.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;AdamW&#39;</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
-<div class="viewcode-block" id="AdamW.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.AdamW.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="n">weight_decay_optimizers</span><span class="o">.</span><span class="n">AdamWOptimizer</span><span class="p">(</span>
-        <span class="n">weight_decay</span><span class="o">=</span><span class="n">lr</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_decay</span><span class="p">,</span>
-        <span class="n">learning_rate</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
-        <span class="n">beta1</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">beta1</span><span class="p">,</span>
-        <span class="n">beta2</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">beta2</span><span class="p">,</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="AdamW.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.AdamW.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;adamW_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Accumulator"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Accumulator">[docs]</a><span class="k">class</span> <span class="nc">Accumulator</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>

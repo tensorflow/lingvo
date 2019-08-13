@@ -200,10 +200,12 @@
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">base_runner</span>
-<span class="kn">from</span> <span class="nn">tensorflow.contrib.tpu.python.tpu</span> <span class="k">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">device_assignment_lib</span>
-<span class="kn">from</span> <span class="nn">tensorflow.contrib.tpu.python.tpu</span> <span class="k">import</span> <span class="n">tpu_function</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">training_loop</span> <span class="k">as</span> <span class="n">tpu_training_loop</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.tpu.ops</span> <span class="k">import</span> <span class="n">tpu_ops</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
+<span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">device_assignment_lib</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">tpu_function</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">training_loop</span> <span class="k">as</span> <span class="n">tpu_training_loop</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu.ops</span> <span class="k">import</span> <span class="n">tpu_ops</span>
+<span class="c1"># pylint:enable=g-direct-tensorflow-import</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
     <span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Name of the model class to train.&#39;</span>
