@@ -24,7 +24,7 @@ import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.tasks.asr import frontend as asr_frontend
 
-from tensorflow.contrib.framework.python.ops import audio_ops as contrib_audio
+from tensorflow.python.ops import gen_audio_ops as audio_ops  # pylint: disable=g-direct-tensorflow-import
 
 
 # There are two ways to decode a wav in tensorflow:
@@ -55,7 +55,7 @@ def DecodeWav(input_bytes):
   Returns:
     A pair of Tensor for sample rate, decoded samples.
   """
-  result = contrib_audio.decode_wav(input_bytes)
+  result = audio_ops.decode_wav(input_bytes)
   return result.sample_rate, result.audio
 
 
@@ -63,12 +63,12 @@ def AudioToMfcc(sample_rate, audio, window_size_ms, window_stride_ms,
                 num_coefficients):
   window_size_samples = sample_rate * window_size_ms // 1000
   window_stride_samples = sample_rate * window_stride_ms // 1000
-  spectrogram = contrib_audio.audio_spectrogram(
+  spectrogram = audio_ops.audio_spectrogram(
       audio,
       window_size=window_size_samples,
       stride=window_stride_samples,
       magnitude_squared=True)
-  mfcc = contrib_audio.mfcc(
+  mfcc = audio_ops.mfcc(
       spectrogram, sample_rate, dct_coefficient_count=num_coefficients)
   return mfcc
 

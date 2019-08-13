@@ -32,9 +32,11 @@ import six
 from six.moves import xrange
 from six.moves import zip
 
-from tensorflow.contrib.tpu.python.tpu import tpu_function
-from tensorflow.python.tpu import training_loop as tpu_training_loop  # pylint:disable=g-direct-tensorflow-import
-from tensorflow.python.tpu.ops import tpu_ops  # pylint:disable=g-direct-tensorflow-import
+# pylint:disable=g-direct-tensorflow-import
+from tensorflow.python.tpu import tpu_function
+from tensorflow.python.tpu import training_loop as tpu_training_loop
+from tensorflow.python.tpu.ops import tpu_ops
+# pylint:enable=g-direct-tensorflow-import
 
 
 class BaseProgram(object):

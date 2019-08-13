@@ -55,10 +55,12 @@ from six.moves import range
 from six.moves import zip
 
 from lingvo import base_runner
-from tensorflow.contrib.tpu.python.tpu import device_assignment as device_assignment_lib
-from tensorflow.contrib.tpu.python.tpu import tpu_function
-from tensorflow.python.tpu import training_loop as tpu_training_loop  # pylint:disable=g-direct-tensorflow-import
-from tensorflow.python.tpu.ops import tpu_ops  # pylint:disable=g-direct-tensorflow-import
+# pylint:disable=g-direct-tensorflow-import
+from tensorflow.python.tpu import device_assignment as device_assignment_lib
+from tensorflow.python.tpu import tpu_function
+from tensorflow.python.tpu import training_loop as tpu_training_loop
+from tensorflow.python.tpu.ops import tpu_ops
+# pylint:enable=g-direct-tensorflow-import
 
 tf.flags.DEFINE_string(
     'model', '', 'Name of the model class to train.'
