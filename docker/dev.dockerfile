@@ -70,6 +70,7 @@ RUN pip --no-cache-dir install \
         sympy \
         google-api-python-client \
         oauth2client \
+        apache-beam[gcp]>=2.8 \
         && \
     python -m ipykernel.kernelspec
 

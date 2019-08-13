@@ -89,6 +89,23 @@ py_library(
     ],
 )
 
+py_library(
+    name = "beam_utils",
+    srcs = ["beam_utils.py"],
+)
+
+py_test(
+    name = "beam_utils_test",
+    srcs = ["beam_utils_test.py"],
+    data = ["//lingvo/tasks/mt/testdata:wmt14_ende_tfexample"],
+    deps = [
+        ":beam_utils",
+        "//lingvo:compat",
+        "//lingvo/core:test_helper",
+        "//lingvo/core:test_utils",
+    ],
+)
+
 py_test(
     name = "audio_lib_test",
     srcs = ["audio_lib_test.py"],
