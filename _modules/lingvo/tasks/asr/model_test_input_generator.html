@@ -185,6 +185,10 @@
              <span class="s1">&#39;If not None, use these as the targets instead of generating &#39;</span>
              <span class="s1">&#39;random targets and set target padding to 0.  Must have same &#39;</span>
              <span class="s1">&#39;shape as target_shape.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;fixed_target_ids&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If not None, use these as the target_ids instead of generating &#39;</span>
+        <span class="s1">&#39;random targets.  Must have same shape as target_shape.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cur_iter_in_seed&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;use current iter value in seed &#39;</span>
              <span class="s1">&#39;computation.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;integer_source_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Generate integers as source values &#39;</span>
@@ -321,9 +325,15 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cur_iter_in_seed</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_cur_iter</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="n">random_seed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">*</span> <span class="mi">2000</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_iter</span>
-    <span class="n">tids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span><span class="n">target_shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">)</span> <span class="o">*</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fixed_target_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">tids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span><span class="n">target_shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">)</span> <span class="o">*</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tids</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">fixed_target_ids</span>
+      <span class="k">assert</span> <span class="n">tids</span><span class="o">.</span><span class="n">shape_as_list</span><span class="p">()</span> <span class="o">==</span> <span class="n">target_shape</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fixed_target_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">tlabels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span><span class="n">target_shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span>
