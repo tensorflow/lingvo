@@ -182,53 +182,54 @@
   <span class="n">VOCAB_SIZE</span> <span class="o">=</span> <span class="mi">2000</span>
   <span class="n">VOCAB_FILE</span> <span class="o">=</span> <span class="s1">&#39;wpm-ende-2k.voc&#39;</span>
 
-<div class="viewcode-block" id="WmtCaptionEnDeTransformer.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformer.Train">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="WmtCaptionEnDeTransformer._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformer._CommonInputParams">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Input generator params for WMT&#39;16 En-&gt;De.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">NmtInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
 
-    <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">29000</span>
-
-    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;tfrecord:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">DATADIR</span><span class="p">,</span> <span class="s1">&#39;train.tfrecords&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_vocab_filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">DATADIR</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_FILE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_eval</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">27182818</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">26</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">98</span><span class="p">,</span> <span class="mi">137</span><span class="p">,</span> <span class="mi">200</span><span class="p">]</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="o">*</span> <span class="mi">8</span> <span class="o">+</span> <span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">29000</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">14</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">29</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">75</span><span class="p">]</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">292</span><span class="p">,</span> <span class="mi">240</span><span class="p">,</span> <span class="mi">204</span><span class="p">,</span> <span class="mi">170</span><span class="p">,</span> <span class="mi">141</span><span class="p">,</span> <span class="mi">117</span><span class="p">,</span> <span class="mi">91</span><span class="p">,</span> <span class="mi">54</span><span class="p">]</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_SIZE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_vocab_filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">DATADIR</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_FILE</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="WmtCaptionEnDeTransformer.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformer.Train">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;tfrecord:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">DATADIR</span><span class="p">,</span> <span class="s1">&#39;train.tfrecords&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">29000</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">14</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">29</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">75</span><span class="p">]</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">292</span><span class="p">,</span> <span class="mi">240</span><span class="p">,</span> <span class="mi">204</span><span class="p">,</span> <span class="mi">170</span><span class="p">,</span> <span class="mi">141</span><span class="p">,</span> <span class="mi">117</span><span class="p">,</span> <span class="mi">91</span><span class="p">,</span> <span class="mi">54</span><span class="p">]</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="WmtCaptionEnDeTransformer.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformer.Dev">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">NmtInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">27182818</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">1</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;tfrecord:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">DATADIR</span><span class="p">,</span> <span class="s1">&#39;val.tfrecords&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_vocab_filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">DATADIR</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_FILE</span><span class="p">)</span>
-
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_SIZE</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">1014</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">26</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">98</span><span class="p">,</span> <span class="mi">137</span><span class="p">,</span> <span class="mi">200</span><span class="p">]</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="o">*</span> <span class="mi">8</span> <span class="o">+</span> <span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="WmtCaptionEnDeTransformer.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformer.Test">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">NmtInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">27182818</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">1</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;tfrecord:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">DATADIR</span><span class="p">,</span> <span class="s1">&#39;test.tfrecords&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_vocab_filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">DATADIR</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_FILE</span><span class="p">)</span>
-
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_SIZE</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">1000</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">26</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">98</span><span class="p">,</span> <span class="mi">137</span><span class="p">,</span> <span class="mi">200</span><span class="p">]</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="o">*</span> <span class="mi">8</span> <span class="o">+</span> <span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="WmtCaptionEnDeTransformer.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformer.Task">[docs]</a>  <span class="nd">@classmethod</span>
@@ -248,6 +249,31 @@
     <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="mi">7500</span>
     <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_interval_seconds</span> <span class="o">=</span> <span class="mi">60</span>
     <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="mi">12000</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="WmtCaptionEnDeTransformerCloudTpu"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformerCloudTpu">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">WmtCaptionEnDeTransformerCloudTpu</span><span class="p">(</span><span class="n">WmtCaptionEnDeTransformer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Params for WMT&#39;16 En-&gt;De Captions (ignoring the images) on TPU.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="WmtCaptionEnDeTransformerCloudTpu._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformerCloudTpu._CommonInputParams">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WmtCaptionEnDeTransformerCloudTpu</span><span class="p">,</span>
+              <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="WmtCaptionEnDeTransformerCloudTpu.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformerCloudTpu.Task">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WmtCaptionEnDeTransformerCloudTpu</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
+
     <span class="k">return</span> <span class="n">p</span></div></div>
 </pre></div>
 
