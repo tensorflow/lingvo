@@ -165,7 +165,6 @@
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cudnn_rnn_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">quant_utils</span>
@@ -173,7 +172,6 @@
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.contrib.cudnn_rnn.python.ops</span> <span class="k">import</span> <span class="n">cudnn_rnn_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="k">import</span> <span class="n">deprecation</span> <span class="k">as</span> <span class="n">tf_deprecation</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 
 
@@ -1077,117 +1075,6 @@
     <span class="n">new_m</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span> <span class="o">+</span> <span class="n">new_m</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">)</span>
     <span class="n">new_c</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span> <span class="o">*</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span> <span class="o">+</span> <span class="n">new_c</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">)</span>
 
-    <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
-
-
-<div class="viewcode-block" id="LSTMCellCuDNNCompliant"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant">[docs]</a><span class="k">class</span> <span class="nc">LSTMCellCuDNNCompliant</span><span class="p">(</span><span class="n">RNNCell</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;LSTMCell compliant with variables with CuDNN-LSTM layout.</span>
-
-<span class="sd">  theta:</span>
-
-<span class="sd">  - wb: the cudnn LSTM weight.</span>
-
-<span class="sd">  state:</span>
-
-<span class="sd">  - m: the lstm output. [batch, cell_nodes]</span>
-<span class="sd">  - c: the lstm cell state. [batch, cell_nodes]</span>
-
-<span class="sd">  inputs:</span>
-
-<span class="sd">  - act: a list of input activations. [batch, input_nodes]</span>
-<span class="sd">  - padding: the padding. [batch, 1].</span>
-<span class="sd">  - reset_mask: optional 0/1 float input to support packed input training.</span>
-<span class="sd">    Shape [batch, 1]</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="LSTMCellCuDNNCompliant.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LSTMCellCuDNNCompliant</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
-  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">LSTMCellCuDNNCompliant</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">cudnn_init_helper</span> <span class="o">=</span> <span class="n">cudnn_rnn_utils</span><span class="o">.</span><span class="n">CuDNNLSTMInitializer</span><span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">)</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
-        <span class="n">wb_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-            <span class="s1">&#39;wb&#39;</span><span class="p">,</span>
-            <span class="n">wb_pc</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">,</span>
-            <span class="n">init_wrapper</span><span class="o">=</span><span class="n">cudnn_init_helper</span><span class="o">.</span><span class="n">InitOpaqueParams</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Run eval mode on CPU, use inferred static shape since dynamic shape</span>
-        <span class="c1"># requires running a GPU kernel.</span>
-        <span class="c1"># Also uses simplified initialization approach, since the vars would</span>
-        <span class="c1"># be restored from checkpoints and initialization values don&#39;t matter.</span>
-        <span class="c1"># TODO(jamesqin): save cudnn opaque params in canonical format.</span>
-        <span class="n">wb_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">cudnn_init_helper</span><span class="o">.</span><span class="n">weight_size</span> <span class="o">+</span> <span class="n">cudnn_init_helper</span><span class="o">.</span><span class="n">bias_size</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wb&#39;</span><span class="p">,</span> <span class="n">wb_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
-
-<div class="viewcode-block" id="LSTMCellCuDNNCompliant.batch_size"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.batch_size">[docs]</a>  <span class="k">def</span> <span class="nf">batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="LSTMCellCuDNNCompliant.zero_state"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">m</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">],</span>
-                                    <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
-                                    <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                                    <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">),</span>
-        <span class="n">c</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">],</span>
-                                    <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
-                                    <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                                    <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">))</span></div>
-
-<div class="viewcode-block" id="LSTMCellCuDNNCompliant.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
-
-<div class="viewcode-block" id="LSTMCellCuDNNCompliant._WeightAndBias"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant._WeightAndBias">[docs]</a>  <span class="k">def</span> <span class="nf">_WeightAndBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="n">cudnn_rnn_utils</span><span class="o">.</span><span class="n">RecoverLSTMCellSimpleWeightsFromCuDNN</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">wb</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">,</span>
-        <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_UNIDIRECTION</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="LSTMCellCuDNNCompliant._ResetState"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant._ResetState">[docs]</a>  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
-    <span class="n">state</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span>
-    <span class="n">state</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">c</span>
-    <span class="k">return</span> <span class="n">state</span></div>
-
-<div class="viewcode-block" id="LSTMCellCuDNNCompliant._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
-    <span class="n">wm</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_WeightAndBias</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span> <span class="o">+</span> <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">wm</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="LSTMCellCuDNNCompliant._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compute the new state.&quot;&quot;&quot;</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_WeightAndBias</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
-    <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
-        <span class="n">value</span><span class="o">=</span><span class="n">xmw</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">new_c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f_g</span><span class="p">)</span> <span class="o">*</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">i_g</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">i_i</span><span class="p">)</span>
-    <span class="n">new_m</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">o_g</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">new_c</span><span class="p">)</span>
-
-    <span class="c1"># Technically this is not the same as CuDNN impl which does not support</span>
-    <span class="c1"># padding for performance reasons.</span>
-    <span class="c1"># Yet padding is still done correctly here so that the backward direction of</span>
-    <span class="c1"># BidirectionalCuDNNLSTM is done correctly in eval mode, when CuDNNLSTM</span>
-    <span class="c1"># inherits DRNN.</span>
-    <span class="n">new_m</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span> <span class="o">+</span> <span class="n">new_m</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">)</span>
-    <span class="n">new_c</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span> <span class="o">*</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span> <span class="o">+</span> <span class="n">new_c</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">)</span>
     <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>

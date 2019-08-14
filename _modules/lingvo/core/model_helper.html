@@ -188,8 +188,6 @@
   <span class="n">unidi_rnn_type</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">unidi_rnn_type</span>
   <span class="k">if</span> <span class="n">unidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span>
     <span class="n">unidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">FRNN</span>
-  <span class="k">elif</span> <span class="n">unidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;cudnn&#39;</span> <span class="ow">or</span> <span class="n">unidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;native_cudnn&#39;</span><span class="p">:</span>
-    <span class="n">unidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">CuDNNLSTM</span>
   <span class="k">elif</span> <span class="n">unidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;quasi_ifo&#39;</span> <span class="ow">or</span> <span class="n">unidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;sru&#39;</span><span class="p">:</span>
     <span class="n">unidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">FRNN</span>
   <span class="k">else</span><span class="p">:</span>
@@ -219,8 +217,6 @@
   <span class="n">bidi_rnn_type</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bidi_rnn_type</span>
   <span class="k">if</span> <span class="n">bidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span>
     <span class="n">bidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">BidirectionalFRNN</span>
-  <span class="k">elif</span> <span class="n">bidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;native_cudnn&#39;</span><span class="p">:</span>
-    <span class="n">bidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">BidirectionalNativeCuDNNLSTM</span>
   <span class="k">elif</span> <span class="n">bidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;quasi_ifo&#39;</span> <span class="ow">or</span> <span class="n">bidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;sru&#39;</span><span class="p">:</span>
     <span class="n">bidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">BidirectionalFRNNQuasi</span>
   <span class="k">else</span><span class="p">:</span>

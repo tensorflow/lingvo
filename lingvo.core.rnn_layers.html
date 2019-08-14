@@ -167,11 +167,6 @@
 <span id="lingvo-core-rnn-layers-module"></span><h1>lingvo.core.rnn_layers module<a class="headerlink" href="#module-lingvo.core.rnn_layers" title="Permalink to this headline">¶</a></h1>
 <p>Lingvo RNN layers.</p>
 <dl class="function">
-<dt id="lingvo.core.rnn_layers._AssertCellParamsCuDNNCompatible">
-<code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">_AssertCellParamsCuDNNCompatible</code><span class="sig-paren">(</span><em>p_cell</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#_AssertCellParamsCuDNNCompatible"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers._AssertCellParamsCuDNNCompatible" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
 <dt id="lingvo.core.rnn_layers._GeneratePackedInputResetMask">
 <code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">_GeneratePackedInputResetMask</code><span class="sig-paren">(</span><em>segment_id</em>, <em>is_reverse=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#_GeneratePackedInputResetMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers._GeneratePackedInputResetMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates mask inputs for RNN cells from segment_id.</p>
@@ -556,106 +551,6 @@ is expected to be 1.</li>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="lingvo.core.rnn_layers.CuDNNLSTM">
-<em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">CuDNNLSTM</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#CuDNNLSTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.CuDNNLSTM" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
-<p>A single layer of unidirectional LSTM with Cudnn impl.</p>
-<p>Runs training with CuDNN on GPU, and eval using a FRNN with properly
-configured <code class="xref py py-obj docutils literal notranslate"><span class="pre">LSTMCellSimple</span></code> cell.</p>
-<dl class="classmethod">
-<dt id="lingvo.core.rnn_layers.CuDNNLSTM.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#CuDNNLSTM.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.CuDNNLSTM.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="lingvo.core.rnn_layers.CuDNNLSTM.rnn_cell">
-<code class="descname">rnn_cell</code><a class="headerlink" href="#lingvo.core.rnn_layers.CuDNNLSTM.rnn_cell" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.rnn_layers.CuDNNLSTM.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#CuDNNLSTM.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.CuDNNLSTM.zero_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.rnn_layers.CuDNNLSTM.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#CuDNNLSTM.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.CuDNNLSTM.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute LSTM forward pass.</p>
-<p>Runs training pass with CuDNN. Eval is implemented without CuDNN to be
-compatible with different hardwares.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
-<li><strong>inputs</strong> – A tensor of [seq_length, batch_size, num_input_nodes]</li>
-<li><strong>paddings</strong> – A tensor of [seq_length, batch_size, 1]</li>
-<li><strong>state0</strong> – If not None, the initial rnn state in a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. Defaults
-to the cell’s zero-state.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tensor of [seq_length, batch_size, num_output_nodes] and the
-final recurrent state.  Because cudnn_rnn does not apply padding
-every step, the final state returned differs from other RNN
-layers even if the inputs, paddings and state0 given are
-identical.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="lingvo.core.rnn_layers.BidirectionalNativeCuDNNLSTM">
-<em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">BidirectionalNativeCuDNNLSTM</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalNativeCuDNNLSTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalNativeCuDNNLSTM" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
-<p>A single layer of bidirectional LSTM with native Cudnn impl.</p>
-<dl class="classmethod">
-<dt id="lingvo.core.rnn_layers.BidirectionalNativeCuDNNLSTM.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalNativeCuDNNLSTM.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalNativeCuDNNLSTM.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.rnn_layers.BidirectionalNativeCuDNNLSTM.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalNativeCuDNNLSTM.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalNativeCuDNNLSTM.zero_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.rnn_layers.BidirectionalNativeCuDNNLSTM.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalNativeCuDNNLSTM.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalNativeCuDNNLSTM.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute bidirectional LSTM forward pass.</p>
-<p>Runs training pass with CuDNN. Eval is implemented without CuDNN to be
-compatible with different hardwares.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
-<li><strong>inputs</strong> – A tensor of [seq_length, batch_size, num_input_nodes]</li>
-<li><strong>paddings</strong> – A tensor of [seq_length, batch_size, 1]</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tensor of [seq_length, batch_size, 2 * num_output_nodes]</p>
-</td>
-</tr>
-</tbody>
-</table>
-<p>See <code class="xref py py-obj docutils literal notranslate"><span class="pre">DRNN.FProp()</span></code> for more details.</p>
 </dd></dl>
 
 </dd></dl>
