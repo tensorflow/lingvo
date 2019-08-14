@@ -623,6 +623,8 @@ class BaseTask(base_layer.BaseLayer):
           tf.zeros(len(bprop_variable_filters), dtype=tf.float32))
       for i in range(len(bprop_variable_filters)):
         if re.search(bprop_variable_filters[i], var.name):
+          tf.logging.info('Keep gradient after filtering, regex: %s var: %s' %
+                          (bprop_variable_filters[i], var.name))
           self._per_input_gradient_mask[var.name] += (
               tf.one_hot(i, len(bprop_variable_filters), dtype=tf.float32))
 
