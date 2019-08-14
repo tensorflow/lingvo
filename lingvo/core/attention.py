@@ -28,7 +28,6 @@ from lingvo.core import summary_utils
 
 import numpy as np
 
-from tensorflow.contrib.seq2seq.python.ops import attention_wrapper as contrib_attention_wrapper
 from tensorflow.python.framework import function
 from tensorflow.python.ops import inplace_ops
 
@@ -71,6 +70,121 @@ def _ApplyAttentionDropout(params, x, global_step):
   else:
     return tf.nn.dropout(
         x, 1.0 - params.atten_dropout_prob, seed=params.random_seed)
+
+
+def SafeCumprod(x, *args, **kwargs):
+  """Computes cumprod of x in logspace using cumsum to avoid underflow.
+
+  The cumprod function and its gradient can result in numerical instabilities
+  when its argument has very small and/or zero values.  As long as the argument
+  is all positive, we can instead compute the cumulative product as
+  exp(cumsum(log(x))).  This function can be called identically to tf.cumprod.
+
+  Args:
+    x: Tensor to take the cumulative product of.
+    *args: Passed on to cumsum; these are identical to those in cumprod.
+    **kwargs: Passed on to cumsum; these are identical to those in cumprod.
+
+  Returns:
+    Cumulative product of x.
+  """
+  with tf.name_scope(None, 'SafeCumprod', [x]):
+    x = tf.convert_to_tensor(x, name='x')
+    tiny = np.finfo(x.dtype.as_numpy_dtype).tiny
+    return tf.exp(
+        tf.cumsum(tf.log(tf.clip_by_value(x, tiny, 1)), *args, **kwargs))
+
+
+# pyformat: disable
+def MonotonicAttentionProb(p_choose_i, previous_attention, mode):
+  """Compute monotonic attention distribution from choosing probabilities.
+
+  Monotonic attention implies that the input sequence is processed in an
+  explicitly left-to-right manner when generating the output sequence.  In
+  addition, once an input sequence element is attended to at a given output
+  timestep, elements occurring before it cannot be attended to at subsequent
+  output timesteps.  This function generates attention distributions according
+  to these assumptions.  For more information, see `Online and Linear-Time
+  Attention by Enforcing Monotonic Alignments`.
+
+  Args:
+    p_choose_i: Probability of choosing input sequence/memory element i.  Should
+      be of shape (batch_size, input_sequence_length), and should all be in the
+      range [0, 1].
+    previous_attention: The attention distribution from the previous output
+      timestep.  Should be of shape (batch_size, input_sequence_length).  For
+      the first output timestep, preevious_attention[n] should be [1, 0, 0, ...,
+      0] for all n in [0, ... batch_size - 1].
+    mode: How to compute the attention distribution. Must be one of `recursive`,
+      `parallel`, or `hard`.
+
+      * recursive: uses tf.scan to recursively compute the distribution. This is
+        slowest but is exact, general, and does not suffer from numerical
+        instabilities.
+      * parallel: uses parallelized cumulative-sum and cumulative-product
+        operations to compute a closed-form solution to the recurrence relation
+        defining the attention distribution.  This makes it more efficient than
+        'recursive', but it requires numerical checks which make the
+        distribution non-exact.  This can be a problem in particular when
+        input_sequence_length is long and/or p_choose_i has entries very close
+        to 0 or 1.
+      * hard: requires that the probabilities in p_choose_i are all either 0 or
+        1, and subsequently uses a more efficient and exact solution.
+
+  Returns:
+    A tensor of shape (batch_size, input_sequence_length) representing the
+    attention distributions for each sequence in the batch.
+
+  Raises:
+    ValueError: mode is not one of 'recursive', 'parallel', 'hard'.
+  """
+  # pyformat: enable
+  # Force things to be tensors
+  p_choose_i = tf.convert_to_tensor(p_choose_i, name='p_choose_i')
+  previous_attention = tf.convert_to_tensor(
+      previous_attention, name='previous_attention')
+  if mode == 'recursive':
+    batch_size = py_utils.GetShape(p_choose_i)[0]
+    tf.logging.info(batch_size)
+    # Compute [1, 1 - p_choose_i[0], 1 - p_choose_i[1], ..., 1 - p_choose_i[-2]]
+    shifted_1mp_choose_i = tf.concat(
+        [tf.ones((batch_size, 1)), 1 - p_choose_i[:, :-1]], 1)
+    # Compute attention distribution recursively as
+    # q[i] = (1 - p_choose_i[i - 1])*q[i - 1] + previous_attention[i]
+    # attention[i] = p_choose_i[i]*q[i]
+    attention = p_choose_i * tf.transpose(
+        tf.scan(
+            # Need to use reshape to remind TF of the shape between loop
+            # iterations.
+            lambda x, yz: tf.reshape(yz[0] * x + yz[1], (batch_size,)),
+            # Loop variables yz[0] and yz[1]
+            [
+                tf.transpose(shifted_1mp_choose_i),
+                tf.transpose(previous_attention)
+            ],
+            # Initial value of x is just zeros
+            tf.zeros((batch_size,))))
+  elif mode == 'parallel':
+    # SafeCumprod computes cumprod in logspace with numeric checks
+    cumprod_1mp_choose_i = SafeCumprod(1 - p_choose_i, axis=1, exclusive=True)
+    # Compute recurrence relation solution
+    attention = p_choose_i * cumprod_1mp_choose_i * tf.cumsum(
+        previous_attention /
+        # Clip cumprod_1mp to avoid divide-by-zero
+        tf.clip_by_value(cumprod_1mp_choose_i, 1e-10, 1.),
+        axis=1)
+  elif mode == 'hard':
+    # Remove any probabilities before the index chosen last time step
+    p_choose_i *= tf.cumsum(previous_attention, axis=1)
+    # Now, use exclusive cumprod to remove probabilities after the first
+    # chosen index, like so:
+    # p_choose_i = [0, 0, 0, 1, 1, 0, 1, 1]
+    # cumprod(1 - p_choose_i, exclusive=True) = [1, 1, 1, 1, 0, 0, 0, 0]
+    # Product of above: [0, 0, 0, 1, 0, 0, 0, 0]
+    attention = p_choose_i * tf.cumprod(1 - p_choose_i, axis=1, exclusive=True)
+  else:
+    raise ValueError("mode must be 'recursive', 'parallel', or 'hard'.")
+  return attention
 
 
 class BaseAttentionLayer(quant_utils.QuantizableLayer):
@@ -2258,8 +2372,7 @@ class MonotonicAttention(BaseAttentionLayer):
         p_choose_i = tf.where(merged_source_padding > 0.0,
                               tf.zeros_like(p_choose_i), p_choose_i)
         # Compute probability distribution assuming hard probabilities
-        probs = contrib_attention_wrapper.monotonic_attention(
-            p_choose_i, previous_attention, 'hard')
+        probs = MonotonicAttentionProb(p_choose_i, previous_attention, 'hard')
       else:
         # Compute pre-sigmoid noise.
         activation_noise = tf.random.stateless_normal(
@@ -2273,8 +2386,8 @@ class MonotonicAttention(BaseAttentionLayer):
         p_choose_i = tf.where(merged_source_padding > 0,
                               tf.zeros_like(p_choose_i), p_choose_i)
         # Compute attention distribution
-        probs = contrib_attention_wrapper.monotonic_attention(
-            p_choose_i, previous_attention, 'parallel')
+        probs = MonotonicAttentionProb(p_choose_i, previous_attention,
+                                       'parallel')
 
     # [tb, sl].
     return probs, py_utils.NestedMap(emit_probs=probs)
