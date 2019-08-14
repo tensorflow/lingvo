@@ -85,7 +85,7 @@ class StatsCollector(object):
   def _PrintMeanVar(self):
     m, v = self._ComputeMeanVar()
     original = np.get_printoptions()
-    np.set_printoptions(threshold='nan')
+    np.set_printoptions(threshold=np.inf)
     tf.logging.info('== Mean/variance.')
     tf.logging.info('mean = %s', m)
     tf.logging.info('var = %s', v)
