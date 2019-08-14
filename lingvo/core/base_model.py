@@ -245,6 +245,8 @@ class BaseTask(base_layer.BaseLayer):
         'checkpoint directory of a training run.')
     ep.Define('start_eval_after', 0,
               'Start evaluation after specified number of steps.')
+    ep.Define('start_decoder_after', 0,
+              'Only decode checkpoints after this step.')
     return p
 
   @base_layer.initializer

@@ -1166,6 +1166,9 @@ class Decoder(base_runner.BaseRunner):
   def DecodeCheckpoint(self, sess, checkpoint_path):
     """Decodes `samples_per_summary` examples using `checkpoint_path`."""
     p = self._model_task.params
+    ckpt_id_from_file = int(re.sub(r'.*ckpt-', '', checkpoint_path))
+    if ckpt_id_from_file < p.eval.start_decoder_after:
+      return False
     samples_per_summary = p.eval.decoder_samples_per_summary
     if not samples_per_summary:
       samples_per_summary = p.eval.samples_per_summary
