@@ -51,12 +51,9 @@ class MTEncoderV1(base_layer.BaseLayer):
     p.Define('lstm_cell_size', 1024, 'LSTM cell size for the RNN layer.')
     p.Define('num_lstm_layers', 8, 'Number of rnn layers to create')
     p.Define('dropout_prob', 0.0, 'Prob at which we do dropout.')
-    p.Define('unidi_rnn_type', 'func', 'Options: func, native_cudnn. '
-             'func: FRNN, native_cudnn: CuDNNLSTM.')
-    p.Define(
-        'bidi_rnn_type', 'func', 'Options: func, native_cudnn. '
-        'func: BidirectionalFRNN, '
-        ' native_cudnn: BidirectionalNativeCuDNNLSTM.')
+    p.Define('unidi_rnn_type', 'func', 'Options: func. ' 'func: FRNN.')
+    p.Define('bidi_rnn_type', 'func', 'Options: func. '
+             'func: BidirectionalFRNN. ')
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
     p.Define(
         'packed_input', False, 'If True, encoder and all layers support '
@@ -219,9 +216,7 @@ class MTEncoderUniRNN(base_layer.BaseLayer):
     p.Define('dropout_prob', 0.0, 'Prob at which we do dropout.')
     p.Define('residual_start', 2,
              'Layer at which we start residual connections.')
-    p.Define(
-        'unidi_rnn_type', 'func', 'Options: func, native_cudnn. '
-        'func: FRNN, native_cudnn: CuDNNLSTM.')
+    p.Define('unidi_rnn_type', 'func', 'Options: func. ' 'func: FRNN.')
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
 
     p.Define('is_transparent', False,
@@ -369,10 +364,8 @@ class MTEncoderBiRNN(base_layer.BaseLayer):
     p.Define('residual_start', 2,
              'Layer at which we start residual connections.')
     p.Define('encoder_out_dim', 1024, 'Depth of the encoder output.')
-    p.Define(
-        'bidi_rnn_type', 'func', 'Options: func, native_cudnn. '
-        'func: BidirectionalFRNN, '
-        ' native_cudnn: BidirectionalNativeCuDNNLSTM.')
+    p.Define('bidi_rnn_type', 'func', 'Options: func. '
+             'func: BidirectionalFRNN. ')
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
 
     p.Define('is_transparent', False,

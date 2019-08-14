@@ -347,28 +347,6 @@ py_test(
 )
 
 py_library(
-    name = "cudnn_rnn_utils",
-    srcs = ["cudnn_rnn_utils.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//lingvo:compat",
-        # Implicit numpy dependency.
-        # Implicit tensorflow contrib cudnn_rnn_py dependency.
-    ],
-)
-
-lingvo_cuda_py2and3_test(
-    name = "cudnn_rnn_utils_test",
-    srcs = ["cudnn_rnn_utils_test.py"],
-    deps = [
-        ":cudnn_rnn_utils",
-        ":test_utils",
-        "//lingvo:compat",
-        # Implicit six dependency.
-    ],
-)
-
-py_library(
     name = "datasource",
     srcs = ["datasource.py"],
     srcs_version = "PY2AND3",
@@ -1187,14 +1165,12 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_layer",
-        ":cudnn_rnn_utils",
         ":hyperparams",
         ":py_utils",
         ":quant_utils",
         ":summary_utils",
         "//lingvo:compat",
         # Implicit six dependency.
-        # Implicit tensorflow contrib cudnn_rnn_py dependency.
     ],
 )
 
@@ -1202,14 +1178,12 @@ lingvo_cuda_py2and3_test(
     name = "rnn_cell_test",
     srcs = ["rnn_cell_test.py"],
     deps = [
-        ":cudnn_rnn_utils",
         ":py_utils",
         ":quant_utils",
         ":rnn_cell",
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit tensorflow contrib cudnn_rnn_py dependency.
     ],
 )
 
@@ -1250,7 +1224,6 @@ py_library(
     deps = [
         ":attention",
         ":base_layer",
-        ":cudnn_rnn_utils",
         ":hyperparams",
         ":layers",
         ":layers_with_attention",
@@ -1260,7 +1233,6 @@ py_library(
         ":rnn_cell",
         "//lingvo:compat",
         # Implicit six dependency.
-        # Implicit tensorflow contrib cudnn_rnn_py dependency.
     ],
 )
 

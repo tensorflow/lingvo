@@ -43,8 +43,6 @@ def CreateUnidirectionalRNNParams(layer_params, cell_params):
   unidi_rnn_type = p.unidi_rnn_type
   if unidi_rnn_type == 'func':
     unidi_cls = rnn_layers.FRNN
-  elif unidi_rnn_type == 'cudnn' or unidi_rnn_type == 'native_cudnn':
-    unidi_cls = rnn_layers.CuDNNLSTM
   elif unidi_rnn_type == 'quasi_ifo' or unidi_rnn_type == 'sru':
     unidi_cls = rnn_layers.FRNN
   else:
@@ -74,8 +72,6 @@ def CreateBidirectionalRNNParams(layer_params, forward_cell_params,
   bidi_rnn_type = p.bidi_rnn_type
   if bidi_rnn_type == 'func':
     bidi_cls = rnn_layers.BidirectionalFRNN
-  elif bidi_rnn_type == 'native_cudnn':
-    bidi_cls = rnn_layers.BidirectionalNativeCuDNNLSTM
   elif bidi_rnn_type == 'quasi_ifo' or bidi_rnn_type == 'sru':
     bidi_cls = rnn_layers.BidirectionalFRNNQuasi
   else:

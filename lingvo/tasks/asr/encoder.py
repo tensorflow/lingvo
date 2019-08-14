@@ -83,10 +83,8 @@ class AsrEncoder(base_layer.BaseLayer):
         'Disabled if 0 or greater than num_lstm_layers.')
     p.Define('residual_stride', 1,
              'Number of lstm layers to skip per residual connection.')
-    p.Define(
-        'bidi_rnn_type', 'func', 'Options: func, native_cudnn. '
-        'func: BidirectionalFRNN, '
-        'native_cudnn: BidirectionalNativeCuDNNLSTM.')
+    p.Define('bidi_rnn_type', 'func', 'Options: func. '
+             'func: BidirectionalFRNN. ')
     p.Define(
         'extra_per_layer_outputs', False,
         'Whether to output the encoding result from each encoder layer besides '

@@ -18,9 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
 import types
-import unittest
 import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import base_layer
@@ -272,138 +270,6 @@ class LayersTest(LayersTestBase):
       self.assertAllClose(sum_expected, actual.sum)
       self.assertAllClose(m_expected, actual.m)
       self.assertAllClose(c_expected, actual.c)
-
-  def _CreateCuDNNLSTMParams(self,
-                             input_nodes,
-                             cell_nodes,
-                             dtype=tf.float32,
-                             is_eval=False):
-    params = rnn_layers.CuDNNLSTM.Params()
-    params.name = 'cudnn_lstm'
-    params.dtype = dtype
-    params.params_init = py_utils.WeightInit.Uniform(1.24, 429891685)
-    params.vn.global_vn = False
-    params.vn.per_step_vn = False
-    params.is_eval = is_eval
-    params.cell = rnn_cell.LSTMCellSimple.Params()
-    params.cell.name = 'lstm_cell'
-    params.cell.num_input_nodes = input_nodes
-    params.cell.num_output_nodes = cell_nodes
-    params.cell.cell_value_cap = None
-    params.cell.forget_gate_bias = 0
-    return params
-
-  @unittest.skipUnless(tf.test.is_built_with_cuda(), 'Only available on GPU.')
-  def testCuDNNLSTM(self):
-    batch_size = 3
-    seq_length = 10
-    input_nodes = 4
-    cell_nodes = 2
-
-    np.random.seed(12345)
-    inputs_v = np.random.uniform(size=(seq_length, batch_size, input_nodes))
-    paddings_v = np.zeros((seq_length, batch_size, 1))
-    model_var_v = np.random.uniform(
-        size=((input_nodes + cell_nodes) * 4 * cell_nodes + 8 * cell_nodes))
-
-    def _CreateLayer(is_eval):
-      params = self._CreateCuDNNLSTMParams(
-          input_nodes, cell_nodes, is_eval=is_eval)
-      rnn = rnn_layers.CuDNNLSTM(params)
-      inputs = tf.constant(inputs_v, dtype=params.dtype)
-      paddings = tf.constant(paddings_v, dtype=params.dtype)
-      outputs, final = rnn.FPropDefaultTheta(inputs, paddings)
-      # Set outputs of padding inputs to 0. for comparison.
-      outputs *= 1 - paddings
-
-      if not is_eval:
-        all_vars = tf.get_collection('CuDNNLSTM_vars')
-        assert len(all_vars) == 1
-        model_var_init = tf.assign(all_vars[0], model_var_v)
-        return model_var_init, outputs, final
-      else:
-        return outputs, final
-
-    # Train graph
-    with tf.Graph().as_default() as g:
-      with self.session(use_gpu=True, graph=g) as sess:
-        tf.set_random_seed(87654321)
-        init_op, outputs, final = _CreateLayer(is_eval=False)  # pylint:disable=unbalanced-tuple-unpacking
-        saver = tf.train.Saver()
-
-        # Initialize all the variables, and then run one step.
-        tf.global_variables_initializer().run()
-        init_op.op.run()
-
-        save_path = os.path.join(self.get_temp_dir(), 'cudnn-lstm-test')
-        saver.save(sess, save_path)
-
-        (cudnn_outputs_v, cudnn_m_v,
-         cudnn_c_v) = sess.run([outputs, final.m, final.c])
-
-    # Eval graph
-    with tf.Graph().as_default() as g:
-      with self.session(use_gpu=False, graph=g) as sess:
-        tf.set_random_seed(87654321)
-        outputs, final = _CreateLayer(is_eval=True)  # pylint:disable=unbalanced-tuple-unpacking
-        saver = tf.train.Saver()
-
-        # Initialize all the variables, and then run one step.
-        tf.global_variables_initializer().run()
-        saver.restore(sess, save_path)
-
-        (rnn_outputs_v, rnn_m_v,
-         rnn_c_v) = sess.run([outputs, final.m, final.c])
-
-    # CuDNNLSTM train and eval mode are equivalent and its checkpoints can
-    # be consumed by FRNN in eval mode.
-    self.assertAllClose(rnn_outputs_v, cudnn_outputs_v)
-    self.assertAllClose(rnn_m_v, np.squeeze(cudnn_m_v))
-    self.assertAllClose(rnn_c_v, np.squeeze(cudnn_c_v))
-
-  @unittest.skipUnless(tf.test.is_built_with_cuda(), 'Only available on GPU.')
-  def testCuDNNLSTMGradientChecker(self):
-    batch_size = 3
-    seq_length = 10
-    input_nodes = 4
-    cell_nodes = 2
-    dtype = tf.float64
-
-    np.random.seed(12345)
-    inputs_v = np.random.uniform(size=(seq_length, batch_size, input_nodes))
-    paddings_v = np.random.uniform(size=(seq_length, batch_size, 1))
-    paddings_v[-1] = np.expand_dims(
-        np.expand_dims(np.array([1.] * (batch_size - 1) + [0.]), 0), 2)
-    paddings_v[-2] = np.zeros((1, batch_size, 1))
-
-    with tf.Graph().as_default() as g:
-      with self.session(use_gpu=True) as sess:
-        tf.set_random_seed(87654321)
-        params = self._CreateCuDNNLSTMParams(
-            input_nodes, cell_nodes, dtype=dtype, is_eval=False)
-        rnn = rnn_layers.CuDNNLSTM(params)
-        inputs = tf.constant(inputs_v, dtype=params.dtype)
-        paddings = tf.constant(paddings_v, dtype=params.dtype)
-
-        with tf.device('/gpu:0'):
-          outputs, final = rnn.FPropDefaultTheta(inputs, paddings)
-        all_vars = tf.get_collection('CuDNNLSTM_vars')
-        assert len(all_vars) == 1
-
-        loss = tf.reduce_sum(outputs * paddings) + tf.add_n(
-            [tf.reduce_sum(x) for x in final.Flatten()])
-        grads = tf.gradients(loss, all_vars)
-
-        # Initialize all the variables, and then run one step.
-        tf.global_variables_initializer().run()
-
-        symbolic_grads = [gd.eval() for gd in grads]
-        numerical_grads = []
-        for v in all_vars:
-          numerical_grads.append(
-              test_utils.ComputeNumericGradient(sess, loss, v))
-        for x, y in zip(symbolic_grads, numerical_grads):
-          self.assertAllClose(x, y)
 
   def testRNNGradientChecker(self):
     with self.session(use_gpu=False) as sess:

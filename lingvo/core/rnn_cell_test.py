@@ -19,17 +19,11 @@ from __future__ import division
 from __future__ import print_function
 
 import lingvo.compat as tf
-from lingvo.core import cudnn_rnn_utils
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import rnn_cell
 from lingvo.core import test_utils
 import numpy as np
-from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
-from tensorflow.python.ops import gen_cudnn_rnn_ops
-
-UNI_RNN = cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION
-BI_RNN = cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION
 
 _INIT_RANDOM_SEED = 429891685
 _NUMPY_RANDOM_SEED = 12345
@@ -903,84 +897,6 @@ class RNNCellTest(test_utils.TestCase):
       # pyformat: enable
       self.assertAllClose(state0.m.eval(), state1.m.eval())
       self.assertAllClose(state0.c.eval(), state1.c.eval())
-
-  def testLSTMCuDNNCompliant(self):
-    if not tf.test.is_gpu_available(cuda_only=True):
-      return
-    batch_size = 32
-    input_nodes = 16
-    cell_nodes = 8
-    dtype = tf.float32
-
-    # LSTM inputs and states constants.
-    np.random.seed(_NUMPY_RANDOM_SEED)
-    inputs_v = np.random.uniform(size=(batch_size, input_nodes))
-    paddings_v = np.zeros((batch_size, 1))
-    # The last example is padded.
-    paddings_v[-1] = 1.
-    h_v = np.zeros((batch_size, cell_nodes))
-    c_v = np.zeros((batch_size, cell_nodes))
-    cudnn_helper = cudnn_rnn_utils.CuDNNLSTMInitializer(
-        input_nodes, cell_nodes, direction=UNI_RNN)
-
-    # tf CuDNN LSTM
-    with self.session(use_gpu=True, graph=tf.Graph()) as sess:
-      inputs = tf.expand_dims(tf.constant(inputs_v, dtype=dtype), 0)
-      state_h = tf.expand_dims(tf.constant(h_v, dtype=dtype), 0)
-      state_c = tf.expand_dims(tf.constant(c_v, dtype=dtype), 0)
-      cudnn_params = tf.get_variable(
-          'cudnn_opaque_params',
-          initializer=tf.random_uniform(
-              shape=[cudnn_helper.OpaqueParamsShape(dtype)], dtype=dtype),
-          validate_shape=False)
-
-      outputs, h, c, _ = gen_cudnn_rnn_ops.cudnn_rnn(
-          input=inputs,
-          input_h=state_h,
-          input_c=state_c,
-          params=cudnn_params,
-          rnn_mode='lstm',
-          input_mode='linear_input',
-          direction='unidirectional',
-          dropout=0.0,
-          is_training=True)
-      outputs = tf.squeeze(outputs, axis=0) * (1.0 - paddings_v)
-      h = tf.squeeze(h, axis=0) * (1.0 - paddings_v)
-      c = tf.squeeze(c, axis=0) * (1.0 - paddings_v)
-
-      # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
-      cudnn_params_v = sess.run(cudnn_params)
-      cudnn_outputs_v, cudnn_h_v, cudnn_c_v = sess.run([outputs, h, c])
-
-    # LSTMCellCuDNNCompliant
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      p = rnn_cell.LSTMCellCuDNNCompliant.Params()
-      p.name = 'lstm_cell_cudnn'
-      p.dtype = dtype
-      p.num_input_nodes = input_nodes
-      p.num_output_nodes = cell_nodes
-      lstm = rnn_cell.LSTMCellCuDNNCompliant(p)
-
-      assign_op = tf.assign(lstm.vars.wb, cudnn_params_v)
-
-      inputs = py_utils.NestedMap(
-          act=[tf.constant(inputs_v, dtype=p.dtype)],
-          padding=tf.constant(paddings_v, dtype=p.dtype))
-      state0 = py_utils.NestedMap(
-          m=tf.constant(h_v, dtype=dtype), c=tf.constant(c_v, dtype=dtype))
-      state1, _ = lstm.FPropDefaultTheta(state0, inputs)
-      state1.m *= 1.0 - paddings_v
-      state1.c *= 1.0 - paddings_v
-
-      # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
-      assign_op.op.run()
-      outputs_v, h_v, c_v = sess.run([state1.m, state1.m, state1.c])
-
-    self.assertAllClose(cudnn_outputs_v, outputs_v)
-    self.assertAllClose(cudnn_h_v, h_v)
-    self.assertAllClose(cudnn_c_v, c_v)
 
   def _testConvLSTMHelper(self, inline=False):
     with self.session(

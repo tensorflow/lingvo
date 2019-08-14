@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
-from lingvo.core import cudnn_rnn_utils
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
@@ -28,7 +27,6 @@ from lingvo.core import summary_utils
 from six.moves import range
 from six.moves import zip
 
-from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
 from tensorflow.python.util import deprecation as tf_deprecation  # pylint: disable=g-direct-tensorflow-import
 
 
@@ -932,117 +930,6 @@ class QuantizedLSTMCell(RNNCell):
     new_m = state0.m * inputs.padding + new_m * (1 - inputs.padding)
     new_c = state0.c * inputs.padding + new_c * (1 - inputs.padding)
 
-    new_c.set_shape(state0.c.shape)
-    new_m.set_shape(state0.m.shape)
-    return py_utils.NestedMap(m=new_m, c=new_c)
-
-
-class LSTMCellCuDNNCompliant(RNNCell):
-  """LSTMCell compliant with variables with CuDNN-LSTM layout.
-
-  theta:
-
-  - wb: the cudnn LSTM weight.
-
-  state:
-
-  - m: the lstm output. [batch, cell_nodes]
-  - c: the lstm cell state. [batch, cell_nodes]
-
-  inputs:
-
-  - act: a list of input activations. [batch, input_nodes]
-  - padding: the padding. [batch, 1].
-  - reset_mask: optional 0/1 float input to support packed input training.
-    Shape [batch, 1]
-  """
-
-  @classmethod
-  def Params(cls):
-    p = super(LSTMCellCuDNNCompliant, cls).Params()
-    return p
-
-  @base_layer.initializer
-  def __init__(self, params):
-    super(LSTMCellCuDNNCompliant, self).__init__(params)
-    p = self.params
-
-    with tf.variable_scope(p.name):
-      cudnn_init_helper = cudnn_rnn_utils.CuDNNLSTMInitializer(
-          p.num_input_nodes, p.num_output_nodes)
-      if not p.is_eval:
-        wb_pc = py_utils.WeightParams(
-            shape=None,
-            init=p.params_init,
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable(
-            'wb',
-            wb_pc,
-            self.AddGlobalVN,
-            init_wrapper=cudnn_init_helper.InitOpaqueParams)
-      else:
-        # Run eval mode on CPU, use inferred static shape since dynamic shape
-        # requires running a GPU kernel.
-        # Also uses simplified initialization approach, since the vars would
-        # be restored from checkpoints and initialization values don't matter.
-        # TODO(jamesqin): save cudnn opaque params in canonical format.
-        wb_pc = py_utils.WeightParams(
-            shape=[cudnn_init_helper.weight_size + cudnn_init_helper.bias_size],
-            init=p.params_init,
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('wb', wb_pc, self.AddGlobalVN)
-
-  def batch_size(self, inputs):
-    return tf.shape(inputs.act[0])[0]
-
-  def zero_state(self, theta, batch_size):
-    p = self._params
-    return py_utils.NestedMap(
-        m=py_utils.InitRNNCellState([batch_size, p.num_output_nodes],
-                                    init=p.zero_state_init_params,
-                                    dtype=p.dtype,
-                                    is_eval=p.is_eval),
-        c=py_utils.InitRNNCellState([batch_size, p.num_output_nodes],
-                                    init=p.zero_state_init_params,
-                                    dtype=p.dtype,
-                                    is_eval=p.is_eval))
-
-  def GetOutput(self, state):
-    return state.m
-
-  def _WeightAndBias(self, theta):
-    p = self.params
-    return cudnn_rnn_utils.RecoverLSTMCellSimpleWeightsFromCuDNN(
-        theta.wb, p.num_input_nodes, p.num_output_nodes,
-        cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION)
-
-  def _ResetState(self, state, inputs):
-    state.m = inputs.reset_mask * state.m
-    state.c = inputs.reset_mask * state.c
-    return state
-
-  def _Mix(self, theta, state0, inputs):
-    assert isinstance(inputs.act, list)
-    wm, _ = self._WeightAndBias(theta)
-    return py_utils.Matmul(tf.concat(inputs.act + [state0.m], 1), wm)
-
-  def _Gates(self, xmw, theta, state0, inputs):
-    """Compute the new state."""
-    _, b = self._WeightAndBias(theta)
-    i_i, i_g, f_g, o_g = tf.split(
-        value=xmw + tf.expand_dims(b, 0), num_or_size_splits=4, axis=1)
-    new_c = tf.sigmoid(f_g) * state0.c + tf.sigmoid(i_g) * tf.tanh(i_i)
-    new_m = tf.sigmoid(o_g) * tf.tanh(new_c)
-
-    # Technically this is not the same as CuDNN impl which does not support
-    # padding for performance reasons.
-    # Yet padding is still done correctly here so that the backward direction of
-    # BidirectionalCuDNNLSTM is done correctly in eval mode, when CuDNNLSTM
-    # inherits DRNN.
-    new_m = state0.m * inputs.padding + new_m * (1 - inputs.padding)
-    new_c = state0.c * inputs.padding + new_c * (1 - inputs.padding)
     new_c.set_shape(state0.c.shape)
     new_m.set_shape(state0.m.shape)
     return py_utils.NestedMap(m=new_m, c=new_c)
