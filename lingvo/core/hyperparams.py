@@ -472,6 +472,13 @@ class Params(object):
         val = tf.as_dtype(val)
       elif isinstance(old_val, (six.string_types, six.text_type)):
         val = _UnquoteString(val)
+        if val.startswith('[') and val.endswith(']'):
+          # We may have stored a list as a string, try converting to a list.
+          # In case of ValueError - use the string as is.
+          try:
+            val = ast.literal_eval(val)
+          except ValueError:
+            pass
       elif isinstance(old_val, (list, tuple)):
         val = ast.literal_eval(val)
       elif isinstance(old_val, dict):

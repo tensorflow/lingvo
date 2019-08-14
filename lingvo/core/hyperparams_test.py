@@ -357,6 +357,14 @@ escaping_single : 'In "quotes"'
     self.assertEqual(p.escaping_single, 'In "quotes"')
     self.assertEqual(p.escaping_double, 'In \\\'quotes\'')
 
+  def testFromToText(self):
+    p = _params.Params()
+    p.Define('activation', 'RELU', 'Can be a string or a list of strings.')
+    np = p.Copy()
+    p.Set(activation=['RELU', 'NONE'])
+    np.FromText(p.ToText())
+    self.assertEqual(np.activation, ['RELU', 'NONE'])
+
 
 if __name__ == '__main__':
   tf.test.main()
