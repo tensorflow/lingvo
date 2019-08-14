@@ -195,6 +195,86 @@ fully deterministic.</p>
 </table>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.attention.SafeCumprod">
+<code class="descclassname">lingvo.core.attention.</code><code class="descname">SafeCumprod</code><span class="sig-paren">(</span><em>x</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#SafeCumprod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.SafeCumprod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes cumprod of x in logspace using cumsum to avoid underflow.</p>
+<p>The cumprod function and its gradient can result in numerical instabilities
+when its argument has very small and/or zero values.  As long as the argument
+is all positive, we can instead compute the cumulative product as
+exp(cumsum(log(x))).  This function can be called identically to tf.cumprod.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – Tensor to take the cumulative product of.</li>
+<li><strong>*args</strong> – Passed on to cumsum; these are identical to those in cumprod.</li>
+<li><strong>**kwargs</strong> – Passed on to cumsum; these are identical to those in cumprod.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Cumulative product of x.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.attention.MonotonicAttentionProb">
+<code class="descclassname">lingvo.core.attention.</code><code class="descname">MonotonicAttentionProb</code><span class="sig-paren">(</span><em>p_choose_i</em>, <em>previous_attention</em>, <em>mode</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MonotonicAttentionProb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MonotonicAttentionProb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute monotonic attention distribution from choosing probabilities.</p>
+<p>Monotonic attention implies that the input sequence is processed in an
+explicitly left-to-right manner when generating the output sequence.  In
+addition, once an input sequence element is attended to at a given output
+timestep, elements occurring before it cannot be attended to at subsequent
+output timesteps.  This function generates attention distributions according
+to these assumptions.  For more information, see <code class="xref py py-obj docutils literal notranslate"><span class="pre">Online</span> <span class="pre">and</span> <span class="pre">Linear-Time</span>
+<span class="pre">Attention</span> <span class="pre">by</span> <span class="pre">Enforcing</span> <span class="pre">Monotonic</span> <span class="pre">Alignments</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p_choose_i</strong> – Probability of choosing input sequence/memory element i.  Should
+be of shape (batch_size, input_sequence_length), and should all be in the
+range [0, 1].</li>
+<li><strong>previous_attention</strong> – The attention distribution from the previous output
+timestep.  Should be of shape (batch_size, input_sequence_length).  For
+the first output timestep, preevious_attention[n] should be [1, 0, 0, …,
+0] for all n in [0, … batch_size - 1].</li>
+<li><strong>mode</strong> – <p>How to compute the attention distribution. Must be one of <code class="xref py py-obj docutils literal notranslate"><span class="pre">recursive</span></code>,
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">parallel</span></code>, or <code class="xref py py-obj docutils literal notranslate"><span class="pre">hard</span></code>.</p>
+<ul>
+<li>recursive: uses tf.scan to recursively compute the distribution. This is
+slowest but is exact, general, and does not suffer from numerical
+instabilities.</li>
+<li>parallel: uses parallelized cumulative-sum and cumulative-product
+operations to compute a closed-form solution to the recurrence relation
+defining the attention distribution.  This makes it more efficient than
+‘recursive’, but it requires numerical checks which make the
+distribution non-exact.  This can be a problem in particular when
+input_sequence_length is long and/or p_choose_i has entries very close
+to 0 or 1.</li>
+<li>hard: requires that the probabilities in p_choose_i are all either 0 or
+1, and subsequently uses a more efficient and exact solution.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A tensor of shape (batch_size, input_sequence_length) representing the
+attention distributions for each sequence in the batch.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – mode is not one of ‘recursive’, ‘parallel’, ‘hard’.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="class">
 <dt id="lingvo.core.attention.BaseAttentionLayer">
 <em class="property">class </em><code class="descclassname">lingvo.core.attention.</code><code class="descname">BaseAttentionLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#BaseAttentionLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.BaseAttentionLayer" title="Permalink to this definition">¶</a></dt>

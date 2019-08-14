@@ -173,7 +173,6 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.contrib.seq2seq.python.ops</span> <span class="k">import</span> <span class="n">attention_wrapper</span> <span class="k">as</span> <span class="n">contrib_attention_wrapper</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">inplace_ops</span>
 
@@ -216,6 +215,121 @@
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span>
         <span class="n">x</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">params</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SafeCumprod"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.SafeCumprod">[docs]</a><span class="k">def</span> <span class="nf">SafeCumprod</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes cumprod of x in logspace using cumsum to avoid underflow.</span>
+
+<span class="sd">  The cumprod function and its gradient can result in numerical instabilities</span>
+<span class="sd">  when its argument has very small and/or zero values.  As long as the argument</span>
+<span class="sd">  is all positive, we can instead compute the cumulative product as</span>
+<span class="sd">  exp(cumsum(log(x))).  This function can be called identically to tf.cumprod.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: Tensor to take the cumulative product of.</span>
+<span class="sd">    *args: Passed on to cumsum; these are identical to those in cumprod.</span>
+<span class="sd">    **kwargs: Passed on to cumsum; these are identical to those in cumprod.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Cumulative product of x.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;SafeCumprod&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">x</span><span class="p">]):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+    <span class="n">tiny</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">as_numpy_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">tiny</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tiny</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
+
+
+<span class="c1"># pyformat: disable</span>
+<div class="viewcode-block" id="MonotonicAttentionProb"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MonotonicAttentionProb">[docs]</a><span class="k">def</span> <span class="nf">MonotonicAttentionProb</span><span class="p">(</span><span class="n">p_choose_i</span><span class="p">,</span> <span class="n">previous_attention</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute monotonic attention distribution from choosing probabilities.</span>
+
+<span class="sd">  Monotonic attention implies that the input sequence is processed in an</span>
+<span class="sd">  explicitly left-to-right manner when generating the output sequence.  In</span>
+<span class="sd">  addition, once an input sequence element is attended to at a given output</span>
+<span class="sd">  timestep, elements occurring before it cannot be attended to at subsequent</span>
+<span class="sd">  output timesteps.  This function generates attention distributions according</span>
+<span class="sd">  to these assumptions.  For more information, see `Online and Linear-Time</span>
+<span class="sd">  Attention by Enforcing Monotonic Alignments`.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    p_choose_i: Probability of choosing input sequence/memory element i.  Should</span>
+<span class="sd">      be of shape (batch_size, input_sequence_length), and should all be in the</span>
+<span class="sd">      range [0, 1].</span>
+<span class="sd">    previous_attention: The attention distribution from the previous output</span>
+<span class="sd">      timestep.  Should be of shape (batch_size, input_sequence_length).  For</span>
+<span class="sd">      the first output timestep, preevious_attention[n] should be [1, 0, 0, ...,</span>
+<span class="sd">      0] for all n in [0, ... batch_size - 1].</span>
+<span class="sd">    mode: How to compute the attention distribution. Must be one of `recursive`,</span>
+<span class="sd">      `parallel`, or `hard`.</span>
+
+<span class="sd">      * recursive: uses tf.scan to recursively compute the distribution. This is</span>
+<span class="sd">        slowest but is exact, general, and does not suffer from numerical</span>
+<span class="sd">        instabilities.</span>
+<span class="sd">      * parallel: uses parallelized cumulative-sum and cumulative-product</span>
+<span class="sd">        operations to compute a closed-form solution to the recurrence relation</span>
+<span class="sd">        defining the attention distribution.  This makes it more efficient than</span>
+<span class="sd">        &#39;recursive&#39;, but it requires numerical checks which make the</span>
+<span class="sd">        distribution non-exact.  This can be a problem in particular when</span>
+<span class="sd">        input_sequence_length is long and/or p_choose_i has entries very close</span>
+<span class="sd">        to 0 or 1.</span>
+<span class="sd">      * hard: requires that the probabilities in p_choose_i are all either 0 or</span>
+<span class="sd">        1, and subsequently uses a more efficient and exact solution.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor of shape (batch_size, input_sequence_length) representing the</span>
+<span class="sd">    attention distributions for each sequence in the batch.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: mode is not one of &#39;recursive&#39;, &#39;parallel&#39;, &#39;hard&#39;.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># pyformat: enable</span>
+  <span class="c1"># Force things to be tensors</span>
+  <span class="n">p_choose_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">p_choose_i</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;p_choose_i&#39;</span><span class="p">)</span>
+  <span class="n">previous_attention</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+      <span class="n">previous_attention</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;previous_attention&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;recursive&#39;</span><span class="p">:</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">p_choose_i</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+    <span class="c1"># Compute [1, 1 - p_choose_i[0], 1 - p_choose_i[1], ..., 1 - p_choose_i[-2]]</span>
+    <span class="n">shifted_1mp_choose_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p_choose_i</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Compute attention distribution recursively as</span>
+    <span class="c1"># q[i] = (1 - p_choose_i[i - 1])*q[i - 1] + previous_attention[i]</span>
+    <span class="c1"># attention[i] = p_choose_i[i]*q[i]</span>
+    <span class="n">attention</span> <span class="o">=</span> <span class="n">p_choose_i</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span>
+            <span class="c1"># Need to use reshape to remind TF of the shape between loop</span>
+            <span class="c1"># iterations.</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">yz</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">yz</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">yz</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,)),</span>
+            <span class="c1"># Loop variables yz[0] and yz[1]</span>
+            <span class="p">[</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">shifted_1mp_choose_i</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">previous_attention</span><span class="p">)</span>
+            <span class="p">],</span>
+            <span class="c1"># Initial value of x is just zeros</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,))))</span>
+  <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;parallel&#39;</span><span class="p">:</span>
+    <span class="c1"># SafeCumprod computes cumprod in logspace with numeric checks</span>
+    <span class="n">cumprod_1mp_choose_i</span> <span class="o">=</span> <span class="n">SafeCumprod</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p_choose_i</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># Compute recurrence relation solution</span>
+    <span class="n">attention</span> <span class="o">=</span> <span class="n">p_choose_i</span> <span class="o">*</span> <span class="n">cumprod_1mp_choose_i</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span>
+        <span class="n">previous_attention</span> <span class="o">/</span>
+        <span class="c1"># Clip cumprod_1mp to avoid divide-by-zero</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">cumprod_1mp_choose_i</span><span class="p">,</span> <span class="mf">1e-10</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span>
+        <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;hard&#39;</span><span class="p">:</span>
+    <span class="c1"># Remove any probabilities before the index chosen last time step</span>
+    <span class="n">p_choose_i</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">previous_attention</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Now, use exclusive cumprod to remove probabilities after the first</span>
+    <span class="c1"># chosen index, like so:</span>
+    <span class="c1"># p_choose_i = [0, 0, 0, 1, 1, 0, 1, 1]</span>
+    <span class="c1"># cumprod(1 - p_choose_i, exclusive=True) = [1, 1, 1, 1, 0, 0, 0, 0]</span>
+    <span class="c1"># Product of above: [0, 0, 0, 1, 0, 0, 0, 0]</span>
+    <span class="n">attention</span> <span class="o">=</span> <span class="n">p_choose_i</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumprod</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p_choose_i</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;mode must be &#39;recursive&#39;, &#39;parallel&#39;, or &#39;hard&#39;.&quot;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">attention</span></div>
 
 
 <div class="viewcode-block" id="BaseAttentionLayer"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">BaseAttentionLayer</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
@@ -2403,8 +2517,7 @@
         <span class="n">p_choose_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">merged_source_padding</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span>
                               <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">p_choose_i</span><span class="p">),</span> <span class="n">p_choose_i</span><span class="p">)</span>
         <span class="c1"># Compute probability distribution assuming hard probabilities</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">contrib_attention_wrapper</span><span class="o">.</span><span class="n">monotonic_attention</span><span class="p">(</span>
-            <span class="n">p_choose_i</span><span class="p">,</span> <span class="n">previous_attention</span><span class="p">,</span> <span class="s1">&#39;hard&#39;</span><span class="p">)</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">MonotonicAttentionProb</span><span class="p">(</span><span class="n">p_choose_i</span><span class="p">,</span> <span class="n">previous_attention</span><span class="p">,</span> <span class="s1">&#39;hard&#39;</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Compute pre-sigmoid noise.</span>
         <span class="n">activation_noise</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">stateless_normal</span><span class="p">(</span>
@@ -2418,8 +2531,8 @@
         <span class="n">p_choose_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">merged_source_padding</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
                               <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">p_choose_i</span><span class="p">),</span> <span class="n">p_choose_i</span><span class="p">)</span>
         <span class="c1"># Compute attention distribution</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">contrib_attention_wrapper</span><span class="o">.</span><span class="n">monotonic_attention</span><span class="p">(</span>
-            <span class="n">p_choose_i</span><span class="p">,</span> <span class="n">previous_attention</span><span class="p">,</span> <span class="s1">&#39;parallel&#39;</span><span class="p">)</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">MonotonicAttentionProb</span><span class="p">(</span><span class="n">p_choose_i</span><span class="p">,</span> <span class="n">previous_attention</span><span class="p">,</span>
+                                       <span class="s1">&#39;parallel&#39;</span><span class="p">)</span>
 
     <span class="c1"># [tb, sl].</span>
     <span class="k">return</span> <span class="n">probs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">emit_probs</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span></div>
