@@ -1404,10 +1404,11 @@ class LengthsFromPaddingsTest(test_utils.TestCase):
           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
           [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
           [1.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+          [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
       ])
       lengths = py_utils.LengthsFromPaddings(
           tf.convert_to_tensor(paddings)).eval()
-      self.assertAllEqual([6, 3, 5], lengths)
+      self.assertAllEqual([6, 3, 5, 0], lengths)
 
 
 class TrimTrailingPaddingsTest(test_utils.TestCase):

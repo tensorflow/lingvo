@@ -2713,11 +2713,17 @@ def LengthsFromPaddings(paddings):
     sequence in the batch.
   """
   paddings = HasRank(paddings, 2)
-  # Find the last unpadded value. Argmax returns the first index when tied.
+  # Find the last unpadded value.
   # Cannot just use tf.reduce_sum because there might be leading paddings.
+  # Everything after the last unpadded value has 1.0 - paddings == 0.0, so in
+  # the cumsum below they will have the same value.
   cumsum = tf.cumsum(1.0 - paddings, axis=1)
-  length = tf.argmax(cumsum, axis=1, output_type=tf.int32) + 1
-  return length
+  same_as_last_element = tf.equal(cumsum, cumsum[:, -1:])
+  # Counting the number of elements with the same value gives us num_padded + 1
+  # and so counting the number that differs gives us num_padded - 1.
+  length = tf.reduce_sum(1 - tf.to_int32(same_as_last_element), axis=1) + 1
+  # Special case for all 0 paddings.
+  return tf.where(tf.equal(cumsum[:, -1], 0.0), tf.zeros_like(length), length)
 
 
 def TrimTrailingPaddings(inputs, paddings):
@@ -2734,8 +2740,7 @@ def TrimTrailingPaddings(inputs, paddings):
     will always have length at least 1.
   """
   paddings = HasRank(paddings, 2)
-  length = LengthsFromPaddings(paddings)
-  max_length = tf.reduce_max(length)
+  max_length = tf.maximum(tf.reduce_max(LengthsFromPaddings(paddings)), 1)
   output_shape = tf.shape(inputs)
   output_shape = tf.concat([[output_shape[0], max_length], output_shape[2:]],
                            axis=0)
