@@ -30,27 +30,6 @@ from lingvo.tasks.asr import input_generator
 from lingvo.tasks.asr import model
 
 
-def LibrispeechCommonAsrInputParams(is_eval):
-  """Input generator params for Librispeech."""
-  p = input_generator.AsrInput.Params()
-  p.frame_size = 80
-  p.append_eos_frame = True
-
-  p.pad_to_max_seq_length = False
-  p.file_random_seed = 0
-  p.file_buffer_size = 10000
-  p.file_parallelism = 16
-
-  p.is_eval = is_eval
-
-  if is_eval:
-    p.source_max_length = 3600
-  else:
-    p.source_max_length = 3000
-
-  return p
-
-
 @model_registry.RegisterSingleTaskModel
 class Librispeech960Base(base_model_params.SingleTaskModelParams):
   """Base parameters for Librispeech 960 hour task."""
@@ -59,15 +38,34 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
   # Generated using scripts in lingvo/tasks/asr/tools.
   DATADIR = '/tmp/librispeech'
 
-  # Setting the last training bucket to 1710 excludes only ~0.1% of the training
-  # data.
-  TRAIN_BUCKET_UPPER_BOUNDS = [639, 1062, 1275, 1377, 1449, 1506, 1563, 1710]
-  DEVTEST_BUCKET_UPPER_BOUNDS = [639, 1062, 1275, 1377, 1449, 1506, 1563, 3600]
-  BATCH_LIMITS = [96, 48, 48, 48, 48, 48, 48, 48]
-
   @classmethod
   def _TFRecordPath(cls, file_pattern):
     return 'tfrecord:' + os.path.join(cls.DATADIR, file_pattern)
+
+  @classmethod
+  def _CommonInputParams(cls, is_eval):
+    """Input generator params for Librispeech."""
+    p = input_generator.AsrInput.Params()
+    p.frame_size = 80
+    p.append_eos_frame = True
+
+    p.pad_to_max_seq_length = False
+    p.file_random_seed = 0
+    p.file_buffer_size = 10000
+    p.file_parallelism = 16
+
+    p.is_eval = is_eval
+
+    if is_eval:
+      p.source_max_length = 3600
+      p.bucket_upper_bound = [639, 1062, 1275, 1377, 1449, 1506, 1563, 3600]
+    else:
+      p.source_max_length = 3000
+      p.bucket_upper_bound = [639, 1062, 1275, 1377, 1449, 1506, 1563, 1710]
+
+    p.bucket_batch_limit = [96, 48, 48, 48, 48, 48, 48, 48]
+
+    return p
 
   @classmethod
   def SetBucketSizes(cls, params, bucket_upper_bound, bucket_batch_limit):
@@ -78,57 +76,42 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
 
   @classmethod
   def Train(cls):
-    p = LibrispeechCommonAsrInputParams(is_eval=False)
+    p = cls._CommonInputParams(is_eval=False)
     p.file_pattern = cls._TFRecordPath('train/train.tfrecords-*')
     p.num_samples = 281241
-    return cls.SetBucketSizes(
-        params=p,
-        bucket_upper_bound=cls.TRAIN_BUCKET_UPPER_BOUNDS,
-        bucket_batch_limit=cls.BATCH_LIMITS)
+    return p
 
   @classmethod
   def Dev(cls):
-    p = LibrispeechCommonAsrInputParams(is_eval=True)
+    p = cls._CommonInputParams(is_eval=True)
     p.file_pattern = cls._TFRecordPath(
         'devtest/dev-clean.tfrecords-00000-of-00001')
     p.num_samples = 2703
-    return cls.SetBucketSizes(
-        params=p,
-        bucket_upper_bound=cls.DEVTEST_BUCKET_UPPER_BOUNDS,
-        bucket_batch_limit=cls.BATCH_LIMITS)
+    return p
 
   @classmethod
   def Devother(cls):
-    p = LibrispeechCommonAsrInputParams(is_eval=True)
+    p = cls._CommonInputParams(is_eval=True)
     p.file_pattern = cls._TFRecordPath(
         'devtest/dev-other.tfrecords-00000-of-00001')
     p.num_samples = 2864
-    return cls.SetBucketSizes(
-        params=p,
-        bucket_upper_bound=cls.DEVTEST_BUCKET_UPPER_BOUNDS,
-        bucket_batch_limit=cls.BATCH_LIMITS)
+    return p
 
   @classmethod
   def Test(cls):
-    p = LibrispeechCommonAsrInputParams(is_eval=True)
+    p = cls._CommonInputParams(is_eval=True)
     p.file_pattern = cls._TFRecordPath(
         'devtest/test-clean.tfrecords-00000-of-00001')
     p.num_samples = 2620
-    return cls.SetBucketSizes(
-        params=p,
-        bucket_upper_bound=cls.DEVTEST_BUCKET_UPPER_BOUNDS,
-        bucket_batch_limit=cls.BATCH_LIMITS)
+    return p
 
   @classmethod
   def Testother(cls):
-    p = LibrispeechCommonAsrInputParams(is_eval=True)
+    p = cls._CommonInputParams(is_eval=True)
     p.file_pattern = cls._TFRecordPath(
         'devtest/test-other.tfrecords-00000-of-00001')
     p.num_samples = 2939
-    return cls.SetBucketSizes(
-        params=p,
-        bucket_upper_bound=cls.DEVTEST_BUCKET_UPPER_BOUNDS,
-        bucket_batch_limit=cls.BATCH_LIMITS)
+    return p
 
   @classmethod
   def Task(cls):
@@ -246,6 +229,29 @@ class Librispeech960Grapheme(Librispeech960Base):
 
 
 @model_registry.RegisterSingleTaskModel
+class Librispeech960GraphemeCloudTpu(Librispeech960Grapheme):
+  """Librispeech 960 grapheme model with parameter tweaks for TPU training."""
+
+  @classmethod
+  def _CommonInputParams(cls, is_eval):
+    p = super(Librispeech960GraphemeCloudTpu, cls)._CommonInputParams(is_eval)
+
+    p.pad_to_max_seq_length = True
+    p.bucket_batch_limit = [64] * len(p.bucket_upper_bound)
+    p.source_max_length = p.bucket_upper_bound[-1]
+
+    return p
+
+  @classmethod
+  def Task(cls):
+    p = super(Librispeech960GraphemeCloudTpu, cls).Task()
+
+    p.encoder.pad_steps = 0
+
+    return p
+
+
+@model_registry.RegisterSingleTaskModel
 class Librispeech960Wpm(Librispeech960Base):
   """Base params for Librispeech 960 hour experiments using Word Piece Models.
 
@@ -319,5 +325,29 @@ class Librispeech960Wpm(Librispeech960Base):
     dp.emb.vocab_size = cls.WPM_VOCAB_SIZE
     dp.emb.max_num_shards = cls.NUM_TRAINING_WORKERS  # One shard per worker.
     dp.softmax.num_classes = cls.WPM_VOCAB_SIZE
+
+    return p
+
+
+@model_registry.RegisterSingleTaskModel
+class Librispeech960WpmCloudTpu(Librispeech960Grapheme):
+  """Librispeech 960 WPM model with parameter tweaks for training on TPU."""
+
+  @classmethod
+  def _CommonInputParams(cls, is_eval):
+    p = super(Librispeech960WpmCloudTpu, cls)._CommonInputParams(is_eval)
+
+    p.pad_to_max_seq_length = True
+    p.bucket_batch_limit = [48] * len(p.bucket_upper_bound)
+    p.source_max_length = p.bucket_upper_bound[-1]
+
+    return p
+
+  @classmethod
+  def Task(cls):
+    p = super(Librispeech960WpmCloudTpu, cls).Task()
+
+    p.encoder.pad_steps = 0
+    p.decoder.emb.max_num_shards = 1
 
     return p
