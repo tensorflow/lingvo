@@ -158,6 +158,7 @@ _ACTIVATIONS = {
     'TANH': tf.tanh,
     'GELU': Gelu,
     'SWISH': tf.nn.swish,
+    'SOFTPLUS': tf.nn.softplus,
 }
 
 # A subset of activation functions are supported by TFLite as fused activation
