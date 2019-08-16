@@ -168,6 +168,11 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
 
 
+<div class="viewcode-block" id="DatasetError"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.DatasetError">[docs]</a><span class="k">class</span> <span class="nc">DatasetError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Dataset error exception class.&quot;&quot;&quot;</span>
+  <span class="k">pass</span></div>
+
+
 <div class="viewcode-block" id="_BaseModelParams"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params._BaseModelParams">[docs]</a><span class="k">class</span> <span class="nc">_BaseModelParams</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for storing model Params for a single experiment.&quot;&quot;&quot;</span>
 
@@ -183,9 +188,12 @@
 <span class="sd">      generate a hyperparam for the input data.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">      AttributeError: if there is not a `${dataset}` method defined under `cls`.</span>
+<span class="sd">      DatasetError: if there is not a `${dataset}` method defined under `cls`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">f</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">DatasetError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">f</span><span class="p">()</span></div></div>
 
 
