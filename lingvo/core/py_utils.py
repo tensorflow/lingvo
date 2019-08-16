@@ -36,17 +36,19 @@ from lingvo.core import ops
 from lingvo.core import retry
 from lingvo.core import symbolic
 from lingvo.core import tshape
+from lingvo.core.model_pruning import pruning_utils
 import numpy as np
 import six
 from six.moves import range
 from six.moves import zip
 
-from tensorflow.contrib.model_pruning.python.layers import core_layers as pruning_layers
+# pylint: disable=g-direct-tensorflow-import
 from tensorflow.core.framework import node_def_pb2
 from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.framework import function
-from tensorflow.python.tpu import tpu_function  # pylint: disable=g-direct-tensorflow-import
+from tensorflow.python.tpu import tpu_function
 from tensorflow.python.util import deprecation
+# pylint: enable=g-direct-tensorflow-import
 
 
 class UniformSampler(object):
@@ -2097,10 +2099,10 @@ def ConcatRecursively(splits, axis=-1):
 
 def AddToPruningCollections(weight, mask, threshold):
   """Add mask, threshold, and weight vars to their respective collections."""
-  if mask not in tf.get_collection(pruning_layers.MASK_COLLECTION):
-    tf.add_to_collection(pruning_layers.WEIGHT_COLLECTION, weight)
-    tf.add_to_collection(pruning_layers.MASK_COLLECTION, mask)
-    tf.add_to_collection(pruning_layers.THRESHOLD_COLLECTION, threshold)
+  if mask not in tf.get_collection(pruning_utils.MASK_COLLECTION):
+    tf.add_to_collection(pruning_utils.WEIGHT_COLLECTION, weight)
+    tf.add_to_collection(pruning_utils.MASK_COLLECTION, mask)
+    tf.add_to_collection(pruning_utils.THRESHOLD_COLLECTION, threshold)
 
 
 def WeightedAvg(values, weights, sum_reduction_fn=tf.reduce_sum, name=''):

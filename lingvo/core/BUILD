@@ -217,6 +217,7 @@ py_library(
         ":hyperparams",
         ":learner",
         ":optimizer",
+        ":pruning",
         ":py_utils",
         ":schedule",
         ":summary_utils",
@@ -778,6 +779,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":hyperparams",
+        ":pruning_utils",
         ":retry",
         ":symbolic",
         ":tshape",
@@ -1389,5 +1391,66 @@ py_library(
         # Implicit six dependency.
         # Implicit tensorflow dependency.
         # Implicit tensorflow grpc dependency.
+    ],
+)
+
+py_library(
+    name = "hparam",
+    srcs = ["model_pruning/hparam.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//lingvo:compat",
+    ],
+)
+
+py_test(
+    name = "hparam_test",
+    srcs = ["model_pruning/hparam_test.py"],
+    deps = [
+        ":hparam",
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
+    name = "pruning_utils",
+    srcs = ["model_pruning/pruning_utils.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
+py_test(
+    name = "pruning_utils_test",
+    size = "medium",
+    srcs = ["model_pruning/pruning_utils_test.py"],
+    deps = [
+        ":pruning_utils",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
+    name = "pruning",
+    srcs = ["model_pruning/pruning.py"],
+    srcs_version = "PY2AND3",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":hparam",
+        ":pruning_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_test(
+    name = "pruning_test",
+    size = "small",
+    srcs = ["model_pruning/pruning_test.py"],
+    deps = [
+        ":pruning",
+        "//lingvo:compat",
     ],
 )
