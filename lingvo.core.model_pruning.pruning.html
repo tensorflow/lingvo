@@ -1,0 +1,540 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.model_pruning.pruning module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.model_pruning.pruning_utils module" href="lingvo.core.model_pruning.pruning_utils.html" />
+    <link rel="prev" title="lingvo.core.model_pruning.hparam module" href="lingvo.core.model_pruning.hparam.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.model_pruning.html">lingvo.core.model_pruning package</a> &raquo;</li>
+        
+      <li>lingvo.core.model_pruning.pruning module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.model_pruning.pruning.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.model_pruning.pruning">
+<span id="lingvo-core-model-pruning-pruning-module"></span><h1>lingvo.core.model_pruning.pruning module<a class="headerlink" href="#module-lingvo.core.model_pruning.pruning" title="Permalink to this headline">¶</a></h1>
+<p>Helper functions to add support for magnitude-based model pruning.</p>
+<p># Adds variables and ops to the graph to enable
+# elementwise masking of weights
+apply_mask(weights)</p>
+<p># Returns a list containing the sparsity of each of the weight tensors
+get_weight_sparsity()</p>
+<p># Returns a list of all the masked weight tensorflow variables
+get_masked_weights()</p>
+<p># Returns a list of all the mask tensorflow variables
+get_masks()</p>
+<p># Returns a list of all the thresholds
+get_thresholds()</p>
+<p># Returns a list of all the weight tensors that have been masked
+get_weights()</p>
+<p>The Pruning class uses a tf.hparams object to set up the
+parameters for a model pruning. Here’s a typical usage:</p>
+<p># Parse pruning hyperparameters
+pruning_hparams = pruning.get_pruning_hparams().parse(FLAGS.pruning_hparams)</p>
+<p># Create a pruning object using the pruning_hparams
+p = pruning.Pruning(pruning_hparams)</p>
+<p># Add mask update ops to the graph
+mask_update_op = p.conditional_mask_update_op()</p>
+<p># Add the summaries
+p.add_pruning_summaries()</p>
+<p># Run the op
+session.run(mask_update_op)</p>
+<p># An object of the pruning also accepts externally defined sparsity:
+sparsity = tf.Variable(0.5, name = “ConstantSparsity”)
+p = pruning.Pruning(pruning_hparams, sparsity=sparsity)</p>
+<dl class="function">
+<dt id="lingvo.core.model_pruning.pruning.apply_mask">
+<code class="descclassname">lingvo.core.model_pruning.pruning.</code><code class="descname">apply_mask</code><span class="sig-paren">(</span><em>x</em>, <em>scope=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#apply_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.apply_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply mask to a given weight tensor.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – Input weight tensor</li>
+<li><strong>scope</strong> – The current variable scope. Defaults to “”.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Tensor representing masked_weights</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.model_pruning.pruning.get_masked_weights">
+<code class="descclassname">lingvo.core.model_pruning.pruning.</code><code class="descname">get_masked_weights</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#get_masked_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.get_masked_weights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.model_pruning.pruning.get_masks">
+<code class="descclassname">lingvo.core.model_pruning.pruning.</code><code class="descname">get_masks</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#get_masks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.get_masks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.model_pruning.pruning.get_thresholds">
+<code class="descclassname">lingvo.core.model_pruning.pruning.</code><code class="descname">get_thresholds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#get_thresholds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.get_thresholds" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.model_pruning.pruning.get_weights">
+<code class="descclassname">lingvo.core.model_pruning.pruning.</code><code class="descname">get_weights</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#get_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.get_weights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.model_pruning.pruning.get_weight_sparsity">
+<code class="descclassname">lingvo.core.model_pruning.pruning.</code><code class="descname">get_weight_sparsity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#get_weight_sparsity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.get_weight_sparsity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get sparsity of the weights.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>None</strong> – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list containing the sparsity of each of the weight tensors</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.model_pruning.pruning.get_pruning_hparams">
+<code class="descclassname">lingvo.core.model_pruning.pruning.</code><code class="descname">get_pruning_hparams</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#get_pruning_hparams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.get_pruning_hparams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a tf.HParams object with the default values for the hyperparameters.</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>name: string</dt>
+<dd>name of the pruning specification. Used for adding summaries and ops under
+a common tensorflow name_scope</dd>
+<dt>begin_pruning_step: integer</dt>
+<dd>the global step at which to begin pruning</dd>
+<dt>end_pruning_step: integer</dt>
+<dd>the global step at which to terminate pruning. Defaults to -1 implying
+that pruning continues till the training stops</dd>
+<dt>weight_sparsity_map: list of strings</dt>
+<dd>comma separed list of {weight_variable_name:target sparsity} or
+{regex:target sparsity} pairs.
+For layers/weights not in this list, sparsity as specified by the
+target_sparsity hyperparameter is used.
+Eg. [conv1:0.9,conv2/kernel:0.8]</dd>
+<dt>block_dims_map: list of strings</dt>
+<dd>comma separated list of {weight variable name:block_height x block_width}
+or {regex:block_height x block_width} pairs. For layers/weights not in
+this list, block dims are specified by the block_height, block_width
+hyperparameters are used Eg. [dense1:4x4,dense2:1x16,dense3:1x1]</dd>
+<dt>threshold_decay: float</dt>
+<dd>the decay factor to use for exponential decay of the thresholds</dd>
+<dt>pruning_frequency: integer</dt>
+<dd>How often should the masks be updated? (in # of global_steps)</dd>
+<dt>nbins: integer</dt>
+<dd>number of bins to use for histogram computation</dd>
+<dt>block_height: integer</dt>
+<dd>number of rows in a block (defaults to 1), can be -1 in which
+case it is set to the size of the corresponding weight tensor.</dd>
+<dt>block_width: integer</dt>
+<dd>number of cols in a block (defaults to 1), can be -1 in which
+case it is set to the size of the corresponding weight tensor.</dd>
+<dt>block_pooling_function: string</dt>
+<dd>Whether to perform average (AVG) or max (MAX) pooling in the block
+(default: AVG)</dd>
+<dt>initial_sparsity: float</dt>
+<dd>initial sparsity value</dd>
+<dt>target_sparsity: float</dt>
+<dd>target sparsity value</dd>
+<dt>sparsity_function_begin_step: integer</dt>
+<dd>the global step at this which the gradual sparsity function begins to
+take effect</dd>
+<dt>sparsity_function_end_step: integer</dt>
+<dd>the global step used as the end point for the gradual sparsity function</dd>
+<dt>sparsity_function_exponent: float</dt>
+<dd>exponent = 1 is linearly varying sparsity between initial and final.
+exponent &gt; 1 varies more slowly towards the end than the beginning</dd>
+<dt>use_tpu: False</dt>
+<dd>Indicates whether to use TPU</dd>
+</dl>
+<p>We use the following sparsity function:</p>
+<dl class="docutils">
+<dt>num_steps = (sparsity_function_end_step -</dt>
+<dd>sparsity_function_begin_step)/pruning_frequency</dd>
+<dt>sparsity(step) = (initial_sparsity - target_sparsity)*</dt>
+<dd>[1-step/(num_steps -1)]**exponent + target_sparsity</dd>
+</dl>
+</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>None</strong> – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">tf.HParams object initialized to default values</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.model_pruning.pruning.Pruning">
+<em class="property">class </em><code class="descclassname">lingvo.core.model_pruning.pruning.</code><code class="descname">Pruning</code><span class="sig-paren">(</span><em>spec=None</em>, <em>global_step=None</em>, <em>sparsity=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning._validate_spec">
+<code class="descname">_validate_spec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning._validate_spec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning._validate_spec" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning._setup_global_step">
+<code class="descname">_setup_global_step</code><span class="sig-paren">(</span><em>global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning._setup_global_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning._setup_global_step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning._setup_sparsity">
+<code class="descname">_setup_sparsity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning._setup_sparsity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning._setup_sparsity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning._setup_last_update_step">
+<code class="descname">_setup_last_update_step</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning._setup_last_update_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning._setup_last_update_step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning._get_block_dims_map">
+<code class="descname">_get_block_dims_map</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning._get_block_dims_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning._get_block_dims_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the map of layer name: block dims.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning._get_block_dims">
+<code class="descname">_get_block_dims</code><span class="sig-paren">(</span><em>weight_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning._get_block_dims"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning._get_block_dims" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the block dims for the given layer/weight name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning._get_weight_sparsity_map">
+<code class="descname">_get_weight_sparsity_map</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning._get_weight_sparsity_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning._get_weight_sparsity_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the map of weight_name:sparsity parsed from the hparams.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning._get_sparsity">
+<code class="descname">_get_sparsity</code><span class="sig-paren">(</span><em>weight_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning._get_sparsity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning._get_sparsity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns target sparsity for the given layer/weight name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning._update_mask">
+<code class="descname">_update_mask</code><span class="sig-paren">(</span><em>weights</em>, <em>threshold</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning._update_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning._update_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the mask for a given weight tensor.</p>
+<p>This functions first computes the cdf of the weight tensor, and estimates
+the threshold value such that ‘desired_sparsity’ fraction of weights
+have magnitude less than the threshold.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>weights</strong> – The weight tensor that needs to be masked.</li>
+<li><strong>threshold</strong> – The current threshold value. The function will compute a new
+threshold and return the exponential moving average using the current
+value of threshold</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
+<dt>The new value of the threshold based on weights, and</dt>
+<dd><p class="first last">sparsity at the current global_step</p>
+</dd>
+<dt>new_mask: A numpy array of the same size and shape as weights containing</dt>
+<dd><p class="first last">0 or 1 to indicate which of the values in weights falls below
+the threshold</p>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">new_threshold</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – if sparsity is not defined</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning._maybe_update_block_mask">
+<code class="descname">_maybe_update_block_mask</code><span class="sig-paren">(</span><em>weights</em>, <em>threshold</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning._maybe_update_block_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning._maybe_update_block_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs block-granular masking of the weights.</p>
+<p>Block pruning occurs only if the block_height or block_width is &gt; 1 and
+if the weight tensor, when squeezed, has ndims = 2. Otherwise, elementwise
+pruning occurs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>weights</strong> – The weight tensor that needs to be masked.</li>
+<li><strong>threshold</strong> – The current threshold value. The function will compute a new
+threshold and return the exponential moving average using the current
+value of threshold</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
+<dt>The new value of the threshold based on weights, and</dt>
+<dd><p class="first last">sparsity at the current global_step</p>
+</dd>
+<dt>new_mask: A numpy array of the same size and shape as weights containing</dt>
+<dd><p class="first last">0 or 1 to indicate which of the values in weights falls below
+the threshold</p>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">new_threshold</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – if block pooling function is not AVG or MAX</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning._get_mask_assign_ops">
+<code class="descname">_get_mask_assign_ops</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning._get_mask_assign_ops"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning._get_mask_assign_ops" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning.mask_update_op">
+<code class="descname">mask_update_op</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning.mask_update_op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning.mask_update_op" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning.conditional_mask_update_op">
+<code class="descname">conditional_mask_update_op</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning.conditional_mask_update_op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning.conditional_mask_update_op" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning.add_pruning_summaries">
+<code class="descname">add_pruning_summaries</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning.add_pruning_summaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning.add_pruning_summaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds summaries of weight sparsities and thresholds.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.model_pruning.pruning.Pruning.print_hparams">
+<code class="descname">print_hparams</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/pruning.html#Pruning.print_hparams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.pruning.Pruning.print_hparams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.model_pruning.pruning_utils.html" class="btn btn-neutral float-right" title="lingvo.core.model_pruning.pruning_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.model_pruning.hparam.html" class="btn btn-neutral float-left" title="lingvo.core.model_pruning.hparam module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

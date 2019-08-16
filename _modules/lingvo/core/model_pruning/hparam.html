@@ -1,0 +1,833 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.model_pruning.hparam &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.model_pruning.hparam</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.model_pruning.hparam</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="c1"># Forked from https://github.com/tensorflow/tensor2tensor/blob/master/tensor2tensor/utils/hparam.py  pylint: disable=line-too-long</span>
+<span class="sd">&quot;&quot;&quot;Hyperparameter values.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="c1"># Define the regular expression for parsing a single clause of the input</span>
+<span class="c1"># (delimited by commas).  A legal clause looks like:</span>
+<span class="c1">#   &lt;variable name&gt;[&lt;index&gt;]? = &lt;rhs&gt;</span>
+<span class="c1"># where &lt;rhs&gt; is either a single token or [] enclosed list of tokens.</span>
+<span class="c1"># For example:  &quot;var[1] = a&quot; or &quot;x = [1,2,3]&quot;</span>
+<span class="n">PARAM_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">  (?P&lt;name&gt;[a-zA-Z][\w\.]*)      # variable name: &quot;var&quot; or &quot;x&quot;</span>
+<span class="s2">  (\[\s*(?P&lt;index&gt;\d+)\s*\])?  # (optional) index: &quot;1&quot; or None</span>
+<span class="s2">  \s*=\s*</span>
+<span class="s2">  ((?P&lt;val&gt;[^,\[]*)            # single value: &quot;a&quot; or None</span>
+<span class="s2">   |</span>
+<span class="s2">   \[(?P&lt;vals&gt;[^\]]*)\])       # list of values: None or &quot;1,2,3&quot;</span>
+<span class="s2">  ($|,\s*)&quot;&quot;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="_parse_fail"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam._parse_fail">[docs]</a><span class="k">def</span> <span class="nf">_parse_fail</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_type</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Helper function for raising a value error for bad assignment.&quot;&quot;&quot;</span>
+  <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+      <span class="s1">&#39;Could not parse hparam </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1"> of type </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1"> with value </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1"> in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+      <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_type</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">values</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="_reuse_fail"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam._reuse_fail">[docs]</a><span class="k">def</span> <span class="nf">_reuse_fail</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Helper function for raising a value error for reuse of name.&quot;&quot;&quot;</span>
+  <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Multiple assignments to variable </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1"> in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                                                                      <span class="n">values</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="_process_scalar_value"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam._process_scalar_value">[docs]</a><span class="k">def</span> <span class="nf">_process_scalar_value</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">parse_fn</span><span class="p">,</span> <span class="n">var_type</span><span class="p">,</span> <span class="n">m_dict</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span>
+                          <span class="n">results_dictionary</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Update results_dictionary with a scalar value.</span>
+
+<span class="sd">  Used to update the results_dictionary to be returned by parse_values when</span>
+<span class="sd">  encountering a clause with a scalar RHS (e.g.  &quot;s=5&quot; or &quot;arr[0]=5&quot;.)</span>
+
+<span class="sd">  Mutates results_dictionary.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: Name of variable in assignment (&quot;s&quot; or &quot;arr&quot;).</span>
+<span class="sd">    parse_fn: Function for parsing the actual value.</span>
+<span class="sd">    var_type: Type of named variable.</span>
+<span class="sd">    m_dict: Dictionary constructed from regex parsing.</span>
+<span class="sd">      m_dict[&#39;val&#39;]: RHS value (scalar)</span>
+<span class="sd">      m_dict[&#39;index&#39;]: List index value (or None)</span>
+<span class="sd">    values: Full expression being parsed</span>
+<span class="sd">    results_dictionary: The dictionary being updated for return by the parsing</span>
+<span class="sd">      function.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: If the name has already been used.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="n">parsed_value</span> <span class="o">=</span> <span class="n">parse_fn</span><span class="p">(</span><span class="n">m_dict</span><span class="p">[</span><span class="s1">&#39;val&#39;</span><span class="p">])</span>
+  <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+    <span class="n">_parse_fail</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_type</span><span class="p">,</span> <span class="n">m_dict</span><span class="p">[</span><span class="s1">&#39;val&#39;</span><span class="p">],</span> <span class="n">values</span><span class="p">)</span>
+
+  <span class="c1"># If no index is provided</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">m_dict</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">results_dictionary</span><span class="p">:</span>
+      <span class="n">_reuse_fail</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+    <span class="n">results_dictionary</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">parsed_value</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">results_dictionary</span><span class="p">:</span>
+      <span class="c1"># The name has already been used as a scalar, then it</span>
+      <span class="c1"># will be in this dictionary and map to a non-dictionary.</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">_reuse_fail</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">results_dictionary</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">m_dict</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">])</span>
+    <span class="c1"># Make sure the index position hasn&#39;t already been assigned a value.</span>
+    <span class="k">if</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">results_dictionary</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
+      <span class="n">_reuse_fail</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">[</span><span class="si">{}</span><span class="s1">]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span> <span class="n">values</span><span class="p">)</span>
+    <span class="n">results_dictionary</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">parsed_value</span></div>
+
+
+<div class="viewcode-block" id="_process_list_value"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam._process_list_value">[docs]</a><span class="k">def</span> <span class="nf">_process_list_value</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">parse_fn</span><span class="p">,</span> <span class="n">var_type</span><span class="p">,</span> <span class="n">m_dict</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span>
+                        <span class="n">results_dictionary</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Update results_dictionary from a list of values.</span>
+
+<span class="sd">  Used to update results_dictionary to be returned by parse_values when</span>
+<span class="sd">  encountering a clause with a list RHS (e.g.  &quot;arr=[1,2,3]&quot;.)</span>
+
+<span class="sd">  Mutates results_dictionary.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: Name of variable in assignment (&quot;arr&quot;).</span>
+<span class="sd">    parse_fn: Function for parsing individual values.</span>
+<span class="sd">    var_type: Type of named variable.</span>
+<span class="sd">    m_dict: Dictionary constructed from regex parsing.</span>
+<span class="sd">      m_dict[&#39;val&#39;]: RHS value (scalar)</span>
+<span class="sd">    values: Full expression being parsed</span>
+<span class="sd">    results_dictionary: The dictionary being updated for return by the parsing</span>
+<span class="sd">      function.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: If the name has an index or the values cannot be parsed.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">m_dict</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Assignment of a list to a list index.&#39;</span><span class="p">)</span>
+  <span class="n">elements</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;[ ,]&#39;</span><span class="p">,</span> <span class="n">m_dict</span><span class="p">[</span><span class="s1">&#39;vals&#39;</span><span class="p">]))</span>
+  <span class="c1"># Make sure the name hasn&#39;t already been assigned a value</span>
+  <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">results_dictionary</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">_reuse_fail</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="n">results_dictionary</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">parse_fn</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">elements</span><span class="p">]</span>
+  <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+    <span class="n">_parse_fail</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_type</span><span class="p">,</span> <span class="n">m_dict</span><span class="p">[</span><span class="s1">&#39;vals&#39;</span><span class="p">],</span> <span class="n">values</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_cast_to_type_if_compatible"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam._cast_to_type_if_compatible">[docs]</a><span class="k">def</span> <span class="nf">_cast_to_type_if_compatible</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">param_type</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Cast hparam to the provided type, if compatible.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: Name of the hparam to be cast.</span>
+<span class="sd">    param_type: The type of the hparam.</span>
+<span class="sd">    value: The value to be cast, if compatible.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The result of casting `value` to `param_type`.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: If the type of `value` is not compatible with param_type.</span>
+<span class="sd">      * If `param_type` is a string type, but `value` is not.</span>
+<span class="sd">      * If `param_type` is a boolean, but `value` is not, or vice versa.</span>
+<span class="sd">      * If `param_type` is an integer type, but `value` is not.</span>
+<span class="sd">      * If `param_type` is a float type, but `value` is not a numeric type.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">fail_msg</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="s2">&quot;Could not cast hparam &#39;</span><span class="si">%s</span><span class="s2">&#39; of type &#39;</span><span class="si">%s</span><span class="s2">&#39; from value </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span>
+      <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">param_type</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+
+  <span class="c1"># Some callers use None, for which we can&#39;t do any casting/checking. :(</span>
+  <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)):</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+  <span class="c1"># Avoid converting a non-string type to a string.</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">binary_type</span><span class="p">))</span> <span class="ow">and</span>
+      <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">binary_type</span><span class="p">))):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">fail_msg</span><span class="p">)</span>
+
+  <span class="c1"># Avoid converting a number or string type to a boolean or vice versa.</span>
+  <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">fail_msg</span><span class="p">)</span>
+
+  <span class="c1"># Avoid converting float to an integer (the reverse is fine).</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">)</span> <span class="ow">and</span>
+      <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">)):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">fail_msg</span><span class="p">)</span>
+
+  <span class="c1"># Avoid converting a non-numeric type to a numeric type.</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Number</span><span class="p">)</span> <span class="ow">and</span>
+      <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Number</span><span class="p">)):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">fail_msg</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">param_type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_values"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.parse_values">[docs]</a><span class="k">def</span> <span class="nf">parse_values</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">type_map</span><span class="p">,</span> <span class="n">ignore_unknown</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Parses hyperparameter values from a string into a python map.</span>
+
+<span class="sd">  `values` is a string containing comma-separated `name=value` pairs.</span>
+<span class="sd">  For each pair, the value of the hyperparameter named `name` is set to</span>
+<span class="sd">  `value`.</span>
+
+<span class="sd">  If a hyperparameter name appears multiple times in `values`, a ValueError</span>
+<span class="sd">  is raised (e.g. &#39;a=1,a=2&#39;, &#39;a[1]=1,a[1]=2&#39;).</span>
+
+<span class="sd">  If a hyperparameter name in both an index assignment and scalar assignment,</span>
+<span class="sd">  a ValueError is raised.  (e.g. &#39;a=[1,2,3],a[0] = 1&#39;).</span>
+
+<span class="sd">  The hyperparameter name may contain &#39;.&#39; symbols, which will result in an</span>
+<span class="sd">  attribute name that is only accessible through the getattr and setattr</span>
+<span class="sd">  functions.  (And must be first explicit added through add_hparam.)</span>
+
+<span class="sd">  WARNING: Use of &#39;.&#39; in your variable names is allowed, but is not well</span>
+<span class="sd">  supported and not recommended.</span>
+
+<span class="sd">  The `value` in `name=value` must follows the syntax according to the</span>
+<span class="sd">  type of the parameter:</span>
+
+<span class="sd">  *  Scalar integer: A Python-parsable integer point value.  E.g.: 1,</span>
+<span class="sd">     100, -12.</span>
+<span class="sd">  *  Scalar float: A Python-parsable floating point value.  E.g.: 1.0,</span>
+<span class="sd">     -.54e89.</span>
+<span class="sd">  *  Boolean: Either true or false.</span>
+<span class="sd">  *  Scalar string: A non-empty sequence of characters, excluding comma,</span>
+<span class="sd">     spaces, and square brackets.  E.g.: foo, bar_1.</span>
+<span class="sd">  *  List: A comma separated list of scalar values of the parameter type</span>
+<span class="sd">     enclosed in square brackets.  E.g.: [1,2,3], [1.0,1e-12], [high,low].</span>
+
+<span class="sd">  When index assignment is used, the corresponding type_map key should be the</span>
+<span class="sd">  list name.  E.g. for &quot;arr[1]=0&quot; the type_map must have the key &quot;arr&quot; (not</span>
+<span class="sd">  &quot;arr[1]&quot;).</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    values: String.  Comma separated list of `name=value` pairs where</span>
+<span class="sd">      &#39;value&#39; must follow the syntax described above.</span>
+<span class="sd">    type_map: A dictionary mapping hyperparameter names to types.  Note every</span>
+<span class="sd">      parameter name in values must be a key in type_map.  The values must</span>
+<span class="sd">      conform to the types indicated, where a value V is said to conform to a</span>
+<span class="sd">      type T if either V has type T, or V is a list of elements of type T.</span>
+<span class="sd">      Hence, for a multidimensional parameter &#39;x&#39; taking float values,</span>
+<span class="sd">      &#39;x=[0.1,0.2]&#39; will parse successfully if type_map[&#39;x&#39;] = float.</span>
+<span class="sd">    ignore_unknown: Bool. Whether values that are missing a type in type_map</span>
+<span class="sd">      should be ignored. If set to True, a ValueError will not be raised for</span>
+<span class="sd">      unknown hyperparameter type.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A python map mapping each name to either:</span>
+<span class="sd">    * A scalar value.</span>
+<span class="sd">    * A list of scalar values.</span>
+<span class="sd">    * A dictionary mapping index numbers to scalar values.</span>
+<span class="sd">      (e.g. `&quot;x=5,L=[1,2],arr[1]=3&quot;` results in `{&#39;x&#39;:5,&#39;L&#39;:[1,2],&#39;arr&#39;:{1:3}}`)</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: If there is a problem with input.</span>
+<span class="sd">    * If `values` cannot be parsed.</span>
+<span class="sd">    * If a list is assigned to a list index (e.g. &#39;a[1] = [1,2,3]&#39;).</span>
+<span class="sd">    * If the same rvalue is assigned two different values (e.g. &#39;a=1,a=2&#39;,</span>
+<span class="sd">      &#39;a[1]=1,a[1]=2&#39;, or &#39;a=1,a=[1]&#39;)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">results_dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="k">while</span> <span class="n">pos</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">PARAM_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Malformed hyperparameter value: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">values</span><span class="p">[</span><span class="n">pos</span><span class="p">:])</span>
+    <span class="c1"># Check that there is a comma between parameters and move past it.</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+    <span class="c1"># Parse the values.</span>
+    <span class="n">m_dict</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">groupdict</span><span class="p">()</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">m_dict</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">type_map</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">ignore_unknown</span><span class="p">:</span>
+        <span class="k">continue</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown hyperparameter type for </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+    <span class="n">type_</span> <span class="o">=</span> <span class="n">type_map</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="c1"># Set up correct parsing function (depending on whether type_ is a bool)</span>
+    <span class="k">if</span> <span class="n">type_</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">parse_bool</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="s1">&#39;True&#39;</span><span class="p">]:</span>
+          <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;false&#39;</span><span class="p">,</span> <span class="s1">&#39;False&#39;</span><span class="p">]:</span>
+          <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+          <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">_parse_fail</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+
+      <span class="n">parse</span> <span class="o">=</span> <span class="n">parse_bool</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">parse</span> <span class="o">=</span> <span class="n">type_</span>
+
+    <span class="c1"># If a singe value is provided</span>
+    <span class="k">if</span> <span class="n">m_dict</span><span class="p">[</span><span class="s1">&#39;val&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">_process_scalar_value</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">parse</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="n">m_dict</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span>
+                            <span class="n">results_dictionary</span><span class="p">)</span>
+
+    <span class="c1"># If the assigned value is a list:</span>
+    <span class="k">elif</span> <span class="n">m_dict</span><span class="p">[</span><span class="s1">&#39;vals&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">_process_list_value</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">parse</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="n">m_dict</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span>
+                          <span class="n">results_dictionary</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># Not assigned a list or value</span>
+      <span class="n">_parse_fail</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">type_</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">results_dictionary</span></div>
+
+
+<div class="viewcode-block" id="HParams"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams">[docs]</a><span class="k">class</span> <span class="nc">HParams</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Class to hold a set of hyperparameters as name-value pairs.</span>
+
+<span class="sd">  A `HParams` object holds hyperparameters used to build and train a model,</span>
+<span class="sd">  such as the number of hidden units in a neural net layer or the learning rate</span>
+<span class="sd">  to use when training.</span>
+
+<span class="sd">  You first create a `HParams` object by specifying the names and values of the</span>
+<span class="sd">  hyperparameters.</span>
+
+<span class="sd">  To make them easily accessible the parameter names are added as direct</span>
+<span class="sd">  attributes of the class.  A typical usage is as follows::</span>
+
+<span class="sd">    # Create a HParams object specifying names and values of the model</span>
+<span class="sd">    # hyperparameters:</span>
+<span class="sd">    hparams = HParams(learning_rate=0.1, num_hidden_units=100)</span>
+
+<span class="sd">    # The hyperparameter are available as attributes of the HParams object:</span>
+<span class="sd">    hparams.learning_rate ==&gt; 0.1</span>
+<span class="sd">    hparams.num_hidden_units ==&gt; 100</span>
+
+<span class="sd">  Hyperparameters have type, which is inferred from the type of their value</span>
+<span class="sd">  passed at construction type.   The currently supported types are: integer,</span>
+<span class="sd">  float, boolean, string, and list of integer, float, boolean, or string.</span>
+
+<span class="sd">  You can override hyperparameter values by calling the</span>
+<span class="sd">  [`parse()`](#HParams.parse) method, passing a string of comma separated</span>
+<span class="sd">  `name=value` pairs.  This is intended to make it possible to override</span>
+<span class="sd">  any hyperparameter values from a single command-line flag to which</span>
+<span class="sd">  the user passes &#39;hyper-param=value&#39; pairs.  It avoids having to define</span>
+<span class="sd">  one flag for each hyperparameter.</span>
+
+<span class="sd">  The syntax expected for each value depends on the type of the parameter.</span>
+<span class="sd">  See `parse()` for a description of the syntax.</span>
+
+<span class="sd">  Example::</span>
+
+<span class="sd">    # Define a command line flag to pass name=value pairs.</span>
+<span class="sd">    # For example using argparse:</span>
+<span class="sd">    import argparse</span>
+<span class="sd">    parser = argparse.ArgumentParser(description=&#39;Train my model.&#39;)</span>
+<span class="sd">    parser.add_argument(&#39;--hparams&#39;, type=str,</span>
+<span class="sd">                        help=&#39;Comma separated list of &quot;name=value&quot; pairs.&#39;)</span>
+<span class="sd">    args = parser.parse_args()</span>
+<span class="sd">    ...</span>
+<span class="sd">    def my_program():</span>
+<span class="sd">      # Create a HParams object specifying the names and values of the</span>
+<span class="sd">      # model hyperparameters:</span>
+<span class="sd">      hparams = tf.HParams(learning_rate=0.1, num_hidden_units=100,</span>
+<span class="sd">                           activations=[&#39;relu&#39;, &#39;tanh&#39;])</span>
+
+<span class="sd">      # Override hyperparameters values by parsing the command line</span>
+<span class="sd">      hparams.parse(args.hparams)</span>
+
+<span class="sd">      # If the user passed `--hparams=learning_rate=0.3` on the command line</span>
+<span class="sd">      # then &#39;hparams&#39; has the following attributes:</span>
+<span class="sd">      hparams.learning_rate ==&gt; 0.3</span>
+<span class="sd">      hparams.num_hidden_units ==&gt; 100</span>
+<span class="sd">      hparams.activations ==&gt; [&#39;relu&#39;, &#39;tanh&#39;]</span>
+
+<span class="sd">      # If the hyperparameters are in json format use parse_json:</span>
+<span class="sd">      hparams.parse_json(&#39;{&quot;learning_rate&quot;: 0.3, &quot;activations&quot;: &quot;relu&quot;}&#39;)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">_HAS_DYNAMIC_ATTRIBUTES</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># Required for pytype checks.</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_structure</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create an instance of `HParams` from keyword arguments.</span>
+
+<span class="sd">    The keyword arguments specify name-values pairs for the hyperparameters.</span>
+<span class="sd">    The parameter types are inferred from the type of the values passed.</span>
+
+<span class="sd">    The parameter names are added as attributes of `HParams` object, so they</span>
+<span class="sd">    can be accessed directly with the dot notation `hparams._name_`.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    ```python</span>
+<span class="sd">    # Define 3 hyperparameters: &#39;learning_rate&#39; is a float parameter,</span>
+<span class="sd">    # &#39;num_hidden_units&#39; an integer parameter, and &#39;activation&#39; a string</span>
+<span class="sd">    # parameter.</span>
+<span class="sd">    hparams = tf.HParams(</span>
+<span class="sd">        learning_rate=0.1, num_hidden_units=100, activation=&#39;relu&#39;)</span>
+
+<span class="sd">    hparams.activation ==&gt; &#39;relu&#39;</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    Note that a few names are reserved and cannot be used as hyperparameter</span>
+<span class="sd">    names.  If you use one of the reserved name the constructor raises a</span>
+<span class="sd">    `ValueError`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      model_structure: An instance of ModelStructure, defining the feature</span>
+<span class="sd">        crosses to be used in the Trial.</span>
+<span class="sd">      **kwargs: Key-value pairs where the key is the hyperparameter name and</span>
+<span class="sd">        the value is the value for the parameter.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If both `hparam_def` and initialization values are provided,</span>
+<span class="sd">        or if one of the arguments is invalid.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Register the hyperparameters and their type in _hparam_types.</span>
+    <span class="c1"># This simplifies the implementation of parse().</span>
+    <span class="c1"># _hparam_types maps the parameter name to a tuple (type, bool).</span>
+    <span class="c1"># The type value is the type of the parameter for scalar hyperparameters,</span>
+    <span class="c1"># or the type of the list elements for multidimensional hyperparameters.</span>
+    <span class="c1"># The bool value is True if the value is a list, False otherwise.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_hparam_types</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model_structure</span> <span class="o">=</span> <span class="n">model_structure</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">add_hparam</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+<div class="viewcode-block" id="HParams.add_hparam"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams.add_hparam">[docs]</a>  <span class="k">def</span> <span class="nf">add_hparam</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds {name, value} pair to hyperparameters.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: Name of the hyperparameter.</span>
+<span class="sd">      value: Value of the hyperparameter. Can be one of the following types:</span>
+<span class="sd">        int, float, string, int list, float list, or string list.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: if one of the arguments is invalid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Keys in kwargs are unique, but &#39;name&#39; could the name of a pre-existing</span>
+    <span class="c1"># attribute of this object.  In that case we refuse to use it as a</span>
+    <span class="c1"># hyperparameter name.</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Hyperparameter name is reserved: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Multi-valued hyperparameters cannot be empty: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_hparam_types</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_hparam_types</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HParams.set_hparam"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams.set_hparam">[docs]</a>  <span class="k">def</span> <span class="nf">set_hparam</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set the value of an existing hyperparameter.</span>
+
+<span class="sd">    This function verifies that the type of the value matches the type of the</span>
+<span class="sd">    existing hyperparameter.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: Name of the hyperparameter.</span>
+<span class="sd">      value: New value of the hyperparameter.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      KeyError: If the hyperparameter doesn&#39;t exist.</span>
+<span class="sd">      ValueError: If there is a type mismatch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">param_type</span><span class="p">,</span> <span class="n">is_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hparam_types</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">is_list</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Must not pass a list for single-valued parameter: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+      <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="p">[</span>
+          <span class="n">_cast_to_type_if_compatible</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">param_type</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">is_list</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Must pass a list for multi-valued parameter: </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+      <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">_cast_to_type_if_compatible</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">param_type</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="HParams.del_hparam"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams.del_hparam">[docs]</a>  <span class="k">def</span> <span class="nf">del_hparam</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Removes the hyperparameter with key &#39;name&#39;.</span>
+
+<span class="sd">    Does nothing if it isn&#39;t present.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: Name of the hyperparameter.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+      <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+      <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hparam_types</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="HParams.parse"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams.parse">[docs]</a>  <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Override existing hyperparameter values, parsing new values from a string.</span>
+
+<span class="sd">    See parse_values for more detail on the allowed format for values.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      values: String.  Comma separated list of `name=value` pairs where &#39;value&#39;</span>
+<span class="sd">        must follow the syntax described above.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The `HParams` instance.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If `values` cannot be parsed or a hyperparameter in `values`</span>
+<span class="sd">      doesn&#39;t exist.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hparam_types</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">param_type</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">t</span>
+      <span class="n">type_map</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param_type</span>
+
+    <span class="n">values_map</span> <span class="o">=</span> <span class="n">parse_values</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">type_map</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">override_from_dict</span><span class="p">(</span><span class="n">values_map</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HParams.override_from_dict"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams.override_from_dict">[docs]</a>  <span class="k">def</span> <span class="nf">override_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Override existing hyperparameter values, parsing new values from a dictionary.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      values_dict: Dictionary of name:value pairs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The `HParams` instance.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      KeyError: If a hyperparameter in `values_dict` doesn&#39;t exist.</span>
+<span class="sd">      ValueError: If `values_dict` cannot be parsed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">set_hparam</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="HParams.set_model_structure"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams.set_model_structure">[docs]</a>  <span class="k">def</span> <span class="nf">set_model_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_structure</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model_structure</span> <span class="o">=</span> <span class="n">model_structure</span></div>
+
+<div class="viewcode-block" id="HParams.get_model_structure"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams.get_model_structure">[docs]</a>  <span class="k">def</span> <span class="nf">get_model_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_structure</span></div>
+
+<div class="viewcode-block" id="HParams.to_json"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams.to_json">[docs]</a>  <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Serializes the hyperparameters into JSON.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      indent: If a non-negative integer, JSON array elements and object members</span>
+<span class="sd">        will be pretty-printed with that indent level. An indent level of 0, or</span>
+<span class="sd">        negative, will only insert newlines. `None` (the default) selects the</span>
+<span class="sd">        most compact representation.</span>
+<span class="sd">      separators: Optional `(item_separator, key_separator)` tuple. Default is</span>
+<span class="sd">        `(&#39;, &#39;, &#39;: &#39;)`.</span>
+<span class="sd">      sort_keys: If `True`, the output dictionaries will be sorted by key.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A JSON string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">remove_callables</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Omit callable elements from input with arbitrary nesting.&quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">remove_callables</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">v</span><span class="p">)}</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">remove_callables</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">x</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+      <span class="k">return</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+        <span class="n">remove_callables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+        <span class="n">indent</span><span class="o">=</span><span class="n">indent</span><span class="p">,</span>
+        <span class="n">separators</span><span class="o">=</span><span class="n">separators</span><span class="p">,</span>
+        <span class="n">sort_keys</span><span class="o">=</span><span class="n">sort_keys</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HParams.parse_json"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams.parse_json">[docs]</a>  <span class="k">def</span> <span class="nf">parse_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values_json</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Override existing hyperparameter values, parsing new values from a json object.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      values_json: String containing a json object of name:value pairs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The `HParams` instance.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      KeyError: If a hyperparameter in `values_json` doesn&#39;t exist.</span>
+<span class="sd">      ValueError: If `values_json` cannot be parsed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">values_map</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">values_json</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">override_from_dict</span><span class="p">(</span><span class="n">values_map</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HParams.values"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams.values">[docs]</a>  <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the hyperparameter values as a Python dictionary.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A dictionary with hyperparameter names as keys.  The values are the</span>
+<span class="sd">      hyperparameter values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hparam_types</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span></div>
+
+<div class="viewcode-block" id="HParams.get"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams.get">[docs]</a>  <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the value of `key` if it exists, else `default`.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hparam_types</span><span class="p">:</span>
+      <span class="c1"># Ensure that default is compatible with the parameter type.</span>
+      <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">param_type</span><span class="p">,</span> <span class="n">is_param_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hparam_types</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">type_str</span> <span class="o">=</span> <span class="s1">&#39;list&lt;</span><span class="si">%s</span><span class="s1">&gt;&#39;</span> <span class="o">%</span> <span class="n">param_type</span> <span class="k">if</span> <span class="n">is_param_list</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">param_type</span><span class="p">)</span>
+        <span class="n">fail_msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Hparam &#39;</span><span class="si">%s</span><span class="s2">&#39; of type &#39;</span><span class="si">%s</span><span class="s2">&#39; is incompatible with &quot;</span>
+                    <span class="s1">&#39;default=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">type_str</span><span class="p">,</span> <span class="n">default</span><span class="p">))</span>
+
+        <span class="n">is_default_list</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">default</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_param_list</span> <span class="o">!=</span> <span class="n">is_default_list</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">fail_msg</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">is_default_list</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">default</span><span class="p">:</span>
+              <span class="n">_cast_to_type_if_compatible</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">param_type</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">_cast_to_type_if_compatible</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">param_type</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">. </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fail_msg</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+
+      <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">default</span></div>
+
+  <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hparam_types</span>
+
+  <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+
+  <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+
+<div class="viewcode-block" id="HParams._get_kind_name"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.hparam.html#lingvo.core.model_pruning.hparam.HParams._get_kind_name">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">_get_kind_name</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="n">is_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the field name given parameter type and is_list.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      param_type: Data type of the hparam.</span>
+<span class="sd">      is_list: Whether this is a list.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A string representation of the field name.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If parameter type is not recognized.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+      <span class="c1"># This check must happen before issubclass(param_type, six.integer_types),</span>
+      <span class="c1"># since Python considers bool to be a subclass of int.</span>
+      <span class="n">typename</span> <span class="o">=</span> <span class="s1">&#39;bool&#39;</span>
+    <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span><span class="p">):</span>
+      <span class="c1"># Setting &#39;int&#39; and &#39;long&#39; types to be &#39;int64&#39; to ensure the type is</span>
+      <span class="c1"># compatible with both Python2 and Python3.</span>
+      <span class="n">typename</span> <span class="o">=</span> <span class="s1">&#39;int64&#39;</span>
+    <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">binary_type</span><span class="p">)):</span>
+      <span class="c1"># Setting &#39;string&#39; and &#39;bytes&#39; types to be &#39;bytes&#39; to ensure the type is</span>
+      <span class="c1"># compatible with both Python2 and Python3.</span>
+      <span class="n">typename</span> <span class="o">=</span> <span class="s1">&#39;bytes&#39;</span>
+    <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+      <span class="n">typename</span> <span class="o">=</span> <span class="s1">&#39;float&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported parameter type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">param_type</span><span class="p">))</span>
+
+    <span class="n">suffix</span> <span class="o">=</span> <span class="s1">&#39;list&#39;</span> <span class="k">if</span> <span class="n">is_list</span> <span class="k">else</span> <span class="s1">&#39;value&#39;</span>
+    <span class="k">return</span> <span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">typename</span><span class="p">,</span> <span class="n">suffix</span><span class="p">])</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

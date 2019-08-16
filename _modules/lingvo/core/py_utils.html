@@ -181,17 +181,19 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">retry</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">symbolic</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.model_pruning</span> <span class="k">import</span> <span class="n">pruning_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.contrib.model_pruning.python.layers</span> <span class="k">import</span> <span class="n">core_layers</span> <span class="k">as</span> <span class="n">pruning_layers</span>
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.framework</span> <span class="k">import</span> <span class="n">node_def_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="k">import</span> <span class="n">rewriter_config_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">tpu_function</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">tpu_function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="k">import</span> <span class="n">deprecation</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
 <span class="k">class</span> <span class="nc">UniformSampler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -2242,10 +2244,10 @@
 
 <span class="k">def</span> <span class="nf">AddToPruningCollections</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Add mask, threshold, and weight vars to their respective collections.&quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">mask</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">pruning_layers</span><span class="o">.</span><span class="n">MASK_COLLECTION</span><span class="p">):</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning_layers</span><span class="o">.</span><span class="n">WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning_layers</span><span class="o">.</span><span class="n">MASK_COLLECTION</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning_layers</span><span class="o">.</span><span class="n">THRESHOLD_COLLECTION</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">mask</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">pruning_utils</span><span class="o">.</span><span class="n">MASK_COLLECTION</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning_utils</span><span class="o">.</span><span class="n">WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning_utils</span><span class="o">.</span><span class="n">MASK_COLLECTION</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning_utils</span><span class="o">.</span><span class="n">THRESHOLD_COLLECTION</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">WeightedAvg</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">sum_reduction_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>

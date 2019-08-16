@@ -1,0 +1,812 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.model_pruning.pruning &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.model_pruning.pruning</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.model_pruning.pruning</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2017 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="c1"># Forked with minor changes from https://github.com/tensorflow/tensorflow/blob/master/tensorflow/contrib/model_pruning/python/pruning.py  pylint: disable=line-too-long</span>
+<span class="sd">&quot;&quot;&quot;Helper functions to add support for magnitude-based model pruning.</span>
+
+<span class="sd">  # Adds variables and ops to the graph to enable</span>
+<span class="sd">  # elementwise masking of weights</span>
+<span class="sd">  apply_mask(weights)</span>
+
+<span class="sd">  # Returns a list containing the sparsity of each of the weight tensors</span>
+<span class="sd">  get_weight_sparsity()</span>
+
+<span class="sd">  # Returns a list of all the masked weight tensorflow variables</span>
+<span class="sd">  get_masked_weights()</span>
+
+<span class="sd">  # Returns a list of all the mask tensorflow variables</span>
+<span class="sd">  get_masks()</span>
+
+<span class="sd">  # Returns a list of all the thresholds</span>
+<span class="sd">  get_thresholds()</span>
+
+<span class="sd">  # Returns a list of all the weight tensors that have been masked</span>
+<span class="sd">  get_weights()</span>
+
+<span class="sd">  The Pruning class uses a tf.hparams object to set up the</span>
+<span class="sd">  parameters for a model pruning. Here&#39;s a typical usage:</span>
+
+<span class="sd">  # Parse pruning hyperparameters</span>
+<span class="sd">  pruning_hparams = pruning.get_pruning_hparams().parse(FLAGS.pruning_hparams)</span>
+
+<span class="sd">  # Create a pruning object using the pruning_hparams</span>
+<span class="sd">  p = pruning.Pruning(pruning_hparams)</span>
+
+<span class="sd">  # Add mask update ops to the graph</span>
+<span class="sd">  mask_update_op = p.conditional_mask_update_op()</span>
+
+<span class="sd">  # Add the summaries</span>
+<span class="sd">  p.add_pruning_summaries()</span>
+
+<span class="sd">  # Run the op</span>
+<span class="sd">  session.run(mask_update_op)</span>
+
+<span class="sd">  # An object of the pruning also accepts externally defined sparsity:</span>
+<span class="sd">  sparsity = tf.Variable(0.5, name = &quot;ConstantSparsity&quot;)</span>
+<span class="sd">  p = pruning.Pruning(pruning_hparams, sparsity=sparsity)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># pylint: disable=missing-docstring</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.model_pruning</span> <span class="k">import</span> <span class="n">hparam</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.model_pruning</span> <span class="k">import</span> <span class="n">pruning_utils</span>
+
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">dtypes</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">array_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">control_flow_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">init_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">math_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">nn_impl</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">nn_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">state_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">variable_scope</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">variables</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.platform</span> <span class="k">import</span> <span class="n">tf_logging</span> <span class="k">as</span> <span class="n">logging</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.summary</span> <span class="k">import</span> <span class="n">summary</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.training</span> <span class="k">import</span> <span class="n">training_util</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
+
+<span class="n">_MASK_COLLECTION</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">MASK_COLLECTION</span>
+<span class="n">_THRESHOLD_COLLECTION</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">THRESHOLD_COLLECTION</span>
+<span class="n">_MASKED_WEIGHT_COLLECTION</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">MASKED_WEIGHT_COLLECTION</span>
+<span class="n">_WEIGHT_COLLECTION</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">WEIGHT_COLLECTION</span>
+<span class="n">_MASKED_WEIGHT_NAME</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">MASKED_WEIGHT_NAME</span>
+
+
+<div class="viewcode-block" id="apply_mask"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.apply_mask">[docs]</a><span class="k">def</span> <span class="nf">apply_mask</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Apply mask to a given weight tensor.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: Input weight tensor</span>
+<span class="sd">    scope: The current variable scope. Defaults to &quot;&quot;.</span>
+<span class="sd">  Returns:</span>
+<span class="sd">    Tensor representing masked_weights</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">mask</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">weight_mask_variable</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scope</span><span class="p">)</span>
+  <span class="n">threshold</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">weight_threshold_variable</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scope</span><span class="p">)</span>
+  <span class="c1"># Add masked_weights in the weights namescope so as to make it easier</span>
+  <span class="c1"># for the quantization library to add quant ops.</span>
+  <span class="n">masked_weights</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">_MASKED_WEIGHT_NAME</span><span class="p">)</span>
+
+  <span class="c1"># Make sure the mask for a given variable are not added multiple times to the</span>
+  <span class="c1"># collection. This is particularly important when applying mask to RNN&#39;s</span>
+  <span class="c1"># weight variables</span>
+  <span class="k">if</span> <span class="n">mask</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ops</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="n">_MASK_COLLECTION</span><span class="p">):</span>
+    <span class="n">ops</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">_THRESHOLD_COLLECTION</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+    <span class="n">ops</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">_MASK_COLLECTION</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+    <span class="n">ops</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">_MASKED_WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">masked_weights</span><span class="p">)</span>
+    <span class="n">ops</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">_WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">masked_weights</span></div>
+
+
+<div class="viewcode-block" id="get_masked_weights"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.get_masked_weights">[docs]</a><span class="k">def</span> <span class="nf">get_masked_weights</span><span class="p">():</span>
+  <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">_MASKED_WEIGHT_COLLECTION</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_masks"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.get_masks">[docs]</a><span class="k">def</span> <span class="nf">get_masks</span><span class="p">():</span>
+  <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">_MASK_COLLECTION</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_thresholds"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.get_thresholds">[docs]</a><span class="k">def</span> <span class="nf">get_thresholds</span><span class="p">():</span>
+  <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">_THRESHOLD_COLLECTION</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_weights"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.get_weights">[docs]</a><span class="k">def</span> <span class="nf">get_weights</span><span class="p">():</span>
+  <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">_WEIGHT_COLLECTION</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_weight_sparsity"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.get_weight_sparsity">[docs]</a><span class="k">def</span> <span class="nf">get_weight_sparsity</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Get sparsity of the weights.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    None</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A list containing the sparsity of each of the weight tensors</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">masks</span> <span class="o">=</span> <span class="n">get_masks</span><span class="p">()</span>
+  <span class="k">return</span> <span class="p">[</span><span class="n">nn_impl</span><span class="o">.</span><span class="n">zero_fraction</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="get_pruning_hparams"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.get_pruning_hparams">[docs]</a><span class="k">def</span> <span class="nf">get_pruning_hparams</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Get a tf.HParams object with the default values for the hyperparameters.</span>
+
+<span class="sd">    name: string</span>
+<span class="sd">      name of the pruning specification. Used for adding summaries and ops under</span>
+<span class="sd">      a common tensorflow name_scope</span>
+<span class="sd">    begin_pruning_step: integer</span>
+<span class="sd">      the global step at which to begin pruning</span>
+<span class="sd">    end_pruning_step: integer</span>
+<span class="sd">      the global step at which to terminate pruning. Defaults to -1 implying</span>
+<span class="sd">      that pruning continues till the training stops</span>
+<span class="sd">    weight_sparsity_map: list of strings</span>
+<span class="sd">       comma separed list of {weight_variable_name:target sparsity} or</span>
+<span class="sd">       {regex:target sparsity} pairs.</span>
+<span class="sd">       For layers/weights not in this list, sparsity as specified by the</span>
+<span class="sd">       target_sparsity hyperparameter is used.</span>
+<span class="sd">       Eg. [conv1:0.9,conv2/kernel:0.8]</span>
+<span class="sd">    block_dims_map: list of strings</span>
+<span class="sd">       comma separated list of {weight variable name:block_height x block_width}</span>
+<span class="sd">       or {regex:block_height x block_width} pairs. For layers/weights not in</span>
+<span class="sd">       this list, block dims are specified by the block_height, block_width</span>
+<span class="sd">       hyperparameters are used Eg. [dense1:4x4,dense2:1x16,dense3:1x1]</span>
+<span class="sd">    threshold_decay: float</span>
+<span class="sd">      the decay factor to use for exponential decay of the thresholds</span>
+<span class="sd">    pruning_frequency: integer</span>
+<span class="sd">      How often should the masks be updated? (in # of global_steps)</span>
+<span class="sd">    nbins: integer</span>
+<span class="sd">      number of bins to use for histogram computation</span>
+<span class="sd">    block_height: integer</span>
+<span class="sd">      number of rows in a block (defaults to 1), can be -1 in which</span>
+<span class="sd">      case it is set to the size of the corresponding weight tensor.</span>
+<span class="sd">    block_width: integer</span>
+<span class="sd">      number of cols in a block (defaults to 1), can be -1 in which</span>
+<span class="sd">      case it is set to the size of the corresponding weight tensor.</span>
+<span class="sd">    block_pooling_function: string</span>
+<span class="sd">      Whether to perform average (AVG) or max (MAX) pooling in the block</span>
+<span class="sd">      (default: AVG)</span>
+<span class="sd">    initial_sparsity: float</span>
+<span class="sd">      initial sparsity value</span>
+<span class="sd">    target_sparsity: float</span>
+<span class="sd">      target sparsity value</span>
+<span class="sd">    sparsity_function_begin_step: integer</span>
+<span class="sd">      the global step at this which the gradual sparsity function begins to</span>
+<span class="sd">      take effect</span>
+<span class="sd">    sparsity_function_end_step: integer</span>
+<span class="sd">      the global step used as the end point for the gradual sparsity function</span>
+<span class="sd">    sparsity_function_exponent: float</span>
+<span class="sd">      exponent = 1 is linearly varying sparsity between initial and final.</span>
+<span class="sd">      exponent &gt; 1 varies more slowly towards the end than the beginning</span>
+<span class="sd">    use_tpu: False</span>
+<span class="sd">      Indicates whether to use TPU</span>
+
+<span class="sd">    We use the following sparsity function:</span>
+
+<span class="sd">    num_steps = (sparsity_function_end_step -</span>
+<span class="sd">                 sparsity_function_begin_step)/pruning_frequency</span>
+<span class="sd">    sparsity(step) = (initial_sparsity - target_sparsity)*</span>
+<span class="sd">                     [1-step/(num_steps -1)]**exponent + target_sparsity</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    None</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    tf.HParams object initialized to default values</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">hparam</span><span class="o">.</span><span class="n">HParams</span><span class="p">(</span>
+      <span class="n">name</span><span class="o">=</span><span class="s1">&#39;model_pruning&#39;</span><span class="p">,</span>
+      <span class="n">begin_pruning_step</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+      <span class="n">end_pruning_step</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+      <span class="n">weight_sparsity_map</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">],</span>
+      <span class="n">block_dims_map</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">],</span>
+      <span class="n">threshold_decay</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+      <span class="n">pruning_frequency</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+      <span class="n">nbins</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+      <span class="n">block_height</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+      <span class="n">block_width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+      <span class="n">block_pooling_function</span><span class="o">=</span><span class="s1">&#39;AVG&#39;</span><span class="p">,</span>
+      <span class="n">initial_sparsity</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+      <span class="n">target_sparsity</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+      <span class="n">sparsity_function_begin_step</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+      <span class="n">sparsity_function_end_step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+      <span class="n">sparsity_function_exponent</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+      <span class="n">use_tpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Pruning"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning">[docs]</a><span class="k">class</span> <span class="nc">Pruning</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sparsity</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set up the specification for model pruning.</span>
+
+<span class="sd">    If a spec is provided, the sparsity is set up based on the sparsity_function</span>
+<span class="sd">    in the spec. The effect of sparsity_function is overridden if the sparsity</span>
+<span class="sd">    variable is passed to the constructor. This enables setting up arbitrary</span>
+<span class="sd">    sparsity profiles externally and passing it to this pruning functions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      spec: Pruning spec as defined in pruning.proto</span>
+<span class="sd">      global_step: A tensorflow variable that is used while setting up the</span>
+<span class="sd">        sparsity function</span>
+<span class="sd">      sparsity: A tensorflow scalar variable storing the sparsity</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Pruning specification</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span> <span class="o">=</span> <span class="n">spec</span> <span class="k">if</span> <span class="n">spec</span> <span class="k">else</span> <span class="n">get_pruning_hparams</span><span class="p">()</span>
+
+    <span class="c1"># Sanity check for pruning hparams</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_validate_spec</span><span class="p">()</span>
+
+    <span class="c1"># A tensorflow variable that tracks the sparsity function.</span>
+    <span class="c1"># If not provided as input, the graph must already contain the global_step</span>
+    <span class="c1"># variable before calling this constructor.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_global_step</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
+
+    <span class="c1"># Stores the tensorflow sparsity variable.</span>
+    <span class="c1"># Built using self._setup_sparsity() or provided externally</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sparsity</span> <span class="o">=</span> <span class="p">(</span><span class="n">sparsity</span>
+                      <span class="k">if</span> <span class="n">sparsity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_sparsity</span><span class="p">())</span>
+
+    <span class="c1"># List of tensorflow assignments ops for new masks and thresholds</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_assign_ops</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Tensorflow variable keeping track of the last global step when the masks</span>
+    <span class="c1"># were updated</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_last_update_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_last_update_step</span><span class="p">()</span>
+
+    <span class="c1"># Block dimensions</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_block_dims</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">block_height</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">block_width</span><span class="p">]</span>
+
+    <span class="c1"># Block pooling function</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_block_pooling_function</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">block_pooling_function</span>
+
+    <span class="c1"># Mapping of layer/weight names and block dims</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_block_dims_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_block_dims_map</span><span class="p">()</span>
+
+    <span class="c1"># Mapping of weight names and target sparsity</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_weight_sparsity_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_weight_sparsity_map</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Pruning._validate_spec"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning._validate_spec">[docs]</a>  <span class="k">def</span> <span class="nf">_validate_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span>
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">begin_pruning_step</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Illegal value for begin_pruning_step&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">begin_pruning_step</span> <span class="o">&gt;=</span> <span class="n">spec</span><span class="o">.</span><span class="n">end_pruning_step</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">end_pruning_step</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Pruning must begin before it can end. begin_step=</span><span class="si">%d</span><span class="s1">, end_step=</span><span class="si">%d</span><span class="s1">.&#39;</span>
+            <span class="s1">&#39;Set end_pruning_step to -1 if pruning is required till training&#39;</span>
+            <span class="s1">&#39;stops&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">begin_pruning_step</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">end_pruning_step</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">sparsity_function_begin_step</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Illegal value for sparsity_function_begin_step&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">sparsity_function_begin_step</span> <span class="o">&gt;=</span> <span class="n">spec</span><span class="o">.</span><span class="n">sparsity_function_end_step</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Sparsity function requires begin_step &lt; end_step&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">spec</span><span class="o">.</span><span class="n">threshold_decay</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;threshold_decay must be in range [0,1)&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">spec</span><span class="o">.</span><span class="n">initial_sparsity</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;initial_sparsity must be in range [0,1)&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">spec</span><span class="o">.</span><span class="n">target_sparsity</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;target_sparsity must be in range [0,1)&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Pruning._setup_global_step"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning._setup_global_step">[docs]</a>  <span class="k">def</span> <span class="nf">_setup_global_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+    <span class="n">graph_global_step</span> <span class="o">=</span> <span class="n">global_step</span>
+    <span class="k">if</span> <span class="n">graph_global_step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">graph_global_step</span> <span class="o">=</span> <span class="n">training_util</span><span class="o">.</span><span class="n">get_global_step</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">graph_global_step</span><span class="p">,</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Pruning._setup_sparsity"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning._setup_sparsity">[docs]</a>  <span class="k">def</span> <span class="nf">_setup_sparsity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">begin_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">sparsity_function_begin_step</span>
+    <span class="n">end_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">sparsity_function_end_step</span>
+    <span class="n">initial_sparsity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">initial_sparsity</span>
+    <span class="n">target_sparsity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">target_sparsity</span>
+    <span class="n">exponent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">sparsity_function_exponent</span>
+
+    <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+          <span class="mf">1.0</span><span class="p">,</span>
+          <span class="n">math_ops</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+              <span class="mf">0.0</span><span class="p">,</span>
+              <span class="n">math_ops</span><span class="o">.</span><span class="n">div</span><span class="p">(</span>
+                  <span class="n">math_ops</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">-</span> <span class="n">begin_step</span><span class="p">,</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                  <span class="n">end_step</span> <span class="o">-</span> <span class="n">begin_step</span><span class="p">)))</span>
+      <span class="n">sparsity</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+          <span class="n">math_ops</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">initial_sparsity</span> <span class="o">-</span> <span class="n">target_sparsity</span><span class="p">,</span>
+                            <span class="n">math_ops</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">,</span> <span class="n">exponent</span><span class="p">)),</span>
+          <span class="n">target_sparsity</span><span class="p">,</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;sparsity&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">sparsity</span></div>
+
+<div class="viewcode-block" id="Pruning._setup_last_update_step"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning._setup_last_update_step">[docs]</a>  <span class="k">def</span> <span class="nf">_setup_last_update_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">variable_scope</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">use_resource</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">last_update_step</span> <span class="o">=</span> <span class="n">variable_scope</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
+            <span class="s1">&#39;last_mask_update_step&#39;</span><span class="p">,</span> <span class="p">[],</span>
+            <span class="n">initializer</span><span class="o">=</span><span class="n">init_ops</span><span class="o">.</span><span class="n">zeros_initializer</span><span class="p">(),</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">scope</span><span class="o">.</span><span class="n">reuse_variables</span><span class="p">()</span>
+        <span class="n">last_update_step</span> <span class="o">=</span> <span class="n">variable_scope</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
+            <span class="s1">&#39;last_mask_update_step&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">last_update_step</span></div>
+
+<div class="viewcode-block" id="Pruning._get_block_dims_map"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning._get_block_dims_map">[docs]</a>  <span class="k">def</span> <span class="nf">_get_block_dims_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the map of layer name: block dims.&quot;&quot;&quot;</span>
+    <span class="n">block_dims_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">val_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">block_dims_map</span>
+    <span class="n">filtered_val_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">val_list</span> <span class="k">if</span> <span class="n">l</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">filtered_val_list</span><span class="p">:</span>
+      <span class="n">weight_name</span><span class="p">,</span> <span class="n">block_dims_str</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+      <span class="n">block_dims_str</span> <span class="o">=</span> <span class="n">block_dims_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">block_dims_str</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected 2 values for block dim for </span><span class="si">%s</span><span class="s1">, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                         <span class="p">(</span><span class="n">weight_name</span><span class="p">,</span> <span class="n">block_dims_str</span><span class="p">))</span>
+      <span class="n">block_dims</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">block_dims_str</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">block_dims_str</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+      <span class="n">block_dims_map</span><span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">weight_name</span><span class="p">)]</span> <span class="o">=</span> <span class="n">block_dims</span>
+
+    <span class="k">return</span> <span class="n">block_dims_map</span></div>
+
+<div class="viewcode-block" id="Pruning._get_block_dims"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning._get_block_dims">[docs]</a>  <span class="k">def</span> <span class="nf">_get_block_dims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the block dims for the given layer/weight name.&quot;&quot;&quot;</span>
+    <span class="n">block_dims_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">block_dims</span> <span class="k">for</span> <span class="n">regexp</span><span class="p">,</span> <span class="n">block_dims</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_dims_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">regexp</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">weight_name</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">block_dims_list</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_dims</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">block_dims_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Multiple matches in block_dims_map for weight </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                       <span class="n">weight_name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">block_dims_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Pruning._get_weight_sparsity_map"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning._get_weight_sparsity_map">[docs]</a>  <span class="k">def</span> <span class="nf">_get_weight_sparsity_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the map of weight_name:sparsity parsed from the hparams.&quot;&quot;&quot;</span>
+    <span class="n">weight_sparsity_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">val_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">weight_sparsity_map</span>
+    <span class="n">filtered_val_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">val_list</span> <span class="k">if</span> <span class="n">l</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">filtered_val_list</span><span class="p">:</span>
+      <span class="n">weight_name</span><span class="p">,</span> <span class="n">sparsity</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">sparsity</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Weight sparsity can not exceed 1.0&#39;</span><span class="p">)</span>
+      <span class="n">weight_sparsity_map</span><span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">weight_name</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sparsity</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">weight_sparsity_map</span></div>
+
+<div class="viewcode-block" id="Pruning._get_sparsity"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning._get_sparsity">[docs]</a>  <span class="k">def</span> <span class="nf">_get_sparsity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns target sparsity for the given layer/weight name.&quot;&quot;&quot;</span>
+    <span class="n">target_sparsity</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">sparsity</span> <span class="k">for</span> <span class="n">regexp</span><span class="p">,</span> <span class="n">sparsity</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_sparsity_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">regexp</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">weight_name</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">target_sparsity</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sparsity</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_sparsity</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Multiple matches in weight_sparsity_map for weight </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">weight_name</span><span class="p">)</span>
+    <span class="c1"># TODO(suyoggupta): This will work when initial_sparsity = 0. Generalize</span>
+    <span class="c1"># to handle other cases as well.</span>
+    <span class="k">return</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sparsity</span><span class="p">,</span>
+        <span class="n">math_ops</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">target_sparsity</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">target_sparsity</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Pruning._update_mask"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning._update_mask">[docs]</a>  <span class="k">def</span> <span class="nf">_update_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates the mask for a given weight tensor.</span>
+
+<span class="sd">    This functions first computes the cdf of the weight tensor, and estimates</span>
+<span class="sd">    the threshold value such that &#39;desired_sparsity&#39; fraction of weights</span>
+<span class="sd">    have magnitude less than the threshold.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      weights: The weight tensor that needs to be masked.</span>
+<span class="sd">      threshold: The current threshold value. The function will compute a new</span>
+<span class="sd">        threshold and return the exponential moving average using the current</span>
+<span class="sd">        value of threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      new_threshold: The new value of the threshold based on weights, and</span>
+<span class="sd">        sparsity at the current global_step</span>
+<span class="sd">      new_mask: A numpy array of the same size and shape as weights containing</span>
+<span class="sd">        0 or 1 to indicate which of the values in weights falls below</span>
+<span class="sd">        the threshold</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: if sparsity is not defined</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sparsity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Sparsity variable undefined&#39;</span><span class="p">)</span>
+
+    <span class="n">sparsity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sparsity</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_pruning_ops&#39;</span><span class="p">):</span>
+      <span class="n">abs_weights</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+      <span class="n">k</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">math_ops</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
+              <span class="n">math_ops</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">array_ops</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">abs_weights</span><span class="p">),</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span>
+              <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">sparsity</span><span class="p">)),</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="c1"># Sort the entire array</span>
+      <span class="n">values</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">nn_ops</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span>
+          <span class="n">array_ops</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">abs_weights</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">k</span><span class="o">=</span><span class="n">array_ops</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">abs_weights</span><span class="p">))</span>
+      <span class="c1"># Grab the (k-1) th value</span>
+      <span class="n">current_threshold</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">smoothed_threshold</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">add_n</span><span class="p">([</span>
+          <span class="n">math_ops</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">current_threshold</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">threshold_decay</span><span class="p">),</span>
+          <span class="n">math_ops</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">threshold</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">threshold_decay</span><span class="p">)</span>
+      <span class="p">])</span>
+
+      <span class="n">new_mask</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">math_ops</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">abs_weights</span><span class="p">,</span> <span class="n">smoothed_threshold</span><span class="p">),</span>
+          <span class="n">dtypes</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">smoothed_threshold</span><span class="p">,</span> <span class="n">new_mask</span></div>
+
+<div class="viewcode-block" id="Pruning._maybe_update_block_mask"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning._maybe_update_block_mask">[docs]</a>  <span class="k">def</span> <span class="nf">_maybe_update_block_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Performs block-granular masking of the weights.</span>
+
+<span class="sd">    Block pruning occurs only if the block_height or block_width is &gt; 1 and</span>
+<span class="sd">    if the weight tensor, when squeezed, has ndims = 2. Otherwise, elementwise</span>
+<span class="sd">    pruning occurs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      weights: The weight tensor that needs to be masked.</span>
+<span class="sd">      threshold: The current threshold value. The function will compute a new</span>
+<span class="sd">        threshold and return the exponential moving average using the current</span>
+<span class="sd">        value of threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      new_threshold: The new value of the threshold based on weights, and</span>
+<span class="sd">        sparsity at the current global_step</span>
+<span class="sd">      new_mask: A numpy array of the same size and shape as weights containing</span>
+<span class="sd">        0 or 1 to indicate which of the values in weights falls below</span>
+<span class="sd">        the threshold</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: if block pooling function is not AVG or MAX</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">block_dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_block_dims</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">squeezed_weights</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">squeezed_weights</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">ndims</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">block_dims</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_mask</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">block_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">block_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">squeezed_weights</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_pooling_function</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;AVG&#39;</span><span class="p">,</span> <span class="s1">&#39;MAX&#39;</span><span class="p">]:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown pooling function for block sparsity: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">_block_pooling_function</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_pruning_ops&#39;</span><span class="p">):</span>
+      <span class="n">abs_weights</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">squeezed_weights</span><span class="p">)</span>
+
+      <span class="n">pool_window</span> <span class="o">=</span> <span class="n">block_dims</span>
+      <span class="n">pool_fn</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">factorized_pool</span>
+      <span class="n">squeeze_axis</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">:</span>
+        <span class="n">pool_fn</span> <span class="o">=</span> <span class="n">nn_ops</span><span class="o">.</span><span class="n">pool</span>
+        <span class="n">abs_weights</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">abs_weights</span><span class="p">,</span>
+            <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">abs_weights</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span>
+             <span class="n">abs_weights</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">squeeze_axis</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+
+      <span class="n">pooled_weights</span> <span class="o">=</span> <span class="n">pool_fn</span><span class="p">(</span>
+          <span class="n">abs_weights</span><span class="p">,</span>
+          <span class="n">window_shape</span><span class="o">=</span><span class="n">pool_window</span><span class="p">,</span>
+          <span class="n">pooling_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_block_pooling_function</span><span class="p">,</span>
+          <span class="n">strides</span><span class="o">=</span><span class="n">pool_window</span><span class="p">,</span>
+          <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;SAME&#39;</span><span class="p">,</span>
+          <span class="n">name</span><span class="o">=</span><span class="n">weights</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_pooled&#39;</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">pooled_weights</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">ndims</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">pooled_weights</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">pooled_weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">squeeze_axis</span><span class="p">)</span>
+
+      <span class="n">smoothed_threshold</span><span class="p">,</span> <span class="n">new_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_mask</span><span class="p">(</span><span class="n">pooled_weights</span><span class="p">,</span>
+                                                       <span class="n">threshold</span><span class="p">)</span>
+
+      <span class="n">updated_mask</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">expand_tensor</span><span class="p">(</span><span class="n">new_mask</span><span class="p">,</span> <span class="n">block_dims</span><span class="p">)</span>
+      <span class="n">sliced_mask</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span>
+          <span class="n">updated_mask</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+          <span class="p">[</span><span class="n">squeezed_weights</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span>
+           <span class="n">squeezed_weights</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()[</span><span class="mi">1</span><span class="p">]])</span>
+
+    <span class="k">return</span> <span class="n">smoothed_threshold</span><span class="p">,</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">sliced_mask</span><span class="p">,</span>
+                                                 <span class="n">array_ops</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">weights</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Pruning._get_mask_assign_ops"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning._get_mask_assign_ops">[docs]</a>  <span class="k">def</span> <span class="nf">_get_mask_assign_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Make sure the assignment ops have not already been added to the list</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assign_ops</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Assign op list not empty. _get_mask_assign_ops() called twice?&#39;</span><span class="p">)</span>
+
+    <span class="n">masks</span> <span class="o">=</span> <span class="n">get_masks</span><span class="p">()</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">get_weights</span><span class="p">()</span>
+    <span class="n">thresholds</span> <span class="o">=</span> <span class="n">get_thresholds</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">masks</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">thresholds</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Number of masks </span><span class="si">%s</span><span class="s1"> and number of thresholds </span><span class="si">%s</span><span class="s1"> mismatch&#39;</span> <span class="o">%</span>
+          <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">masks</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">thresholds</span><span class="p">)))</span>
+
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">masks</span><span class="p">):</span>
+      <span class="n">threshold</span> <span class="o">=</span> <span class="n">thresholds</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+      <span class="n">weight</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+      <span class="n">is_partitioned</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">variables</span><span class="o">.</span><span class="n">PartitionedVariable</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">is_partitioned</span><span class="p">:</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">()</span>
+
+      <span class="n">new_threshold</span><span class="p">,</span> <span class="n">new_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_update_block_mask</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_assign_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">pruning_utils</span><span class="o">.</span><span class="n">variable_assign</span><span class="p">(</span><span class="n">threshold</span><span class="p">,</span> <span class="n">new_threshold</span><span class="p">))</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">_assign_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">pruning_utils</span><span class="o">.</span><span class="n">partitioned_variable_assign</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">new_mask</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">is_partitioned</span> <span class="k">else</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">variable_assign</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">new_mask</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Pruning.mask_update_op"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning.mask_update_op">[docs]</a>  <span class="k">def</span> <span class="nf">mask_update_op</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assign_ops</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_mask_assign_ops</span><span class="p">()</span>
+      <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
+          <span class="n">state_ops</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_last_update_step</span><span class="p">,</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">,</span>
+              <span class="n">name</span><span class="o">=</span><span class="s1">&#39;last_mask_update_step_assign&#39;</span><span class="p">)</span>
+      <span class="p">]):</span>
+        <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_assign_ops</span><span class="p">):</span>
+          <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Updating masks.&#39;</span><span class="p">)</span>
+          <span class="k">return</span> <span class="n">control_flow_ops</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="s1">&#39;mask_update&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Pruning.conditional_mask_update_op"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning.conditional_mask_update_op">[docs]</a>  <span class="k">def</span> <span class="nf">conditional_mask_update_op</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">maybe_update_masks</span><span class="p">():</span>
+      <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">is_step_within_pruning_range</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+            <span class="n">math_ops</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">,</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">begin_pruning_step</span><span class="p">),</span>
+            <span class="c1"># If end_pruning_step is negative, keep pruning forever!</span>
+            <span class="n">math_ops</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                <span class="n">math_ops</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">end_pruning_step</span><span class="p">),</span>
+                <span class="n">math_ops</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">end_pruning_step</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span>
+        <span class="n">is_pruning_step</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span>
+            <span class="n">math_ops</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_last_update_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">pruning_frequency</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">is_step_within_pruning_range</span><span class="p">,</span>
+                                    <span class="n">is_pruning_step</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">mask_update_op</span><span class="p">():</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_update_op</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">no_update_op</span><span class="p">():</span>
+      <span class="k">return</span> <span class="n">control_flow_ops</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">control_flow_ops</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">maybe_update_masks</span><span class="p">(),</span> <span class="n">mask_update_op</span><span class="p">,</span>
+                                 <span class="n">no_update_op</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Pruning.add_pruning_summaries"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning.add_pruning_summaries">[docs]</a>  <span class="k">def</span> <span class="nf">add_pruning_summaries</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds summaries of weight sparsities and thresholds.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_summaries&#39;</span><span class="p">):</span>
+      <span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;sparsity&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sparsity</span><span class="p">)</span>
+      <span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;last_mask_update_step&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_update_step</span><span class="p">)</span>
+      <span class="n">masks</span> <span class="o">=</span> <span class="n">get_masks</span><span class="p">()</span>
+      <span class="n">thresholds</span> <span class="o">=</span> <span class="n">get_thresholds</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">mask</span><span class="p">,</span> <span class="n">threshold</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">masks</span><span class="p">,</span> <span class="n">thresholds</span><span class="p">):</span>
+        <span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/sparsity&#39;</span><span class="p">,</span> <span class="n">nn_impl</span><span class="o">.</span><span class="n">zero_fraction</span><span class="p">(</span><span class="n">mask</span><span class="p">))</span>
+        <span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">threshold</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/threshold&#39;</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Pruning.print_hparams"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning.html#lingvo.core.model_pruning.pruning.Pruning.print_hparams">[docs]</a>  <span class="k">def</span> <span class="nf">print_hparams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">to_json</span><span class="p">())</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
