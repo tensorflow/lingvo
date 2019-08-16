@@ -25,7 +25,9 @@ import sympy
 
 
 class Symbol(sympy.Dummy):
-  pass
+
+  def __deepcopy__(self, memo):
+    return self
 
 
 def IsSymbol(x):
@@ -113,7 +115,7 @@ def EvalExpr(value_type, x):
   elif isinstance(x, sympy.Expr):
     symbol_to_value_map = SymbolToValueMap.Get(value_type)
     if not symbol_to_value_map:
-      raise ValueError('Empty symbol_to_value_map for %s' % x)
+      return x
     # In theory the below should be equivalent to:
     #   y = x.subs(symbol_to_value_map).
     # In practice subs() doesn't work for when values are Tensors.
@@ -122,3 +124,11 @@ def EvalExpr(value_type, x):
     return y
   else:
     return x
+
+
+def ToStatic(expr):
+  return EvalExpr(STATIC_VALUES, expr)
+
+
+def ToTensor(expr):
+  return EvalExpr(TENSOR_VALUES, expr)
