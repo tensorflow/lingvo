@@ -170,7 +170,9 @@
 
 
 <div class="viewcode-block" id="Symbol"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic.Symbol">[docs]</a><span class="k">class</span> <span class="nc">Symbol</span><span class="p">(</span><span class="n">sympy</span><span class="o">.</span><span class="n">Dummy</span><span class="p">):</span>
-  <span class="k">pass</span></div>
+
+  <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span></div>
 
 
 <div class="viewcode-block" id="IsSymbol"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic.IsSymbol">[docs]</a><span class="k">def</span> <span class="nf">IsSymbol</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
@@ -258,7 +260,7 @@
   <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sympy</span><span class="o">.</span><span class="n">Expr</span><span class="p">):</span>
     <span class="n">symbol_to_value_map</span> <span class="o">=</span> <span class="n">SymbolToValueMap</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">value_type</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">symbol_to_value_map</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty symbol_to_value_map for </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">x</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">x</span>
     <span class="c1"># In theory the below should be equivalent to:</span>
     <span class="c1">#   y = x.subs(symbol_to_value_map).</span>
     <span class="c1"># In practice subs() doesn&#39;t work for when values are Tensors.</span>
@@ -267,6 +269,14 @@
     <span class="k">return</span> <span class="n">y</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">x</span></div>
+
+
+<div class="viewcode-block" id="ToStatic"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic.ToStatic">[docs]</a><span class="k">def</span> <span class="nf">ToStatic</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">EvalExpr</span><span class="p">(</span><span class="n">STATIC_VALUES</span><span class="p">,</span> <span class="n">expr</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ToTensor"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic.ToTensor">[docs]</a><span class="k">def</span> <span class="nf">ToTensor</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">EvalExpr</span><span class="p">(</span><span class="n">TENSOR_VALUES</span><span class="p">,</span> <span class="n">expr</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
