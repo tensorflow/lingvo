@@ -26,14 +26,14 @@ from lingvo import model_registry_test
 # pylint: enable=unused-import
 from lingvo import models_test_helper
 import lingvo.compat as tf
-from lingvo.core import base_model_params
+from lingvo.core import base_model
 
 
 class ModelsTest(models_test_helper.BaseModelsTest):
 
-  def testGetModelParamsClass(self):
-    cls = model_registry.GetClass('test.DummyModel')
-    self.assertTrue(issubclass(cls, base_model_params.SingleTaskModelParams))
+  def testGetModelParams(self):
+    p = model_registry.GetParams('test.DummyModel', 'Train')
+    self.assertTrue(issubclass(p.cls, base_model.SingleTaskModel))
 
 
 ModelsTest.CreateTestMethodsForAllRegisteredModels(model_registry)

@@ -88,7 +88,7 @@ class BaseModelsTest(test_utils.TestCase):
       p = p.Instantiate().params
 
     for dataset in ('Train', 'Dev', 'Test'):
-      input_p = registry.GetClass(name).GetDatasetParams(dataset)
+      input_p = registry.GetParams(name, dataset).input
       if issubclass(p.cls, base_model.SingleTaskModel):
         self.assertTrue(
             issubclass(input_p.cls, base_input_generator.BaseInputGenerator),

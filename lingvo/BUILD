@@ -119,7 +119,7 @@ py_test(
         ":model_registry",
         ":model_registry_test_lib",
         ":models_test_helper",
-        "//lingvo/core:base_model_params",
+        "//lingvo/core:base_model",
     ],
 )
 
