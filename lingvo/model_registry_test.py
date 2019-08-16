@@ -88,7 +88,7 @@ class ModelRegistryTest(test_utils.TestCase):
       # Not yet registered.
       cfg = model_registry.GetParams('something.does.not.exist', 'Test')
 
-    with self.assertRaises(AttributeError):
+    with self.assertRaises(base_model_params.DatasetError):
       cfg = model_registry.GetParams('test.DummyModel', 'UnknownDataset')
 
   def testGetParamsCanOverrideWithFlags(self):

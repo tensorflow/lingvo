@@ -30,7 +30,7 @@ class BaseModelParamsTest(test_utils.TestCase):
     self.assertEqual(dummy_model.Train(), dummy_model.GetDatasetParams('Train'))
     self.assertEqual(dummy_model.Dev(), dummy_model.GetDatasetParams('Dev'))
     self.assertEqual(dummy_model.Test(), dummy_model.GetDatasetParams('Test'))
-    with self.assertRaises(AttributeError):
+    with self.assertRaises(base_model_params.DatasetError):
       dummy_model.GetDatasetParams('Invalid')
 
   def testGetDatasetParams_MultiTaskModelParams(self):
@@ -38,7 +38,7 @@ class BaseModelParamsTest(test_utils.TestCase):
     self.assertEqual(dummy_model.Train(), dummy_model.GetDatasetParams('Train'))
     self.assertEqual(dummy_model.Dev(), dummy_model.GetDatasetParams('Dev'))
     self.assertEqual(dummy_model.Test(), dummy_model.GetDatasetParams('Test'))
-    with self.assertRaises(AttributeError):
+    with self.assertRaises(base_model_params.DatasetError):
       dummy_model.GetDatasetParams('Invalid')
 
 

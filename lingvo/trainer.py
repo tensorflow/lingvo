@@ -1321,7 +1321,7 @@ class RunnerManager(object):
     with cluster_factory.Cluster(cluster.params):
       try:
         cfg = self.model_registry.GetParams(self._model_name, dataset_name)
-      except AttributeError as e:
+      except base_model_params.DatasetError as e:
         dataset_name_retry = dataset_name.title()
         tf.logging.warning(
             'Exception configuring dataset %s, retrying as %s: %s',

@@ -23,6 +23,11 @@ from lingvo.core import base_model
 from lingvo.core import hyperparams
 
 
+class DatasetError(Exception):
+  """Dataset error exception class."""
+  pass
+
+
 class _BaseModelParams(object):
   """Base class for storing model Params for a single experiment."""
 
@@ -38,9 +43,12 @@ class _BaseModelParams(object):
       generate a hyperparam for the input data.
 
     Raises:
-      AttributeError: if there is not a `${dataset}` method defined under `cls`.
+      DatasetError: if there is not a `${dataset}` method defined under `cls`.
     """
-    f = getattr(cls, dataset)
+    try:
+      f = getattr(cls, dataset)
+    except AttributeError as e:
+      raise DatasetError(str(e))
     return f()
 
 
