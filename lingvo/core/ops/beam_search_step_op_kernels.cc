@@ -543,12 +543,13 @@ class BeamSearchStepOp : public OpKernel {
     std::vector<int32> terminal_syms;
     const bool is_last_decoder_step =
         (t == (in_hyps.dim_size(0) - 1)) && force_eos_in_last_step_;
-    ComputeTopKPlusM(hyps, scores, num_hyps_per_beam_, 0, eos_id_, eoc_id_,
-                     num_beams, valid_eos_max_logit_delta_,
-                     local_eos_threshold_, t == 0,
-                     is_last_decoder_step, is_last_chunk, merge_paths_,
-                     allow_empty_terminated_hyp_, &eos_in_topk, &top_k_hyps,
-                     &extra_m_hyps, &eos_hyps, &terminal_syms);
+    ComputeTopKPlusM(hyps, scores, /*k=*/num_hyps_per_beam_, /*m=*/0,
+                     /*eos_id=*/eos_id_, /*eoc_id=*/eoc_id_, num_beams,
+                     valid_eos_max_logit_delta_, local_eos_threshold_,
+                     /*is_first_step=*/t == 0, is_last_decoder_step,
+                     is_last_chunk, merge_paths_, allow_empty_terminated_hyp_,
+                     &eos_in_topk, &top_k_hyps, &extra_m_hyps, &eos_hyps,
+                     &terminal_syms);
 
     Tensor* out_best_scores = NULL;
     Tensor* out_cumulative_scores = NULL;
