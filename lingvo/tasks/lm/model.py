@@ -70,6 +70,22 @@ class LanguageModel(base_model.BaseTask):
       # Construct the model.
       self.CreateChild('lm', p.lm)
 
+  @classmethod
+  def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
+    """Updates the params with the input vocab_size and WPM model.
+
+    Args:
+      p: model params.
+      vocab_size: size of the vocabulary.
+      wpm_model: file name prefix pointing to a wordpiece model.
+
+    Returns:
+      Model params updated with the vocab size and wpm model.
+    """
+    lm = p.lm
+    lm = lm.cls.UpdateTargetVocabSize(lm, vocab_size, wpm_model)
+    return p
+
   def _TrimIfPossibleThenTranspose(self, ids, paddings, labels, weights):
     data = (ids, paddings, labels, weights)
     if not py_utils.use_tpu():

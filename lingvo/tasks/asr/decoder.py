@@ -279,6 +279,24 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     p.source_dim = 512
     return p
 
+  @classmethod
+  def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
+    """Sets the vocab size in the params.
+
+    Args:
+      p: model params.
+      vocab_size: size of the vocabulary.
+      wpm_model: file name prefix pointing to a wordpiece model.
+
+    Returns:
+      Model params updated with the vocab size and wpm model.
+    """
+    p.emb.vocab_size = vocab_size
+    p.softmax.num_classes = vocab_size
+    lm = p.fusion.lm
+    lm = lm.cls.UpdateTargetVocabSize(lm, vocab_size, wpm_model)
+    return p
+
   @base_layer.initializer
   def __init__(self, params):
     params = params.Copy()

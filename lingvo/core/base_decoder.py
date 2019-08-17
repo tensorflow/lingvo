@@ -50,6 +50,20 @@ class BaseDecoder(base_layer.BaseLayer):
         'multiple examples in a single sequence.')
     return p
 
+  @classmethod
+  def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
+    """Sets the vocab size and wpm model in the params.
+
+    Args:
+      p: model params.
+      vocab_size: size of the vocabulary.
+      wpm_model: file name prefix pointing to a wordpiece model.
+
+    Returns:
+      Model target vocabulary params updated with the vocab size and wpm model.
+    """
+    raise NotImplementedError('Abstract method')
+
   def FProp(self, theta, encoder_outputs, targets):
     """Decodes `targets` given encoded source.
 
@@ -92,6 +106,20 @@ class BaseBeamSearchDecoder(BaseDecoder):
              target_sequence_sampler.TargetSequenceSampler.Params(),
              'TargetSequenceSampler params.')
     return p
+
+  @classmethod
+  def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
+    """Sets the vocab size and wpm model in the params.
+
+    Args:
+      p: model params.
+      vocab_size: size of the vocabulary.
+      wpm_model: file name prefix pointing to a wordpiece model.
+
+    Returns:
+      Model target vocabulary params updated with the vocab size and wpm model.
+    """
+    raise NotImplementedError('Abstract method')
 
   @base_layer.initializer
   def __init__(self, params):

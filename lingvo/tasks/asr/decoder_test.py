@@ -645,6 +645,19 @@ class DecoderTest(test_utils.TestCase):
       # Target batch size is 4. Therefore, we should expect 4 here.
       self.assertEqual(per_sequence_loss_val.shape, (4,))
 
+  def testUpdateTargetVocabSize(self):
+    p = self._DecoderParams(
+        vn_config=py_utils.VariationalNoiseParams(None, True, False))
+    vocab_size = 1024
+    self.assertNotEqual(p.emb.vocab_size, vocab_size)
+    self.assertNotEqual(p.softmax.num_classes, vocab_size)
+    self.assertNotEqual(p.fusion.lm.vocab_size, vocab_size)
+    p = p.cls.UpdateTargetVocabSize(p, vocab_size)
+    dec = p.Instantiate()
+    self.assertEqual(vocab_size, dec.params.emb.vocab_size)
+    self.assertEqual(vocab_size, dec.params.softmax.num_classes)
+    self.assertEqual(vocab_size, p.fusion.lm.vocab_size)
+
 
 if __name__ == '__main__':
   tf.test.main()

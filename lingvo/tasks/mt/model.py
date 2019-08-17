@@ -60,6 +60,13 @@ class MTBaseModel(base_model.BaseTask):
       with self._DecoderDevice():
         self.CreateChild('dec', p.decoder)
 
+  @classmethod
+  def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
+    """Updates the params with the input vocab_size and wpm model."""
+    p.decoder = p.decoder.cls.UpdateTargetVocabSize(p.decoder, vocab_size,
+                                                    wpm_model)
+    return p
+
   def ComputePredictions(self, theta, batch):
     p = self.params
 

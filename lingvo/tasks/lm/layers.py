@@ -40,6 +40,21 @@ class BaseLanguageModel(base_layer.BaseLayer):
     p.Define('vocab_size', 0, 'Number of vocabulary tokens.')
     return p
 
+  @classmethod
+  def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
+    """Sets the params with the given vocab size and wpm model.
+
+    Args:
+      p: model params.
+      vocab_size: size of the vocabulary.
+      wpm_model: file name prefix pointing to a wordpiece model.
+
+    Returns:
+      Model params updated with the vocab size and wpm model.
+    """
+    p.vocab_size = vocab_size
+    return p
+
   @base_layer.initializer
   def __init__(self, params):
     super(BaseLanguageModel, self).__init__(params)

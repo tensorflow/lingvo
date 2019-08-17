@@ -79,6 +79,21 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       p.label_smoothing.num_classes = p.softmax.num_classes
       self.CreateChild('smoother', p.label_smoothing)
 
+  @classmethod
+  def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
+    """Sets the params with the given vocab size and wpm model.
+
+    Args:
+      p: model params.
+      vocab_size: size of the vocabulary.
+      wpm_model: file name prefix pointing to a wordpiece model.
+
+    Returns:
+      Model params updated with the vocab size and wpm model.
+    """
+    p.softmax.num_classes = vocab_size
+    return p
+
   def _FPropSoftmax(self,
                     theta,
                     softmax_input,
@@ -373,6 +388,22 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     p.beam_search.length_normalization = 0.2
     p.beam_search.coverage_penalty = 0.2
 
+    return p
+
+  @classmethod
+  def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
+    """Updates the params with the input vocab_size and WPM model.
+
+    Args:
+      p: model params.
+      vocab_size: size of the vocabulary.
+      wpm_model: file name prefix pointing to a wordpiece model.
+
+    Returns:
+      Model params updated with the vocab size and wpm model.
+    """
+    p = super(MTDecoderV1, cls).UpdateTargetVocabSize(p, vocab_size)
+    p.emb.vocab_size = vocab_size
     return p
 
   @base_layer.initializer
@@ -895,6 +926,12 @@ class TransformerDecoder(MTBaseDecoder):
 
       p.softmax.input_dim = p.model_dim
       self.CreateChild('softmax', p.softmax)
+
+  @classmethod
+  def UpdateTargetVocabSize(cls, p, vocab_size):
+    """Updates the params with the input vocab_size and WPM model."""
+    p = super(TransformerDecoder, cls).UpdateTargetVocabSize(p, vocab_size)
+    return p
 
   def _ExpandToNumHyps(self, source_enc_len, num_hyps_per_beam):
     """Repeat each value according to num hyps.
@@ -1496,6 +1533,21 @@ class InsertionDecoder(base_decoder.BaseBeamSearchDecoder):
 
     p.target_seq_len = 300
 
+    return p
+
+  @classmethod
+  def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
+    """Sets the vocab size in the params.
+
+    Args:
+      p: model params.
+      vocab_size: size of the vocabulary.
+      wpm_model: file name prefix pointing to a wordpiece model.
+
+    Returns:
+      Model params updated with the vocab size and wpm model.
+    """
+    p.softmax.num_classes = vocab_size
     return p
 
   @base_layer.initializer
