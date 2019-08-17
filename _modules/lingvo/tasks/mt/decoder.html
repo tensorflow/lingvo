@@ -224,6 +224,21 @@
       <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;smoother&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span><span class="p">)</span>
 
+<div class="viewcode-block" id="MTBaseDecoder.UpdateTargetVocabSize"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder.UpdateTargetVocabSize">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">UpdateTargetVocabSize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">wpm_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sets the params with the given vocab size and wpm model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      p: model params.</span>
+<span class="sd">      vocab_size: size of the vocabulary.</span>
+<span class="sd">      wpm_model: file name prefix pointing to a wordpiece model.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Model params updated with the vocab size and wpm model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">vocab_size</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
 <div class="viewcode-block" id="MTBaseDecoder._FPropSoftmax"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                     <span class="n">theta</span><span class="p">,</span>
                     <span class="n">softmax_input</span><span class="p">,</span>
@@ -518,6 +533,22 @@
     <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">length_normalization</span> <span class="o">=</span> <span class="mf">0.2</span>
     <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">coverage_penalty</span> <span class="o">=</span> <span class="mf">0.2</span>
 
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="MTDecoderV1.UpdateTargetVocabSize"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.UpdateTargetVocabSize">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">UpdateTargetVocabSize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">wpm_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates the params with the input vocab_size and WPM model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      p: model params.</span>
+<span class="sd">      vocab_size: size of the vocabulary.</span>
+<span class="sd">      wpm_model: file name prefix pointing to a wordpiece model.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Model params updated with the vocab size and wpm model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MTDecoderV1</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">UpdateTargetVocabSize</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1040,6 +1071,12 @@
 
       <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TransformerDecoder.UpdateTargetVocabSize"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.UpdateTargetVocabSize">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">UpdateTargetVocabSize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates the params with the input vocab_size and WPM model.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerDecoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">UpdateTargetVocabSize</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder._ExpandToNumHyps"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._ExpandToNumHyps">[docs]</a>  <span class="k">def</span> <span class="nf">_ExpandToNumHyps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_enc_len</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Repeat each value according to num hyps.</span>
@@ -1641,6 +1678,21 @@
 
     <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">=</span> <span class="mi">300</span>
 
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="InsertionDecoder.UpdateTargetVocabSize"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.InsertionDecoder.UpdateTargetVocabSize">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">UpdateTargetVocabSize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">wpm_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sets the vocab size in the params.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      p: model params.</span>
+<span class="sd">      vocab_size: size of the vocabulary.</span>
+<span class="sd">      wpm_model: file name prefix pointing to a wordpiece model.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Model params updated with the vocab size and wpm model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">vocab_size</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>

@@ -424,6 +424,24 @@
     <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="mi">512</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+<div class="viewcode-block" id="AsrDecoderBase.UpdateTargetVocabSize"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.UpdateTargetVocabSize">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">UpdateTargetVocabSize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">wpm_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sets the vocab size in the params.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      p: model params.</span>
+<span class="sd">      vocab_size: size of the vocabulary.</span>
+<span class="sd">      wpm_model: file name prefix pointing to a wordpiece model.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Model params updated with the vocab size and wpm model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">vocab_size</span>
+    <span class="n">lm</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">lm</span>
+    <span class="n">lm</span> <span class="o">=</span> <span class="n">lm</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">UpdateTargetVocabSize</span><span class="p">(</span><span class="n">lm</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">wpm_model</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>

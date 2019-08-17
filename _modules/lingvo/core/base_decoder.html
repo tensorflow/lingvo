@@ -195,6 +195,20 @@
         <span class="s1">&#39;multiple examples in a single sequence.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+<div class="viewcode-block" id="BaseDecoder.UpdateTargetVocabSize"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseDecoder.UpdateTargetVocabSize">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">UpdateTargetVocabSize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">wpm_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sets the vocab size and wpm model in the params.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      p: model params.</span>
+<span class="sd">      vocab_size: size of the vocabulary.</span>
+<span class="sd">      wpm_model: file name prefix pointing to a wordpiece model.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Model target vocabulary params updated with the vocab size and wpm model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="BaseDecoder.FProp"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseDecoder.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decodes `targets` given encoded source.</span>
 
@@ -237,6 +251,20 @@
              <span class="n">target_sequence_sampler</span><span class="o">.</span><span class="n">TargetSequenceSampler</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;TargetSequenceSampler params.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="BaseBeamSearchDecoder.UpdateTargetVocabSize"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.UpdateTargetVocabSize">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">UpdateTargetVocabSize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">wpm_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sets the vocab size and wpm model in the params.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      p: model params.</span>
+<span class="sd">      vocab_size: size of the vocabulary.</span>
+<span class="sd">      wpm_model: file name prefix pointing to a wordpiece model.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Model target vocabulary params updated with the vocab size and wpm model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>

@@ -178,6 +178,28 @@
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
+<dl class="classmethod">
+<dt id="lingvo.tasks.mt.decoder.MTBaseDecoder.UpdateTargetVocabSize">
+<em class="property">classmethod </em><code class="descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em>p</em>, <em>vocab_size</em>, <em>wpm_model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the params with the given vocab size and wpm model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p</strong> – model params.</li>
+<li><strong>vocab_size</strong> – size of the vocabulary.</li>
+<li><strong>wpm_model</strong> – file name prefix pointing to a wordpiece model.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Model params updated with the vocab size and wpm model.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax">
 <code class="descname">_FPropSoftmax</code><span class="sig-paren">(</span><em>theta</em>, <em>softmax_input</em>, <em>target_labels</em>, <em>target_weights</em>, <em>target_paddings</em>, <em>target_segment_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._FPropSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax" title="Permalink to this definition">¶</a></dt>
@@ -325,6 +347,28 @@ tgt_batch, src_len].</li>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
+<dl class="classmethod">
+<dt id="lingvo.tasks.mt.decoder.MTDecoderV1.UpdateTargetVocabSize">
+<em class="property">classmethod </em><code class="descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em>p</em>, <em>vocab_size</em>, <em>wpm_model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the params with the input vocab_size and WPM model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p</strong> – model params.</li>
+<li><strong>vocab_size</strong> – size of the vocabulary.</li>
+<li><strong>wpm_model</strong> – file name prefix pointing to a wordpiece model.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Model params updated with the vocab size and wpm model.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1.ApplyDropout">
 <code class="descname">ApplyDropout</code><span class="sig-paren">(</span><em>x_in</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.ApplyDropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.ApplyDropout" title="Permalink to this definition">¶</a></dt>
@@ -452,6 +496,12 @@ this to split computation across subgraph boundaries.</p>
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder.Params">
 <em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.mt.decoder.TransformerDecoder.UpdateTargetVocabSize">
+<em class="property">classmethod </em><code class="descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em>p</em>, <em>vocab_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the params with the input vocab_size and WPM model.</p>
 </dd></dl>
 
 <dl class="method">
@@ -817,6 +867,28 @@ Insertion Transformer: <a class="reference external" href="https://arxiv.org/pdf
 <dt id="lingvo.tasks.mt.decoder.InsertionDecoder.Params">
 <em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.mt.decoder.InsertionDecoder.UpdateTargetVocabSize">
+<em class="property">classmethod </em><code class="descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em>p</em>, <em>vocab_size</em>, <em>wpm_model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the vocab size in the params.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p</strong> – model params.</li>
+<li><strong>vocab_size</strong> – size of the vocabulary.</li>
+<li><strong>wpm_model</strong> – file name prefix pointing to a wordpiece model.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Model params updated with the vocab size and wpm model.</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">

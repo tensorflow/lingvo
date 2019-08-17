@@ -236,6 +236,13 @@
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">frontend</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;frontend&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">frontend</span><span class="p">)</span>
 
+<div class="viewcode-block" id="AsrModel.UpdateTargetVocabSize"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.UpdateTargetVocabSize">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">UpdateTargetVocabSize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">wpm_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates the params with the input vocab_size and wpm model.&quot;&quot;&quot;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">UpdateTargetVocabSize</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span>
+                                                    <span class="n">wpm_model</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
 <div class="viewcode-block" id="AsrModel._GetDecoderTargets"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._GetDecoderTargets">[docs]</a>  <span class="k">def</span> <span class="nf">_GetDecoderTargets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns targets which will be forwarded to the decoder.</span>
 
