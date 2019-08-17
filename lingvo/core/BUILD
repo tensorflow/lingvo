@@ -947,6 +947,7 @@ py_library(
         ":cluster_factory",
         ":py_utils",
         ":sendrecv",
+        ":symbolic",
         "//lingvo:compat",
         # Implicit six dependency.
     ],
@@ -970,6 +971,7 @@ py_library(
         ":base_layer",
         ":py_utils",
         ":recurrent",
+        ":symbolic",
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.

@@ -24,6 +24,7 @@ import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import recurrent
+from lingvo.core import symbolic
 from lingvo.core import test_utils
 import numpy as np
 from six.moves import range
@@ -413,6 +414,61 @@ class RecurrentTest(test_utils.TestCase):
                                    'implicit capture is disabled'):
         unused_real_acc, unused_real_staten = recurrent.Recurrent(
             theta, state0, inputs, CellFn, allow_implicit_capture=False)
+
+  def testSymbolToTensorMap(self):
+    """Tests that cell_fn can rely on the contextual symbol-to-tensor map."""
+
+    x = symbolic.Symbol('x')
+
+    def PlusWXT(theta, state, inputs):
+      """state.value += theta.w * x * inputs.t."""
+      next_state = py_utils.NestedMap()
+      x_tensor = symbolic.EvalExpr(symbolic.TENSOR_VALUES, x)
+      next_state.value = state.value + theta.w * x_tensor * inputs.t
+      return next_state, py_utils.NestedMap()
+
+    def PlusWXTGrad(theta, state0, inputs, extras, dstate1):
+      """Gradient function for PlusWXT."""
+      del state0, extras
+      x_tensor = symbolic.EvalExpr(symbolic.TENSOR_VALUES, x)
+      dtheta = py_utils.NestedMap(w=dstate1.value * x_tensor * inputs.t)
+      dstate0 = py_utils.NestedMap(value=dstate1.value)
+      dinputs = py_utils.NestedMap(t=dstate1.value * theta.w * x_tensor)
+      return dtheta, dstate0, dinputs, None
+
+    with self.session() as sess:
+      theta = py_utils.NestedMap(w=tf.constant(1., name='w'))
+      state0 = py_utils.NestedMap(value=tf.constant(0., name='value'))
+      inputs = py_utils.NestedMap(t=tf.constant([1., 2., 3.], name='t'))
+
+      # With automatic cell_grad.
+      with symbolic.SymbolToValueMap(symbolic.TENSOR_VALUES,
+                                     {x: tf.constant(7., name='x7')}):
+        x_tensor = symbolic.EvalExpr(symbolic.TENSOR_VALUES, x)
+        _, state1 = recurrent.Recurrent(theta, state0, inputs, PlusWXT)
+        dw = tf.gradients(ys=[state1.value], xs=[theta.w])[0]
+        dx = tf.gradients(ys=[state1.value], xs=[x_tensor])[0]
+        final_value, x_val, dx_val, dw_val = sess.run(
+            [state1.value, x_tensor, dx, dw])
+      self.assertEqual(x_val, 7)
+      self.assertEqual(final_value, x_val * (1. + 2. + 3.))
+      self.assertEqual(dw_val, x_val * (1. + 2. + 3.))
+      self.assertEqual(dx_val, (1. + 2. + 3.))
+
+      # With manual cell_grad.
+      with symbolic.SymbolToValueMap(symbolic.TENSOR_VALUES,
+                                     {x: tf.constant(5., name='x5')}):
+        x_tensor = symbolic.EvalExpr(symbolic.TENSOR_VALUES, x)
+        _, state1 = recurrent.Recurrent(
+            theta, state0, inputs, PlusWXT, cell_grad=PlusWXTGrad)
+        dw = tf.gradients(ys=[state1.value], xs=[theta.w])[0]
+        dx = tf.gradients(ys=[state1.value], xs=[x_tensor])[0]
+        final_value, x_val, dx_val, dw_val = sess.run(
+            [state1.value, x_tensor, dx, dw])
+      self.assertEqual(x_val, 5)
+      self.assertEqual(final_value, x_val * (1. + 2. + 3.))
+      self.assertEqual(dw_val, x_val * (1. + 2. + 3.))
+      self.assertEqual(dx_val, (1. + 2. + 3.))
 
   def testStatefulCellFn(self):
 

@@ -50,6 +50,7 @@ import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 from lingvo.core import sendrecv
+from lingvo.core import symbolic
 from six.moves import range
 from six.moves import zip
 
@@ -480,6 +481,7 @@ class _Recurrent(object):
         ValueError: on argument mismatch issues.
       """
       expected_num_inputs = 0
+      expected_inputs = []
       for nmap in [
           self._theta,
           self._state,
@@ -489,12 +491,14 @@ class _Recurrent(object):
           self._implicit_captures
       ]:
         expected_num_inputs += len(nmap.Flatten())
+        expected_inputs += nmap.Flatten()
       if len(op.inputs) != expected_num_inputs:
         if len(op.inputs) > expected_num_inputs:
           raise ValueError(
               ('Too many inputs. The most likely cause is that cell_fn '
-               'captures additional tensors: extra inputs %r vs captures %r') %
-              (list(op.inputs), list(self._implicit_captures.Flatten())))
+               'captures additional tensors: extra inputs %r vs %r '
+               'captures=%r') % (list(op.inputs), list(expected_inputs),
+                                 list(self._implicit_captures.Flatten())))
         raise ValueError(
             ('Mismatched inputs to cell fn: Found %d vs expected %d: %r'
              '. Implicit captures(%d) = %r') %
@@ -1062,6 +1066,50 @@ def _WrapCellGradFnWithStepSeed(cell_grad):
   return WrappedCellGradFn
 
 
+def _WrapCellFnWithSymbolValues(cell_fn, symbol_to_tensor_map):
+  """Wrap a cell_fn to propagate symbol values."""
+
+  def WrappedCellFn(theta, state0, inputs):
+    """cell_fn wrapped to propagate accumulators."""
+    theta = theta.copy()
+    symbols = symbol_to_tensor_map.keys()
+    symbol_values = theta.pop('_symbol_values')
+    inner_symbol_to_tensor_map = dict(zip(symbols, symbol_values))
+    if symbols:
+      tf.logging.info('_WrapCellFnWithSymbolValues: %s', symbols)
+    with symbolic.SymbolToValueMap(symbolic.TENSOR_VALUES,
+                                   inner_symbol_to_tensor_map):
+      state1, extras = cell_fn(theta, state0, inputs)
+    return state1, extras
+
+  return WrappedCellFn
+
+
+def _WrapCellGradFnWithSymbolValues(cell_grad, cell_fn, symbol_to_tensor_map):
+  """Wrap a cell grad function to propagate symbol values."""
+
+  def WrappedCellGradFn(theta, state0, inputs, extras, dstate1):
+    """The wrapper function."""
+    symbols = symbol_to_tensor_map.keys()
+    symbol_values = theta['_symbol_values']
+    inner_symbol_to_tensor_map = dict(zip(symbols, symbol_values))
+    if symbols:
+      tf.logging.info('_WrapCellGradFnWithSymbolValues: %s', symbols)
+    with symbolic.SymbolToValueMap(symbolic.TENSOR_VALUES,
+                                   inner_symbol_to_tensor_map):
+      dtheta, dstate0, dinputs, dcaptures = cell_grad(theta, state0, inputs,
+                                                      extras, dstate1)
+      # cell_grad may have populated dtheta by applying tf.gradients() on
+      # theta.Flatten().
+      if '_symbol_values' not in dtheta:
+        state1, _ = cell_fn(theta, state0, inputs)
+        dtheta['_symbol_values'] = tf.gradients(
+            xs=symbol_values, ys=state1.Flatten(), grad_ys=dstate1.Flatten())
+    return dtheta, dstate0, dinputs, dcaptures
+
+  return WrappedCellGradFn
+
+
 def _DecorateCellFn(cell_fn, accumulator_layer):
   """Decorates cell_fn with additional state information."""
   if accumulator_layer:
@@ -1172,6 +1220,15 @@ def Recurrent(theta,
   Returns:
     `accumulate_state` and the final state.
   """
+  symbol_to_tensor_map = symbolic.SymbolToValueMap.Get(symbolic.TENSOR_VALUES)
+  if symbol_to_tensor_map:
+    theta = theta.copy()  # Do not modify the caller's 'theta'.
+    theta['_symbol_values'] = list(symbol_to_tensor_map.values())
+    cell_fn = _WrapCellFnWithSymbolValues(cell_fn, symbol_to_tensor_map)
+    if cell_grad:
+      cell_grad = _WrapCellGradFnWithSymbolValues(cell_grad, cell_fn,
+                                                  symbol_to_tensor_map)
+
   inputs = _TransformDType(inputs)
   if cell_grad is not None:
     allow_implicit_capture = False
