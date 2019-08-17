@@ -195,6 +195,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">sendrecv</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">symbolic</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 
@@ -625,6 +626,7 @@
 <span class="sd">        ValueError: on argument mismatch issues.</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="n">expected_num_inputs</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">expected_inputs</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">nmap</span> <span class="ow">in</span> <span class="p">[</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
@@ -634,12 +636,14 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span>
       <span class="p">]:</span>
         <span class="n">expected_num_inputs</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+        <span class="n">expected_inputs</span> <span class="o">+=</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
       <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">!=</span> <span class="n">expected_num_inputs</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">expected_num_inputs</span><span class="p">:</span>
           <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
               <span class="p">(</span><span class="s1">&#39;Too many inputs. The most likely cause is that cell_fn &#39;</span>
-               <span class="s1">&#39;captures additional tensors: extra inputs </span><span class="si">%r</span><span class="s1"> vs captures </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span>
-              <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())))</span>
+               <span class="s1">&#39;captures additional tensors: extra inputs </span><span class="si">%r</span><span class="s1"> vs </span><span class="si">%r</span><span class="s1"> &#39;</span>
+               <span class="s1">&#39;captures=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">expected_inputs</span><span class="p">),</span>
+                                 <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())))</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="p">(</span><span class="s1">&#39;Mismatched inputs to cell fn: Found </span><span class="si">%d</span><span class="s1"> vs expected </span><span class="si">%d</span><span class="s1">: </span><span class="si">%r</span><span class="s1">&#39;</span>
              <span class="s1">&#39;. Implicit captures(</span><span class="si">%d</span><span class="s1">) = </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span>
@@ -1207,6 +1211,50 @@
   <span class="k">return</span> <span class="n">WrappedCellGradFn</span></div>
 
 
+<div class="viewcode-block" id="_WrapCellFnWithSymbolValues"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._WrapCellFnWithSymbolValues">[docs]</a><span class="k">def</span> <span class="nf">_WrapCellFnWithSymbolValues</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span> <span class="n">symbol_to_tensor_map</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrap a cell_fn to propagate symbol values.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">WrappedCellFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;cell_fn wrapped to propagate accumulators.&quot;&quot;&quot;</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">symbols</span> <span class="o">=</span> <span class="n">symbol_to_tensor_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="n">symbol_values</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_symbol_values&#39;</span><span class="p">)</span>
+    <span class="n">inner_symbol_to_tensor_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">symbols</span><span class="p">,</span> <span class="n">symbol_values</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">symbols</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_WrapCellFnWithSymbolValues: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">symbols</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">SymbolToValueMap</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">TENSOR_VALUES</span><span class="p">,</span>
+                                   <span class="n">inner_symbol_to_tensor_map</span><span class="p">):</span>
+      <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span>
+
+  <span class="k">return</span> <span class="n">WrappedCellFn</span></div>
+
+
+<div class="viewcode-block" id="_WrapCellGradFnWithSymbolValues"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._WrapCellGradFnWithSymbolValues">[docs]</a><span class="k">def</span> <span class="nf">_WrapCellGradFnWithSymbolValues</span><span class="p">(</span><span class="n">cell_grad</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">,</span> <span class="n">symbol_to_tensor_map</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrap a cell grad function to propagate symbol values.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">WrappedCellGradFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The wrapper function.&quot;&quot;&quot;</span>
+    <span class="n">symbols</span> <span class="o">=</span> <span class="n">symbol_to_tensor_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="n">symbol_values</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;_symbol_values&#39;</span><span class="p">]</span>
+    <span class="n">inner_symbol_to_tensor_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">symbols</span><span class="p">,</span> <span class="n">symbol_values</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">symbols</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_WrapCellGradFnWithSymbolValues: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">symbols</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">SymbolToValueMap</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">TENSOR_VALUES</span><span class="p">,</span>
+                                   <span class="n">inner_symbol_to_tensor_map</span><span class="p">):</span>
+      <span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span> <span class="o">=</span> <span class="n">cell_grad</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
+                                                      <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">)</span>
+      <span class="c1"># cell_grad may have populated dtheta by applying tf.gradients() on</span>
+      <span class="c1"># theta.Flatten().</span>
+      <span class="k">if</span> <span class="s1">&#39;_symbol_values&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dtheta</span><span class="p">:</span>
+        <span class="n">state1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+        <span class="n">dtheta</span><span class="p">[</span><span class="s1">&#39;_symbol_values&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span>
+            <span class="n">xs</span><span class="o">=</span><span class="n">symbol_values</span><span class="p">,</span> <span class="n">ys</span><span class="o">=</span><span class="n">state1</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">grad_ys</span><span class="o">=</span><span class="n">dstate1</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span>
+
+  <span class="k">return</span> <span class="n">WrappedCellGradFn</span></div>
+
+
 <div class="viewcode-block" id="_DecorateCellFn"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._DecorateCellFn">[docs]</a><span class="k">def</span> <span class="nf">_DecorateCellFn</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span> <span class="n">accumulator_layer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Decorates cell_fn with additional state information.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">accumulator_layer</span><span class="p">:</span>
@@ -1317,6 +1365,15 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    `accumulate_state` and the final state.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">symbol_to_tensor_map</span> <span class="o">=</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">SymbolToValueMap</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">TENSOR_VALUES</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">symbol_to_tensor_map</span><span class="p">:</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># Do not modify the caller&#39;s &#39;theta&#39;.</span>
+    <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;_symbol_values&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">symbol_to_tensor_map</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="n">cell_fn</span> <span class="o">=</span> <span class="n">_WrapCellFnWithSymbolValues</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span> <span class="n">symbol_to_tensor_map</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cell_grad</span><span class="p">:</span>
+      <span class="n">cell_grad</span> <span class="o">=</span> <span class="n">_WrapCellGradFnWithSymbolValues</span><span class="p">(</span><span class="n">cell_grad</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">,</span>
+                                                  <span class="n">symbol_to_tensor_map</span><span class="p">)</span>
+
   <span class="n">inputs</span> <span class="o">=</span> <span class="n">_TransformDType</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">cell_grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">allow_implicit_capture</span> <span class="o">=</span> <span class="kc">False</span>
