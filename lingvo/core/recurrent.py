@@ -1223,7 +1223,8 @@ def Recurrent(theta,
   symbol_to_tensor_map = symbolic.SymbolToValueMap.Get(symbolic.TENSOR_VALUES)
   if symbol_to_tensor_map:
     theta = theta.copy()  # Do not modify the caller's 'theta'.
-    theta['_symbol_values'] = list(symbol_to_tensor_map.values())
+    theta['_symbol_values'] = list(
+        tf.convert_to_tensor(v) for v in symbol_to_tensor_map.values())
     cell_fn = _WrapCellFnWithSymbolValues(cell_fn, symbol_to_tensor_map)
     if cell_grad:
       cell_grad = _WrapCellGradFnWithSymbolValues(cell_grad, cell_fn,

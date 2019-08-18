@@ -419,6 +419,7 @@ class RecurrentTest(test_utils.TestCase):
     """Tests that cell_fn can rely on the contextual symbol-to-tensor map."""
 
     x = symbolic.Symbol('x')
+    y = symbolic.Symbol('y')
 
     def PlusWXT(theta, state, inputs):
       """state.value += theta.w * x * inputs.t."""
@@ -442,8 +443,10 @@ class RecurrentTest(test_utils.TestCase):
       inputs = py_utils.NestedMap(t=tf.constant([1., 2., 3.], name='t'))
 
       # With automatic cell_grad.
-      with symbolic.SymbolToValueMap(symbolic.TENSOR_VALUES,
-                                     {x: tf.constant(7., name='x7')}):
+      with symbolic.SymbolToValueMap(symbolic.TENSOR_VALUES, {
+          x: tf.constant(7., name='x7'),
+          y: 8
+      }):
         x_tensor = symbolic.EvalExpr(symbolic.TENSOR_VALUES, x)
         _, state1 = recurrent.Recurrent(theta, state0, inputs, PlusWXT)
         dw = tf.gradients(ys=[state1.value], xs=[theta.w])[0]
