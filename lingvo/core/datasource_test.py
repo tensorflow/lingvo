@@ -22,6 +22,7 @@ from __future__ import print_function
 import lingvo.compat as tf
 
 from lingvo.core import datasource
+from lingvo.core import py_utils
 
 
 def _MockDataSourceFromFilePattern(file_pattern, input_source_weights=None):
@@ -142,6 +143,90 @@ class DatasourceTest(tf.test.TestCase):
         file_patterns=files)
     ds = ds_params.Instantiate()
 
+    with self.assertRaises(ValueError):
+      ds.BuildDataSource(_MockDataSourceFromFilePattern)
+
+  def testCurriculumDataSourceSucceedsWithSimpleDataSource(self):
+    sources = [
+        datasource.SimpleDataSource.Params().Set(file_pattern='file1'),
+        datasource.SimpleDataSource.Params().Set(file_pattern='file2'),
+    ]
+    ds_params = datasource.CurriculumDataSource.Params().Set(
+        datasource_params=sources, boundaries=[5])
+    ds = ds_params.Instantiate()
+
+    ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
+    with tf.Session() as sess:
+      tf.global_variables_initializer().run()
+      ret.data = sess.run([ret.data])
+
+    self.assertCountEqual(
+        sorted(ret.keys()), ['bprop_variable_filters', 'data'])
+    self.assertAllEqual(ret.data, [[b'file1']])
+    self.assertCountEqual(ret.bprop_variable_filters, [''])
+
+  def testCurriculumDataSourceTransitionsCorrectlyWithSimpleDataSource(self):
+    sources = [
+        datasource.SimpleDataSource.Params().Set(file_pattern='file1'),
+        datasource.SimpleDataSource.Params().Set(file_pattern='file2'),
+    ]
+    boundary = 5
+    ds_params = datasource.CurriculumDataSource.Params().Set(
+        datasource_params=sources, boundaries=[boundary])
+    ds = ds_params.Instantiate()
+
+    ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
+    with tf.Session() as sess:
+      # Advance the global step to the next curriculum stage
+      global_step = py_utils.GetOrCreateGlobalStepVar()
+      tf.global_variables_initializer().run()
+      set_global_step = tf.assign(global_step, boundary, name='advance_step')
+      sess.run(set_global_step)
+
+      ret.data = sess.run([ret.data])
+
+    self.assertCountEqual(
+        sorted(ret.keys()), ['bprop_variable_filters', 'data'])
+    self.assertAllEqual(ret.data, [[b'file2']])
+    self.assertCountEqual(ret.bprop_variable_filters, [''])
+
+  def testCurriculumDataSourceTransitionsCorrectlyWithMixingDataSource(self):
+    sources = [
+        datasource.WithinBatchMixingDataSource.Params().Set(
+            file_patterns=['file1', 'file2'], weights=[1, 5]),
+        datasource.WithinBatchMixingDataSource.Params().Set(
+            file_patterns=['file3', 'file4'], weights=[2, 3])
+    ]
+    boundary = 5
+    ds_params = datasource.CurriculumDataSource.Params().Set(
+        datasource_params=sources, boundaries=[boundary])
+    ds = ds_params.Instantiate()
+
+    ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
+    with tf.Session() as sess:
+      # Advance the global step to the next curriculum stage
+      global_step = py_utils.GetOrCreateGlobalStepVar()
+      tf.global_variables_initializer().run()
+      set_global_step = tf.assign(global_step, boundary, name='advance_step')
+      sess.run(set_global_step)
+
+      ret.data = sess.run([ret.data])
+
+    self.assertCountEqual(
+        sorted(ret.keys()), ['bprop_variable_filters', 'data'])
+    self.assertAllEqual(ret.data, [[b'file3,file4']])
+    self.assertCountEqual(ret.bprop_variable_filters, [''])
+
+  def testCurriculumDataSourceFailsWithBadBoundaries(self):
+    sources = [
+        datasource.WithinBatchMixingDataSource.Params().Set(
+            file_patterns=['file1', 'file2'], weights=[1, 5]),
+        datasource.WithinBatchMixingDataSource.Params().Set(
+            file_patterns=['file3', 'file4'], weights=[2, 3])
+    ]
+    ds_params = datasource.CurriculumDataSource.Params().Set(
+        datasource_params=sources, boundaries=[10, 5])
+    ds = ds_params.Instantiate()
     with self.assertRaises(ValueError):
       ds.BuildDataSource(_MockDataSourceFromFilePattern)
 

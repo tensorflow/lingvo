@@ -86,10 +86,9 @@ class SimpleDataSource(DataSource):
     """
     p = self.params
     if not isinstance(p.file_pattern, six.string_types):
-      raise ValueError(
-          'SimpleDataSource expects p.file_pattern to be a string.'
-          ' To use multiple files use a comma separated string, '
-          'e.g. ', '.join(list_of_file_patterns)')
+      raise ValueError('SimpleDataSource expects p.file_pattern to be a string.'
+                       ' To use multiple files use a comma separated string, '
+                       'e.g. \', \'.join(list_of_file_patterns)')
     ret = py_utils.NestedMap()
     ret.data = data_source_from_file_pattern_fn(p.file_pattern)
     return ret
@@ -281,4 +280,93 @@ class CrossBatchMixingDataSource(DataSource):
     ret.selected_bprop = selected_bprop
     ret.source_selected = tf.tile(
         tf.expand_dims(selected_bprop, 0), [batch_size, 1])
+    return ret
+
+
+class CurriculumDataSource(DataSource):
+  """A data source that reads different DataSources in stages.
+
+  Supports multiple stages of training, where each stage yields batches for
+  based on global step boundaries. The contents per stage are defined by nested
+  DataSources.
+
+  Boundaries are defined by the training global step.
+
+  Currently bprop_variable_filters are not_supported.
+  # TODO(rosenberg) support bprop_variable_filter within CurriculumDataSource
+  The issue here is that by conditioning on tf.Variable global_step, the
+  bprop_variable_filter from the selected DataSource is itself a tf.Variable.
+  Other bprop_variable_filters are python strings.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(CurriculumDataSource, cls).Params()
+    p.Define(
+        'datasource_params', [], 'A list of DataSource Params which define '
+        'the DataSource curriculum.')
+    p.Define(
+        'boundaries', [], 'A list of global step thresholds determining when '
+        'to move from one training stage to another.')
+    p.Define(
+        'bprop_variable_filters', [''], 'A list of bprop_variable_filters to '
+        'apply during training.  NOTE: these are constant across all stages.'
+        'Changing variable filters per stage is not supported.')
+    return p
+
+  def BuildDataSource(self, data_source_from_file_pattern_fn):
+    """Read and return input batch.
+
+    Args:
+      data_source_from_file_pattern_fn: a function to read and return input
+        batch from a string file_pattern
+
+    Returns:
+      A NestedMap containing:
+        data: a tuple of tf.Tensor or `.NestedMap` of tf.Tensor
+
+    Raises:
+      ValueError: inconsistent sizes between boundaries and datasource_params,
+      specification of unsupported datasources, or out of order boundaries.
+    """
+    p = self.params
+
+    if len(p.datasource_params) != len(p.boundaries) + 1:
+      raise ValueError(
+          'Expected p.datasource_params to have one more entry than '
+          'p.boundaries. Found %d datasource_params, and %d boundaries' %
+          (len(p.datasource_params), len(p.boundaries)))
+
+    for ds_p in p.datasource_params:
+      if 'bprop_variable_filters' in ds_p:
+        if any(filter for filter in ds_p.bprop_variable_filters):
+          raise ValueError('CurriculumDataSource does not support distinct '
+                           'bprop_variable_filters per stage.')
+
+    for idx in range(len(p.boundaries) - 1):
+      if p.boundaries[idx] > p.boundaries[idx + 1]:
+        raise ValueError('Expected p.boundaries to monotonically increase, but '
+                         'found %d > %d at position %d' %
+                         (p.boundaries[idx], p.boundaries[idx + 1], idx))
+
+    global_step = py_utils.GetOrCreateGlobalStepVar()
+    datasources = [ds_p.Instantiate() for ds_p in p.datasource_params]
+
+    def GetDatasourceFn(idx):
+
+      def DatasourceFn():
+        return datasources[idx].BuildDataSource(
+            data_source_from_file_pattern_fn)
+
+      return DatasourceFn
+
+    cases = []
+    for idx in range(len(p.boundaries)):
+      cases.append(
+          (tf.less(global_step,
+                   tf.constant(p.boundaries[idx],
+                               dtype=global_step.dtype)), GetDatasourceFn(idx)))
+
+    ret = tf.case(cases, default=GetDatasourceFn(-1))
+    ret.bprop_variable_filters = p.bprop_variable_filters
     return ret
