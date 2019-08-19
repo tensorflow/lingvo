@@ -507,14 +507,11 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;file_random_seed needs to be 0 when &#39;</span>
                        <span class="s1">&#39;use_per_host_infeed == True.&#39;</span><span class="p">)</span>
 
-    <span class="c1"># Some subclasses have deleted the &#39;file_pattern&#39; param to</span>
-    <span class="c1"># include alternate data source descriptions. This maintains compatibility</span>
-    <span class="c1"># with these alternates.</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="s1">&#39;file_pattern&#39;</span> <span class="ow">in</span> <span class="n">p</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span>
                <span class="p">),</span> <span class="s1">&#39;Only one of file_pattern and data_source can be specified&#39;</span>
 
     <span class="c1"># TODO(b/139345706) remove support for file_pattern</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="ow">and</span> <span class="s1">&#39;file_pattern&#39;</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">:</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
         <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">file_pattern</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
@@ -596,6 +593,9 @@
         <span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">()],</span>
     <span class="p">}</span></div>
 
+  <span class="c1"># TODO(b/139345706): After p.file_pattern is deleted, the following functions</span>
+  <span class="c1"># _DataSourceFromFilePattern, _BuildDataSourceWithMetadata, _BuildDataSource</span>
+  <span class="c1"># can be deleted and functionality moved to using the DataSource directly.</span>
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="n">input_source_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Read and return input batch from a string file_pattern.</span>
 
