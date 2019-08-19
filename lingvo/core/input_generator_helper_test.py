@@ -88,7 +88,7 @@ class InputGeneratorHelperTest(test_utils.TestCase):
   def _assertListOfDictsEqual(self, actual, expected):
     self.assertEqual(len(actual), len(expected))
     for i in range(len(actual)):
-      self.assertListEqual(list(actual[i].keys()), list(expected[i].keys()))
+      self.assertSetEqual(set(actual[i].keys()), set(expected[i].keys()))
       for k in actual[i].keys():
         self.assertAllEqual(actual[i][k], expected[i][k])
 
