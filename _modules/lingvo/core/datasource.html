@@ -231,10 +231,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="s1">&#39;SimpleDataSource expects p.file_pattern to be a string.&#39;</span>
-          <span class="s1">&#39; To use multiple files use a comma separated string, &#39;</span>
-          <span class="s1">&#39;e.g. &#39;</span><span class="p">,</span> <span class="s1">&#39;.join(list_of_file_patterns)&#39;</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;SimpleDataSource expects p.file_pattern to be a string.&#39;</span>
+                       <span class="s1">&#39; To use multiple files use a comma separated string, &#39;</span>
+                       <span class="s1">&#39;e.g. </span><span class="se">\&#39;</span><span class="s1">, </span><span class="se">\&#39;</span><span class="s1">.join(list_of_file_patterns)&#39;</span><span class="p">)</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
@@ -426,6 +425,95 @@
     <span class="n">ret</span><span class="o">.</span><span class="n">selected_bprop</span> <span class="o">=</span> <span class="n">selected_bprop</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">source_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">selected_bprop</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">ret</span></div></div>
+
+
+<div class="viewcode-block" id="CurriculumDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CurriculumDataSource">[docs]</a><span class="k">class</span> <span class="nc">CurriculumDataSource</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A data source that reads different DataSources in stages.</span>
+
+<span class="sd">  Supports multiple stages of training, where each stage yields batches for</span>
+<span class="sd">  based on global step boundaries. The contents per stage are defined by nested</span>
+<span class="sd">  DataSources.</span>
+
+<span class="sd">  Boundaries are defined by the training global step.</span>
+
+<span class="sd">  Currently bprop_variable_filters are not_supported.</span>
+<span class="sd">  # TODO(rosenberg) support bprop_variable_filter within CurriculumDataSource</span>
+<span class="sd">  The issue here is that by conditioning on tf.Variable global_step, the</span>
+<span class="sd">  bprop_variable_filter from the selected DataSource is itself a tf.Variable.</span>
+<span class="sd">  Other bprop_variable_filters are python strings.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CurriculumDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CurriculumDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CurriculumDataSource</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;datasource_params&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of DataSource Params which define &#39;</span>
+        <span class="s1">&#39;the DataSource curriculum.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;boundaries&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of global step thresholds determining when &#39;</span>
+        <span class="s1">&#39;to move from one training stage to another.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bprop_variable_filters&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">],</span> <span class="s1">&#39;A list of bprop_variable_filters to &#39;</span>
+        <span class="s1">&#39;apply during training.  NOTE: these are constant across all stages.&#39;</span>
+        <span class="s1">&#39;Changing variable filters per stage is not supported.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="CurriculumDataSource.BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CurriculumDataSource.BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read and return input batch.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      data_source_from_file_pattern_fn: a function to read and return input</span>
+<span class="sd">        batch from a string file_pattern</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap containing:</span>
+<span class="sd">        data: a tuple of tf.Tensor or `.NestedMap` of tf.Tensor</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: inconsistent sizes between boundaries and datasource_params,</span>
+<span class="sd">      specification of unsupported datasources, or out of order boundaries.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">datasource_params</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Expected p.datasource_params to have one more entry than &#39;</span>
+          <span class="s1">&#39;p.boundaries. Found </span><span class="si">%d</span><span class="s1"> datasource_params, and </span><span class="si">%d</span><span class="s1"> boundaries&#39;</span> <span class="o">%</span>
+          <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">datasource_params</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">)))</span>
+
+    <span class="k">for</span> <span class="n">ds_p</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">datasource_params</span><span class="p">:</span>
+      <span class="k">if</span> <span class="s1">&#39;bprop_variable_filters&#39;</span> <span class="ow">in</span> <span class="n">ds_p</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="nb">filter</span> <span class="k">for</span> <span class="nb">filter</span> <span class="ow">in</span> <span class="n">ds_p</span><span class="o">.</span><span class="n">bprop_variable_filters</span><span class="p">):</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;CurriculumDataSource does not support distinct &#39;</span>
+                           <span class="s1">&#39;bprop_variable_filters per stage.&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected p.boundaries to monotonically increase, but &#39;</span>
+                         <span class="s1">&#39;found </span><span class="si">%d</span><span class="s1"> &gt; </span><span class="si">%d</span><span class="s1"> at position </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span>
+                         <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">idx</span><span class="p">))</span>
+
+    <span class="n">global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+    <span class="n">datasources</span> <span class="o">=</span> <span class="p">[</span><span class="n">ds_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span> <span class="k">for</span> <span class="n">ds_p</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">datasource_params</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">GetDatasourceFn</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>
+
+      <span class="k">def</span> <span class="nf">DatasourceFn</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">datasources</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span>
+            <span class="n">data_source_from_file_pattern_fn</span><span class="p">)</span>
+
+      <span class="k">return</span> <span class="n">DatasourceFn</span>
+
+    <span class="n">cases</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">)):</span>
+      <span class="n">cases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span>
+                   <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                               <span class="n">dtype</span><span class="o">=</span><span class="n">global_step</span><span class="o">.</span><span class="n">dtype</span><span class="p">)),</span> <span class="n">GetDatasourceFn</span><span class="p">(</span><span class="n">idx</span><span class="p">)))</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">case</span><span class="p">(</span><span class="n">cases</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">GetDatasourceFn</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filters</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
 </pre></div>
 

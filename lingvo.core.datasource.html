@@ -345,6 +345,51 @@ each source</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.core.datasource.CurriculumDataSource">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.datasource.</code><code class="sig-name descname">CurriculumDataSource</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CurriculumDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.CurriculumDataSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.DataSource" title="lingvo.core.datasource.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.DataSource</span></code></a></p>
+<p>A data source that reads different DataSources in stages.</p>
+<p>Supports multiple stages of training, where each stage yields batches for
+based on global step boundaries. The contents per stage are defined by nested
+DataSources.</p>
+<p>Boundaries are defined by the training global step.</p>
+<p>Currently bprop_variable_filters are not_supported.
+# TODO(rosenberg) support bprop_variable_filter within CurriculumDataSource
+The issue here is that by conditioning on tf.Variable global_step, the
+bprop_variable_filter from the selected DataSource is itself a tf.Variable.
+Other bprop_variable_filters are python strings.</p>
+<dl class="method">
+<dt id="lingvo.core.datasource.CurriculumDataSource.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CurriculumDataSource.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.CurriculumDataSource.Params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.datasource.CurriculumDataSource.BuildDataSource">
+<code class="sig-name descname">BuildDataSource</code><span class="sig-paren">(</span><em class="sig-param">data_source_from_file_pattern_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CurriculumDataSource.BuildDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.CurriculumDataSource.BuildDataSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read and return input batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data_source_from_file_pattern_fn</strong> – a function to read and return input
+batch from a string file_pattern</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>data: a tuple of tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A NestedMap containing</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – inconsistent sizes between boundaries and datasource_params,</p></li>
+<li><p><strong>specification of unsupported datasources</strong><strong>, or </strong><strong>out of order boundaries.</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
