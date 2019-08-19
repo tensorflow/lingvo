@@ -169,220 +169,196 @@
 <p>Utilities for fusing language models with the decoder output.</p>
 <dl class="class">
 <dt id="lingvo.tasks.asr.fusion.FusionBase">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.fusion.</code><code class="descname">FusionBase</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.fusion.</code><code class="sig-name descname">FusionBase</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Base class for fusion with LMs.</p>
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.tasks.asr.fusion.FusionBase.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.fusion.FusionBase.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns initial model state for fusion model.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.fusion.FusionBase._FPropLm">
-<code class="descname">_FPropLm</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>ids</em>, <em>paddings</em>, <em>misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase._FPropLm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase._FPropLm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FPropLm</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">ids</em>, <em class="sig-param">paddings</em>, <em class="sig-param">misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase._FPropLm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase._FPropLm" title="Permalink to this definition">¶</a></dt>
 <dd><p>LM FProp.</p>
 <p>Works for single step or entire seq.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A NestedMap object containing weights for the layer and its
-children.</li>
-<li><strong>state0</strong> – A NestedMap of states (specific to the layer).</li>
-<li><strong>ids</strong> – Target ids, of shape [batch_size] for single step unrolling or
-[batch_size, base_model_logits_dim] for the entire sequence.</li>
-<li><strong>paddings</strong> – Target paddings, of the same shape as ‘ids’.</li>
-<li><strong>misc</strong> – NestedMap of miscellaneous items, which might be needed during
-training.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights for the layer and its
+children.</p></li>
+<li><p><strong>state0</strong> – A NestedMap of states (specific to the layer).</p></li>
+<li><p><strong>ids</strong> – Target ids, of shape [batch_size] for single step unrolling or
+[batch_size, base_model_logits_dim] for the entire sequence.</p></li>
+<li><p><strong>paddings</strong> – Target paddings, of the same shape as ‘ids’.</p></li>
+<li><p><strong>misc</strong> – NestedMap of miscellaneous items, which might be needed during
+training.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
-<li>lm_output: A NestedMap containing lm output. If ‘ids’ is 1-D, then
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>lm_output: A NestedMap containing lm output. If ‘ids’ is 1-D, then
 lm_output should have shape [batch_size, dim]; if it is 2-D then the
-shape should be [seq_len, batch_size, dim].</li>
-<li>state1: A NestedMap of updated states.</li>
+shape should be [seq_len, batch_size, dim].</p></li>
+<li><p>state1: A NestedMap of updated states.</p></li>
 </ul>
 </p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(lm_output, state1), with</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(lm_output, state1), with</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.fusion.FusionBase.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>am_output</em>, <em>ids</em>, <em>paddings</em>, <em>misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">am_output</em>, <em class="sig-param">ids</em>, <em class="sig-param">paddings</em>, <em class="sig-param">misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Real fusion logic happens here.</p>
 <p>Works for single step or for the entire sequence.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A NestedMap object containing weights for the layer and its
-children.</li>
-<li><strong>state0</strong> – A NestedMap of states (specific to the layer).</li>
-<li><strong>am_output</strong> – The output from the speech model. ‘am_output’ can have shape
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights for the layer and its
+children.</p></li>
+<li><p><strong>state0</strong> – A NestedMap of states (specific to the layer).</p></li>
+<li><p><strong>am_output</strong> – The output from the speech model. ‘am_output’ can have shape
 [batch_size, base_model_logits_dim] for a single step unrolling or
-[seq_len, batch_size, base_model_logits_dim] for the entire sequence.</li>
-<li><strong>ids</strong> – Target ids, of shape [batch_size] for single step unrolling or
-[batch_size, base_model_logits_dim] for the entire sequence.</li>
-<li><strong>paddings</strong> – Target paddings, of the same shape as ‘ids’.</li>
-<li><strong>misc</strong> – NestedMap of miscellaneous items, which might be needed during
-training.</li>
+[seq_len, batch_size, base_model_logits_dim] for the entire sequence.</p></li>
+<li><p><strong>ids</strong> – Target ids, of shape [batch_size] for single step unrolling or
+[batch_size, base_model_logits_dim] for the entire sequence.</p></li>
+<li><p><strong>paddings</strong> – Target paddings, of the same shape as ‘ids’.</p></li>
+<li><p><strong>misc</strong> – NestedMap of miscellaneous items, which might be needed during
+training.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
-<li>fused_output: A tensor containing the fused result. If am_output is 2-D,
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>fused_output: A tensor containing the fused result. If am_output is 2-D,
 then the fused_output should have shape [batch_size, dim]; if
-am_output is 3-D, then the shape should be [seq_len, batch_size, dim].</li>
-<li>state1: a NestedMap of updated states (specific to the layer).</li>
+am_output is 3-D, then the shape should be [seq_len, batch_size, dim].</p></li>
+<li><p>state1: a NestedMap of updated states (specific to the layer).</p></li>
 </ul>
 </p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(fused_output, state1), with</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(fused_output, state1), with</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.fusion.FusionBase._ModifyLmBeforeFProp">
-<code class="descname">_ModifyLmBeforeFProp</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>ids</em>, <em>paddings</em>, <em>misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase._ModifyLmBeforeFProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase._ModifyLmBeforeFProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_ModifyLmBeforeFProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">ids</em>, <em class="sig-param">paddings</em>, <em class="sig-param">misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase._ModifyLmBeforeFProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase._ModifyLmBeforeFProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform any LM modifications before LM FProp (no-op by default).</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.fusion.FusionBase.ComputeLogitsWithLM">
-<code class="descname">ComputeLogitsWithLM</code><span class="sig-paren">(</span><em>state</em>, <em>logits</em>, <em>is_eval=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.ComputeLogitsWithLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.ComputeLogitsWithLM" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeLogitsWithLM</code><span class="sig-paren">(</span><em class="sig-param">state</em>, <em class="sig-param">logits</em>, <em class="sig-param">is_eval=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.ComputeLogitsWithLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.ComputeLogitsWithLM" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute resulting logits based on the fusion method.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>state</strong> – a NestedMap of states (specific to the layer).</li>
-<li><strong>logits</strong> – a tensor corresponds to AM logits.</li>
-<li><strong>is_eval</strong> – whether this is used in eval model (for example, beam search).</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> – a NestedMap of states (specific to the layer).</p></li>
+<li><p><strong>logits</strong> – a tensor corresponds to AM logits.</p></li>
+<li><p><strong>is_eval</strong> – whether this is used in eval model (for example, beam search).</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Resulting logits after fusion with the LM.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">NotImplementedError</span></code> – If method is not implemented.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Resulting logits after fusion with the LM.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – If method is not implemented.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.fusion.FusionBase.AddAdditionalDecoderSummaries">
-<code class="descname">AddAdditionalDecoderSummaries</code><span class="sig-paren">(</span><em>source_encs</em>, <em>source_paddings</em>, <em>targets</em>, <em>seq_out_tas</em>, <em>softmax_input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.AddAdditionalDecoderSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.AddAdditionalDecoderSummaries" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddAdditionalDecoderSummaries</code><span class="sig-paren">(</span><em class="sig-param">source_encs</em>, <em class="sig-param">source_paddings</em>, <em class="sig-param">targets</em>, <em class="sig-param">seq_out_tas</em>, <em class="sig-param">softmax_input</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.AddAdditionalDecoderSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.AddAdditionalDecoderSummaries" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add any fusion related summaries (no-op by default).</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>source_encs</strong> – A tensor of shape [time, batch_size, source_dim].</li>
-<li><strong>source_paddings</strong> – A tensor of shape [time, batch_size].</li>
-<li><strong>targets</strong> – A NestedMap containing target info.</li>
-<li><strong>seq_out_tas</strong> – A SequenceOutTensorArrays.</li>
-<li><strong>softmax_input</strong> – A tensor of shape [batch, time, vocab_size].</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_encs</strong> – A tensor of shape [time, batch_size, source_dim].</p></li>
+<li><p><strong>source_paddings</strong> – A tensor of shape [time, batch_size].</p></li>
+<li><p><strong>targets</strong> – A NestedMap containing target info.</p></li>
+<li><p><strong>seq_out_tas</strong> – A SequenceOutTensorArrays.</p></li>
+<li><p><strong>softmax_input</strong> – A tensor of shape [batch, time, vocab_size].</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="lingvo.tasks.asr.fusion.NullFusion">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.fusion.</code><code class="descname">NullFusion</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#NullFusion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.NullFusion" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.fusion.</code><code class="sig-name descname">NullFusion</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#NullFusion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.NullFusion" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.fusion.FusionBase" title="lingvo.tasks.asr.fusion.FusionBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.fusion.FusionBase</span></code></a></p>
 <p>A trivial fusion layer which does nothing.</p>
 <dl class="method">
 <dt id="lingvo.tasks.asr.fusion.NullFusion.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>am_output</em>, <em>ids</em>, <em>paddings</em>, <em>misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#NullFusion.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.NullFusion.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">am_output</em>, <em class="sig-param">ids</em>, <em class="sig-param">paddings</em>, <em class="sig-param">misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#NullFusion.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.NullFusion.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Real fusion logic happens here.</p>
 <p>Works for single step or for the entire sequence.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A NestedMap object containing weights for the layer and its
-children.</li>
-<li><strong>state0</strong> – A NestedMap of states (specific to the layer).</li>
-<li><strong>am_output</strong> – The output from the speech model. ‘am_output’ can have shape
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights for the layer and its
+children.</p></li>
+<li><p><strong>state0</strong> – A NestedMap of states (specific to the layer).</p></li>
+<li><p><strong>am_output</strong> – The output from the speech model. ‘am_output’ can have shape
 [batch_size, base_model_logits_dim] for a single step unrolling or
-[seq_len, batch_size, base_model_logits_dim] for the entire sequence.</li>
-<li><strong>ids</strong> – Target ids, of shape [batch_size] for single step unrolling or
-[batch_size, base_model_logits_dim] for the entire sequence.</li>
-<li><strong>paddings</strong> – Target paddings, of the same shape as ‘ids’.</li>
-<li><strong>misc</strong> – NestedMap of miscellaneous items, which might be needed during
-training.</li>
+[seq_len, batch_size, base_model_logits_dim] for the entire sequence.</p></li>
+<li><p><strong>ids</strong> – Target ids, of shape [batch_size] for single step unrolling or
+[batch_size, base_model_logits_dim] for the entire sequence.</p></li>
+<li><p><strong>paddings</strong> – Target paddings, of the same shape as ‘ids’.</p></li>
+<li><p><strong>misc</strong> – NestedMap of miscellaneous items, which might be needed during
+training.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
-<li>fused_output: A tensor containing the fused result. If am_output is 2-D,
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>fused_output: A tensor containing the fused result. If am_output is 2-D,
 then the fused_output should have shape [batch_size, dim]; if
-am_output is 3-D, then the shape should be [seq_len, batch_size, dim].</li>
-<li>state1: a NestedMap of updated states (specific to the layer).</li>
+am_output is 3-D, then the shape should be [seq_len, batch_size, dim].</p></li>
+<li><p>state1: a NestedMap of updated states (specific to the layer).</p></li>
 </ul>
 </p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(fused_output, state1), with</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(fused_output, state1), with</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.fusion.NullFusion.ComputeLogitsWithLM">
-<code class="descname">ComputeLogitsWithLM</code><span class="sig-paren">(</span><em>state</em>, <em>logits</em>, <em>is_eval=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#NullFusion.ComputeLogitsWithLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.NullFusion.ComputeLogitsWithLM" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeLogitsWithLM</code><span class="sig-paren">(</span><em class="sig-param">state</em>, <em class="sig-param">logits</em>, <em class="sig-param">is_eval=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#NullFusion.ComputeLogitsWithLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.NullFusion.ComputeLogitsWithLM" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute resulting logits based on the fusion method.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>state</strong> – a NestedMap of states (specific to the layer).</li>
-<li><strong>logits</strong> – a tensor corresponds to AM logits.</li>
-<li><strong>is_eval</strong> – whether this is used in eval model (for example, beam search).</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> – a NestedMap of states (specific to the layer).</p></li>
+<li><p><strong>logits</strong> – a tensor corresponds to AM logits.</p></li>
+<li><p><strong>is_eval</strong> – whether this is used in eval model (for example, beam search).</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Resulting logits after fusion with the LM.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">NotImplementedError</span></code> – If method is not implemented.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Resulting logits after fusion with the LM.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – If method is not implemented.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

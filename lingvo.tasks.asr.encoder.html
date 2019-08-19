@@ -169,40 +169,45 @@
 <p>Encoders for the speech model.</p>
 <dl class="class">
 <dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.encoder.</code><code class="descname">ConvLSTMBlock</code><span class="sig-paren">(</span><em>rnn</em>, <em>cnn</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.encoder.</code><code class="sig-name descname">ConvLSTMBlock</code><span class="sig-paren">(</span><em class="sig-param">rnn</em>, <em class="sig-param">cnn</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
 <dl class="method">
 <dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock._asdict">
-<code class="descname">_asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._asdict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a new OrderedDict which maps field names to their values</p>
+<code class="sig-name descname">_asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._asdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new OrderedDict which maps field names to their values.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock._fields">
-<code class="descname">_fields</code><em class="property"> = ('rnn', 'cnn')</em><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._fields" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_fields</code><em class="property"> = ('rnn', 'cnn')</em><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._fields" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock._make">
-<em class="property">classmethod </em><code class="descname">_make</code><span class="sig-paren">(</span><em>iterable</em>, <em>new=&lt;built-in method __new__ of type object at 0x8f9920&gt;</em>, <em>len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._make" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">_make</code><span class="sig-paren">(</span><em class="sig-param">iterable</em>, <em class="sig-param">new=&lt;built-in method __new__ of type object at 0xa3a5e0&gt;</em>, <em class="sig-param">len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._make" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a new ConvLSTMBlock object from a sequence or iterable</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock._replace">
-<code class="descname">_replace</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._replace" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_replace</code><span class="sig-paren">(</span><em class="sig-param">**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._replace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new ConvLSTMBlock object replacing specified fields with new values</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock._source">
+<code class="sig-name descname">_source</code><em class="property"> = &quot;from builtins import property as _property, tuple as _tuple\nfrom operator import itemgetter as _itemgetter\nfrom collections import OrderedDict\n\nclass ConvLSTMBlock(tuple):\n    'ConvLSTMBlock(rnn, cnn)'\n\n    __slots__ = ()\n\n    _fields = ('rnn', 'cnn')\n\n    def __new__(_cls, rnn, cnn):\n        'Create new instance of ConvLSTMBlock(rnn, cnn)'\n        return _tuple.__new__(_cls, (rnn, cnn))\n\n    &#64;classmethod\n    def _make(cls, iterable, new=tuple.__new__, len=len):\n        'Make a new ConvLSTMBlock object from a sequence or iterable'\n        result = new(cls, iterable)\n        if len(result) != 2:\n            raise TypeError('Expected 2 arguments, got %d' % len(result))\n        return result\n\n    def _replace(_self, **kwds):\n        'Return a new ConvLSTMBlock object replacing specified fields with new values'\n        result = _self._make(map(kwds.pop, ('rnn', 'cnn'), _self))\n        if kwds:\n            raise ValueError('Got unexpected field names: %r' % list(kwds))\n        return result\n\n    def __repr__(self):\n        'Return a nicely formatted representation string'\n        return self.__class__.__name__ + '(rnn=%r, cnn=%r)' % self\n\n    def _asdict(self):\n        'Return a new OrderedDict which maps field names to their values.'\n        return OrderedDict(zip(self._fields, self))\n\n    def __getnewargs__(self):\n        'Return self as a plain tuple.  Used by copy and pickle.'\n        return tuple(self)\n\n    rnn = _property(_itemgetter(0), doc='Alias for field number 0')\n\n    cnn = _property(_itemgetter(1), doc='Alias for field number 1')\n\n&quot;</em><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._source" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock.cnn">
-<code class="descname">cnn</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock.cnn" title="Permalink to this definition">¶</a></dt>
+<em class="property">property </em><code class="sig-name descname">cnn</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock.cnn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 1</p>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="method">
 <dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock.rnn">
-<code class="descname">rnn</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock.rnn" title="Permalink to this definition">¶</a></dt>
+<em class="property">property </em><code class="sig-name descname">rnn</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock.rnn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 0</p>
 </dd></dl>
 
@@ -210,85 +215,81 @@
 
 <dl class="class">
 <dt id="lingvo.tasks.asr.encoder.AsrEncoder">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.encoder.</code><code class="descname">AsrEncoder</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.encoder.</code><code class="sig-name descname">AsrEncoder</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Speech encoder version 1.</p>
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.tasks.asr.encoder.AsrEncoder.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Configs for AsrEncoder.</p>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="method">
 <dt id="lingvo.tasks.asr.encoder.AsrEncoder._use_functional">
-<code class="descname">_use_functional</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder._use_functional" title="Permalink to this definition">¶</a></dt>
+<em class="property">property </em><code class="sig-name descname">_use_functional</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder._use_functional" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.encoder.AsrEncoder.CreateBidirectionalRNNParams">
-<code class="descname">CreateBidirectionalRNNParams</code><span class="sig-paren">(</span><em>forward_p</em>, <em>backward_p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.CreateBidirectionalRNNParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.CreateBidirectionalRNNParams" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">CreateBidirectionalRNNParams</code><span class="sig-paren">(</span><em class="sig-param">forward_p</em>, <em class="sig-param">backward_p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.CreateBidirectionalRNNParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.CreateBidirectionalRNNParams" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.encoder.AsrEncoder.CreateConvLstmLayerParams">
-<code class="descname">CreateConvLstmLayerParams</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.CreateConvLstmLayerParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.CreateConvLstmLayerParams" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">CreateConvLstmLayerParams</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.CreateConvLstmLayerParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.CreateConvLstmLayerParams" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.encoder.AsrEncoder.FirstLstmLayerInputDimAndPadding">
-<code class="descname">FirstLstmLayerInputDimAndPadding</code><span class="sig-paren">(</span><em>conv_output_shape</em>, <em>pad_to_multiple=16</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.FirstLstmLayerInputDimAndPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.FirstLstmLayerInputDimAndPadding" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FirstLstmLayerInputDimAndPadding</code><span class="sig-paren">(</span><em class="sig-param">conv_output_shape</em>, <em class="sig-param">pad_to_multiple=16</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.FirstLstmLayerInputDimAndPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.FirstLstmLayerInputDimAndPadding" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
+<dl class="method">
 <dt id="lingvo.tasks.asr.encoder.AsrEncoder.supports_streaming">
-<code class="descname">supports_streaming</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.supports_streaming" title="Permalink to this definition">¶</a></dt>
+<em class="property">property </em><code class="sig-name descname">supports_streaming</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.supports_streaming" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.encoder.AsrEncoder.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.encoder.AsrEncoder.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>batch</em>, <em>state0=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">batch</em>, <em class="sig-param">state0=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Encodes source as represented by ‘inputs’ and ‘paddings’.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A NestedMap object containing weights’ values of this
-layer and its children layers.</li>
-<li><strong>batch</strong> – <p>A NestedMap with fields:</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>batch</strong> – <p>A NestedMap with fields:</p>
 <ul>
-<li>src_inputs - The inputs tensor. It is expected to be of shape [batch,
-time, feature_dim, channels].</li>
-<li>paddings - The paddings tensor. It is expected to be of shape [batch,
-time].</li>
+<li><p>src_inputs - The inputs tensor. It is expected to be of shape [batch,
+time, feature_dim, channels].</p></li>
+<li><p>paddings - The paddings tensor. It is expected to be of shape [batch,
+time].</p></li>
 </ul>
-</li>
-<li><strong>state0</strong> – Recurrent input state. Not supported/ignored by this encoder.</li>
+</p></li>
+<li><p><strong>state0</strong> – Recurrent input state. Not supported/ignored by this encoder.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
-<li>‘encoded’: a feature tensor of shape [time, batch, depth]</li>
-<li>’padding’: a 0/1 tensor of shape [time, batch]</li>
-<li>’state’: the updated recurrent state</li>
-<li>’${layer_type}_${layer_index}’: The per-layer encoder output. Each one
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>‘encoded’: a feature tensor of shape [time, batch, depth]</p></li>
+<li><p>’padding’: a 0/1 tensor of shape [time, batch]</p></li>
+<li><p>’state’: the updated recurrent state</p></li>
+<li><p>’${layer_type}_${layer_index}’: The per-layer encoder output. Each one
 is a NestedMap containing ‘encoded’ and ‘padding’ similar to regular
 final outputs, except that ‘encoded’ from conv or conv_lstm layers are
-of shape [time, batch, depth, channels].</li>
+of shape [time, batch, depth, channels].</p></li>
 </ul>
 </p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">A NestedMap containing</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A NestedMap containing</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

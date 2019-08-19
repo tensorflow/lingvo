@@ -167,7 +167,7 @@
 <p>Tools for car beam pipelines.</p>
 <dl class="function">
 <dt id="lingvo.tools.beam_utils.BeamInit">
-<code class="descclassname">lingvo.tools.beam_utils.</code><code class="descname">BeamInit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/beam_utils.html#BeamInit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.beam_utils.BeamInit" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tools.beam_utils.</code><code class="sig-name descname">BeamInit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/beam_utils.html#BeamInit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.beam_utils.BeamInit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize the beam program.</p>
 <p>Typically first thing to run in main(). This call is needed before FLAGS
 are accessed, for example.</p>
@@ -175,78 +175,67 @@ are accessed, for example.</p>
 
 <dl class="function">
 <dt id="lingvo.tools.beam_utils.GetPipelineRoot">
-<code class="descclassname">lingvo.tools.beam_utils.</code><code class="descname">GetPipelineRoot</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/beam_utils.html#GetPipelineRoot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.beam_utils.GetPipelineRoot" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tools.beam_utils.</code><code class="sig-name descname">GetPipelineRoot</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/beam_utils.html#GetPipelineRoot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.beam_utils.GetPipelineRoot" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the root of the beam pipeline.</p>
 <p>Typical usage looks like:</p>
 <blockquote>
-<div><dl class="docutils">
-<dt>with GetPipelineRoot() as root:</dt>
-<dd>_ = (root | beam.ParDo() | …)</dd>
+<div><dl class="simple">
+<dt>with GetPipelineRoot() as root:</dt><dd><p>_ = (root | beam.ParDo() | …)</p>
+</dd>
 </dl>
 </div></blockquote>
 <p>In this example, the pipeline is automatically executed when the context is
 exited, though one can manually run the pipeline built from the root object as
 well.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A beam.Pipeline root object.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A beam.Pipeline root object.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.tools.beam_utils.GetReader">
-<code class="descclassname">lingvo.tools.beam_utils.</code><code class="descname">GetReader</code><span class="sig-paren">(</span><em>record_format</em>, <em>file_pattern</em>, <em>value_coder</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/beam_utils.html#GetReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.beam_utils.GetReader" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tools.beam_utils.</code><code class="sig-name descname">GetReader</code><span class="sig-paren">(</span><em class="sig-param">record_format</em>, <em class="sig-param">file_pattern</em>, <em class="sig-param">value_coder</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/beam_utils.html#GetReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.beam_utils.GetReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a beam Reader based on record_format and file_pattern.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>record_format</strong> – String record format, e.g., ‘tfrecord’.</li>
-<li><strong>file_pattern</strong> – String path describing files to be read.</li>
-<li><strong>value_coder</strong> – Coder to use for the values of each record.</li>
-<li><strong>**kwargs</strong> – arguments to pass to the corresponding Reader object constructor.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>record_format</strong> – String record format, e.g., ‘tfrecord’.</p></li>
+<li><p><strong>file_pattern</strong> – String path describing files to be read.</p></li>
+<li><p><strong>value_coder</strong> – Coder to use for the values of each record.</p></li>
+<li><p><strong>**kwargs</strong> – arguments to pass to the corresponding Reader object constructor.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A beam reader object.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If an unsupported record_format is provided.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A beam reader object.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If an unsupported record_format is provided.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.tools.beam_utils.GetWriter">
-<code class="descclassname">lingvo.tools.beam_utils.</code><code class="descname">GetWriter</code><span class="sig-paren">(</span><em>record_format</em>, <em>file_pattern</em>, <em>value_coder</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/beam_utils.html#GetWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.beam_utils.GetWriter" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tools.beam_utils.</code><code class="sig-name descname">GetWriter</code><span class="sig-paren">(</span><em class="sig-param">record_format</em>, <em class="sig-param">file_pattern</em>, <em class="sig-param">value_coder</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/beam_utils.html#GetWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.beam_utils.GetWriter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a beam Writer.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>record_format</strong> – String record format, e.g., ‘tfrecord’ to write as.</li>
-<li><strong>file_pattern</strong> – String path describing files to be written to.</li>
-<li><strong>value_coder</strong> – Coder to use for the values of each written record.</li>
-<li><strong>**kwargs</strong> – arguments to pass to the corresponding Writer object constructor.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>record_format</strong> – String record format, e.g., ‘tfrecord’ to write as.</p></li>
+<li><p><strong>file_pattern</strong> – String path describing files to be written to.</p></li>
+<li><p><strong>value_coder</strong> – Coder to use for the values of each written record.</p></li>
+<li><p><strong>**kwargs</strong> – arguments to pass to the corresponding Writer object constructor.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A beam writer object.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If an unsupported record_format is provided.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A beam writer object.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If an unsupported record_format is provided.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>

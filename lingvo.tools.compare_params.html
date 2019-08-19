@@ -167,65 +167,57 @@
 <p>Library for comparing two models / hyperparams.</p>
 <dl class="function">
 <dt id="lingvo.tools.compare_params._hyperparams_text_to_dict">
-<code class="descclassname">lingvo.tools.compare_params.</code><code class="descname">_hyperparams_text_to_dict</code><span class="sig-paren">(</span><em>cfg_text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/compare_params.html#_hyperparams_text_to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.compare_params._hyperparams_text_to_dict" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tools.compare_params.</code><code class="sig-name descname">_hyperparams_text_to_dict</code><span class="sig-paren">(</span><em class="sig-param">cfg_text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/compare_params.html#_hyperparams_text_to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.compare_params._hyperparams_text_to_dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts hyperparams config text to a dictionary of key-value pairs.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.tools.compare_params.hyperparams_text_diff">
-<code class="descclassname">lingvo.tools.compare_params.</code><code class="descname">hyperparams_text_diff</code><span class="sig-paren">(</span><em>cfg1_text</em>, <em>cfg2_text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/compare_params.html#hyperparams_text_diff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.compare_params.hyperparams_text_diff" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tools.compare_params.</code><code class="sig-name descname">hyperparams_text_diff</code><span class="sig-paren">(</span><em class="sig-param">cfg1_text</em>, <em class="sig-param">cfg2_text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/compare_params.html#hyperparams_text_diff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.compare_params.hyperparams_text_diff" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the differences between two hyperparams.Params texts.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>cfg1_text</strong> – A hyperparams.Params().ToText() of the first model config.</li>
-<li><strong>cfg2_text</strong> – A hyperparams.Params().ToText() of the second model config.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cfg1_text</strong> – A hyperparams.Params().ToText() of the first model config.</p></li>
+<li><p><strong>cfg2_text</strong> – A hyperparams.Params().ToText() of the second model config.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p>A list of keys in cfg1 but not cfg2.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A list of keys in cfg1 but not cfg2.</p>
 <p>cfg2_not_cfg1: A list of keys in cfg2 but not cfg1.</p>
 <p>cfg1_and_cfg2_diff: A dictionary of common keys whose
 config values differ: each value is a tuple of the config
 values from cfg1 and cfg2 respectively.</p>
 </p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">cfg1_not_cfg2</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>cfg1_not_cfg2</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.tools.compare_params.print_hyperparams_text_diff">
-<code class="descclassname">lingvo.tools.compare_params.</code><code class="descname">print_hyperparams_text_diff</code><span class="sig-paren">(</span><em>path1</em>, <em>path2</em>, <em>cfg1_not_cfg2</em>, <em>cfg2_not_cfg1</em>, <em>cfg1_and_cfg2_diff</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/compare_params.html#print_hyperparams_text_diff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.compare_params.print_hyperparams_text_diff" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tools.compare_params.</code><code class="sig-name descname">print_hyperparams_text_diff</code><span class="sig-paren">(</span><em class="sig-param">path1</em>, <em class="sig-param">path2</em>, <em class="sig-param">cfg1_not_cfg2</em>, <em class="sig-param">cfg2_not_cfg1</em>, <em class="sig-param">cfg1_and_cfg2_diff</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/compare_params.html#print_hyperparams_text_diff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.compare_params.print_hyperparams_text_diff" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prints the differences of the output of hyperparams_text_diff.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>path1</strong> – Name of registered model or path to model 1.</li>
-<li><strong>path2</strong> – Name of registered model or path to model 2.</li>
-<li><strong>cfg1_not_cfg2</strong> – A list of keys in cfg1 but not cfg2.</li>
-<li><strong>cfg2_not_cfg1</strong> – A list of keys in cfg2 but not cfg1.</li>
-<li><strong>cfg1_and_cfg2_diff</strong> – A dictionary of common keys whose config values differ;
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path1</strong> – Name of registered model or path to model 1.</p></li>
+<li><p><strong>path2</strong> – Name of registered model or path to model 2.</p></li>
+<li><p><strong>cfg1_not_cfg2</strong> – A list of keys in cfg1 but not cfg2.</p></li>
+<li><p><strong>cfg2_not_cfg1</strong> – A list of keys in cfg2 but not cfg1.</p></li>
+<li><p><strong>cfg1_and_cfg2_diff</strong> – A dictionary of common keys whose config values differ;
 each value is a tuple of the config values from cfg1 and cfg2
-respectively.</li>
+respectively.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.tools.compare_params.get_model_params_as_text">
-<code class="descclassname">lingvo.tools.compare_params.</code><code class="descname">get_model_params_as_text</code><span class="sig-paren">(</span><em>model_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/compare_params.html#get_model_params_as_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.compare_params.get_model_params_as_text" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tools.compare_params.</code><code class="sig-name descname">get_model_params_as_text</code><span class="sig-paren">(</span><em class="sig-param">model_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/compare_params.html#get_model_params_as_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.compare_params.get_model_params_as_text" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>

@@ -168,174 +168,152 @@
 <p>Lingvo layers that used for spectrum augmentation.</p>
 <dl class="class">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter">
-<em class="property">class </em><code class="descclassname">lingvo.core.spectrum_augmenter.</code><code class="descname">SpectrumAugmenter</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.spectrum_augmenter.</code><code class="sig-name descname">SpectrumAugmenter</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Performs data augmentation as according to the SpecAug paper.</p>
 <p><a class="reference external" href="https://arxiv.org/pdf/1904.08779.pdf">https://arxiv.org/pdf/1904.08779.pdf</a></p>
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask">
-<code class="descname">_GetMask</code><span class="sig-paren">(</span><em>batch_size</em>, <em>max_length</em>, <em>choose_range</em>, <em>mask_size</em>, <em>dtype=tf.float32</em>, <em>max_ratio=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._GetMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_GetMask</code><span class="sig-paren">(</span><em class="sig-param">batch_size</em>, <em class="sig-param">max_length</em>, <em class="sig-param">choose_range</em>, <em class="sig-param">mask_size</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">max_ratio=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._GetMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a fixed size mask starting from a random position.</p>
-<dl class="docutils">
-<dt>In this function:</dt>
-<dd><ol class="first last arabic simple">
-<li>Sample random lengths less than max_length with shape (batch_size,).</li>
-<li>Truncate lengths to a max of range * max_ratio, so that each mask is
-fully contained within the corresponding sequence.</li>
-<li>Random sample start points with in (choose_range - lengths).</li>
-<li>Return a mask where (lengths - start points) * mask_size are all zeros.</li>
+<dl class="simple">
+<dt>In this function:</dt><dd><ol class="arabic simple">
+<li><p>Sample random lengths less than max_length with shape (batch_size,).</p></li>
+<li><p>Truncate lengths to a max of range * max_ratio, so that each mask is
+fully contained within the corresponding sequence.</p></li>
+<li><p>Random sample start points with in (choose_range - lengths).</p></li>
+<li><p>Return a mask where (lengths - start points) * mask_size are all zeros.</p></li>
 </ol>
 </dd>
 </dl>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>batch_size</strong> – batch size.</li>
-<li><strong>max_length</strong> – Maximum number of allowed consecutive masked entries.</li>
-<li><strong>choose_range</strong> – Range within which the masked entries must lie.</li>
-<li><strong>mask_size</strong> – Size of the mask.</li>
-<li><strong>dtype</strong> – Data type.</li>
-<li><strong>max_ratio</strong> – Maximum portion of the entire range allowed to be masked.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch_size</strong> – batch size.</p></li>
+<li><p><strong>max_length</strong> – Maximum number of allowed consecutive masked entries.</p></li>
+<li><p><strong>choose_range</strong> – Range within which the masked entries must lie.</p></li>
+<li><p><strong>mask_size</strong> – Size of the mask.</p></li>
+<li><p><strong>dtype</strong> – Data type.</p></li>
+<li><p><strong>max_ratio</strong> – Maximum portion of the entire range allowed to be masked.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a fixed size mask starting from a random position with shape
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a fixed size mask starting from a random position with shape
 [batch_size, seq_len].</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">mask</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mask</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask">
-<code class="descname">_FrequencyMask</code><span class="sig-paren">(</span><em>inputs</em>, <em>num_freq=80</em>, <em>dtype=tf.float32</em>, <em>domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._FrequencyMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FrequencyMask</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">num_freq=80</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._FrequencyMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies frequency masking with given degree to inputs.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
-num_freq, channels).</li>
-<li><strong>num_freq</strong> – Number of frequencies.</li>
-<li><strong>dtype</strong> – Data type.</li>
-<li><strong>domain_id_index</strong> – domain id index.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
+num_freq, channels).</p></li>
+<li><p><strong>num_freq</strong> – Number of frequencies.</p></li>
+<li><p><strong>dtype</strong> – Data type.</p></li>
+<li><p><strong>domain_id_index</strong> – domain id index.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Inputs with random frequency masking applied.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Inputs with random frequency masking applied.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask">
-<code class="descname">_TimeMask</code><span class="sig-paren">(</span><em>inputs</em>, <em>seq_lengths</em>, <em>max_ratio=1.0</em>, <em>time_length=2560</em>, <em>noisify=False</em>, <em>dtype=tf.float32</em>, <em>domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._TimeMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_TimeMask</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">max_ratio=1.0</em>, <em class="sig-param">time_length=2560</em>, <em class="sig-param">noisify=False</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._TimeMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies time masking with given degree to inputs.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
-num_freq, channels).</li>
-<li><strong>seq_lengths</strong> – The actual sequence lengths which mask been sampled of shape
-(batch_size,).</li>
-<li><strong>max_ratio</strong> – Maximum portion of the utterance allowed to be time-masked.</li>
-<li><strong>time_length</strong> – Total length of time series.</li>
-<li><strong>noisify</strong> – whether to noisify the masked out regions.</li>
-<li><strong>dtype</strong> – Data type.</li>
-<li><strong>domain_id_index</strong> – domain id index.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
+num_freq, channels).</p></li>
+<li><p><strong>seq_lengths</strong> – The actual sequence lengths which mask been sampled of shape
+(batch_size,).</p></li>
+<li><p><strong>max_ratio</strong> – Maximum portion of the utterance allowed to be time-masked.</p></li>
+<li><p><strong>time_length</strong> – Total length of time series.</p></li>
+<li><p><strong>noisify</strong> – whether to noisify the masked out regions.</p></li>
+<li><p><strong>dtype</strong> – Data type.</p></li>
+<li><p><strong>domain_id_index</strong> – domain id index.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Inputs with random time masking applied.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Inputs with random time masking applied.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter.UnstackFeatures">
-<code class="descname">UnstackFeatures</code><span class="sig-paren">(</span><em>src_inputs</em>, <em>src_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter.UnstackFeatures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter.UnstackFeatures" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">UnstackFeatures</code><span class="sig-paren">(</span><em class="sig-param">src_inputs</em>, <em class="sig-param">src_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter.UnstackFeatures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter.UnstackFeatures" title="Permalink to this definition">¶</a></dt>
 <dd><p>Unstacks src_input and src_paddings based off stack height.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork">
-<code class="descname">_AugmentationNetwork</code><span class="sig-paren">(</span><em>series_length</em>, <em>num_freq</em>, <em>inputs</em>, <em>paddings</em>, <em>domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._AugmentationNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AugmentationNetwork</code><span class="sig-paren">(</span><em class="sig-param">series_length</em>, <em class="sig-param">num_freq</em>, <em class="sig-param">inputs</em>, <em class="sig-param">paddings</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._AugmentationNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns augmented features.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>series_length</strong> – Total length of time series.</li>
-<li><strong>num_freq</strong> – Number of frequencies.</li>
-<li><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
-num_freq, channels).</li>
-<li><strong>paddings</strong> – Batch of padding vectors of shape (batch_size, time_length).</li>
-<li><strong>domain_id_index</strong> – domain id index.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>series_length</strong> – Total length of time series.</p></li>
+<li><p><strong>num_freq</strong> – Number of frequencies.</p></li>
+<li><p><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
+num_freq, channels).</p></li>
+<li><p><strong>paddings</strong> – Batch of padding vectors of shape (batch_size, time_length).</p></li>
+<li><p><strong>domain_id_index</strong> – domain id index.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
-<dt>Batch of output features of shape</dt>
-<dd><p class="first last">(batch_size, time_length, num_freq, channels)
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Batch of output features of shape</dt><dd><p>(batch_size, time_length, num_freq, channels)
 obtained by applying random augmentations to inputs.</p>
 </dd>
 </dl>
 </p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">output</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>domain_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inputs</em>, <em class="sig-param">paddings</em>, <em class="sig-param">domain_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies data augmentation by randomly mask spectrum in inputs.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
-children layers.</li>
-<li><strong>inputs</strong> – A tensor of shape [batch, time, freq, num_channels].</li>
-<li><strong>paddings</strong> – A 0/1 tensor of shape [batch, time].</li>
-<li><strong>domain_ids</strong> – input domain_ids of shape [batch, time].</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</p></li>
+<li><p><strong>inputs</strong> – A tensor of shape [batch, time, freq, num_channels].</p></li>
+<li><p><strong>paddings</strong> – A 0/1 tensor of shape [batch, time].</p></li>
+<li><p><strong>domain_ids</strong> – input domain_ids of shape [batch, time].</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An tensor of shape [batch, time, freq, num_channels].
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An tensor of shape [batch, time, freq, num_channels].
 paddings: A 0/1 tensor of shape [batch, time].</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">augmented_inputs</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>augmented_inputs</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

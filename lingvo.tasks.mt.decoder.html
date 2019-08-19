@@ -169,297 +169,252 @@
 <p>Machine translation decoder.</p>
 <dl class="class">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.mt.decoder.</code><code class="descname">MTBaseDecoder</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.mt.decoder.</code><code class="sig-name descname">MTBaseDecoder</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder" title="lingvo.core.base_decoder.BaseBeamSearchDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_decoder.BaseBeamSearchDecoder</span></code></a></p>
 <p>Base class for Lingvo MT decoders.</p>
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder.UpdateTargetVocabSize">
-<em class="property">classmethod </em><code class="descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em>p</em>, <em>vocab_size</em>, <em>wpm_model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">vocab_size</em>, <em class="sig-param">wpm_model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the params with the given vocab size and wpm model.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>p</strong> – model params.</li>
-<li><strong>vocab_size</strong> – size of the vocabulary.</li>
-<li><strong>wpm_model</strong> – file name prefix pointing to a wordpiece model.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – model params.</p></li>
+<li><p><strong>vocab_size</strong> – size of the vocabulary.</p></li>
+<li><p><strong>wpm_model</strong> – file name prefix pointing to a wordpiece model.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Model params updated with the vocab size and wpm model.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Model params updated with the vocab size and wpm model.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax">
-<code class="descname">_FPropSoftmax</code><span class="sig-paren">(</span><em>theta</em>, <em>softmax_input</em>, <em>target_labels</em>, <em>target_weights</em>, <em>target_paddings</em>, <em>target_segment_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._FPropSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FPropSoftmax</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">softmax_input</em>, <em class="sig-param">target_labels</em>, <em class="sig-param">target_weights</em>, <em class="sig-param">target_paddings</em>, <em class="sig-param">target_segment_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._FPropSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes cross-entropy loss given the softmax input, labels and weights.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
-<li><strong>softmax_input</strong> – A tensor of shape [time, batch, p.softmax.input_dim].</li>
-<li><strong>target_labels</strong> – A matrix of tf.int32. [time, batch].</li>
-<li><strong>target_weights</strong> – A matrix of params.dtype. [time, batch].</li>
-<li><strong>target_paddings</strong> – A matrix of params.dtype. [time, batch].</li>
-<li><strong>target_segment_ids</strong> – A matrix of params.dtype. [time, batch].</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>softmax_input</strong> – A tensor of shape [time, batch, p.softmax.input_dim].</p></li>
+<li><p><strong>target_labels</strong> – A matrix of tf.int32. [time, batch].</p></li>
+<li><p><strong>target_weights</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>target_paddings</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>target_segment_ids</strong> – A matrix of params.dtype. [time, batch].</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
-<dt>A tuple (metrics, per_example_tensors).</dt>
-<dd><dl class="first last docutils">
-<dt>metrics:</dt>
-<dd><p class="first last">A dictionary containing metrics for the xent loss and prediction
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple (metrics, per_example_tensors).</dt><dd><dl class="simple">
+<dt>metrics:</dt><dd><p>A dictionary containing metrics for the xent loss and prediction
 accuracy.</p>
 </dd>
-<dt>per_example_tensors:</dt>
-<dd><p class="first last">A dictionary of per-example tensors.</p>
+<dt>per_example_tensors:</dt><dd><p>A dictionary of per-example tensors.</p>
 </dd>
 </dl>
 </dd>
 </dl>
 </p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder.ComputeLoss">
-<code class="descname">ComputeLoss</code><span class="sig-paren">(</span><em>theta</em>, <em>predictions</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predictions</em>, <em class="sig-param">targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Populates a metrics dictionary based on the output of ComputePredictions.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – Nested map describing decoder model parameters.</li>
-<li><strong>predictions</strong> – NestedMap describing the decoding process, requiring:
-.softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</li>
-<li><strong>targets</strong> – NestedMap describing the target sequences.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – Nested map describing decoder model parameters.</p></li>
+<li><p><strong>predictions</strong> – NestedMap describing the decoding process, requiring:
+.softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</p></li>
+<li><p><strong>targets</strong> – NestedMap describing the target sequences.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>Two dicts.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>Two dicts.</p>
 <blockquote>
 <div><ul class="simple">
-<li>A map from metric name (a python string) to a tuple (value, weight).
-Both value and weight are scalar Tensors.</li>
-<li>A map from name to arbitrary tensors, where the first dimension must
-be the batch index.</li>
+<li><p>A map from metric name (a python string) to a tuple (value, weight).
+Both value and weight are scalar Tensors.</p></li>
+<li><p>A map from name to arbitrary tensors, where the first dimension must
+be the batch index.</p></li>
 </ul>
 </div></blockquote>
 </p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._TruncateTargetSequence">
-<code class="descname">_TruncateTargetSequence</code><span class="sig-paren">(</span><em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._TruncateTargetSequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._TruncateTargetSequence" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_TruncateTargetSequence</code><span class="sig-paren">(</span><em class="sig-param">targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._TruncateTargetSequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._TruncateTargetSequence" title="Permalink to this definition">¶</a></dt>
 <dd><p>Truncate padded time steps from all sequences.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsSummary">
-<code class="descname">_AddAttenProbsSummary</code><span class="sig-paren">(</span><em>source_paddings</em>, <em>targets</em>, <em>atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._AddAttenProbsSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AddAttenProbsSummary</code><span class="sig-paren">(</span><em class="sig-param">source_paddings</em>, <em class="sig-param">targets</em>, <em class="sig-param">atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._AddAttenProbsSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add summary of attention probs.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</li>
-<li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
-predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</li>
-<li><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
-tgt_batch, src_len].</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</p></li>
+<li><p><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</p></li>
+<li><p><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
+tgt_batch, src_len].</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsHistogramSummary">
-<code class="descname">_AddAttenProbsHistogramSummary</code><span class="sig-paren">(</span><em>atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._AddAttenProbsHistogramSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsHistogramSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AddAttenProbsHistogramSummary</code><span class="sig-paren">(</span><em class="sig-param">atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._AddAttenProbsHistogramSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsHistogramSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add histogram summary of attention probs.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
-tgt_batch, src_len].</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
+tgt_batch, src_len].</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsImageSummary">
-<code class="descname">_AddAttenProbsImageSummary</code><span class="sig-paren">(</span><em>source_paddings</em>, <em>targets</em>, <em>atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._AddAttenProbsImageSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsImageSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AddAttenProbsImageSummary</code><span class="sig-paren">(</span><em class="sig-param">source_paddings</em>, <em class="sig-param">targets</em>, <em class="sig-param">atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._AddAttenProbsImageSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsImageSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add image summary of attention probs.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</li>
-<li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
-predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</li>
-<li><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
-tgt_batch, src_len].</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</p></li>
+<li><p><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</p></li>
+<li><p><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
+tgt_batch, src_len].</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.mt.decoder.</code><code class="descname">MTDecoderV1</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.mt.decoder.</code><code class="sig-name descname">MTDecoderV1</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="lingvo.tasks.mt.decoder.MTBaseDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.mt.decoder.MTBaseDecoder</span></code></a>, <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
 <p>MT decoder v1.</p>
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1.UpdateTargetVocabSize">
-<em class="property">classmethod </em><code class="descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em>p</em>, <em>vocab_size</em>, <em>wpm_model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">vocab_size</em>, <em class="sig-param">wpm_model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates the params with the input vocab_size and WPM model.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>p</strong> – model params.</li>
-<li><strong>vocab_size</strong> – size of the vocabulary.</li>
-<li><strong>wpm_model</strong> – file name prefix pointing to a wordpiece model.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – model params.</p></li>
+<li><p><strong>vocab_size</strong> – size of the vocabulary.</p></li>
+<li><p><strong>wpm_model</strong> – file name prefix pointing to a wordpiece model.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Model params updated with the vocab size and wpm model.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Model params updated with the vocab size and wpm model.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1.ApplyDropout">
-<code class="descname">ApplyDropout</code><span class="sig-paren">(</span><em>x_in</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.ApplyDropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.ApplyDropout" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ApplyDropout</code><span class="sig-paren">(</span><em class="sig-param">x_in</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.ApplyDropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.ApplyDropout" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1.ApplyClipping">
-<code class="descname">ApplyClipping</code><span class="sig-paren">(</span><em>theta</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.ApplyClipping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.ApplyClipping" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ApplyClipping</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.ApplyClipping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.ApplyClipping" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1.ComputePredictions">
-<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._InitDecoder">
-<code class="descname">_InitDecoder</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._InitDecoder" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_InitDecoder</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._InitDecoder" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._DecodeStep">
-<code class="descname">_DecodeStep</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._DecodeStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_DecodeStep</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._DecodeStep" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._GetAttentionInitState">
-<code class="descname">_GetAttentionInitState</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._GetAttentionInitState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._GetAttentionInitState" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_GetAttentionInitState</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._GetAttentionInitState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._GetAttentionInitState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the attention initialization state.</p>
 <p>It is valid to call this after <code class="xref py py-obj docutils literal notranslate"><span class="pre">_DecoderInit()</span></code>. Inference subclasses use
 this to split computation across subgraph boundaries.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of attention source states.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of attention source states.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._SetAttentionInitState">
-<code class="descname">_SetAttentionInitState</code><span class="sig-paren">(</span><em>new_init_state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._SetAttentionInitState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._SetAttentionInitState" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_SetAttentionInitState</code><span class="sig-paren">(</span><em class="sig-param">new_init_state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._SetAttentionInitState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._SetAttentionInitState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the attention initialization state.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>new_init_state</strong> – <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> compatible with that returned from
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">_GetAttentionSourceState</span></code>.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>new_init_state</strong> – <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> compatible with that returned from
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">_GetAttentionSourceState</span></code>.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._InitBeamSearchStateCallback">
-<code class="descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns initial beams search states.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – a NestedMap of parameters.</li>
-<li><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</li>
-<li><strong>num_hyps_per_beam</strong> – An int, number hyps to keep for source sentence.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – a NestedMap of parameters.</p></li>
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – An int, number hyps to keep for source sentence.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
-<dt>A tuple (initial_results, states).</dt>
-<dd><dl class="first last docutils">
-<dt>initial_results: a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of initial results.</dt>
-<dd><dl class="first last docutils">
-<dt>atten_probs:</dt>
-<dd><p class="first last">The initial attention probs, of shape [tgt_batch, src_len].</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple (initial_results, states).</dt><dd><dl class="simple">
+<dt>initial_results: a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of initial results.</dt><dd><dl class="simple">
+<dt>atten_probs:</dt><dd><p>The initial attention probs, of shape [tgt_batch, src_len].</p>
 </dd>
 </dl>
 </dd>
-<dt>states: a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of initial model states.</dt>
-<dd><dl class="first last docutils">
-<dt>rnn_states:</dt>
-<dd><p class="first last">Initial state of the RNN.</p>
+<dt>states: a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of initial model states.</dt><dd><dl class="simple">
+<dt>rnn_states:</dt><dd><p>Initial state of the RNN.</p>
 </dd>
-<dt>atten_context:</dt>
-<dd><p class="first last">Initial attention context vector.</p>
+<dt>atten_context:</dt><dd><p>Initial attention context vector.</p>
 </dd>
-<dt>atten_states:</dt>
-<dd><p class="first last">Initial attention state.</p>
+<dt>atten_states:</dt><dd><p>Initial attention state.</p>
 </dd>
 </dl>
 </dd>
@@ -467,241 +422,210 @@ this to split computation across subgraph boundaries.</p>
 </dd>
 </dl>
 </p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._PreBeamSearchStepCallback">
-<code class="descname">_PreBeamSearchStepCallback</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._PreBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_PreBeamSearchStepCallback</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._PreBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback">
-<code class="descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>new_step_ids</em>, <em>states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">new_step_ids</em>, <em class="sig-param">states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.mt.decoder.</code><code class="descname">TransformerDecoder</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.mt.decoder.</code><code class="sig-name descname">TransformerDecoder</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="lingvo.tasks.mt.decoder.MTBaseDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.mt.decoder.MTBaseDecoder</span></code></a></p>
 <p>Transformer decoder.</p>
 <p>Implements the decoder of Transformer model:
 <a class="reference external" href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>.</p>
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder.UpdateTargetVocabSize">
-<em class="property">classmethod </em><code class="descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em>p</em>, <em>vocab_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">vocab_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates the params with the input vocab_size and WPM model.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._ExpandToNumHyps">
-<code class="descname">_ExpandToNumHyps</code><span class="sig-paren">(</span><em>source_enc_len</em>, <em>num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._ExpandToNumHyps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._ExpandToNumHyps" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_ExpandToNumHyps</code><span class="sig-paren">(</span><em class="sig-param">source_enc_len</em>, <em class="sig-param">num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._ExpandToNumHyps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._ExpandToNumHyps" title="Permalink to this definition">¶</a></dt>
 <dd><p>Repeat each value according to num hyps.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>source_enc_len</strong> – source encoder length; int [batch].</li>
-<li><strong>num_hyps_per_beam</strong> – number of hypotheses</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_enc_len</strong> – source encoder length; int [batch].</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – number of hypotheses</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">New version of source_enc_len; int [batch * num_hyps_per_beam].
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>New version of source_enc_len; int [batch * num_hyps_per_beam].
 Target_batch is (num_hyps_per_beam * batch).
 Example: src_enc_len = [3, 2, 1] and num_hyps_per_beam = 2
 –&gt; [3, 2, 1, 3, 2, 1]</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._RemoveEOSProbs">
-<code class="descname">_RemoveEOSProbs</code><span class="sig-paren">(</span><em>p</em>, <em>probs</em>, <em>source_enc_len</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._RemoveEOSProbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._RemoveEOSProbs" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_RemoveEOSProbs</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">probs</em>, <em class="sig-param">source_enc_len</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._RemoveEOSProbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._RemoveEOSProbs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove the attention probs on EOS symbol and renormalize.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>p</strong> – decoder params.</li>
-<li><strong>probs</strong> – attention probs matrix; float [batch, target_len, source_len].</li>
-<li><strong>source_enc_len</strong> – source encoder length; int [batch].</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – decoder params.</p></li>
+<li><p><strong>probs</strong> – attention probs matrix; float [batch, target_len, source_len].</p></li>
+<li><p><strong>source_enc_len</strong> – source encoder length; int [batch].</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">probs with value on last actual token (EOS token) replaced by 0 and
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>probs with value on last actual token (EOS token) replaced by 0 and
 renormalized so that final dim (src_len) sums to 1 again; float
 [batch, target_len, source_len].</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._FProp">
-<code class="descname">_FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</li>
-<li><strong>encoder_outputs</strong> – <p>a NestedMap computed by encoder. Expected to contain:</p>
-<dl class="docutils">
-<dt>encoded - source encoding. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code> is False, it is a</dt>
-<dd>tensor of shape [time, batch, depth]. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – <p>a NestedMap computed by encoder. Expected to contain:</p>
+<dl class="simple">
+<dt>encoded - source encoding. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code> is False, it is a</dt><dd><p>tensor of shape [time, batch, depth]. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code>
 is True, it is a tensor of shape
 [time, batch, depth, num_trans_layers] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_eval</span></code> is True,
 and a list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">num_trans_layers</span></code> tensors of shape
-[time, batch, depth] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_eval</span></code> is False.</dd>
+[time, batch, depth] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_eval</span></code> is False.</p>
+</dd>
 </dl>
 <p>padding - source encoding’s padding, of shape [time, batch].
 segment_id - source segment id, of shape [time, batch].</p>
-</li>
-<li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
-predict. Each tensor in targets is of shape [batch, time].</li>
+</p></li>
+<li><p><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [batch, time].</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
 attention: <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of attention distributions of shape
 [batch, target_length, source_length].</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing output of last decoder layer and attention probs</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing output of last decoder layer and attention probs</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep">
-<code class="descname">ExtendStep</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>new_ids</em>, <em>t</em>, <em>prefix_states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">new_ids</em>, <em class="sig-param">t</em>, <em class="sig-param">prefix_states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extend prefix as represented by <code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix_states</span></code> by one more step.</p>
 <p>This function is expected to be called during fast decoding of Transformer
 models.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</li>
-<li><strong>encoder_outputs</strong> – <p>a NestedMap computed by encoder, containing:</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – <p>a NestedMap computed by encoder, containing:</p>
 <ul>
-<li>encoded: source encoding, of shape [time, batch, depth]. Can be [time,
-bs, depth, num_trans_layers] if is_transparent is set.</li>
-<li>padding: source encoding’s padding, of shape [time, batch].</li>
+<li><p>encoded: source encoding, of shape [time, batch, depth]. Can be [time,
+bs, depth, num_trans_layers] if is_transparent is set.</p></li>
+<li><p>padding: source encoding’s padding, of shape [time, batch].</p></li>
 </ul>
-</li>
-<li><strong>new_ids</strong> – new input ids, of shape [batch].</li>
-<li><strong>t</strong> – a scalar, the current time step, 0-based.</li>
-<li><strong>prefix_states</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> representing the prefix that has already
-been decoded.</li>
+</p></li>
+<li><p><strong>new_ids</strong> – new input ids, of shape [batch].</p></li>
+<li><p><strong>t</strong> – a scalar, the current time step, 0-based.</p></li>
+<li><p><strong>prefix_states</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> representing the prefix that has already
+been decoded.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tuple (last_decoder_out, prefix_states, atten_probs), where
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tuple (last_decoder_out, prefix_states, atten_probs), where
 last_decoder_out is the output of the last decoder layer of
 shape [batch, model_dim], <code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix_states</span></code> is the update prefix states,
 and atten_probs contains attention in shape [batch, src_len] for the
 given target position.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder.ComputePredictions">
-<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</li>
-<li><strong>encoder_outputs</strong> – <p>a NestedMap computed by encoder. Expected to contain:</p>
-<dl class="docutils">
-<dt>encoded - source encoding, of shape [time, batch, depth]. Can be [time,</dt>
-<dd>batch, depth, num_layers] if is_transparent is set.</dd>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – <p>a NestedMap computed by encoder. Expected to contain:</p>
+<dl class="simple">
+<dt>encoded - source encoding, of shape [time, batch, depth]. Can be [time,</dt><dd><p>batch, depth, num_layers] if is_transparent is set.</p>
+</dd>
 </dl>
 <p>padding - source encoding’s padding, of shape [time, batch].
 segment_id - source segment id, of shape [time, batch].</p>
-</li>
-<li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
-predict. Each tensor in targets is of shape [batch, time].</li>
+</p></li>
+<li><p><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [batch, time].</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
 attention: <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of attention distributions of shape
 [batch, time, source_len].</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing utput of last decoder layer and attention probs</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing utput of last decoder layer and attention probs</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback">
-<code class="descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns initial beams search states.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</li>
-<li><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</li>
-<li><strong>num_hyps_per_beam</strong> – An int, number hyps to keep for source sentence.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – An int, number hyps to keep for source sentence.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
-<dt>A tuple (initial_results, states).</dt>
-<dd><dl class="first last docutils">
-<dt>initial_results: a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of initial results.</dt>
-<dd><dl class="first last docutils">
-<dt>atten_probs:</dt>
-<dd><p class="first last">The initial attention probs, of shape [tgt_batch, src_len].</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple (initial_results, states).</dt><dd><dl class="simple">
+<dt>initial_results: a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of initial results.</dt><dd><dl class="simple">
+<dt>atten_probs:</dt><dd><p>The initial attention probs, of shape [tgt_batch, src_len].</p>
 </dd>
 </dl>
 </dd>
-<dt>states: a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of initial model states.</dt>
-<dd><dl class="first last docutils">
-<dt>source_encs:</dt>
-<dd><p class="first last">A tensor of shape [src_batch, src_len, source_dim].</p>
+<dt>states: a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of initial model states.</dt><dd><dl class="simple">
+<dt>source_encs:</dt><dd><p>A tensor of shape [src_batch, src_len, source_dim].</p>
 </dd>
-<dt>source_paddings:</dt>
-<dd><p class="first last">A tensor of shape [src_batch, src_len].</p>
+<dt>source_paddings:</dt><dd><p>A tensor of shape [src_batch, src_len].</p>
 </dd>
-<dt>target_ids:</dt>
-<dd><p class="first last">Initial empty list of decoded ids. [num_hyps, 0].</p>
+<dt>target_ids:</dt><dd><p>Initial empty list of decoded ids. [num_hyps, 0].</p>
 </dd>
 </dl>
 </dd>
@@ -709,55 +633,43 @@ its children layers.</li>
 </dd>
 </dl>
 </p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._PreBeamSearchStepCallback">
-<code class="descname">_PreBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>step_ids</em>, <em>states</em>, <em>num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PreBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PreBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_PreBeamSearchStepCallback</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">step_ids</em>, <em class="sig-param">states</em>, <em class="sig-param">num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PreBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PreBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns logits for sampling ids and the next model states.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</li>
-<li><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</li>
-<li><strong>step_ids</strong> – A tensor of shape [tgt_batch, 1].</li>
-<li><strong>states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors representing states that the clients
-would like to keep track of for each of the active hyps.</li>
-<li><strong>num_hyps_per_beam</strong> – Beam size.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</p></li>
+<li><p><strong>step_ids</strong> – A tensor of shape [tgt_batch, 1].</p></li>
+<li><p><strong>states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors representing states that the clients
+would like to keep track of for each of the active hyps.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – Beam size.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
-<dt>A tuple (results, out_states).</dt>
-<dd><dl class="first last docutils">
-<dt>results: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of beam search results.</dt>
-<dd><dl class="first last docutils">
-<dt>atten_probs:</dt>
-<dd><p class="first last">The updated attention probs, of shape [tgt_batch, src_len].</p>
 </dd>
-<dt>log_probs:</dt>
-<dd><p class="first last">Log prob for each of the tokens in the target vocab. This is of
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple (results, out_states).</dt><dd><dl class="simple">
+<dt>results: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of beam search results.</dt><dd><dl class="simple">
+<dt>atten_probs:</dt><dd><p>The updated attention probs, of shape [tgt_batch, src_len].</p>
+</dd>
+<dt>log_probs:</dt><dd><p>Log prob for each of the tokens in the target vocab. This is of
 shape [tgt_batch, vocab_size].</p>
 </dd>
 </dl>
 </dd>
-<dt>out_states: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. The updated states.</dt>
-<dd><dl class="first last docutils">
-<dt>source_encs:</dt>
-<dd><p class="first last">A tensor of shape [src_batch, src_len, source_dim].</p>
+<dt>out_states: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. The updated states.</dt><dd><dl class="simple">
+<dt>source_encs:</dt><dd><p>A tensor of shape [src_batch, src_len, source_dim].</p>
 </dd>
-<dt>source_paddings:</dt>
-<dd><p class="first last">A tensor of shape [src_batch, src_len].</p>
+<dt>source_paddings:</dt><dd><p>A tensor of shape [src_batch, src_len].</p>
 </dd>
-<dt>target_ids:</dt>
-<dd><p class="first last">Updated list of decoded ids. [num_hyps, Num of decoded ids].</p>
+<dt>target_ids:</dt><dd><p>Updated list of decoded ids. [num_hyps, Num of decoded ids].</p>
 </dd>
 </dl>
 </dd>
@@ -765,20 +677,18 @@ shape [tgt_batch, vocab_size].</p>
 </dd>
 </dl>
 </p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._PostBeamSearchStepCallback">
-<code class="descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>new_step_ids</em>, <em>states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">new_step_ids</em>, <em class="sig-param">states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsScalarSummary">
-<code class="descname">_AddAttenProbsScalarSummary</code><span class="sig-paren">(</span><em>source_paddings</em>, <em>targets</em>, <em>atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._AddAttenProbsScalarSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsScalarSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AddAttenProbsScalarSummary</code><span class="sig-paren">(</span><em class="sig-param">source_paddings</em>, <em class="sig-param">targets</em>, <em class="sig-param">atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._AddAttenProbsScalarSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsScalarSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add scalar summary of multi-headed transformer attention probs.</p>
 <p>This summary is primarily used to show statistics of the multi-headed
 attention that reveals potential sparsity related properties. The
@@ -786,182 +696,160 @@ multi-headed attention probability tensors are exposed by
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiHeadedAttention.ComputeContextVectorWithSource</span></code> with the name
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">multi_headed_atten_prob</span></code>. The following statistics are summarized:</p>
 <ul class="simple">
-<li>1_v_2: margin of the largest value vs. the 2nd largest</li>
-<li>1_v_3: similar, but vs the 3rd largest</li>
-<li><dl class="first docutils">
-<dt>mean: mean of the attention probs. NOTE: the sequences in a mini-batch</dt>
-<dd>are not always of the same length. The attention probability for the
+<li><p>1_v_2: margin of the largest value vs. the 2nd largest</p></li>
+<li><p>1_v_3: similar, but vs the 3rd largest</p></li>
+<li><dl class="simple">
+<dt>mean: mean of the attention probs. NOTE: the sequences in a mini-batch</dt><dd><p>are not always of the same length. The attention probability for the
 padded time index in target sequences are removed. However, the padding
 for the source sequences are left unchanged. As a result, the atten
 probs vectors will have some extra zero entries, so the mean calculated
-here will be smaller than the true mean.</dd>
+here will be smaller than the true mean.</p>
+</dd>
 </dl>
 </li>
-<li><dl class="first docutils">
-<dt>source_padding_ratio: as explained above, the source paddings are not</dt>
-<dd>handled when computing the mean. This summary show the average ratio
+<li><dl class="simple">
+<dt>source_padding_ratio: as explained above, the source paddings are not</dt><dd><p>handled when computing the mean. This summary show the average ratio
 of time-steps that are padded values in the source sequences, to give
 a reference of roughly how much the mean summarized above should be
-adjusted.</dd>
+adjusted.</p>
+</dd>
 </dl>
 </li>
-<li>1_v_mean: margin of the largest value vs the mean value.</li>
-<li><dl class="first docutils">
-<dt>sum: the sum of the attention prob vectors. Should always be 1, for sanity</dt>
-<dd>check only.</dd>
+<li><p>1_v_mean: margin of the largest value vs the mean value.</p></li>
+<li><dl class="simple">
+<dt>sum: the sum of the attention prob vectors. Should always be 1, for sanity</dt><dd><p>check only.</p>
+</dd>
 </dl>
 </li>
 </ul>
 <p>The quantity above are computed for each sequence in the mini-batch, each
 valid (target) sequence index, and each attention head, and then the
 average value is reported to the tensorboard as a scalar summary.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</li>
-<li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
-predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</li>
-<li><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
-tgt_batch, src_len].</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</p></li>
+<li><p><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</p></li>
+<li><p><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
+tgt_batch, src_len].</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsSummary">
-<code class="descname">_AddAttenProbsSummary</code><span class="sig-paren">(</span><em>source_paddings</em>, <em>targets</em>, <em>atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._AddAttenProbsSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AddAttenProbsSummary</code><span class="sig-paren">(</span><em class="sig-param">source_paddings</em>, <em class="sig-param">targets</em>, <em class="sig-param">atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._AddAttenProbsSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add summary of attention probs.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</li>
-<li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
-predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</li>
-<li><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
-tgt_batch, src_len].</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</p></li>
+<li><p><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</p></li>
+<li><p><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
+tgt_batch, src_len].</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="lingvo.tasks.mt.decoder.InsertionDecoder">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.mt.decoder.</code><code class="descname">InsertionDecoder</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.mt.decoder.</code><code class="sig-name descname">InsertionDecoder</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder" title="lingvo.core.base_decoder.BaseBeamSearchDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_decoder.BaseBeamSearchDecoder</span></code></a></p>
 <p>Basic Insertion decoder for MT (or any symbol based sequence).</p>
 <p class="rubric">References</p>
 <p>KERMIT: <a class="reference external" href="https://arxiv.org/pdf/1906.01604.pdf">https://arxiv.org/pdf/1906.01604.pdf</a>
 Insertion Transformer: <a class="reference external" href="https://arxiv.org/pdf/1902.03249.pdf">https://arxiv.org/pdf/1902.03249.pdf</a></p>
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.tasks.mt.decoder.InsertionDecoder.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.tasks.mt.decoder.InsertionDecoder.UpdateTargetVocabSize">
-<em class="property">classmethod </em><code class="descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em>p</em>, <em>vocab_size</em>, <em>wpm_model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">vocab_size</em>, <em class="sig-param">wpm_model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the vocab size in the params.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>p</strong> – model params.</li>
-<li><strong>vocab_size</strong> – size of the vocabulary.</li>
-<li><strong>wpm_model</strong> – file name prefix pointing to a wordpiece model.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – model params.</p></li>
+<li><p><strong>vocab_size</strong> – size of the vocabulary.</p></li>
+<li><p><strong>wpm_model</strong> – file name prefix pointing to a wordpiece model.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Model params updated with the vocab size and wpm model.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Model params updated with the vocab size and wpm model.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.InsertionDecoder.ComputePredictions">
-<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute 1-step of the insertion iteration.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</li>
-<li><strong>encoder_outputs</strong> – This should be None.</li>
-<li><strong>targets</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – This should be None.</p></li>
+<li><p><strong>targets</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.
 - ids: The target ids of shape [batch_size, time_dim].
-- paddings: The target paddings of shape [batch_size, time_dim].</li>
+- paddings: The target paddings of shape [batch_size, time_dim].</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
-<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</dt>
-<dd><ul class="first last simple">
-<li>outputs: The contextualized output vectors of shape
-[batch_size, time_dim, model_dim].</li>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</dt><dd><ul class="simple">
+<li><p>outputs: The contextualized output vectors of shape
+[batch_size, time_dim, model_dim].</p></li>
 </ul>
 </dd>
 </dl>
 </p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.InsertionDecoder.ComputeLoss">
-<code class="descname">ComputeLoss</code><span class="sig-paren">(</span><em>theta</em>, <em>predictions</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predictions</em>, <em class="sig-param">targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the insertion loss.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object capturing decoder model parameters.</li>
-<li><strong>predictions</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> describing the decoding process, requiring
-.outputs: Tensor of shape [time, batch, params.softmax.input_dim].</li>
-<li><strong>targets</strong> – <p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object capturing decoder model parameters.</p></li>
+<li><p><strong>predictions</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> describing the decoding process, requiring
+.outputs: Tensor of shape [time, batch, params.softmax.input_dim].</p></li>
+<li><p><strong>targets</strong> – <p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
 <ul>
-<li>target_indices: A Tensor capturing the relevant insertion tokens to
-tf.gather_nd the log-probs.</li>
-<li>target_weights: A Tensor capturing the relevant insertion tokens’
-weights.</li>
+<li><p>target_indices: A Tensor capturing the relevant insertion tokens to
+tf.gather_nd the log-probs.</p></li>
+<li><p>target_weights: A Tensor capturing the relevant insertion tokens’
+weights.</p></li>
 </ul>
-</li>
+</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
-<dt>Two dicts.</dt>
-<dd><ul class="first last simple">
-<li>A map from metric name (a python string) to a tuple (value, weight).
-Both value and weight are scalar Tensors.</li>
-<li>A map from name to arbitrary tensors, where the first dimension must
-be the batch index.</li>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Two dicts.</dt><dd><ul class="simple">
+<li><p>A map from metric name (a python string) to a tuple (value, weight).
+Both value and weight are scalar Tensors.</p></li>
+<li><p>A map from name to arbitrary tensors, where the first dimension must
+be the batch index.</p></li>
 </ul>
 </dd>
 </dl>
 </p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

@@ -168,76 +168,75 @@
 <p>BaseModelParams class definition.</p>
 <dl class="exception">
 <dt id="lingvo.core.base_model_params.DatasetError">
-<em class="property">exception </em><code class="descclassname">lingvo.core.base_model_params.</code><code class="descname">DatasetError</code><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#DatasetError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.DatasetError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/exceptions.html#exceptions.Exception" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">exceptions.Exception</span></code></a></p>
+<em class="property">exception </em><code class="sig-prename descclassname">lingvo.core.base_model_params.</code><code class="sig-name descname">DatasetError</code><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#DatasetError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.DatasetError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
 <p>Dataset error exception class.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="lingvo.core.base_model_params._BaseModelParams">
-<em class="property">class </em><code class="descclassname">lingvo.core.base_model_params.</code><code class="descname">_BaseModelParams</code><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#_BaseModelParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params._BaseModelParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model_params.</code><code class="sig-name descname">_BaseModelParams</code><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#_BaseModelParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params._BaseModelParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base class for storing model Params for a single experiment.</p>
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.base_model_params._BaseModelParams.GetDatasetParams">
-<em class="property">classmethod </em><code class="descname">GetDatasetParams</code><span class="sig-paren">(</span><em>dataset</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#_BaseModelParams.GetDatasetParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params._BaseModelParams.GetDatasetParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">GetDatasetParams</code><span class="sig-paren">(</span><em class="sig-param">dataset</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#_BaseModelParams.GetDatasetParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params._BaseModelParams.GetDatasetParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenience function that returns the param for the given dataset name.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dataset</strong> – A python string. Typically, ‘Dev’, ‘Test’, etc.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">If there is a <code class="xref py py-obj docutils literal notranslate"><span class="pre">cls.${dataset}</span></code> method defined, call that method to
-generate a hyperparam for the input data.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#lingvo.core.base_model_params.DatasetError" title="lingvo.core.base_model_params.DatasetError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">DatasetError</span></code></a> – if there is not a <code class="xref py py-obj docutils literal notranslate"><span class="pre">${dataset}</span></code> method defined under <code class="xref py py-obj docutils literal notranslate"><span class="pre">cls</span></code>.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dataset</strong> – A python string. Typically, ‘Dev’, ‘Test’, etc.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>If there is a <code class="xref py py-obj docutils literal notranslate"><span class="pre">cls.${dataset}</span></code> method defined, call that method to
+generate a hyperparam for the input data.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#lingvo.core.base_model_params.DatasetError" title="lingvo.core.base_model_params.DatasetError"><strong>DatasetError</strong></a> – if there is not a <code class="xref py py-obj docutils literal notranslate"><span class="pre">${dataset}</span></code> method defined under <code class="xref py py-obj docutils literal notranslate"><span class="pre">cls</span></code>.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="lingvo.core.base_model_params.SingleTaskModelParams">
-<em class="property">class </em><code class="descclassname">lingvo.core.base_model_params.</code><code class="descname">SingleTaskModelParams</code><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model_params.</code><code class="sig-name descname">SingleTaskModelParams</code><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model_params._BaseModelParams" title="lingvo.core.base_model_params._BaseModelParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model_params._BaseModelParams</span></code></a></p>
 <p>Model Params for a <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel" title="lingvo.core.base_model.SingleTaskModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SingleTaskModel</span></code></a>.</p>
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.base_model_params.SingleTaskModelParams.Train">
-<em class="property">classmethod </em><code class="descname">Train</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.Train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.Train" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Train</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.Train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.Train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns Params for the training dataset.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.base_model_params.SingleTaskModelParams.Dev">
-<em class="property">classmethod </em><code class="descname">Dev</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.Dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.Dev" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Dev</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.Dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.Dev" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns Params for the development dataset.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.base_model_params.SingleTaskModelParams.Test">
-<em class="property">classmethod </em><code class="descname">Test</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.Test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.Test" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Test</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.Test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.Test" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns Params for the testing dataset.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.base_model_params.SingleTaskModelParams.Task">
-<em class="property">classmethod </em><code class="descname">Task</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.Task" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Task</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.Task" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns task params.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.base_model_params.SingleTaskModelParams.Model">
-<em class="property">classmethod </em><code class="descname">Model</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.Model" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Model</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.Model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns model params.</p>
 <p>Emulates structure of <a class="reference internal" href="#lingvo.core.base_model_params.MultiTaskModelParams" title="lingvo.core.base_model_params.MultiTaskModelParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiTaskModelParams</span></code></a>.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.base_model_params.SingleTaskModelParams.ProgramSchedule">
-<em class="property">classmethod </em><code class="descname">ProgramSchedule</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.ProgramSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.ProgramSchedule" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">ProgramSchedule</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#SingleTaskModelParams.ProgramSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.SingleTaskModelParams.ProgramSchedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a schedule for the Executor.</p>
 </dd></dl>
 
@@ -245,30 +244,30 @@ generate a hyperparam for the input data.</td>
 
 <dl class="class">
 <dt id="lingvo.core.base_model_params.MultiTaskModelParams">
-<em class="property">class </em><code class="descclassname">lingvo.core.base_model_params.</code><code class="descname">MultiTaskModelParams</code><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#MultiTaskModelParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.MultiTaskModelParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model_params.</code><code class="sig-name descname">MultiTaskModelParams</code><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#MultiTaskModelParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.MultiTaskModelParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model_params._BaseModelParams" title="lingvo.core.base_model_params._BaseModelParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model_params._BaseModelParams</span></code></a></p>
 <p>Model Params for a <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel" title="lingvo.core.base_model.MultiTaskModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiTaskModel</span></code></a>.</p>
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.base_model_params.MultiTaskModelParams.Train">
-<em class="property">classmethod </em><code class="descname">Train</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#MultiTaskModelParams.Train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.MultiTaskModelParams.Train" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Train</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#MultiTaskModelParams.Train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.MultiTaskModelParams.Train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns Params for the training dataset.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.base_model_params.MultiTaskModelParams.Dev">
-<em class="property">classmethod </em><code class="descname">Dev</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#MultiTaskModelParams.Dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.MultiTaskModelParams.Dev" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Dev</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#MultiTaskModelParams.Dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.MultiTaskModelParams.Dev" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns Params for the development dataset.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.base_model_params.MultiTaskModelParams.Test">
-<em class="property">classmethod </em><code class="descname">Test</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#MultiTaskModelParams.Test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.MultiTaskModelParams.Test" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Test</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#MultiTaskModelParams.Test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.MultiTaskModelParams.Test" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns Params for the testing dataset.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="lingvo.core.base_model_params.MultiTaskModelParams.Model">
-<em class="property">classmethod </em><code class="descname">Model</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#MultiTaskModelParams.Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.MultiTaskModelParams.Model" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Model</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model_params.html#MultiTaskModelParams.Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model_params.MultiTaskModelParams.Model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns model params.</p>
 </dd></dl>
 

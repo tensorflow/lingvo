@@ -191,52 +191,46 @@ inference.</p>
 </div></blockquote>
 <dl class="class">
 <dt id="lingvo.core.bfloat16_variables.Bfloat16VariableSaveable">
-<em class="property">class </em><code class="descclassname">lingvo.core.bfloat16_variables.</code><code class="descname">Bfloat16VariableSaveable</code><span class="sig-paren">(</span><em>var</em>, <em>orig_dtype</em>, <em>slice_spec</em>, <em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#Bfloat16VariableSaveable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.Bfloat16VariableSaveable" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.bfloat16_variables.</code><code class="sig-name descname">Bfloat16VariableSaveable</code><span class="sig-paren">(</span><em class="sig-param">var</em>, <em class="sig-param">orig_dtype</em>, <em class="sig-param">slice_spec</em>, <em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#Bfloat16VariableSaveable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.Bfloat16VariableSaveable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.training.saving.saveable_object.SaveableObject</span></code></p>
 <p>Saveable that loads Variables as bfloat16.</p>
 <dl class="method">
 <dt id="lingvo.core.bfloat16_variables.Bfloat16VariableSaveable.restore">
-<code class="descname">restore</code><span class="sig-paren">(</span><em>restored_tensors</em>, <em>restored_shapes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#Bfloat16VariableSaveable.restore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.Bfloat16VariableSaveable.restore" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">restore</code><span class="sig-paren">(</span><em class="sig-param">restored_tensors</em>, <em class="sig-param">restored_shapes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#Bfloat16VariableSaveable.restore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.Bfloat16VariableSaveable.restore" title="Permalink to this definition">¶</a></dt>
 <dd><p>Restores this object from ‘restored_tensors’.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>restored_tensors</strong> – the tensors that were loaded from a checkpoint</li>
-<li><strong>restored_shapes</strong> – the shapes this object should conform to after
-restore, or None.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>restored_tensors</strong> – the tensors that were loaded from a checkpoint</p></li>
+<li><p><strong>restored_shapes</strong> – the shapes this object should conform to after
+restore, or None.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An operation that restores the state of the object.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If the object cannot be restored using the provided
-parameters.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An operation that restores the state of the object.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If the object cannot be restored using the provided
+    parameters.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.bfloat16_variables.get_saver_spec_for_variables_with_bf16_overrides">
-<code class="descclassname">lingvo.core.bfloat16_variables.</code><code class="descname">get_saver_spec_for_variables_with_bf16_overrides</code><span class="sig-paren">(</span><em>variables_to_restore</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#get_saver_spec_for_variables_with_bf16_overrides"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.get_saver_spec_for_variables_with_bf16_overrides" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.bfloat16_variables.</code><code class="sig-name descname">get_saver_spec_for_variables_with_bf16_overrides</code><span class="sig-paren">(</span><em class="sig-param">variables_to_restore</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#get_saver_spec_for_variables_with_bf16_overrides"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.get_saver_spec_for_variables_with_bf16_overrides" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a dictionary containing overrides to load variables as bf16.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>variables_to_restore</strong> – A mapping from variable to name (on checkpoint) to the
-Variable object.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A saver dictionary which can be used to load from checkpoints.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>variables_to_restore</strong> – A mapping from variable to name (on checkpoint) to the
+Variable object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A saver dictionary which can be used to load from checkpoints.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>

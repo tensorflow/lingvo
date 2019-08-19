@@ -182,68 +182,60 @@
 </div>
 <dl class="class">
 <dt id="lingvo.core.step.Step">
-<em class="property">class </em><code class="descclassname">lingvo.core.step.</code><code class="descname">Step</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.Step" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.step.</code><code class="sig-name descname">Step</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.Step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>A layer that processes input sequences step-by-step.</p>
 <p>This can be seen as an RNNCell extended with optional external inputs.</p>
 <dl class="method">
 <dt id="lingvo.core.step.Step.PrepareExternalInputs">
-<code class="descname">PrepareExternalInputs</code><span class="sig-paren">(</span><em>theta</em>, <em>external_inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step.PrepareExternalInputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.Step.PrepareExternalInputs" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">PrepareExternalInputs</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">external_inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step.PrepareExternalInputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.Step.PrepareExternalInputs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the prepared external inputs, e.g., packed_src for attention.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.step.Step.ZeroState">
-<code class="descname">ZeroState</code><span class="sig-paren">(</span><em>theta</em>, <em>external_inputs</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step.ZeroState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.Step.ZeroState" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ZeroState</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">external_inputs</em>, <em class="sig-param">batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step.ZeroState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.Step.ZeroState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given external inputs and batch size.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</li>
-<li><strong>external_inputs</strong> – External inputs returned by PrepareExternalInputs().</li>
-<li><strong>batch_size</strong> – An int scalar representing the batch size of per-step inputs.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>external_inputs</strong> – External inputs returned by PrepareExternalInputs().</p></li>
+<li><p><strong>batch_size</strong> – An int scalar representing the batch size of per-step inputs.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> representing the initial state, which can be passed to
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> representing the initial state, which can be passed to
 FProp() for processing the first time step.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.step.Step.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>external_inputs</em>, <em>step_inputs</em>, <em>state0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.Step.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">external_inputs</em>, <em class="sig-param">step_inputs</em>, <em class="sig-param">state0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.Step.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward function.</p>
 <p>step_inputs, state0, step_outputs, and state1 should each be a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>
 of tensor values. Each tensor must be of shape [batch_size …]. The
 structure of NestedMaps are determined by the implementation. state0 and
 state1 must have exactly the same structure and tensor shapes.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</li>
-<li><strong>external_inputs</strong> – External inputs returned by PrepareExternalInputs().</li>
-<li><strong>step_inputs</strong> – The inputs for this time step.</li>
-<li><strong>state0</strong> – The previous recurrent state.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>external_inputs</strong> – External inputs returned by PrepareExternalInputs().</p></li>
+<li><p><strong>step_inputs</strong> – The inputs for this time step.</p></li>
+<li><p><strong>state0</strong> – The previous recurrent state.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tuple (step_outputs, state1).
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tuple (step_outputs, state1).
 - outputs: The outputs of this step.
 - state1: The next recurrent state.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

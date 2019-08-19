@@ -170,109 +170,97 @@
 <p>Hyperparameter values.</p>
 <dl class="function">
 <dt id="lingvo.core.model_pruning.hparam._parse_fail">
-<code class="descclassname">lingvo.core.model_pruning.hparam.</code><code class="descname">_parse_fail</code><span class="sig-paren">(</span><em>name</em>, <em>var_type</em>, <em>value</em>, <em>values</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#_parse_fail"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam._parse_fail" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.model_pruning.hparam.</code><code class="sig-name descname">_parse_fail</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">var_type</em>, <em class="sig-param">value</em>, <em class="sig-param">values</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#_parse_fail"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam._parse_fail" title="Permalink to this definition">¶</a></dt>
 <dd><p>Helper function for raising a value error for bad assignment.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.model_pruning.hparam._reuse_fail">
-<code class="descclassname">lingvo.core.model_pruning.hparam.</code><code class="descname">_reuse_fail</code><span class="sig-paren">(</span><em>name</em>, <em>values</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#_reuse_fail"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam._reuse_fail" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.model_pruning.hparam.</code><code class="sig-name descname">_reuse_fail</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">values</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#_reuse_fail"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam._reuse_fail" title="Permalink to this definition">¶</a></dt>
 <dd><p>Helper function for raising a value error for reuse of name.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.model_pruning.hparam._process_scalar_value">
-<code class="descclassname">lingvo.core.model_pruning.hparam.</code><code class="descname">_process_scalar_value</code><span class="sig-paren">(</span><em>name</em>, <em>parse_fn</em>, <em>var_type</em>, <em>m_dict</em>, <em>values</em>, <em>results_dictionary</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#_process_scalar_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam._process_scalar_value" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.model_pruning.hparam.</code><code class="sig-name descname">_process_scalar_value</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">parse_fn</em>, <em class="sig-param">var_type</em>, <em class="sig-param">m_dict</em>, <em class="sig-param">values</em>, <em class="sig-param">results_dictionary</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#_process_scalar_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam._process_scalar_value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update results_dictionary with a scalar value.</p>
 <p>Used to update the results_dictionary to be returned by parse_values when
 encountering a clause with a scalar RHS (e.g.  “s=5” or “arr[0]=5”.)</p>
 <p>Mutates results_dictionary.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>name</strong> – Name of variable in assignment (“s” or “arr”).</li>
-<li><strong>parse_fn</strong> – Function for parsing the actual value.</li>
-<li><strong>var_type</strong> – Type of named variable.</li>
-<li><strong>m_dict</strong> – Dictionary constructed from regex parsing.
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of variable in assignment (“s” or “arr”).</p></li>
+<li><p><strong>parse_fn</strong> – Function for parsing the actual value.</p></li>
+<li><p><strong>var_type</strong> – Type of named variable.</p></li>
+<li><p><strong>m_dict</strong> – Dictionary constructed from regex parsing.
 m_dict[‘val’]: RHS value (scalar)
-m_dict[‘index’]: List index value (or None)</li>
-<li><strong>values</strong> – Full expression being parsed</li>
-<li><strong>results_dictionary</strong> – The dictionary being updated for return by the parsing
-function.</li>
+m_dict[‘index’]: List index value (or None)</p></li>
+<li><p><strong>values</strong> – Full expression being parsed</p></li>
+<li><p><strong>results_dictionary</strong> – The dictionary being updated for return by the parsing
+function.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If the name has already been used.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the name has already been used.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.model_pruning.hparam._process_list_value">
-<code class="descclassname">lingvo.core.model_pruning.hparam.</code><code class="descname">_process_list_value</code><span class="sig-paren">(</span><em>name</em>, <em>parse_fn</em>, <em>var_type</em>, <em>m_dict</em>, <em>values</em>, <em>results_dictionary</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#_process_list_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam._process_list_value" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.model_pruning.hparam.</code><code class="sig-name descname">_process_list_value</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">parse_fn</em>, <em class="sig-param">var_type</em>, <em class="sig-param">m_dict</em>, <em class="sig-param">values</em>, <em class="sig-param">results_dictionary</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#_process_list_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam._process_list_value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update results_dictionary from a list of values.</p>
 <p>Used to update results_dictionary to be returned by parse_values when
 encountering a clause with a list RHS (e.g.  “arr=[1,2,3]”.)</p>
 <p>Mutates results_dictionary.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>name</strong> – Name of variable in assignment (“arr”).</li>
-<li><strong>parse_fn</strong> – Function for parsing individual values.</li>
-<li><strong>var_type</strong> – Type of named variable.</li>
-<li><strong>m_dict</strong> – Dictionary constructed from regex parsing.
-m_dict[‘val’]: RHS value (scalar)</li>
-<li><strong>values</strong> – Full expression being parsed</li>
-<li><strong>results_dictionary</strong> – The dictionary being updated for return by the parsing
-function.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of variable in assignment (“arr”).</p></li>
+<li><p><strong>parse_fn</strong> – Function for parsing individual values.</p></li>
+<li><p><strong>var_type</strong> – Type of named variable.</p></li>
+<li><p><strong>m_dict</strong> – Dictionary constructed from regex parsing.
+m_dict[‘val’]: RHS value (scalar)</p></li>
+<li><p><strong>values</strong> – Full expression being parsed</p></li>
+<li><p><strong>results_dictionary</strong> – The dictionary being updated for return by the parsing
+function.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If the name has an index or the values cannot be parsed.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the name has an index or the values cannot be parsed.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.model_pruning.hparam._cast_to_type_if_compatible">
-<code class="descclassname">lingvo.core.model_pruning.hparam.</code><code class="descname">_cast_to_type_if_compatible</code><span class="sig-paren">(</span><em>name</em>, <em>param_type</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#_cast_to_type_if_compatible"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam._cast_to_type_if_compatible" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.model_pruning.hparam.</code><code class="sig-name descname">_cast_to_type_if_compatible</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">param_type</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#_cast_to_type_if_compatible"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam._cast_to_type_if_compatible" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cast hparam to the provided type, if compatible.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>name</strong> – Name of the hparam to be cast.</li>
-<li><strong>param_type</strong> – The type of the hparam.</li>
-<li><strong>value</strong> – The value to be cast, if compatible.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the hparam to be cast.</p></li>
+<li><p><strong>param_type</strong> – The type of the hparam.</p></li>
+<li><p><strong>value</strong> – The value to be cast, if compatible.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The result of casting <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">param_type</span></code>.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If the type of <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> is not compatible with param_type.
-* If <code class="xref py py-obj docutils literal notranslate"><span class="pre">param_type</span></code> is a string type, but <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> is not.
-* If <code class="xref py py-obj docutils literal notranslate"><span class="pre">param_type</span></code> is a boolean, but <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> is not, or vice versa.
-* If <code class="xref py py-obj docutils literal notranslate"><span class="pre">param_type</span></code> is an integer type, but <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> is not.
-* If <code class="xref py py-obj docutils literal notranslate"><span class="pre">param_type</span></code> is a float type, but <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> is not a numeric type.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The result of casting <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">param_type</span></code>.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If the type of <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> is not compatible with param_type.
+    * If <code class="xref py py-obj docutils literal notranslate"><span class="pre">param_type</span></code> is a string type, but <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> is not.
+    * If <code class="xref py py-obj docutils literal notranslate"><span class="pre">param_type</span></code> is a boolean, but <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> is not, or vice versa.
+    * If <code class="xref py py-obj docutils literal notranslate"><span class="pre">param_type</span></code> is an integer type, but <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> is not.
+    * If <code class="xref py py-obj docutils literal notranslate"><span class="pre">param_type</span></code> is a float type, but <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> is not a numeric type.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.model_pruning.hparam.parse_values">
-<code class="descclassname">lingvo.core.model_pruning.hparam.</code><code class="descname">parse_values</code><span class="sig-paren">(</span><em>values</em>, <em>type_map</em>, <em>ignore_unknown=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#parse_values"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.parse_values" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.model_pruning.hparam.</code><code class="sig-name descname">parse_values</code><span class="sig-paren">(</span><em class="sig-param">values</em>, <em class="sig-param">type_map</em>, <em class="sig-param">ignore_unknown=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#parse_values"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.parse_values" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parses hyperparameter values from a string into a python map.</p>
 <p><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code> is a string containing comma-separated <code class="xref py py-obj docutils literal notranslate"><span class="pre">name=value</span></code> pairs.
 For each pair, the value of the hyperparameter named <code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code> is set to
@@ -289,65 +277,61 @@ supported and not recommended.</p>
 <p>The <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code> in <code class="xref py py-obj docutils literal notranslate"><span class="pre">name=value</span></code> must follows the syntax according to the
 type of the parameter:</p>
 <ul class="simple">
-<li>Scalar integer: A Python-parsable integer point value.  E.g.: 1,
-100, -12.</li>
-<li>Scalar float: A Python-parsable floating point value.  E.g.: 1.0,
--.54e89.</li>
-<li>Boolean: Either true or false.</li>
-<li>Scalar string: A non-empty sequence of characters, excluding comma,
-spaces, and square brackets.  E.g.: foo, bar_1.</li>
-<li>List: A comma separated list of scalar values of the parameter type
-enclosed in square brackets.  E.g.: [1,2,3], [1.0,1e-12], [high,low].</li>
+<li><p>Scalar integer: A Python-parsable integer point value.  E.g.: 1,
+100, -12.</p></li>
+<li><p>Scalar float: A Python-parsable floating point value.  E.g.: 1.0,
+-.54e89.</p></li>
+<li><p>Boolean: Either true or false.</p></li>
+<li><p>Scalar string: A non-empty sequence of characters, excluding comma,
+spaces, and square brackets.  E.g.: foo, bar_1.</p></li>
+<li><p>List: A comma separated list of scalar values of the parameter type
+enclosed in square brackets.  E.g.: [1,2,3], [1.0,1e-12], [high,low].</p></li>
 </ul>
 <p>When index assignment is used, the corresponding type_map key should be the
 list name.  E.g. for “arr[1]=0” the type_map must have the key “arr” (not
 “arr[1]”).</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>values</strong> – String.  Comma separated list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">name=value</span></code> pairs where
-‘value’ must follow the syntax described above.</li>
-<li><strong>type_map</strong> – A dictionary mapping hyperparameter names to types.  Note every
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> – String.  Comma separated list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">name=value</span></code> pairs where
+‘value’ must follow the syntax described above.</p></li>
+<li><p><strong>type_map</strong> – A dictionary mapping hyperparameter names to types.  Note every
 parameter name in values must be a key in type_map.  The values must
 conform to the types indicated, where a value V is said to conform to a
 type T if either V has type T, or V is a list of elements of type T.
 Hence, for a multidimensional parameter ‘x’ taking float values,
-‘x=[0.1,0.2]’ will parse successfully if type_map[‘x’] = float.</li>
-<li><strong>ignore_unknown</strong> – Bool. Whether values that are missing a type in type_map
+‘x=[0.1,0.2]’ will parse successfully if type_map[‘x’] = float.</p></li>
+<li><p><strong>ignore_unknown</strong> – Bool. Whether values that are missing a type in type_map
 should be ignored. If set to True, a ValueError will not be raised for
-unknown hyperparameter type.</li>
+unknown hyperparameter type.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
-<li>A scalar value.</li>
-<li>A list of scalar values.</li>
-<li>A dictionary mapping index numbers to scalar values.
-(e.g. <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;x=5,L=[1,2],arr[1]=3&quot;</span></code> results in <code class="xref py py-obj docutils literal notranslate"><span class="pre">{'x':5,'L':[1,2],'arr':{1:3}}</span></code>)</li>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>A scalar value.</p></li>
+<li><p>A list of scalar values.</p></li>
+<li><p>A dictionary mapping index numbers to scalar values.
+(e.g. <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;x=5,L=[1,2],arr[1]=3&quot;</span></code> results in <code class="xref py py-obj docutils literal notranslate"><span class="pre">{'x':5,'L':[1,2],'arr':{1:3}}</span></code>)</p></li>
 </ul>
 </p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A python map mapping each name to either</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
-<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If there is a problem with input.</li>
-<li>* If <code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code> cannot be parsed.</li>
-<li>* If a list is assigned to a list index (e.g. ‘a[1] = [1,2,3]’).</li>
-<li><em>* If the same rvalue is assigned two different values (e.g. ‘a=1,a=2’,</em> – ‘a[1]=1,a[1]=2’, or ‘a=1,a=[1]’)</li>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A python map mapping each name to either</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If there is a problem with input.</p></li>
+<li><p><strong>* If values cannot be parsed.</strong> – </p></li>
+<li><p><strong>* If a list is assigned to a list index</strong><strong> (</strong><strong>e.g. 'a</strong><strong>[</strong><strong>1</strong><strong>] </strong><strong>=</strong><strong> [</strong><strong>1</strong><strong>,</strong><strong>2</strong><strong>,</strong><strong>3</strong><strong>]</strong><strong>'</strong><strong>)</strong><strong></strong> – </p></li>
+<li><p><strong>* If the same rvalue is assigned two different values</strong><strong> (</strong><strong>e.g. 'a=1</strong><strong>,</strong><strong>a=2'</strong><strong>,</strong> – ‘a[1]=1,a[1]=2’, or ‘a=1,a=[1]’)</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="class">
 <dt id="lingvo.core.model_pruning.hparam.HParams">
-<em class="property">class </em><code class="descclassname">lingvo.core.model_pruning.hparam.</code><code class="descname">HParams</code><span class="sig-paren">(</span><em>model_structure=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.model_pruning.hparam.</code><code class="sig-name descname">HParams</code><span class="sig-paren">(</span><em class="sig-param">model_structure=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Class to hold a set of hyperparameters as name-value pairs.</p>
 <p>A <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParams" title="lingvo.core.model_pruning.hparam.HParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HParams</span></code></a> object holds hyperparameters used to build and train a model,
@@ -407,225 +391,191 @@ See <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParam
 </div>
 <dl class="attribute">
 <dt id="lingvo.core.model_pruning.hparam.HParams._HAS_DYNAMIC_ATTRIBUTES">
-<code class="descname">_HAS_DYNAMIC_ATTRIBUTES</code><em class="property"> = True</em><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams._HAS_DYNAMIC_ATTRIBUTES" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_HAS_DYNAMIC_ATTRIBUTES</code><em class="property"> = True</em><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams._HAS_DYNAMIC_ATTRIBUTES" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams.add_hparam">
-<code class="descname">add_hparam</code><span class="sig-paren">(</span><em>name</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.add_hparam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.add_hparam" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">add_hparam</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.add_hparam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.add_hparam" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds {name, value} pair to hyperparameters.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>name</strong> – Name of the hyperparameter.</li>
-<li><strong>value</strong> – Value of the hyperparameter. Can be one of the following types:
-int, float, string, int list, float list, or string list.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the hyperparameter.</p></li>
+<li><p><strong>value</strong> – Value of the hyperparameter. Can be one of the following types:
+int, float, string, int list, float list, or string list.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – if one of the arguments is invalid.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – if one of the arguments is invalid.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams.set_hparam">
-<code class="descname">set_hparam</code><span class="sig-paren">(</span><em>name</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.set_hparam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.set_hparam" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">set_hparam</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.set_hparam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.set_hparam" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the value of an existing hyperparameter.</p>
 <p>This function verifies that the type of the value matches the type of the
 existing hyperparameter.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>name</strong> – Name of the hyperparameter.</li>
-<li><strong>value</strong> – New value of the hyperparameter.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the hyperparameter.</p></li>
+<li><p><strong>value</strong> – New value of the hyperparameter.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
-<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code> – If the hyperparameter doesn’t exist.</li>
-<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If there is a type mismatch.</li>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>KeyError</strong> – If the hyperparameter doesn’t exist.</p></li>
+<li><p><strong>ValueError</strong> – If there is a type mismatch.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams.del_hparam">
-<code class="descname">del_hparam</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.del_hparam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.del_hparam" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">del_hparam</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.del_hparam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.del_hparam" title="Permalink to this definition">¶</a></dt>
 <dd><p>Removes the hyperparameter with key ‘name’.</p>
 <p>Does nothing if it isn’t present.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – Name of the hyperparameter.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – Name of the hyperparameter.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams.parse">
-<code class="descname">parse</code><span class="sig-paren">(</span><em>values</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.parse" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param">values</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Override existing hyperparameter values, parsing new values from a string.</p>
 <p>See parse_values for more detail on the allowed format for values.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>values</strong> – String.  Comma separated list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">name=value</span></code> pairs where ‘value’
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>values</strong> – String.  Comma separated list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">name=value</span></code> pairs where ‘value’
 must follow the syntax described above.</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParams" title="lingvo.core.model_pruning.hparam.HParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HParams</span></code></a> instance.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
-<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParams.values" title="lingvo.core.model_pruning.hparam.HParams.values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code></a> cannot be parsed or a hyperparameter in <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParams.values" title="lingvo.core.model_pruning.hparam.HParams.values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code></a></li>
-<li>doesn’t exist.</li>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParams" title="lingvo.core.model_pruning.hparam.HParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HParams</span></code></a> instance.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ValueError</strong> – If <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParams.values" title="lingvo.core.model_pruning.hparam.HParams.values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code></a> cannot be parsed or a hyperparameter in <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParams.values" title="lingvo.core.model_pruning.hparam.HParams.values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code></a></p></li>
+<li><p><strong>doesn't exist.</strong> – </p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams.override_from_dict">
-<code class="descname">override_from_dict</code><span class="sig-paren">(</span><em>values_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.override_from_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.override_from_dict" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">override_from_dict</code><span class="sig-paren">(</span><em class="sig-param">values_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.override_from_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.override_from_dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Override existing hyperparameter values, parsing new values from a dictionary.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>values_dict</strong> – Dictionary of name:value pairs.</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParams" title="lingvo.core.model_pruning.hparam.HParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HParams</span></code></a> instance.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
-<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code> – If a hyperparameter in <code class="xref py py-obj docutils literal notranslate"><span class="pre">values_dict</span></code> doesn’t exist.</li>
-<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If <code class="xref py py-obj docutils literal notranslate"><span class="pre">values_dict</span></code> cannot be parsed.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>values_dict</strong> – Dictionary of name:value pairs.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParams" title="lingvo.core.model_pruning.hparam.HParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HParams</span></code></a> instance.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>KeyError</strong> – If a hyperparameter in <code class="xref py py-obj docutils literal notranslate"><span class="pre">values_dict</span></code> doesn’t exist.</p></li>
+<li><p><strong>ValueError</strong> – If <code class="xref py py-obj docutils literal notranslate"><span class="pre">values_dict</span></code> cannot be parsed.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams.set_model_structure">
-<code class="descname">set_model_structure</code><span class="sig-paren">(</span><em>model_structure</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.set_model_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.set_model_structure" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">set_model_structure</code><span class="sig-paren">(</span><em class="sig-param">model_structure</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.set_model_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.set_model_structure" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams.get_model_structure">
-<code class="descname">get_model_structure</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.get_model_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.get_model_structure" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_model_structure</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.get_model_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.get_model_structure" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams.to_json">
-<code class="descname">to_json</code><span class="sig-paren">(</span><em>indent=None</em>, <em>separators=None</em>, <em>sort_keys=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.to_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.to_json" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">to_json</code><span class="sig-paren">(</span><em class="sig-param">indent=None</em>, <em class="sig-param">separators=None</em>, <em class="sig-param">sort_keys=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.to_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.to_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Serializes the hyperparameters into JSON.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>indent</strong> – If a non-negative integer, JSON array elements and object members
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>indent</strong> – If a non-negative integer, JSON array elements and object members
 will be pretty-printed with that indent level. An indent level of 0, or
 negative, will only insert newlines. <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#None" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> (the default) selects the
-most compact representation.</li>
-<li><strong>separators</strong> – Optional <code class="xref py py-obj docutils literal notranslate"><span class="pre">(item_separator,</span> <span class="pre">key_separator)</span></code> tuple. Default is
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">(',</span> <span class="pre">',</span> <span class="pre">':</span> <span class="pre">')</span></code>.</li>
-<li><strong>sort_keys</strong> – If <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#True" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>, the output dictionaries will be sorted by key.</li>
+most compact representation.</p></li>
+<li><p><strong>separators</strong> – Optional <code class="xref py py-obj docutils literal notranslate"><span class="pre">(item_separator,</span> <span class="pre">key_separator)</span></code> tuple. Default is
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">(',</span> <span class="pre">',</span> <span class="pre">':</span> <span class="pre">')</span></code>.</p></li>
+<li><p><strong>sort_keys</strong> – If <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#True" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>, the output dictionaries will be sorted by key.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A JSON string.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A JSON string.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams.parse_json">
-<code class="descname">parse_json</code><span class="sig-paren">(</span><em>values_json</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.parse_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.parse_json" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">parse_json</code><span class="sig-paren">(</span><em class="sig-param">values_json</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.parse_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.parse_json" title="Permalink to this definition">¶</a></dt>
 <dd><p>Override existing hyperparameter values, parsing new values from a json object.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>values_json</strong> – String containing a json object of name:value pairs.</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParams" title="lingvo.core.model_pruning.hparam.HParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HParams</span></code></a> instance.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
-<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code> – If a hyperparameter in <code class="xref py py-obj docutils literal notranslate"><span class="pre">values_json</span></code> doesn’t exist.</li>
-<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If <code class="xref py py-obj docutils literal notranslate"><span class="pre">values_json</span></code> cannot be parsed.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>values_json</strong> – String containing a json object of name:value pairs.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The <a class="reference internal" href="#lingvo.core.model_pruning.hparam.HParams" title="lingvo.core.model_pruning.hparam.HParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HParams</span></code></a> instance.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>KeyError</strong> – If a hyperparameter in <code class="xref py py-obj docutils literal notranslate"><span class="pre">values_json</span></code> doesn’t exist.</p></li>
+<li><p><strong>ValueError</strong> – If <code class="xref py py-obj docutils literal notranslate"><span class="pre">values_json</span></code> cannot be parsed.</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams.values">
-<code class="descname">values</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.values"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.values" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">values</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.values"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.values" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the hyperparameter values as a Python dictionary.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A dictionary with hyperparameter names as keys.  The values are the
-hyperparameter values.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dictionary with hyperparameter names as keys.  The values are the
+hyperparameter values.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams.get">
-<code class="descname">get</code><span class="sig-paren">(</span><em>key</em>, <em>default=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.get" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">default=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams.get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the value of <code class="xref py py-obj docutils literal notranslate"><span class="pre">key</span></code> if it exists, else <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code>.</p>
 </dd></dl>
 
-<dl class="staticmethod">
+<dl class="method">
 <dt id="lingvo.core.model_pruning.hparam.HParams._get_kind_name">
-<em class="property">static </em><code class="descname">_get_kind_name</code><span class="sig-paren">(</span><em>param_type</em>, <em>is_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams._get_kind_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams._get_kind_name" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">_get_kind_name</code><span class="sig-paren">(</span><em class="sig-param">param_type</em>, <em class="sig-param">is_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_pruning/hparam.html#HParams._get_kind_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.model_pruning.hparam.HParams._get_kind_name" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the field name given parameter type and is_list.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>param_type</strong> – Data type of the hparam.</li>
-<li><strong>is_list</strong> – Whether this is a list.</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>param_type</strong> – Data type of the hparam.</p></li>
+<li><p><strong>is_list</strong> – Whether this is a list.</p></li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A string representation of the field name.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If parameter type is not recognized.</p>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A string representation of the field name.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If parameter type is not recognized.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

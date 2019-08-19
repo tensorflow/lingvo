@@ -168,26 +168,26 @@
 <p>An experimental new unified TPU executor.</p>
 <dl class="class">
 <dt id="lingvo.executor.ExecutorTpu">
-<em class="property">class </em><code class="descclassname">lingvo.executor.</code><code class="descname">ExecutorTpu</code><span class="sig-paren">(</span><em>task_dict</em>, <em>program_schedule_params</em>, <em>model_task_name</em>, <em>logdir</em>, <em>tf_master</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.executor.</code><code class="sig-name descname">ExecutorTpu</code><span class="sig-paren">(</span><em class="sig-param">task_dict</em>, <em class="sig-param">program_schedule_params</em>, <em class="sig-param">model_task_name</em>, <em class="sig-param">logdir</em>, <em class="sig-param">tf_master</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
 <p>This is an experimental BaseRunner that does arbitrary multi-program execution on a TPU.</p>
 <p>Overview of operation:</p>
 <ul class="simple">
-<li>During construction, all programs construct their sub-graphs, in a sense
-creating a mega-graph.</li>
-<li>A sequence of programs is then executed in-whole associated with that task.
-eg: [train x 1000 steps, checkpoint, eval 4 steps, decode 2 steps]</li>
-<li>In this manner, programs and higher-level tasks cooperatively time-slice
-share the TPU.</li>
+<li><p>During construction, all programs construct their sub-graphs, in a sense
+creating a mega-graph.</p></li>
+<li><p>A sequence of programs is then executed in-whole associated with that task.
+eg: [train x 1000 steps, checkpoint, eval 4 steps, decode 2 steps]</p></li>
+<li><p>In this manner, programs and higher-level tasks cooperatively time-slice
+share the TPU.</p></li>
 </ul>
 <dl class="method">
 <dt id="lingvo.executor.ExecutorTpu.Start">
-<code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu.Start" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu.Start" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.executor.ExecutorTpu._Loop">
-<code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu._Loop" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu._Loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
