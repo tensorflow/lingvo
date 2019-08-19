@@ -11,7 +11,7 @@ load(
 git_repository(
     name = "subpar",
     remote = "https://github.com/google/subpar",
-    tag = "1.3.0",
+    tag = "2.0.0",
 )
 
 cc_tf_configure()

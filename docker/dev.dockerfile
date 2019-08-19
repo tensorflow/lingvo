@@ -48,40 +48,43 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 100 &&\
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 100
 
 RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
+    python3 get-pip.py && \
     python get-pip.py && \
     rm get-pip.py
 
-RUN pip --no-cache-dir install \
-        contextlib2 \
-        Pillow \
-        h5py \
-        ipykernel \
-        jupyter \
-        jupyter_http_over_ws \
-        matplotlib \
-        numpy \
-        pandas \
-        recommonmark \
-        scikit-learn==0.20.3 \
-        scipy \
-        sklearn \
-        sphinx \
-        sphinx_rtd_theme \
-        sympy \
-        google-api-python-client \
-        oauth2client \
-        apache-beam[gcp]>=2.8 \
-        && \
+ARG pip_dependencies='contextlib2 \
+      Pillow \
+      h5py \
+      ipykernel \
+      jupyter \
+      jupyter_http_over_ws \
+      matplotlib \
+      numpy \
+      pandas \
+      recommonmark \
+      scikit-learn==0.20.3 \
+      scipy \
+      sklearn \
+      sphinx \
+      sphinx_rtd_theme \
+      sympy \
+      google-api-python-client \
+      oauth2client \
+      apache-beam[gcp]>=2.8'
+
+RUN pip2 --no-cache-dir install $pip_dependencies && \
+    pip3 --no-cache-dir install $pip_dependencies && \
     python -m ipykernel.kernelspec
 
 RUN jupyter serverextension enable --py jupyter_http_over_ws
 
 # The latest tf-nightly-gpu requires CUDA 10 compatible nvidia drivers (410.xx).
 # If you are unable to update your drivers, an alternative is to compile
-# TensorFlow from source instead of installing from pip. 
-RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")==1.15.0.dev20190814
+# TensorFlow from source instead of installing from pip.
+RUN pip2 --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")==1.15.0.dev20190814
+RUN pip3 --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")==1.15.0.dev20190814
 
-ARG bazel_version=0.24.1
+ARG bazel_version=0.28.1
 # This is to install bazel, for development purposes.
 ENV BAZEL_VERSION ${bazel_version}
 RUN mkdir /bazel && \
