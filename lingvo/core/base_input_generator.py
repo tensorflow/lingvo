@@ -362,14 +362,11 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
       raise ValueError('file_random_seed needs to be 0 when '
                        'use_per_host_infeed == True.')
 
-    # Some subclasses have deleted the 'file_pattern' param to
-    # include alternate data source descriptions. This maintains compatibility
-    # with these alternates.
-    assert not ('file_pattern' in p and p.file_pattern and p.file_datasource
+    assert not (p.file_pattern and p.file_datasource
                ), 'Only one of file_pattern and data_source can be specified'
 
     # TODO(b/139345706) remove support for file_pattern
-    if not p.file_datasource and 'file_pattern' in p:
+    if not p.file_datasource:
       if isinstance(p.file_pattern, six.string_types):
         p.file_datasource = datasource.SimpleDataSource.Params().Set(
             file_pattern=p.file_pattern)
@@ -451,6 +448,9 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'bucket_batch_limit': [self.InfeedBatchSize()],
     }
 
+  # TODO(b/139345706): After p.file_pattern is deleted, the following functions
+  # _DataSourceFromFilePattern, _BuildDataSourceWithMetadata, _BuildDataSource
+  # can be deleted and functionality moved to using the DataSource directly.
   def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
     """Read and return input batch from a string file_pattern.
 

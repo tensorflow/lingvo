@@ -101,6 +101,8 @@ class ChainingDataSource(DataSource):
   @classmethod
   def Params(cls):
     p = super(ChainingDataSource, cls).Params()
+    # TODO(b/139345706): This can probably be a list of DataSource params
+    # instead of a list of file_patterns to be more generic.
     p.Define(
         'file_patterns', [], 'A list of file pattern strings which are read '
         'from in sequence. Commas cannot be used in individual file_patterns.')
@@ -146,6 +148,8 @@ class WithinBatchMixingDataSource(DataSource):
   @classmethod
   def Params(cls):
     p = super(WithinBatchMixingDataSource, cls).Params()
+    # TODO(b/139345706): This can probably be a list of DataSource params
+    # instead of a list of file_patterns to be more generic.
     p.Define(
         'file_patterns', [], 'A list of file pattern strings which are read '
         'from in sequence. Commas cannot be used in individual file_patterns. ')
@@ -203,6 +207,8 @@ class CrossBatchMixingDataSource(DataSource):
   @classmethod
   def Params(cls):
     p = super(CrossBatchMixingDataSource, cls).Params()
+    # TODO(b/139345706): This can probably be a list of DataSource params
+    # instead of a list of file_patterns to be more generic.
     p.Define(
         'file_patterns', [], 'A list of file pattern strings which are read '
         'from in sequence. Commas cannot be used in individual file_patterns. ')

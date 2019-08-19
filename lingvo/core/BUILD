@@ -353,6 +353,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":hyperparams",
+        ":py_utils",
         "//lingvo:compat",
         # Implicit six dependency.
     ],
