@@ -415,6 +415,7 @@ py_library(
     srcs = ["hyperparams.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":symbolic",
         "//lingvo:compat",
         # Implicit six dependency.
     ],
@@ -425,6 +426,7 @@ py_test(
     srcs = ["hyperparams_test.py"],
     deps = [
         ":hyperparams",
+        ":symbolic",
         ":test_utils",
         "//lingvo:compat",
         # Implicit six dependency.

@@ -25,9 +25,7 @@ import sympy
 
 
 class Symbol(sympy.Dummy):
-
-  def __deepcopy__(self, memo):
-    return self
+  pass
 
 
 def IsSymbol(x):

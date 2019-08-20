@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import hyperparams as _params
+from lingvo.core import symbolic
 from lingvo.core import test_utils
 from six.moves import zip
 
@@ -69,14 +70,19 @@ class ParamsTest(test_utils.TestCase):
   def testDeepCopy(self):
     inner = _params.Params()
     inner.Define('alpha', 2, '')
+    inner.Define('tensor', tf.constant(0), '')
+    inner.Define('symbol', symbolic.Symbol('symbol'), '')
     outer = _params.Params()
     outer.Define('beta', 1, '')
     outer.Define('inner', inner, '')
     outer_copy = outer.Copy()
-    self.assertTrue(outer is not outer_copy)
-    self.assertTrue(outer == outer_copy)
-    self.assertTrue(outer.inner is not outer_copy.inner)
-    self.assertTrue(outer.inner == outer_copy.inner)
+    self.assertIsNot(outer, outer_copy)
+    self.assertEqual(outer, outer_copy)
+    self.assertIsNot(outer.inner, outer_copy.inner)
+    self.assertEqual(outer.inner, outer_copy.inner)
+    self.assertEqual(outer.inner.alpha, outer_copy.inner.alpha)
+    self.assertIs(outer.inner.tensor, outer_copy.inner.tensor)
+    self.assertIs(outer.inner.symbol, outer_copy.inner.symbol)
 
   def testDefineExisting(self):
     p = _params.Params()

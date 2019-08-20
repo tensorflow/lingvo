@@ -25,6 +25,7 @@ import re
 import sys
 
 import lingvo.compat as tf
+from lingvo.core import symbolic
 import six
 
 
@@ -97,16 +98,11 @@ class _Param(object):
 
   # Deep copy the value only if it is supported.
   def __deepcopy__(self, memo):
-    try:
+    if isinstance(self._value, (tf.Tensor, symbolic.Symbol)):
+      # In case self._value is a tensor/symbol, let's just make a reference.
+      value = self._value
+    else:
       value = copy.deepcopy(self._value, memo)
-    except:  # pylint: disable=bare-except
-      if self._value.__class__.__name__ == 'Tensor':
-        # In case self._value is a tensor, let's just make a reference.
-        # Q(yonghui): Is there a better / more reliable way of detecting the
-        # type of self._value without importing more modules?
-        value = self._value
-      else:
-        raise
     p = _Param(self._name, value, self._description)
     # Q(yonghui): Is this the right use of memo.
     memo[id(self)] = p
