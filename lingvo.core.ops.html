@@ -822,35 +822,6 @@ The value when the key is not found.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="function">
-<dt id="lingvo.core.ops.v">
-<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">hist_file</em>, <em class="sig-param">tol=0</em>, <em class="sig-param">minimize=True</em>, <em class="sig-param">metric=''</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>Determines the best global step from a history file.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>hist_file</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
-A text file containing ‘step score’ records, or a file pattern that
-matches tf event files in the format of /path_to_file/events.out.tfevents*.</p></li>
-<li><p><strong>tol</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0</span></code>.
-Difference between previous best score and current score must be greater
-than this amount to trigger update.</p></li>
-<li><p><strong>minimize</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#True" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
-If the metric is being minimized. Recorded in hist_file, smaller
-scores are better if True, and bigger scores are better if False.</p></li>
-<li><p><strong>metric</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>.
-The name of the metric being tracked.</p></li>
-<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int64</span></code>.
-Shape [2]. best_step[0] is scalar value for best global step.
-best_step[1] is scalar value for last global step.</p>
-</dd>
-</dl>
-</dd></dl>
-
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
