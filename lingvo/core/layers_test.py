@@ -2871,6 +2871,41 @@ class SoftmaxLayerLogitsTest(test_utils.TestCase):
     self.assertAllClose(6.9934864, np.sum(logits))
 
 
+class SharedSoftmaxLayerTest(SoftmaxLayerTest):
+
+  def testSharedSoftmaxLayer(self):
+    g = tf.Graph()
+    with g.as_default():
+      tf.set_random_seed(398847392)
+      params = layers.SharedSoftmaxLayer.Params()
+      params.dtype = tf.float32
+      params.fprop_dtype = None
+      params.name = 'shared_layer'
+      params.input_dim = 128
+      params.num_classes = 8000
+      params.num_shards = 1
+      params.chunk_size = 0
+      params.apply_pruning = False
+      params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
+      params.random_seed = 12345678
+
+      emb_layer = layers.SharedSoftmaxLayer(params)
+
+      emb_matrix = tf.einsum('ji', emb_layer._ConcatWeights(emb_layer.theta).wm)
+      ids = tf.constant([[89], [100]])
+      outputs = emb_layer.EmbLookup(emb_layer.theta, ids)
+
+    with self.session(use_gpu=True, graph=g) as sess:
+      tf.global_variables_initializer().run()
+      emb_matrix_val, ids_val, outputs_val = sess.run(
+          [emb_matrix, ids, outputs])
+      self.assertEqual(emb_matrix_val.shape, (8000, 128))
+      self.assertEqual(ids_val.shape, (2, 1))
+      self.assertEqual(outputs_val.shape, (2, 1, 128))
+      self.assertAllClose(emb_matrix_val[89, :], outputs_val[0, 0, :])
+      self.assertAllClose(emb_matrix_val[100, :], outputs_val[1, 0, :])
+
+
 class FeedForwardNetTest(test_utils.TestCase):
 
   def testFeedForwardNetConstruction(self):

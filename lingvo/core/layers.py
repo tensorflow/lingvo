@@ -2664,6 +2664,32 @@ class SimpleFullSoftmax(SoftmaxLayer):
     return per_example_xent, per_example_argmax
 
 
+class SharedSoftmaxLayer(SimpleFullSoftmax):
+  """Shared softmax layer for decoder embedding/softmax matrix."""
+
+  @classmethod
+  def Params(cls):
+    p = super(SharedSoftmaxLayer, cls).Params()
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(SharedSoftmaxLayer, self).__init__(params)
+
+  def EmbMatmul(self, embs, ids_vec):
+    p = self.params
+    lhs = tf.one_hot(ids_vec, p.num_classes, dtype=embs.dtype)
+    return tf.einsum('...i,ji->...j', lhs, embs)
+
+  def EmbLookup(self, theta, ids):
+    p = self.params
+    if not py_utils.use_xla():
+      ids = py_utils.with_dependencies(
+          [py_utils.assert_between(ids, 0, p.num_classes)], ids)
+    embs_result = self.EmbMatmul(self._ConcatWeights(theta).wm, ids)
+    return embs_result
+
+
 class ConvSoftmax(quant_utils.QuantizableLayer):
   """A softmax implementation based on 1x1 convolution.
 
