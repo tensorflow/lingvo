@@ -170,6 +170,7 @@
 <span class="kn">import</span> <span class="nn">sys</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">symbolic</span>
 <span class="kn">import</span> <span class="nn">six</span>
 
 
@@ -242,16 +243,11 @@
 
   <span class="c1"># Deep copy the value only if it is supported.</span>
   <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
-    <span class="k">try</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">Symbol</span><span class="p">)):</span>
+      <span class="c1"># In case self._value is a tensor/symbol, let&#39;s just make a reference.</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span>
+    <span class="k">else</span><span class="p">:</span>
       <span class="n">value</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span>
-    <span class="k">except</span><span class="p">:</span>  <span class="c1"># pylint: disable=bare-except</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;Tensor&#39;</span><span class="p">:</span>
-        <span class="c1"># In case self._value is a tensor, let&#39;s just make a reference.</span>
-        <span class="c1"># Q(yonghui): Is there a better / more reliable way of detecting the</span>
-        <span class="c1"># type of self._value without importing more modules?</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">_Param</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_description</span><span class="p">)</span>
     <span class="c1"># Q(yonghui): Is this the right use of memo.</span>
     <span class="n">memo</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">p</span>
