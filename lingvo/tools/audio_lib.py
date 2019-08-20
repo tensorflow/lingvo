@@ -55,7 +55,7 @@ def DecodeWav(input_bytes):
   Returns:
     A pair of Tensor for sample rate, decoded samples.
   """
-  result = audio_ops.decode_wav(input_bytes)
+  result = tf.audio.decode_wav(input_bytes)
   return result.sample_rate, result.audio
 
 

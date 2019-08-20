@@ -26,8 +26,6 @@ from lingvo.core import test_utils
 from lingvo.tasks.asr import frontend
 import numpy as np
 
-from tensorflow.contrib.framework.python.ops import audio_ops as contrib_audio
-
 
 class AsrFrontendTest(test_utils.TestCase):
 
@@ -42,7 +40,7 @@ class AsrFrontendTest(test_utils.TestCase):
         test_helper.test_src_dir_path('tools/testdata/gan_or_vae.wav'),
         'rb') as f:
       wavdata = f.read()
-      result = contrib_audio.decode_wav(wavdata)
+      result = tf.audio.decode_wav(wavdata)
       # Remove the last dimension: channel is 1.
       audio = py_utils.HasShape(result.audio, [75900, 1])
       audio = tf.squeeze(audio, axis=1)
