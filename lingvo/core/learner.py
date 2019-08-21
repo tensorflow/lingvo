@@ -304,6 +304,7 @@ class Learner(base_layer.BaseLayer):
 
 _LEGACY_LEARNER_PARAMS = [
     'bprop_variable_filter',
+    'bprop_variable_exclusion',
     'clip_gradient_norm_to_value',
     'clip_gradient_single_norm_to_value',
     'colocate_gradients_with_ops',

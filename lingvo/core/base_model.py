@@ -216,6 +216,10 @@ class BaseTask(base_layer.BaseLayer):
         'If set, only backprop variables whose names partially match '
         'this regexp (re.search).')
     tp.Define(
+        'bprop_variable_exclusion', None,
+        'If set, do not backprop variables whose names partially match '
+        'this regexp (re.search).')
+    tp.Define(
         'grad_aggregation_method', tf.AggregationMethod.EXPERIMENTAL_TREE,
         'Specifies the method used to combine gradient terms. Accepted '
         'values are constants defined in the class AggregationMethod.')
