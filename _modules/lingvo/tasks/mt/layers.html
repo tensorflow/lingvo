@@ -187,8 +187,10 @@
     <span class="c1"># Transformer related</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;model_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;Characteristic depth (dimension).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_transformer_layers&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Number of transformer layers.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;transformer_tpl&#39;</span><span class="p">,</span> <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-             <span class="s1">&#39;TransformerLayer params tpl.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;transformer_tpl&#39;</span><span class="p">,</span> <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;TransformerLayer params tpl. Can be a list of params. &#39;</span>
+        <span class="s1">&#39;num_transformer_layers should be divisible by len(transformer_tpl).&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_output&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -218,13 +220,24 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="c1"># Add transformer layers.</span>
       <span class="n">transformer_layer_params</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span><span class="p">):</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">denom</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">denom</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">//</span> <span class="n">denom</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+          <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+            <span class="n">transformer_layer_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+          <span class="n">transformer_layer_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">transformer_layer_params</span><span class="p">):</span>
         <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;trans_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="n">params</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
         <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
         <span class="n">params</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_attention</span>
-        <span class="n">transformer_layer_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;trans&#39;</span><span class="p">,</span> <span class="n">transformer_layer_params</span><span class="p">)</span>
 
@@ -243,7 +256,7 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span><span class="p">):</span>
           <span class="n">transparent_param</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
           <span class="n">transparent_param</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;transparent_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-          <span class="n">transparent_param</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span>
+          <span class="n">transparent_param</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">transformer_layer_params</span><span class="p">)</span>
           <span class="n">transparent_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transparent_param</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;transparent_merger&#39;</span><span class="p">,</span> <span class="n">transparent_params</span><span class="p">)</span>
 
