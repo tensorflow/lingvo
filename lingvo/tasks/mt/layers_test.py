@@ -84,6 +84,53 @@ class LayersTest(test_utils.TestCase):
     self._TransformerStackFProp(tf.float32, tf.float32,
                                 mt_layers.TransformerStack)
 
+  def testTransformerStackAlternateLayers(self):
+    batch = 3
+    tf.flags.FLAGS.tpu_compatible = True
+    with self.session(use_gpu=False) as sess:
+      model_dim = 2
+      num_transformer_layers = 2
+      transformer_tpl = layers_with_attention.TransformerLayer.Params()
+      transformer_tpl.tr_atten_tpl.num_attention_heads = 1
+      transformer_tpl.tr_fflayer_tpl.hidden_dim = 2
+
+      params = mt_layers.TransformerStack.Params().Set(
+          name='transformer',
+          model_dim=model_dim,
+          num_transformer_layers=num_transformer_layers,
+          transformer_tpl=[
+              transformer_tpl.Copy() for _ in range(num_transformer_layers)
+          ],
+          random_seed=123456)
+
+      xformer = mt_layers.TransformerStack(params)
+      input_arr = np.array([
+          [[0, 1]] * batch,
+          [[1, -1]] * batch,
+      ], dtype=int)
+      paddings_arr = np.array([[0] * batch, [0] * batch], dtype=int)
+      inputs = tf.constant(
+          input_arr.tolist(), dtype=py_utils.FPropDtype(params))
+      paddings = tf.constant(
+          paddings_arr.tolist(), dtype=py_utils.FPropDtype(params))
+      output, _, _ = xformer.FProp(xformer.theta, inputs, paddings)
+
+      tf.global_variables_initializer().run()
+      output = sess.run(output)
+      print(repr(output))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      self.assertAllCloseAccordingToType(
+          np.array([[[-2.17566538, -0.2821945 ],
+                     [-2.17566514, -0.28219438],
+                     [-2.17566514, -0.28219438]],
+                    [[-0.71516591, -0.90594757],
+                     [-0.71516603, -0.90594769],
+                     [-0.71516603, -0.90594769]]]),
+          output)
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+
   def testTransformerStackFPropWithPackedInputs(self):
     # batch = 2. time = 2, depth = 2
     with self.session(use_gpu=True) as sess:

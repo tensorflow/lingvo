@@ -419,6 +419,12 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     dec = decoder.TransformerDecoder(p)
     self.assertIsInstance(dec, p.cls)
 
+  def testDecoderConstructionWithTplList(self):
+    p = self._DecoderParams()
+    p.trans_tpl = [p.trans_tpl.Copy(), p.trans_tpl.Copy()]
+    dec = decoder.TransformerDecoder(p)
+    self.assertIsInstance(dec, p.cls)
+
   def testTransparentDecoderConstruction(self):
     p = self._DecoderParams(is_transparent=True)
     dec = decoder.TransformerDecoder(p)

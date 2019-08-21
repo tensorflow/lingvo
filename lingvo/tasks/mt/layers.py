@@ -42,8 +42,10 @@ class TransformerStack(base_layer.BaseLayer):
     # Transformer related
     p.Define('model_dim', 1024, 'Characteristic depth (dimension).')
     p.Define('num_transformer_layers', 6, 'Number of transformer layers.')
-    p.Define('transformer_tpl', layers_with_attention.TransformerLayer.Params(),
-             'TransformerLayer params tpl.')
+    p.Define(
+        'transformer_tpl', layers_with_attention.TransformerLayer.Params(),
+        'TransformerLayer params tpl. Can be a list of params. '
+        'num_transformer_layers should be divisible by len(transformer_tpl).')
 
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
     p.Define('ln_output', False,
@@ -73,13 +75,24 @@ class TransformerStack(base_layer.BaseLayer):
     with tf.variable_scope(p.name):
       # Add transformer layers.
       transformer_layer_params = []
-      for i in range(p.num_transformer_layers):
-        params = p.transformer_tpl.Copy()
+      denom = 1
+      if isinstance(p.transformer_tpl, list):
+        denom = len(p.transformer_tpl)
+        assert p.num_transformer_layers % len(p.transformer_tpl) == 0
+      for i in range(p.num_transformer_layers // denom):
+        if isinstance(p.transformer_tpl, list):
+          for q in p.transformer_tpl:
+            params = q.Copy()
+            transformer_layer_params.append(params)
+        else:
+          params = p.transformer_tpl.Copy()
+          transformer_layer_params.append(params)
+
+      for i, params in enumerate(transformer_layer_params):
         params.name = 'trans_%d' % (i)
         params.source_dim = p.model_dim
         params.packed_input = p.packed_input
         params.has_aux_atten = p.has_aux_attention
-        transformer_layer_params.append(params)
 
       self.CreateChildren('trans', transformer_layer_params)
 
@@ -98,7 +111,7 @@ class TransformerStack(base_layer.BaseLayer):
         for i in range(p.num_transparent_outputs):
           transparent_param = p.transparent_merger_tpl.Copy()
           transparent_param.name = 'transparent_%d' % i
-          transparent_param.num_sources = 1 + p.num_transformer_layers
+          transparent_param.num_sources = 1 + len(transformer_layer_params)
           transparent_params.append(transparent_param)
         self.CreateChildren('transparent_merger', transparent_params)
 

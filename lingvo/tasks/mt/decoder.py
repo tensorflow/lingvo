@@ -854,8 +854,11 @@ class TransformerDecoder(MTBaseDecoder):
     p.Define('model_dim', 1024, 'Model dimension that applies to embedding '
              'layers and all Transformer layers.')
     p.Define('num_trans_layers', 6, 'Number of Transformer layers.')
-    p.Define('trans_tpl', layers_with_attention.TransformerLayer.Params(),
-             'Transformer layer params.')
+    p.Define(
+        'trans_tpl', layers_with_attention.TransformerLayer.Params(),
+        'Transformer layer params. '
+        ' Can be a list. num_trans_layers should be divisible by '
+        'len(trans_tpl).')
     p.Define('input_dropout_prob', 0.0, 'Prob at which we do input dropout.')
     p.Define(
         'is_transparent', False, 'If set, expects a tensor of shape '
@@ -915,13 +918,25 @@ class TransformerDecoder(MTBaseDecoder):
       self.CreateChild('input_dropout', dropout_tpl)
 
       params_trans_layers = []
-      for i in range(p.num_trans_layers):
-        params = p.trans_tpl.Copy()
+      denom = 1
+      if isinstance(p.trans_tpl, list):
+        denom = len(p.trans_tpl)
+      assert p.num_trans_layers % denom == 0
+      for i in range(p.num_trans_layers // denom):
+        if isinstance(p.trans_tpl, list):
+          for q in p.trans_tpl:
+            params = q.Copy()
+            params_trans_layers.append(params)
+        else:
+          params = p.trans_tpl.Copy()
+          params_trans_layers.append(params)
+
+      for i, params in enumerate(params_trans_layers):
         params.name = 'trans_layer_%d' % i
         params.packed_input = p.packed_input
         params.has_aux_atten = True
         params.mask_self_atten = True
-        params_trans_layers.append(params)
+
       self.CreateChildren('trans', params_trans_layers)
 
       p.softmax.input_dim = p.model_dim
@@ -1276,7 +1291,14 @@ class TransformerDecoder(MTBaseDecoder):
         atten_probs=atten_probs)
 
     batch_size = num_hyps
-    atten_hidden_dim = p.trans_tpl.tr_atten_tpl.atten_hidden_dim
+    if isinstance(p.trans_tpl, list):
+      atten_hidden_dim = p.trans_tpl[0].tr_atten_tpl.atten_hidden_dim
+      assert [tpl.tr_atten_tpl.atten_hidden_dim for tpl in p.trans_tpl
+             ].count(atten_hidden_dim) == len(
+                 p.trans_tpl), 'atten_hidden_dim must match'
+    else:
+      atten_hidden_dim = p.trans_tpl.tr_atten_tpl.atten_hidden_dim
+
     if not atten_hidden_dim:
       atten_hidden_dim = p.model_dim
 
