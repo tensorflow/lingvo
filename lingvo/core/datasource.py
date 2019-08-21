@@ -64,6 +64,7 @@ class SimpleDataSource(DataSource):
   @classmethod
   def Params(cls):
     p = super(SimpleDataSource, cls).Params()
+    # TODO(b/139345706): move filetype prefix (eg tfrecord:) into its own param.
     p.Define(
         'file_pattern', '', 'A single file pattern string which can '
         'contain a single file pattern, or a comma separated list of patterns.'
