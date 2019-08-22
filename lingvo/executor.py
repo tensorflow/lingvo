@@ -23,7 +23,7 @@ from lingvo import base_runner
 from lingvo import compat as tf
 from lingvo.core import py_utils
 
-from tensorflow.contrib.tpu.python.tpu import device_assignment as device_assignment_lib
+from tensorflow.python.tpu import device_assignment as device_assignment_lib  # pylint: disable=g-direct-tensorflow-import
 
 
 class ExecutorTpu(base_runner.BaseRunner):
