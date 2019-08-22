@@ -211,10 +211,13 @@ class Params(object):
     return self.Copy()
 
   def Copy(self):
-    res = type(self)()
+    return self._CopyTo(type(self)())
+
+  def _CopyTo(self, res):
     # pylint: disable=protected-access
     res._params = copy.deepcopy(self._params)
     res._immutable = self._immutable
+    # pylint: enable=protected-access
     return res
 
   # TODO(sadovsky):
