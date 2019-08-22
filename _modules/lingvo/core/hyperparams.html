@@ -356,10 +356,13 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
 <div class="viewcode-block" id="Params.Copy"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Copy">[docs]</a>  <span class="k">def</span> <span class="nf">Copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CopyTo</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)())</span></div>
+
+<div class="viewcode-block" id="Params._CopyTo"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._CopyTo">[docs]</a>  <span class="k">def</span> <span class="nf">_CopyTo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">res</span><span class="p">):</span>
     <span class="c1"># pylint: disable=protected-access</span>
     <span class="n">res</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">)</span>
     <span class="n">res</span><span class="o">.</span><span class="n">_immutable</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span>
+    <span class="c1"># pylint: enable=protected-access</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
   <span class="c1"># TODO(sadovsky):</span>
