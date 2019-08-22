@@ -313,8 +313,16 @@ def _RenderMatplotlibFigures(figsize, max_outputs, plot_func, *numpy_data_list):
   return np.array(images)
 
 
-def _FigureToSummary(name, fig):
-  """Create tf.Summary proto from matplotlib.figure.Figure ."""
+def FigureToSummary(name, fig):
+  """Create tf.Summary proto from matplotlib.figure.Figure.
+
+  Args:
+    name: Summary name.
+    fig: A matplotlib figure object.
+
+  Returns:
+    A `tf.Summary` proto containing the figure rendered to an image.
+  """
   canvas = backend_agg.FigureCanvasAgg(fig)
   fig.canvas.draw()
   ncols, nrows = fig.canvas.get_width_height()
@@ -353,7 +361,7 @@ def Image(name, figsize, image, setter=None, **kwargs):
   AddImage(fig, axes, image, origin='upper', show_colorbar=False, **kwargs)
   if setter:
     setter(fig, axes)
-  return _FigureToSummary(name, fig)
+  return FigureToSummary(name, fig)
 
 
 def Scatter(name, figsize, xs, ys, setter=None, **kwargs):
@@ -385,7 +393,7 @@ def Scatter(name, figsize, xs, ys, setter=None, **kwargs):
   AddScatterPlot(fig, axes, xs, ys, **kwargs)
   if setter:
     setter(fig, axes)
-  return _FigureToSummary(name, fig)
+  return FigureToSummary(name, fig)
 
 
 Matrix = Image  # pylint: disable=invalid-name
@@ -412,4 +420,4 @@ def Curve(name, figsize, xs, ys, setter=None, **kwargs):
   axes.plot(xs, ys, '.-', **kwargs)
   if setter:
     setter(fig, axes)
-  return _FigureToSummary(name, fig)
+  return FigureToSummary(name, fig)
