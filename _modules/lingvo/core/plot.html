@@ -458,8 +458,16 @@
   <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">images</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="_FigureToSummary"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot._FigureToSummary">[docs]</a><span class="k">def</span> <span class="nf">_FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Create tf.Summary proto from matplotlib.figure.Figure .&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="FigureToSummary"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.FigureToSummary">[docs]</a><span class="k">def</span> <span class="nf">FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Create tf.Summary proto from matplotlib.figure.Figure.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: Summary name.</span>
+<span class="sd">    fig: A matplotlib figure object.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `tf.Summary` proto containing the figure rendered to an image.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">canvas</span> <span class="o">=</span> <span class="n">backend_agg</span><span class="o">.</span><span class="n">FigureCanvasAgg</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
   <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
   <span class="n">ncols</span><span class="p">,</span> <span class="n">nrows</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">get_width_height</span><span class="p">()</span>
@@ -498,7 +506,7 @@
   <span class="n">AddImage</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;upper&#39;</span><span class="p">,</span> <span class="n">show_colorbar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">setter</span><span class="p">:</span>
     <span class="n">setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">_FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Scatter"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.Scatter">[docs]</a><span class="k">def</span> <span class="nf">Scatter</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">figsize</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">setter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -530,7 +538,7 @@
   <span class="n">AddScatterPlot</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">setter</span><span class="p">:</span>
     <span class="n">setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">_FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
 
 
 <span class="n">Matrix</span> <span class="o">=</span> <span class="n">Image</span>  <span class="c1"># pylint: disable=invalid-name</span>
@@ -557,7 +565,7 @@
   <span class="n">axes</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="s1">&#39;.-&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">setter</span><span class="p">:</span>
     <span class="n">setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">_FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
