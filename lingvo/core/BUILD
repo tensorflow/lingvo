@@ -1459,3 +1459,13 @@ py_test(
         "//lingvo:compat",
     ],
 )
+
+py_library(
+    name = "step",
+    srcs = ["step.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":base_layer",
+        "//lingvo:compat",
+    ],
+)
