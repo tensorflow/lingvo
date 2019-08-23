@@ -25,3 +25,9 @@ from tensorflow.compat.v1 import *  # pylint:disable=wildcard-import
 # pylint:disable=g-bad-import-order, unused-import, g-import-not-at-top
 from absl import flags
 from absl import logging
+
+# pylint: disable=g-direct-tensorflow-import
+from tensorflow.python.compat import v2_compat
+# pylint: enable=g-direct-tensorflow-import
+
+v2_compat.disable_v2_behavior()
