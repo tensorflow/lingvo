@@ -164,6 +164,8 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">os</span>
+
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
@@ -209,7 +211,8 @@
 <div class="viewcode-block" id="SimpleDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.SimpleDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SimpleDataSource</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="c1"># TODO(b/139345706): move filetype prefix (eg tfrecord:) into its own param.</span>
+    <span class="c1"># TODO(b/139345706): move filetype prefix (eg tfrecord:) into its own param</span>
+    <span class="c1"># and clean up existing usages.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;file_pattern&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;A single file pattern string which can &#39;</span>
         <span class="s1">&#39;contain a single file pattern, or a comma separated list of patterns.&#39;</span>
@@ -217,6 +220,8 @@
         <span class="s1">&#39; this will be roughly equal per file.  To explicitly &#39;</span>
         <span class="s1">&#39;describe the mixture weights of different file patterns use &#39;</span>
         <span class="s1">&#39;WithinBatchMixingDataSource or CrossBatchMixingDataSource&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;file_type&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;A file type, such as `tfrecord`.&#39;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="SimpleDataSource.BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.SimpleDataSource.BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">):</span>
@@ -235,8 +240,14 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;SimpleDataSource expects p.file_pattern to be a string.&#39;</span>
                        <span class="s1">&#39; To use multiple files use a comma separated string, &#39;</span>
                        <span class="s1">&#39;e.g. </span><span class="se">\&#39;</span><span class="s1">, </span><span class="se">\&#39;</span><span class="s1">.join(list_of_file_patterns)&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="p">:</span>
+      <span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">file_pattern</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span>
+
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
 
 
@@ -516,6 +527,44 @@
     <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">case</span><span class="p">(</span><span class="n">cases</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">GetDatasourceFn</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filters</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
+
+
+<div class="viewcode-block" id="PrefixedDataSourceWrapper"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.PrefixedDataSourceWrapper">[docs]</a><span class="k">class</span> <span class="nc">PrefixedDataSourceWrapper</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Prepends paths to file patterns of another DataSource.</span>
+
+<span class="sd">  Target DataSource must have parameter `file_patterns`. Resulting file patterns</span>
+<span class="sd">  are of the form [file_pattern_prefix/]pattern</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PrefixedDataSourceWrapper.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.PrefixedDataSourceWrapper.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PrefixedDataSourceWrapper</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;base_datasource&#39;</span><span class="p">,</span> <span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Wrapped DataSource that has a `file_patterns` parameter.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;file_pattern_prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Prefix to add to file_pattern, eg. a base directory that contains &#39;</span>
+        <span class="s1">&#39;dataset files.&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">PrefixedDataSourceWrapper</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">cls</span> <span class="ow">is</span> <span class="n">SimpleDataSource</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;PrefixedDataSourceWrapper currently only supports SimpleDataSource&#39;</span><span class="p">)</span>
+
+    <span class="n">patterns</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern_prefix</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span> <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_datasource</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PrefixedDataSourceWrapper.BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.PrefixedDataSourceWrapper.BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datasource</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

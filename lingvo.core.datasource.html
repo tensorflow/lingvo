@@ -390,6 +390,45 @@ batch from a string file_pattern</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.core.datasource.PrefixedDataSourceWrapper">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.datasource.</code><code class="sig-name descname">PrefixedDataSourceWrapper</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#PrefixedDataSourceWrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.PrefixedDataSourceWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.DataSource" title="lingvo.core.datasource.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.DataSource</span></code></a></p>
+<p>Prepends paths to file patterns of another DataSource.</p>
+<p>Target DataSource must have parameter <code class="xref py py-obj docutils literal notranslate"><span class="pre">file_patterns</span></code>. Resulting file patterns
+are of the form [file_pattern_prefix/]pattern</p>
+<dl class="method">
+<dt id="lingvo.core.datasource.PrefixedDataSourceWrapper.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#PrefixedDataSourceWrapper.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.PrefixedDataSourceWrapper.Params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.datasource.PrefixedDataSourceWrapper.BuildDataSource">
+<code class="sig-name descname">BuildDataSource</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#PrefixedDataSourceWrapper.BuildDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.PrefixedDataSourceWrapper.BuildDataSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds a data source.</p>
+<p>Subclasses implement this.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data_source_from_file_pattern_fn</strong> – a function that takes file_pattern and
+input_source_weights as arguments and returns an input batch from a
+string file_pattern.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>data: a tuple of tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of
+tf.Tensor same as <code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseInputGeneratorFromFiles._DataSourceFromFilePattern(</span>
+<span class="pre">file_pattern,</span> <span class="pre">input_source_weights=None)</span></code>, source_selected: a
+tensor of size [batch_size, number of data sources], selected_bprop: a
+tensor of size [number of data sources] bprop_variable_filters: containing
+a list of bprop_variable filters for each source</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A NestedMap containing</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
