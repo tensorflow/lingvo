@@ -238,6 +238,26 @@ well.</p>
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.tools.beam_utils.GetEmitterFn">
+<code class="sig-prename descclassname">lingvo.tools.beam_utils.</code><code class="sig-name descname">GetEmitterFn</code><span class="sig-paren">(</span><em class="sig-param">record_format</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/beam_utils.html#GetEmitterFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.beam_utils.GetEmitterFn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an Emitter function for the given record_format.</p>
+<p>An Emitter function takes in a key and value as arguments and returns
+a structure that is compatible with the Beam Writer associated with
+the corresponding record_format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>record_format</strong> – String record format, e.g., ‘tfrecord’ to write as.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An emitter function of (key, value) -&gt; Writer’s input type.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If an unsupported record_format is provided.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 

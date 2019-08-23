@@ -234,6 +234,32 @@
   <span class="k">if</span> <span class="n">record_format</span> <span class="o">==</span> <span class="s2">&quot;tfrecord&quot;</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">beam</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">WriteToTFRecord</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">,</span> <span class="n">coder</span><span class="o">=</span><span class="n">value_coder</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported record format: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">record_format</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="GetEmitterFn"><a class="viewcode-back" href="../../../lingvo.tools.beam_utils.html#lingvo.tools.beam_utils.GetEmitterFn">[docs]</a><span class="k">def</span> <span class="nf">GetEmitterFn</span><span class="p">(</span><span class="n">record_format</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns an Emitter function for the given record_format.</span>
+
+<span class="sd">  An Emitter function takes in a key and value as arguments and returns</span>
+<span class="sd">  a structure that is compatible with the Beam Writer associated with</span>
+<span class="sd">  the corresponding record_format.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    record_format: String record format, e.g., &#39;tfrecord&#39; to write as.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    An emitter function of (key, value) -&gt; Writer&#39;s input type.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: If an unsupported record_format is provided.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_ValueEmitter</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">key</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span>
+
+  <span class="k">if</span> <span class="n">record_format</span> <span class="o">==</span> <span class="s2">&quot;tfrecord&quot;</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">_ValueEmitter</span>
+  <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported record format: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">record_format</span><span class="p">))</span></div>
 </pre></div>
 
            </div>
