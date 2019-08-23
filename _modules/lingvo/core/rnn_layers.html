@@ -176,8 +176,6 @@
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
-
 
 <div class="viewcode-block" id="_GeneratePackedInputResetMask"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers._GeneratePackedInputResetMask">[docs]</a><span class="k">def</span> <span class="nf">_GeneratePackedInputResetMask</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">is_reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Generates mask inputs for RNN cells from segment_id.</span>
@@ -549,7 +547,7 @@
     <span class="n">rcell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rcell</span><span class="p">,</span> <span class="p">(</span><span class="n">rnn_cell</span><span class="o">.</span><span class="n">RNNCell</span><span class="p">))</span>
 
-    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">FlipUpDown</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
       <span class="c1"># Reverse the first dimension (time)</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>

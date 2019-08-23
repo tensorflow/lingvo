@@ -172,8 +172,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
-
 
 <div class="viewcode-block" id="BaseLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.BaseLearningRateSchedule">[docs]</a><span class="k">class</span> <span class="nc">BaseLearningRateSchedule</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for learning rate decay algorithms.&quot;&quot;&quot;</span>
@@ -291,7 +289,7 @@
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">PolynomialLearningRateSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">Polynomial</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Polynomial function of x.&quot;&quot;&quot;</span>
       <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -358,7 +356,7 @@
         <span class="n">LinearLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">y0</span><span class="p">)),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">y1</span><span class="p">))))</span>
 
-    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">Exp</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
 
@@ -405,7 +403,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;schedules&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">schedules</span><span class="p">)</span>
 
-    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">Combined</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
       <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedules</span><span class="p">]</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">ys</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>

@@ -3164,8 +3164,7 @@
   <span class="n">ys_shapes</span> <span class="o">=</span> <span class="p">[]</span>
 
   <span class="c1"># TODO(huangyp, yonghui): Check Forward doesn&#39;t use any stateful random ops.</span>
-  <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
-      <span class="n">initial_step_seed</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="o">*</span><span class="n">xs_dtypes</span><span class="p">,</span> <span class="n">python_grad_func</span><span class="o">=</span><span class="n">Backward</span><span class="p">)</span>
+  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">initial_step_seed</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="o">*</span><span class="n">xs_dtypes</span><span class="p">,</span> <span class="n">python_grad_func</span><span class="o">=</span><span class="n">Backward</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">Forward</span><span class="p">(</span><span class="n">initial_step_seed</span><span class="p">,</span> <span class="o">*</span><span class="n">fwd_xs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Forward function plus sanity checks.&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">fwd_xs</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
