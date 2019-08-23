@@ -389,7 +389,7 @@ class _Recurrent(object):
     noinline = not compiled
     t_type = tf.int32 if compiled else tf.int64
 
-    @function.Defun(*Dtypes(fwd_sig))
+    @tf.Defun(*Dtypes(fwd_sig))
     def Fwd(*args):
       (theta, state0, inputs) = Pack(args, fwd_sig)
       _SetShapes(theta, fwd_sig[0])
@@ -412,7 +412,7 @@ class _Recurrent(object):
         self._theta, self._state, self._inputs, self._state, self._extras
     ]
 
-    @function.Defun(t_type, t_type, *Dtypes(fwdloop_sig))
+    @tf.Defun(t_type, t_type, *Dtypes(fwdloop_sig))
     def ForwardLoopCond(t, limit, *args):
       """The condition of forward loop."""
       should_continue = t < limit
@@ -423,7 +423,7 @@ class _Recurrent(object):
             tf.reduce_any(tf.logical_not(self._stop_fn(t, theta, state0))))
       return should_continue
 
-    @function.Defun(t_type, t_type, *Dtypes(fwdloop_sig))
+    @tf.Defun(t_type, t_type, *Dtypes(fwdloop_sig))
     def ForwardLoopBody(t, limit, *args):
       """The body of forward loop."""
       theta, state0, inputs, acc_state, acc_extras = Pack(args, fwdloop_sig)
@@ -556,8 +556,7 @@ class _Recurrent(object):
     # time step of the recurrent net.
     forward_sig = [self._theta, self._state, self._inputs, self._extras]
 
-    @function.Defun(
-        *Dtypes(forward_sig), python_grad_func=Grad, noinline=noinline)
+    @tf.Defun(*Dtypes(forward_sig), python_grad_func=Grad, noinline=noinline)
     def Forward(*args):
       """Forward pass of the recurrent net."""
       theta, state0, inputs, extras = Pack(args, forward_sig)
@@ -606,7 +605,7 @@ class _Recurrent(object):
         self._state,
     ]
 
-    @function.Defun(*Dtypes(bak_sig))
+    @tf.Defun(*Dtypes(bak_sig))
     def Bak(*args):
       """Backward step."""
       (theta, state0, inputs, extras, d_state1) = Pack(args, bak_sig)
@@ -637,13 +636,13 @@ class _Recurrent(object):
     # Define defuns used by a functional.if in BackwardLoopBody.
     state_if_sig = [self._state, self._state]
 
-    @function.Defun(*Dtypes(state_if_sig))
+    @tf.Defun(*Dtypes(state_if_sig))
     def ReturnOrigState0(*args):
       """Returns original state0 from inputs."""
       (_, orig_state0) = Pack(args, state_if_sig)
       return orig_state0.Flatten()
 
-    @function.Defun(*Dtypes(state_if_sig))
+    @tf.Defun(*Dtypes(state_if_sig))
     def ReturnAccState(*args):
       """Returns acc_state[t-1] from inputs."""
       (acc_state, _) = Pack(args, state_if_sig)
@@ -683,12 +682,12 @@ class _Recurrent(object):
         self._implicit_captures,
     ]
 
-    @function.Defun(t_type, t_type, *Dtypes(bakloop_sig))
+    @tf.Defun(t_type, t_type, *Dtypes(bakloop_sig))
     def BackwardLoopCond(t, limit, *unused_args):
       """Backward loop condition function."""
       return t >= limit
 
-    @function.Defun(t_type, t_type, *Dtypes(bakloop_sig))
+    @tf.Defun(t_type, t_type, *Dtypes(bakloop_sig))
     def BackwardLoopBody(t, limit, *args):
       """Backward loop body function."""
       (
@@ -764,7 +763,7 @@ class _Recurrent(object):
         self._state,
     ]
 
-    @function.Defun(t_type, *Dtypes(backward_sig), noinline=noinline)
+    @tf.Defun(t_type, *Dtypes(backward_sig), noinline=noinline)
     def Backward(start, *args):
       """Backward pass for the recurrent net."""
       # theta, state0, inputs are Forward's inputs.
@@ -872,7 +871,7 @@ def _ReflectOnCellFn(cell_fn,
 
   fwd_sig = [theta, state0, inputs]
 
-  @function.Defun(*Dtypes(fwd_sig))
+  @tf.Defun(*Dtypes(fwd_sig))
   def Fwd(*args):
     (theta, state0, inputs) = Pack(args, fwd_sig)
     _SetShapes(theta, fwd_sig[0])

@@ -36,7 +36,6 @@ import six
 from six.moves import range
 from six.moves import zip
 
-from tensorflow.python.framework import function
 from tensorflow.python.ops import functional_ops
 
 FLAGS = tf.flags.FLAGS
@@ -386,7 +385,7 @@ class PyUtilsTest(test_utils.TestCase):
     self.assertIsInstance(py_utils.GetShape(e)[1], tf.Tensor)
     self.assertIsInstance(py_utils.GetShape(e)[2], tf.Tensor)
 
-    @function.Defun(tf.float32)
+    @tf.Defun(tf.float32)
     def Identity(x):
       return x
 
@@ -1814,7 +1813,7 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
 
   def testFunctionWithStatelessOp(self):
 
-    @function.Defun()
+    @tf.Defun()
     def FunctionWithStatelessOp():
       return tf.constant(42.0)
 
@@ -1823,7 +1822,7 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
 
   def testFunctionWithStatefulOp(self):
 
-    @function.Defun()
+    @tf.Defun()
     def FunctionWithStatefulOp():
       return tf.random_uniform([100], maxval=10, dtype=tf.int32)
 
@@ -1833,11 +1832,11 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
 
   def testFunctionWithStatelessFunctionCall(self):
 
-    @function.Defun()
+    @tf.Defun()
     def FunctionWithStatelessOp():
       return tf.constant(42.0)
 
-    @function.Defun()
+    @tf.Defun()
     def FunctionWithStatelessFunctionCall():
       return FunctionWithStatelessOp()
 
@@ -1847,11 +1846,11 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
 
   def testFunctionWithStatefulFunctionCall(self):
 
-    @function.Defun()
+    @tf.Defun()
     def FunctionWithStatefulOp():
       return tf.random_uniform([100], maxval=10, dtype=tf.int32)
 
-    @function.Defun()
+    @tf.Defun()
     def FunctionWithStatefulFunctionCall():
       return FunctionWithStatefulOp()
 
@@ -1861,15 +1860,15 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
 
   def testFunctionWithStatefulFunctionalWhile(self):
 
-    @function.Defun()
+    @tf.Defun()
     def FunctionWithStatefulFunctionalWhile():
 
-      @function.Defun(tf.float32, tf.int32)
+      @tf.Defun(tf.float32, tf.int32)
       def Cond(result, i):
         del result
         return tf.less(i, 4)
 
-      @function.Defun(tf.float32, tf.int32)
+      @tf.Defun(tf.float32, tf.int32)
       def Body(result, i):
         return (result + tf.random_uniform(tf.shape(result)), i + 1)
 
@@ -1881,14 +1880,14 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
 
   def testFunctionWithStatefulFunctionalIf(self):
 
-    @function.Defun()
+    @tf.Defun()
     def FunctionWithStatefulFunctionalIf():
 
-      @function.Defun(tf.float32)
+      @tf.Defun(tf.float32)
       def ThenFn(x):
         return tf.abs(x)
 
-      @function.Defun(tf.float32)
+      @tf.Defun(tf.float32)
       def ElseFn(x):
         return tf.random_uniform(tf.shape(x))
 
@@ -1901,10 +1900,10 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
 
   def testFunctionWithStatefulFunctionalFor(self):
 
-    @function.Defun()
+    @tf.Defun()
     def FunctionWithStatefulFunctionalFor():
 
-      @function.Defun(tf.float32)
+      @tf.Defun(tf.float32)
       def Body(result):
         return [
             result + tf.random_uniform(tf.shape(result)) +
@@ -1921,10 +1920,10 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
 
   def testFunctionWithStatelessFunctionalFor(self):
 
-    @function.Defun()
+    @tf.Defun()
     def FunctionWithStatelessFunctionalFor():
 
-      @function.Defun(tf.float32)
+      @tf.Defun(tf.float32)
       def Body(result):
         return [
             result +

@@ -28,7 +28,6 @@ from lingvo.core import summary_utils
 
 import numpy as np
 
-from tensorflow.python.framework import function
 from tensorflow.python.ops import inplace_ops
 
 
@@ -41,7 +40,7 @@ def _ConditionalDefun(cond, *args, **kwargs):
   def Decorator(f):
     if not cond:
       return f
-    return function.Defun(*args, **kwargs)(f)
+    return tf.Defun(*args, **kwargs)(f)
 
   return Decorator
 
@@ -495,8 +494,7 @@ class AdditiveAttention(BaseAttentionLayer):
       self.CreateVariable('hidden_var', pc, self.AddGlobalVN)
 
     # noinline and compiled cannot be set at the same time
-    @function.Defun(
-        *([py_utils.FPropDtype(p)] * 7), noinline=not py_utils.use_tpu())
+    @tf.Defun(*([py_utils.FPropDtype(p)] * 7), noinline=not py_utils.use_tpu())
     def AttenProbs(concated_source_vecs, source_padding, query_vec_reshaped, v,
                    per_step_source_padding, source_segment_id,
                    query_segment_id):
@@ -636,7 +634,7 @@ class AdditiveAttention(BaseAttentionLayer):
       # [b, hidden_dim]
       query_vec = py_utils.Matmul(query_vec, w)
       # [sl, b]
-      @function.Defun(
+      @tf.Defun(
           *([py_utils.FPropDtype(p)] * 7), noinline=not py_utils.use_tpu())
       def AttenProbs(x, source_padding, y, v, per_step_source_padding,
                      source_segment_id, query_segment_id):
@@ -846,8 +844,7 @@ class DotProductAttention(BaseAttentionLayer):
 
       self.CreateVariable('per_dim_scale', pc)
 
-    @function.Defun(
-        *[py_utils.FPropDtype(p)] * 7, noinline=not py_utils.use_tpu())
+    @tf.Defun(*[py_utils.FPropDtype(p)] * 7, noinline=not py_utils.use_tpu())
     def AttenProbs(per_dim_scale, source_padding, concated_source_vecs,
                    query_vec, per_step_source_padding, source_segment_id,
                    query_segment_id):
@@ -2313,7 +2310,7 @@ class MonotonicAttention(BaseAttentionLayer):
 
     p = self.params
     # noinline and compiled cannot be set at the same time
-    @function.Defun(*([p.dtype] * 7), noinline=not py_utils.use_tpu())
+    @tf.Defun(*([p.dtype] * 7), noinline=not py_utils.use_tpu())
     def AttenLogits(concated_source_vecs, query_vec, query_v, energy_b,
                     hidden_v, hidden_g, hidden_b):
       """Computes logits from source, query, and variables.

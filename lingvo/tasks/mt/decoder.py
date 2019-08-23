@@ -35,10 +35,8 @@ from lingvo.core import summary_utils
 from six.moves import range
 from six.moves import zip
 
-from tensorflow.python.framework import function
 
-
-@function.Defun()
+@tf.Defun()
 def AssertIdShape(expected_ids_shape_pattern, ids_shape, *args):
   dependencies = [
       py_utils.assert_shape_match(ids_shape, expected_ids_shape_pattern)

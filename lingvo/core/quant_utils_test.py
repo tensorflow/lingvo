@@ -28,7 +28,6 @@ from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import test_utils
 import numpy as np
-from tensorflow.python.framework import function
 
 
 class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
@@ -358,11 +357,11 @@ class ClippingCapScheduleTest(object):
       # Move to fully quantized part of schedule
       sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 16))
 
-      @function.Defun(tf.float32, tf.float32)
+      @tf.Defun(tf.float32, tf.float32)
       def ExampleFunction8(x, cc_state):
         return cc_schedule.ApplyClippingWithState(cc_state, x, bits=8)
 
-      @function.Defun(tf.float32, tf.float32)
+      @tf.Defun(tf.float32, tf.float32)
       def ExampleFunction16(x, cc_state):
         return cc_schedule.ApplyClippingWithState(cc_state, x, bits=16)
 

@@ -177,7 +177,7 @@ class BaseLayer(object):
     p.Define('name', '', 'Name of this layer object.')
     p.Define('dtype', tf.float32, 'Datatype to use.')
     # None value will make FProp use dtype instead of fprop_dtype.
-    # TODO(lepikhin): all @function.Defun should use p.fprop_dtype if it is set.
+    # TODO(lepikhin): all @tf.Defun should use p.fprop_dtype if it is set.
     p.Define('fprop_dtype', None, 'Activations datatype to use.')
     p.Define(
         'random_seed', None, 'Random seed for deterministic unittests. This '

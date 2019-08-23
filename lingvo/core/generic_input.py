@@ -93,7 +93,7 @@ def GenericInput(processor, *args, **kwargs):
                                                    function.get_extra_args()))
     return flat_output_tmpl + [bucketing_key]
 
-  proc_fn = function.Defun(tf.string)(_FlatOutputProcessor)
+  proc_fn = tf.Defun(tf.string)(_FlatOutputProcessor)
 
   out_types = [
       tf.DType(a.type) for a in proc_fn.definition.signature.output_arg

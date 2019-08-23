@@ -30,8 +30,6 @@ import numpy as np
 from six.moves import range
 from six.moves import zip
 
-from tensorflow.python.framework import function
-
 
 def _ApplyPadding(padding, v_no_pad, v_pad):
   if padding is not None:
@@ -496,7 +494,7 @@ class RecurrentTest(test_utils.TestCase):
   def testNestedCellFn(self):
     """Tests when cell_fn calls another function."""
 
-    @function.Defun(tf.float32)
+    @tf.Defun(tf.float32)
     def RandWithCoeff(coeff):
       return coeff * tf.random_uniform(shape=[], dtype=coeff.dtype)
 
@@ -506,7 +504,7 @@ class RecurrentTest(test_utils.TestCase):
       next_state.value = state.value + RandWithCoeff(inputs.coeff)
       return next_state, py_utils.NestedMap()
 
-    @function.Defun(tf.float32)
+    @tf.Defun(tf.float32)
     def Coeff(coeff):
       return coeff * 2
 
@@ -566,7 +564,7 @@ class RecurrentTest(test_utils.TestCase):
   @staticmethod
   def ElmanGrad(theta, state0, inputs, extras, dstate1):
 
-    @function.Defun()
+    @tf.Defun()
     def Grad(h0, w, b, x, padding, h1, dh1):
       del b
       dh1_orig = dh1

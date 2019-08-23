@@ -3019,8 +3019,7 @@ def RematerializeFn(fn, *xs):
   ys_shapes = []
 
   # TODO(huangyp, yonghui): Check Forward doesn't use any stateful random ops.
-  @function.Defun(
-      initial_step_seed.dtype, *xs_dtypes, python_grad_func=Backward)
+  @tf.Defun(initial_step_seed.dtype, *xs_dtypes, python_grad_func=Backward)
   def Forward(initial_step_seed, *fwd_xs):
     """Forward function plus sanity checks."""
     for dst, src in zip(fwd_xs, xs):

@@ -23,7 +23,6 @@ import lingvo.compat as tf
 from lingvo.core import sendrecv
 from lingvo.core import test_utils
 import numpy as np
-from tensorflow.python.framework import function
 
 
 def _ListDevices(target):
@@ -71,7 +70,7 @@ class SendrecvTest(test_utils.TestCase):
         ch = sendrecv.Channel(dtype, shape, sender, recver, "test")
         with tf.device(sender):
 
-          @function.Defun()
+          @tf.Defun()
           def Send():
             src_val = tf.constant(to_send)
             ch.Send(src_val)
@@ -81,7 +80,7 @@ class SendrecvTest(test_utils.TestCase):
 
         with tf.device(recver):
 
-          @function.Defun()
+          @tf.Defun()
           def Recv():
             return ch.Recv()
 

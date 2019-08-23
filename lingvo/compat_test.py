@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import lingvo.compat as tf
+from tensorflow.python.framework import function  # pylint:disable=g-direct-tensorflow-import
 
 
 class CompatTest(tf.test.TestCase):
@@ -27,6 +28,7 @@ class CompatTest(tf.test.TestCase):
     self.assertFalse(tf.executing_eagerly())
     self.assertIsNotNone(tf.logging)
     self.assertIsNotNone(tf.flags)
+    self.assertIs(tf.Defun, function.Defun)
 
 
 if __name__ == '__main__':

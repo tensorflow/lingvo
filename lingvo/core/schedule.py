@@ -27,8 +27,6 @@ from lingvo.core import ops
 from lingvo.core import py_utils
 from six.moves import zip
 
-from tensorflow.python.framework import function
-
 
 class BaseLearningRateSchedule(base_layer.BaseLayer):
   """Base class for learning rate decay algorithms."""
@@ -146,7 +144,7 @@ class PolynomialLearningRateSchedule(BaseLearningRateSchedule):
   def __init__(self, params):
     super(PolynomialLearningRateSchedule, self).__init__(params)
 
-    @function.Defun()
+    @tf.Defun()
     def Polynomial(x):
       """Polynomial function of x."""
       p = self.params
@@ -213,7 +211,7 @@ class ExponentialLearningRateSchedule(BaseLearningRateSchedule):
         LinearLearningRateSchedule.Params().Set(
             start=(x0, math.log(y0)), limit=(x1, math.log(y1))))
 
-    @function.Defun()
+    @tf.Defun()
     def Exp(x):
       return tf.exp(self.linear.Value(x))
 
@@ -260,7 +258,7 @@ class CombinedMinimumLearningRateSchedule(BaseLearningRateSchedule):
     p = self.params
     self.CreateChildren('schedules', p.schedules)
 
-    @function.Defun()
+    @tf.Defun()
     def Combined(x):
       ys = [s.Value(x) for s in self.schedules]
       return tf.reduce_min(tf.stack(ys), axis=0)

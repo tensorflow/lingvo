@@ -31,8 +31,6 @@ from lingvo.core import rnn_cell
 from six.moves import range
 from six.moves import zip
 
-from tensorflow.python.framework import function
-
 
 def _GeneratePackedInputResetMask(segment_id, is_reverse=False):
   """Generates mask inputs for RNN cells from segment_id.
@@ -404,7 +402,7 @@ class FRNN(base_layer.BaseLayer):
     rcell = self.cell
     assert isinstance(rcell, (rnn_cell.RNNCell))
 
-    @function.Defun()
+    @tf.Defun()
     def FlipUpDown(x):
       # Reverse the first dimension (time)
       return tf.reverse(x, [0])

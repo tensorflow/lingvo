@@ -38,7 +38,6 @@ from six.moves import range
 from six.moves import zip
 import sympy
 
-from tensorflow.python.framework import function
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
@@ -1929,10 +1928,10 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       else:
         self.CreateVariable('wm', pc)
 
-    # flags passed to @function.Defun
+    # flags passed to @tf.Defun
     compiled = py_utils.use_xla()
 
-    @function.Defun(p.dtype, tf.int32, p.dtype)
+    @tf.Defun(p.dtype, tf.int32, p.dtype)
     def EmbBprop(embs, ids_vec, drets):
       """Embedding backprop.
 
@@ -1959,7 +1958,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         drets_shape = tf.shape(drets)
         drets = tf.reshape(drets, [drets_shape[0]] + emb_shape_suf)
 
-      @function.Defun(tf.int32, tf.int32, p.dtype, p.dtype)
+      @tf.Defun(tf.int32, tf.int32, p.dtype, p.dtype)
       def EmbBpropLoop(i, ids_vec, drets, dembs):
         # row_id = ids_vec[i]
         row_id = tf.gather(ids_vec, i)
@@ -1978,7 +1977,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
           rewrite_with_while=compiled)
       return dembs, tf.zeros_like(ids_vec)
 
-    @function.Defun(p.dtype, tf.int32, grad_func=EmbBprop)
+    @tf.Defun(p.dtype, tf.int32, grad_func=EmbBprop)
     def EmbFprop(embs, ids_vec):
       """Embedding forward prop.
 
@@ -2000,7 +1999,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       num = tf.shape(ids_vec)[0]
       rets = inplace_ops.empty([num] + emb_shape_suf, p.dtype)
 
-      @function.Defun(tf.int32, p.dtype, tf.int32, p.dtype)
+      @tf.Defun(tf.int32, p.dtype, tf.int32, p.dtype)
       def EmbFpropLoop(i, embs, ids_vec, rets):
         # row_id = ids_vec[i]
         row_id = tf.gather(ids_vec, i)
@@ -3002,7 +3001,7 @@ class LayerNorm(base_layer.BaseLayer):
     inputs = py_utils.with_dependencies(
         [py_utils.assert_equal(tf.shape(inputs)[-1], p.input_dim)], inputs)
 
-    @function.Defun(
+    @tf.Defun(
         *[py_utils.FPropDtype(p)] * 3,
         noinline=not py_utils.use_tpu(),
         shape_func=lambda op: [op.inputs[0].shape])
@@ -3899,7 +3898,7 @@ class FetchLayer(base_layer.BaseLayer):
         self._gradients[index] = dy
         return dy
 
-      @function.Defun(v.dtype, shape_func=ShapeFunc, python_grad_func=FetchBak)
+      @tf.Defun(v.dtype, shape_func=ShapeFunc, python_grad_func=FetchBak)
       def FetchFwd(x):
         return x
 

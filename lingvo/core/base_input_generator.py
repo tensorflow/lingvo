@@ -31,7 +31,6 @@ import six
 from six.moves import range
 
 # pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.framework import function
 from tensorflow.python.ops import io_ops
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
 from tensorflow.python.tpu import tpu_feed
@@ -712,7 +711,7 @@ class BaseTinyDatasetInput(BaseInputGenerator):
   def InputBatch(self):
     p = self.params
 
-    @function.Defun()
+    @tf.Defun()
     def ReadData():
       x, y = io_ops.restore_v2(p.ckpt, [p.data, p.label], [''] * 2,
                                [p.data_dtype, p.label_dtype])

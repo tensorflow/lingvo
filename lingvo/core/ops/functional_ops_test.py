@@ -18,12 +18,12 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_utils
 import numpy as np
 from six.moves import range
-import tensorflow as tf
-from tensorflow.python.framework import function
 
 
 class FunctionalOpsTest(test_utils.TestCase):
@@ -38,7 +38,7 @@ class FunctionalOpsTest(test_utils.TestCase):
     it = Gen()
 
     # Wraps gen() in a defun.
-    @function.Defun()
+    @tf.Defun()
     def MyFn():
       return tf.py_func(lambda: next(it), [], [tf.float32, tf.float32])
 
