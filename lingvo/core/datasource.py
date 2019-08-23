@@ -19,6 +19,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+
 import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
@@ -64,7 +66,8 @@ class SimpleDataSource(DataSource):
   @classmethod
   def Params(cls):
     p = super(SimpleDataSource, cls).Params()
-    # TODO(b/139345706): move filetype prefix (eg tfrecord:) into its own param.
+    # TODO(b/139345706): move filetype prefix (eg tfrecord:) into its own param
+    # and clean up existing usages.
     p.Define(
         'file_pattern', '', 'A single file pattern string which can '
         'contain a single file pattern, or a comma separated list of patterns.'
@@ -72,6 +75,8 @@ class SimpleDataSource(DataSource):
         ' this will be roughly equal per file.  To explicitly '
         'describe the mixture weights of different file patterns use '
         'WithinBatchMixingDataSource or CrossBatchMixingDataSource')
+    p.Define('file_type', '', 'A file type, such as `tfrecord`.')
+
     return p
 
   def BuildDataSource(self, data_source_from_file_pattern_fn):
@@ -90,8 +95,14 @@ class SimpleDataSource(DataSource):
       raise ValueError('SimpleDataSource expects p.file_pattern to be a string.'
                        ' To use multiple files use a comma separated string, '
                        'e.g. \', \'.join(list_of_file_patterns)')
+
+    if p.file_type:
+      file_pattern = '{}:{}'.format(p.file_type, p.file_pattern)
+    else:
+      file_pattern = p.file_pattern
+
     ret = py_utils.NestedMap()
-    ret.data = data_source_from_file_pattern_fn(p.file_pattern)
+    ret.data = data_source_from_file_pattern_fn(file_pattern)
     return ret
 
 
@@ -371,3 +382,41 @@ class CurriculumDataSource(DataSource):
     ret = tf.case(cases, default=GetDatasourceFn(-1))
     ret.bprop_variable_filters = p.bprop_variable_filters
     return ret
+
+
+class PrefixedDataSourceWrapper(DataSource):
+  """Prepends paths to file patterns of another DataSource.
+
+  Target DataSource must have parameter `file_patterns`. Resulting file patterns
+  are of the form [file_pattern_prefix/]pattern
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(PrefixedDataSourceWrapper, cls).Params()
+
+    p.Define('base_datasource', SimpleDataSource.Params(),
+             'Wrapped DataSource that has a `file_patterns` parameter.')
+    p.Define(
+        'file_pattern_prefix', '',
+        'Prefix to add to file_pattern, eg. a base directory that contains '
+        'dataset files.')
+
+    return p
+
+  def __init__(self, params):
+    super(PrefixedDataSourceWrapper, self).__init__(params)
+
+    p = self.params
+
+    assert p.base_datasource.cls is SimpleDataSource, (
+        'PrefixedDataSourceWrapper currently only supports SimpleDataSource')
+
+    patterns = p.base_datasource.file_pattern.split(',')
+    p.base_datasource.file_pattern = ','.join(
+        os.path.join(p.file_pattern_prefix, pattern) for pattern in patterns)
+
+    self._datasource = p.base_datasource.Instantiate()
+
+  def BuildDataSource(self, *args, **kwargs):
+    return self._datasource.BuildDataSource(*args, **kwargs)

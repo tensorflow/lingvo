@@ -56,6 +56,16 @@ class DatasourceTest(tf.test.TestCase):
     self.assertCountEqual(sorted(ret.keys()), ['data'])
     self.assertAllEqual(ret.data, [[b'path_to_file']])
 
+  def testSimpleDataSourceSucceedsWithFileType(self):
+    ds_params = datasource.SimpleDataSource.Params().Set(
+        file_pattern='pattern1,pattern2', file_type='tfrecord')
+    ds = ds_params.Instantiate()
+    ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
+    with tf.Session() as sess:
+      ret.data = sess.run([ret.data])
+
+    self.assertAllEqual(ret.data, [[b'tfrecord:pattern1,pattern2']])
+
   def testSimpleDataSourceFailsWithListInput(self):
     files = ['file1', 'file2']
     ds_params = datasource.SimpleDataSource.Params().Set(file_pattern=files)
@@ -229,6 +239,67 @@ class DatasourceTest(tf.test.TestCase):
     ds = ds_params.Instantiate()
     with self.assertRaises(ValueError):
       ds.BuildDataSource(_MockDataSourceFromFilePattern)
+
+  def testPrefixDataSourceSucceedsWithDirectory(self):
+    ds_params = datasource.PrefixedDataSourceWrapper.Params().Set(
+        base_datasource=datasource.SimpleDataSource.Params().Set(
+            file_pattern='filename-*.tfrecord', file_type=None),
+        file_pattern_prefix='/dir/')
+    ds = ds_params.Instantiate()
+    ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
+
+    with tf.Session() as sess:
+      ret.data = sess.run([ret.data])
+
+    self.assertAllEqual(ret.data, [[b'/dir/filename-*.tfrecord']])
+
+  def testPrefixDataSourceSucceedsWithMultiplePatterns(self):
+    ds_params = datasource.PrefixedDataSourceWrapper.Params().Set(
+        base_datasource=datasource.SimpleDataSource.Params().Set(
+            file_pattern='filename-*.tfrecord,other/file/pattern/*',
+            file_type=None),
+        file_pattern_prefix='/dir/')
+    ds = ds_params.Instantiate()
+    ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
+
+    with tf.Session() as sess:
+      ret.data = sess.run([ret.data])
+
+    self.assertAllEqual(
+        ret.data, [[b'/dir/filename-*.tfrecord,/dir/other/file/pattern/*']])
+
+  def testPrefixDataSourceSucceedsWithGcsBucket(self):
+    ds_params = datasource.PrefixedDataSourceWrapper.Params().Set(
+        base_datasource=datasource.SimpleDataSource.Params().Set(
+            file_pattern='filename-*.tfrecord', file_type=None),
+        file_pattern_prefix='gs://bucket/dir')
+    ds = ds_params.Instantiate()
+    ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
+
+    with tf.Session() as sess:
+      ret.data = sess.run([ret.data])
+
+    self.assertAllEqual(ret.data, [[b'gs://bucket/dir/filename-*.tfrecord']])
+
+  def testPrefixDataSourceSucceedsWithFileType(self):
+    ds_params = datasource.PrefixedDataSourceWrapper.Params().Set(
+        base_datasource=datasource.SimpleDataSource.Params().Set(
+            file_pattern='filename-*.tfrecord', file_type='tfrecord'),
+        file_pattern_prefix='dir')
+    ds = ds_params.Instantiate()
+    ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
+
+    with tf.Session() as sess:
+      ret.data = sess.run([ret.data])
+
+    self.assertAllEqual(ret.data, [[b'tfrecord:dir/filename-*.tfrecord']])
+
+  def testPrefixDataSourceFailsWithUnsupportedType(self):
+    ds_params = datasource.PrefixedDataSourceWrapper.Params().Set(
+        base_datasource=datasource.ChainingDataSource.Params())
+
+    with self.assertRaises(AssertionError):
+      ds_params.Instantiate()
 
 
 if __name__ == '__main__':
