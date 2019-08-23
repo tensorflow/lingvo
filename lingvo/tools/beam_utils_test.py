@@ -59,6 +59,11 @@ class BeamUtilsTest(test_utils.TestCase):
     with beam_utils.GetPipelineRoot() as root:
       _ = root | beam.Create([1, 2, 3]) | beam.Map(lambda x: x)
 
+  def testGetEmitterFn(self):
+    _ = beam_utils.GetEmitterFn('tfrecord')
+    with self.assertRaises(ValueError):
+      _ = beam_utils.GetEmitterFn('unknown')
+
 
 if __name__ == '__main__':
   tf.test.main()

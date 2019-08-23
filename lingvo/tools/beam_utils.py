@@ -89,3 +89,29 @@ def GetWriter(record_format, file_pattern, value_coder, **kwargs):
   if record_format == "tfrecord":
     return beam.io.WriteToTFRecord(file_pattern, coder=value_coder, **kwargs)
   raise ValueError("Unsupported record format: {}".format(record_format))
+
+
+def GetEmitterFn(record_format):
+  """Returns an Emitter function for the given record_format.
+
+  An Emitter function takes in a key and value as arguments and returns
+  a structure that is compatible with the Beam Writer associated with
+  the corresponding record_format.
+
+  Args:
+    record_format: String record format, e.g., 'tfrecord' to write as.
+
+  Returns:
+    An emitter function of (key, value) -> Writer's input type.
+
+  Raises:
+    ValueError: If an unsupported record_format is provided.
+  """
+
+  def _ValueEmitter(key, value):
+    del key
+    return [value]
+
+  if record_format == "tfrecord":
+    return _ValueEmitter
+  raise ValueError("Unsupported record format: {}".format(record_format))
