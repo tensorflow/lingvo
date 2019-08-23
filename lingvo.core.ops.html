@@ -822,6 +822,50 @@ The value when the key is not found.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.ops.v">
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">in_done_hyps</em>, <em class="sig-param">src_seq_lengths</em>, <em class="sig-param">k</em>, <em class="sig-param">num_hyps_per_beam</em>, <em class="sig-param">length_normalization</em>, <em class="sig-param">coverage_penalty</em>, <em class="sig-param">target_seq_length_ratio=1</em>, <em class="sig-param">eoc_id=-1</em>, <em class="sig-param">merge_paths=False</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the top k terminated hyps based on normalized score for each beam.</p>
+<p>Let “b” be the number of beams, “h” be the number hyps in each beam, “t” be the
+maximum decoding steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_done_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A tensor of shape [t, h * b]. Each string in in_done_hyps can be
+either an empty string, or a serialized Hypothesis proto. If not empty,
+in_done_hyps[t, i * num_beams + j] represents the i-th hypothesis for beam
+j that terminates at step t.</p></li>
+<li><p><strong>src_seq_lengths</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [b] of the src sequence lengths.</p></li>
+<li><p><strong>k</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. number of highest scoring hyps to be returned for each beam.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+Number of hyps per beam in the input <code class="xref py py-obj docutils literal notranslate"><span class="pre">in_done_hyps</span></code>.</p></li>
+<li><p><strong>length_normalization</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. The length normalization ratio.</p></li>
+<li><p><strong>coverage_penalty</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. The alpha value for coverage penalty.</p></li>
+<li><p><strong>target_seq_length_ratio</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span></code>.
+Ratio of the average target sequence length
+over the average source sequence length.</p></li>
+<li><p><strong>eoc_id</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.
+Token id of the special end of chunk or blank (epsilon) token. -1 means
+this model does not use epsilon.</p></li>
+<li><p><strong>merge_paths</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#False" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+If true, hyps which are identical when epsilons are removed will
+be combined into a single hyp. The probability for that combined hyp will
+be the sum of the probabilities of the component hyps. This can only be
+applied for epsilon-emitting models (RNN-T and NT).</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A string tensor of shape [b, k]. topk_hyps[i: ] contains
+top k terminated hyp for beam ‘i’, each hyp could be either an empty string
+or a serialized <code class="xref py py-obj docutils literal notranslate"><span class="pre">Hypothesis</span></code> proto.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
