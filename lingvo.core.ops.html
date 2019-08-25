@@ -824,9 +824,22 @@ The value when the key is not found.</p></li>
 
 <dl class="function">
 <dt id="lingvo.core.ops.v">
-<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">token_ids</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">ngram_vocab_filepath</em>, <em class="sig-param">ngram_separator=''</em>, <em class="sig-param">name=None</em>, <em class="sig-param">ctx=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>This is the slowpath function for Eager mode.
-This is for function ngram_id_to_token</p>
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">*args</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator for marking endpoints deprecated.</p>
+<p>This decorator does not print deprecation messages.
+TODO(annarev): eventually start printing deprecation warnings when
+&#64;deprecation_endpoints decorator is added.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>*args</strong> – Deprecated endpoint names.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A function that takes symbol as an argument and adds
+_tf_deprecated_api_names to that symbol.
+_tf_deprecated_api_names would be set to a list of deprecated
+endpoint names for the symbol.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <div class="section" id="submodules">

@@ -165,19 +165,8 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-
-<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">constant_op</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">dtypes</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">array_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">control_flow_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">init_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">nn_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">state_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">variable_scope</span>
-<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 <span class="n">MASK_COLLECTION</span> <span class="o">=</span> <span class="s1">&#39;masks&#39;</span>
 <span class="n">THRESHOLD_COLLECTION</span> <span class="o">=</span> <span class="s1">&#39;thresholds&#39;</span>
@@ -200,11 +189,11 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    the mask variable of the same size and shape as var, initialized to all 1s.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">with</span> <span class="n">variable_scope</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">scope</span><span class="p">):</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">variable_scope</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">scope</span><span class="p">):</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
         <span class="s1">&#39;mask&#39;</span><span class="p">,</span>
         <span class="n">var</span><span class="o">.</span><span class="n">get_shape</span><span class="p">(),</span>
-        <span class="n">initializer</span><span class="o">=</span><span class="n">init_ops</span><span class="o">.</span><span class="n">ones_initializer</span><span class="p">(),</span>
+        <span class="n">initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">ones_initializer</span><span class="p">(),</span>
         <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">var</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">mask</span></div>
@@ -223,10 +212,10 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A scalar threshold variable initialized to 0.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">with</span> <span class="n">variable_scope</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">scope</span><span class="p">):</span>
-    <span class="n">threshold</span> <span class="o">=</span> <span class="n">variable_scope</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">scope</span><span class="p">):</span>
+    <span class="n">threshold</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
         <span class="s1">&#39;threshold&#39;</span><span class="p">,</span> <span class="p">[],</span>
-        <span class="n">initializer</span><span class="o">=</span><span class="n">init_ops</span><span class="o">.</span><span class="n">zeros_initializer</span><span class="p">(),</span>
+        <span class="n">initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_initializer</span><span class="p">(),</span>
         <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">var</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">threshold</span></div>
@@ -243,10 +232,10 @@
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="n">m1</span><span class="p">,</span> <span class="n">n1</span> <span class="o">=</span> <span class="n">mat1</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
-  <span class="n">mat1_rsh</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mat1</span><span class="p">,</span> <span class="p">[</span><span class="n">m1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="n">mat1_rsh</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mat1</span><span class="p">,</span> <span class="p">[</span><span class="n">m1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
   <span class="n">m2</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="n">mat2</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
-  <span class="n">mat2_rsh</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mat2</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n2</span><span class="p">])</span>
-  <span class="k">return</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mat1_rsh</span> <span class="o">*</span> <span class="n">mat2_rsh</span><span class="p">,</span> <span class="p">[</span><span class="n">m1</span> <span class="o">*</span> <span class="n">m2</span><span class="p">,</span> <span class="n">n1</span> <span class="o">*</span> <span class="n">n2</span><span class="p">])</span></div>
+  <span class="n">mat2_rsh</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mat2</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n2</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mat1_rsh</span> <span class="o">*</span> <span class="n">mat2_rsh</span><span class="p">,</span> <span class="p">[</span><span class="n">m1</span> <span class="o">*</span> <span class="n">m2</span><span class="p">,</span> <span class="n">n1</span> <span class="o">*</span> <span class="n">n2</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="expand_tensor"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning_utils.html#lingvo.core.model_pruning.pruning_utils.expand_tensor">[docs]</a><span class="k">def</span> <span class="nf">expand_tensor</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">block_dims</span><span class="p">):</span>
@@ -287,7 +276,7 @@
 
   <span class="k">def</span> <span class="nf">_tile_rows</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">multiple</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a new tensor by tiling the tensor along rows.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">[</span><span class="n">multiple</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">[</span><span class="n">multiple</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 
   <span class="k">def</span> <span class="nf">_generate_indices</span><span class="p">(</span><span class="n">num_rows</span><span class="p">,</span> <span class="n">block_dim</span><span class="p">):</span>
     <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">num_rows</span> <span class="o">*</span> <span class="n">block_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
@@ -299,9 +288,8 @@
   <span class="k">def</span> <span class="nf">_replicate_rows</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">multiple</span><span class="p">):</span>
     <span class="n">tensor_shape</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
     <span class="n">expanded_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">tensor_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">multiple</span><span class="p">,</span> <span class="n">tensor_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
-    <span class="n">indices</span> <span class="o">=</span> <span class="n">constant_op</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">_generate_indices</span><span class="p">(</span><span class="n">tensor_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">multiple</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">scatter_nd</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">_tile_rows</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">multiple</span><span class="p">),</span>
-                                <span class="n">expanded_shape</span><span class="p">)</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">_generate_indices</span><span class="p">(</span><span class="n">tensor_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">multiple</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">scatter_nd</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">_tile_rows</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">multiple</span><span class="p">),</span> <span class="n">expanded_shape</span><span class="p">)</span>
 
   <span class="n">expanded_tensor</span> <span class="o">=</span> <span class="n">tensor</span>
 
@@ -311,8 +299,8 @@
 
   <span class="c1"># Transpose and expand by factor block_width. Transpose the result.</span>
   <span class="k">if</span> <span class="n">block_width</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-    <span class="n">expanded_tensor</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
-        <span class="n">_replicate_rows</span><span class="p">(</span><span class="n">array_ops</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">expanded_tensor</span><span class="p">),</span> <span class="n">block_width</span><span class="p">))</span>
+    <span class="n">expanded_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+        <span class="n">_replicate_rows</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">expanded_tensor</span><span class="p">),</span> <span class="n">block_width</span><span class="p">))</span>
 
   <span class="k">return</span> <span class="n">expanded_tensor</span></div>
 
@@ -343,28 +331,27 @@
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;factorized_pool() accepts tensors of rank 2 only&#39;</span><span class="p">)</span>
 
   <span class="p">[</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
-  <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;factorized_pool&#39;</span><span class="p">):</span>
-    <span class="n">input_tensor_aligned</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;factorized_pool&#39;</span><span class="p">):</span>
+    <span class="n">input_tensor_aligned</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="n">input_tensor</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">],</span>
         <span class="n">name</span><span class="o">=</span><span class="n">input_tensor</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_aligned&#39;</span><span class="p">)</span>
 
-    <span class="n">height_pooling</span> <span class="o">=</span> <span class="n">nn_ops</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
+    <span class="n">height_pooling</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
         <span class="n">input_tensor_aligned</span><span class="p">,</span>
         <span class="n">window_shape</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">window_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
         <span class="n">pooling_type</span><span class="o">=</span><span class="n">pooling_type</span><span class="p">,</span>
         <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">strides</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
         <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">)</span>
-    <span class="n">swap_height_width</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">height_pooling</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="n">swap_height_width</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">height_pooling</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
 
-    <span class="n">width_pooling</span> <span class="o">=</span> <span class="n">nn_ops</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
+    <span class="n">width_pooling</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
         <span class="n">swap_height_width</span><span class="p">,</span>
         <span class="n">window_shape</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">window_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
         <span class="n">pooling_type</span><span class="o">=</span><span class="n">pooling_type</span><span class="p">,</span>
         <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">strides</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
         <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">)</span>
 
-  <span class="k">return</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span>
-      <span class="n">array_ops</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">width_pooling</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span></div>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">width_pooling</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="determine_partitioned_axis"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning_utils.html#lingvo.core.model_pruning.pruning_utils.determine_partitioned_axis">[docs]</a><span class="k">def</span> <span class="nf">determine_partitioned_axis</span><span class="p">(</span><span class="n">partitioned_variable</span><span class="p">):</span>
@@ -383,7 +370,7 @@
 
 
 <div class="viewcode-block" id="variable_assign"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning_utils.html#lingvo.core.model_pruning.pruning_utils.variable_assign">[docs]</a><span class="k">def</span> <span class="nf">variable_assign</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">new_value</span><span class="p">):</span>
-  <span class="k">return</span> <span class="n">state_ops</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">new_value</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">var</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_assign&#39;</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">new_value</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">var</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_assign&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="partitioned_variable_assign"><a class="viewcode-back" href="../../../../lingvo.core.model_pruning.pruning_utils.html#lingvo.core.model_pruning.pruning_utils.partitioned_variable_assign">[docs]</a><span class="k">def</span> <span class="nf">partitioned_variable_assign</span><span class="p">(</span><span class="n">partitioned_var</span><span class="p">,</span> <span class="n">new_value</span><span class="p">):</span>
@@ -403,16 +390,15 @@
 
   <span class="n">partition_sizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
       <span class="p">[</span><span class="n">partition</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()[</span><span class="n">axis</span><span class="p">]</span> <span class="k">for</span> <span class="n">partition</span> <span class="ow">in</span> <span class="n">partitioned_var</span><span class="p">])</span>
-  <span class="n">new_partitioned_values</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+  <span class="n">new_partitioned_values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
       <span class="n">new_value</span><span class="p">,</span>
-      <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">partition_sizes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">partition_sizes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
       <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
   <span class="n">op_list</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">partition</span> <span class="ow">in</span> <span class="n">partitioned_var</span><span class="p">:</span>
     <span class="n">op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
         <span class="n">variable_assign</span><span class="p">(</span><span class="n">partition</span><span class="p">,</span> <span class="n">new_partitioned_values</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">op_list</span><span class="p">)]))</span>
-  <span class="k">return</span> <span class="n">control_flow_ops</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
-      <span class="o">*</span><span class="n">op_list</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">partitioned_var</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_group_assign&#39;</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">op_list</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">partitioned_var</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_group_assign&#39;</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
