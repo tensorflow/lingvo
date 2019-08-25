@@ -20,19 +20,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from lingvo import compat as tf
 import numpy as np
-
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.framework import constant_op
-from tensorflow.python.framework import dtypes
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.ops import init_ops
-from tensorflow.python.ops import nn_ops
-from tensorflow.python.ops import state_ops
-from tensorflow.python.ops import variable_scope
-# pylint: enable=g-direct-tensorflow-import
 
 MASK_COLLECTION = 'masks'
 THRESHOLD_COLLECTION = 'thresholds'
@@ -55,11 +44,11 @@ def weight_mask_variable(var, scope):
   Returns:
     the mask variable of the same size and shape as var, initialized to all 1s.
   """
-  with variable_scope.variable_scope(scope):
-    mask = variable_scope.get_variable(
+  with tf.variable_scope(scope):
+    mask = tf.get_variable(
         'mask',
         var.get_shape(),
-        initializer=init_ops.ones_initializer(),
+        initializer=tf.ones_initializer(),
         trainable=False,
         dtype=var.dtype)
   return mask
@@ -78,10 +67,10 @@ def weight_threshold_variable(var, scope):
   Returns:
     A scalar threshold variable initialized to 0.
   """
-  with variable_scope.variable_scope(scope):
-    threshold = variable_scope.get_variable(
+  with tf.variable_scope(scope):
+    threshold = tf.get_variable(
         'threshold', [],
-        initializer=init_ops.zeros_initializer(),
+        initializer=tf.zeros_initializer(),
         trainable=False,
         dtype=var.dtype)
     return threshold
@@ -98,10 +87,10 @@ def kronecker_product(mat1, mat2):
   """
 
   m1, n1 = mat1.get_shape().as_list()
-  mat1_rsh = array_ops.reshape(mat1, [m1, 1, n1, 1])
+  mat1_rsh = tf.reshape(mat1, [m1, 1, n1, 1])
   m2, n2 = mat2.get_shape().as_list()
-  mat2_rsh = array_ops.reshape(mat2, [1, m2, 1, n2])
-  return array_ops.reshape(mat1_rsh * mat2_rsh, [m1 * m2, n1 * n2])
+  mat2_rsh = tf.reshape(mat2, [1, m2, 1, n2])
+  return tf.reshape(mat1_rsh * mat2_rsh, [m1 * m2, n1 * n2])
 
 
 def expand_tensor(tensor, block_dims):
@@ -142,7 +131,7 @@ def expand_tensor(tensor, block_dims):
 
   def _tile_rows(tensor, multiple):
     """Create a new tensor by tiling the tensor along rows."""
-    return array_ops.tile(tensor, [multiple, 1])
+    return tf.tile(tensor, [multiple, 1])
 
   def _generate_indices(num_rows, block_dim):
     indices = np.zeros(shape=[num_rows * block_dim, 1], dtype=np.int32)
@@ -154,9 +143,8 @@ def expand_tensor(tensor, block_dims):
   def _replicate_rows(tensor, multiple):
     tensor_shape = tensor.shape.as_list()
     expanded_shape = [tensor_shape[0] * multiple, tensor_shape[1]]
-    indices = constant_op.constant(_generate_indices(tensor_shape[0], multiple))
-    return array_ops.scatter_nd(indices, _tile_rows(tensor, multiple),
-                                expanded_shape)
+    indices = tf.constant(_generate_indices(tensor_shape[0], multiple))
+    return tf.scatter_nd(indices, _tile_rows(tensor, multiple), expanded_shape)
 
   expanded_tensor = tensor
 
@@ -166,8 +154,8 @@ def expand_tensor(tensor, block_dims):
 
   # Transpose and expand by factor block_width. Transpose the result.
   if block_width > 1:
-    expanded_tensor = array_ops.transpose(
-        _replicate_rows(array_ops.transpose(expanded_tensor), block_width))
+    expanded_tensor = tf.transpose(
+        _replicate_rows(tf.transpose(expanded_tensor), block_width))
 
   return expanded_tensor
 
@@ -198,28 +186,27 @@ def factorized_pool(input_tensor,
     raise ValueError('factorized_pool() accepts tensors of rank 2 only')
 
   [height, width] = input_tensor.get_shape()
-  with ops.name_scope(name, 'factorized_pool'):
-    input_tensor_aligned = array_ops.reshape(
+  with tf.name_scope(name, 'factorized_pool'):
+    input_tensor_aligned = tf.reshape(
         input_tensor, [1, 1, height, width],
         name=input_tensor.op.name + '_aligned')
 
-    height_pooling = nn_ops.pool(
+    height_pooling = tf.nn.pool(
         input_tensor_aligned,
         window_shape=[1, window_shape[0]],
         pooling_type=pooling_type,
         strides=[1, strides[0]],
         padding=padding)
-    swap_height_width = array_ops.transpose(height_pooling, perm=[0, 1, 3, 2])
+    swap_height_width = tf.transpose(height_pooling, perm=[0, 1, 3, 2])
 
-    width_pooling = nn_ops.pool(
+    width_pooling = tf.nn.pool(
         swap_height_width,
         window_shape=[1, window_shape[1]],
         pooling_type=pooling_type,
         strides=[1, strides[1]],
         padding=padding)
 
-  return array_ops.squeeze(
-      array_ops.transpose(width_pooling, perm=[0, 1, 3, 2]), axis=[0, 1])
+  return tf.squeeze(tf.transpose(width_pooling, perm=[0, 1, 3, 2]), axis=[0, 1])
 
 
 def determine_partitioned_axis(partitioned_variable):
@@ -238,7 +225,7 @@ def determine_partitioned_axis(partitioned_variable):
 
 
 def variable_assign(var, new_value):
-  return state_ops.assign(var, new_value, name=var.op.name + '_assign')
+  return tf.assign(var, new_value, name=var.op.name + '_assign')
 
 
 def partitioned_variable_assign(partitioned_var, new_value):
@@ -258,13 +245,12 @@ def partitioned_variable_assign(partitioned_var, new_value):
 
   partition_sizes = np.array(
       [partition.get_shape()[axis] for partition in partitioned_var])
-  new_partitioned_values = array_ops.split(
+  new_partitioned_values = tf.split(
       new_value,
-      ops.convert_to_tensor(partition_sizes, dtype=dtypes.int32),
+      tf.convert_to_tensor(partition_sizes, dtype=tf.int32),
       axis=axis)
   op_list = []
   for partition in partitioned_var:
     op_list.append(
         variable_assign(partition, new_partitioned_values[len(op_list)]))
-  return control_flow_ops.group(
-      *op_list, name=partitioned_var.name + '_group_assign')
+  return tf.group(*op_list, name=partitioned_var.name + '_group_assign')

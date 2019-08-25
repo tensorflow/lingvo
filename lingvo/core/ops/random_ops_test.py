@@ -17,10 +17,11 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_utils
 from six.moves import range
-import tensorflow as tf
 
 FLAGS = tf.flags.FLAGS
 

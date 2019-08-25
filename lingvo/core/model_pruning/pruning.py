@@ -62,25 +62,11 @@ from __future__ import division
 from __future__ import print_function
 
 import re
+from lingvo import compat as tf
 from lingvo.core.model_pruning import hparam
 from lingvo.core.model_pruning import pruning_utils
 
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.framework import dtypes
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.ops import init_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import nn_impl
-from tensorflow.python.ops import nn_ops
-from tensorflow.python.ops import state_ops
-from tensorflow.python.ops import variable_scope
-from tensorflow.python.ops import variables
-from tensorflow.python.platform import tf_logging as logging
-from tensorflow.python.summary import summary
-from tensorflow.python.training import training_util
-# pylint: enable=g-direct-tensorflow-import
+from tensorflow.python.ops import variables  # pylint: disable=g-direct-tensorflow-import
 
 _MASK_COLLECTION = pruning_utils.MASK_COLLECTION
 _THRESHOLD_COLLECTION = pruning_utils.THRESHOLD_COLLECTION
@@ -103,33 +89,33 @@ def apply_mask(x, scope=''):
   threshold = pruning_utils.weight_threshold_variable(x, scope)
   # Add masked_weights in the weights namescope so as to make it easier
   # for the quantization library to add quant ops.
-  masked_weights = math_ops.multiply(mask, x, _MASKED_WEIGHT_NAME)
+  masked_weights = tf.multiply(mask, x, _MASKED_WEIGHT_NAME)
 
   # Make sure the mask for a given variable are not added multiple times to the
   # collection. This is particularly important when applying mask to RNN's
   # weight variables
-  if mask not in ops.get_collection_ref(_MASK_COLLECTION):
-    ops.add_to_collection(_THRESHOLD_COLLECTION, threshold)
-    ops.add_to_collection(_MASK_COLLECTION, mask)
-    ops.add_to_collection(_MASKED_WEIGHT_COLLECTION, masked_weights)
-    ops.add_to_collection(_WEIGHT_COLLECTION, x)
+  if mask not in tf.get_collection_ref(_MASK_COLLECTION):
+    tf.add_to_collection(_THRESHOLD_COLLECTION, threshold)
+    tf.add_to_collection(_MASK_COLLECTION, mask)
+    tf.add_to_collection(_MASKED_WEIGHT_COLLECTION, masked_weights)
+    tf.add_to_collection(_WEIGHT_COLLECTION, x)
   return masked_weights
 
 
 def get_masked_weights():
-  return ops.get_collection(_MASKED_WEIGHT_COLLECTION)
+  return tf.get_collection(_MASKED_WEIGHT_COLLECTION)
 
 
 def get_masks():
-  return ops.get_collection(_MASK_COLLECTION)
+  return tf.get_collection(_MASK_COLLECTION)
 
 
 def get_thresholds():
-  return ops.get_collection(_THRESHOLD_COLLECTION)
+  return tf.get_collection(_THRESHOLD_COLLECTION)
 
 
 def get_weights():
-  return ops.get_collection(_WEIGHT_COLLECTION)
+  return tf.get_collection(_WEIGHT_COLLECTION)
 
 
 def get_weight_sparsity():
@@ -142,7 +128,7 @@ def get_weight_sparsity():
     A list containing the sparsity of each of the weight tensors
   """
   masks = get_masks()
-  return [nn_impl.zero_fraction(mask) for mask in masks]
+  return [tf.nn.zero_fraction(mask) for mask in masks]
 
 
 def get_pruning_hparams():
@@ -313,9 +299,9 @@ class Pruning(object):
   def _setup_global_step(self, global_step):
     graph_global_step = global_step
     if graph_global_step is None:
-      graph_global_step = training_util.get_global_step()
+      graph_global_step = tf.train.get_global_step()
 
-    return math_ops.cast(graph_global_step, dtypes.int32)
+    return tf.cast(graph_global_step, tf.int32)
 
   def _setup_sparsity(self):
     begin_step = self._spec.sparsity_function_begin_step
@@ -324,35 +310,35 @@ class Pruning(object):
     target_sparsity = self._spec.target_sparsity
     exponent = self._spec.sparsity_function_exponent
 
-    with ops.name_scope(self._spec.name):
-      p = math_ops.minimum(
+    with tf.name_scope(self._spec.name):
+      p = tf.minimum(
           1.0,
-          math_ops.maximum(
+          tf.maximum(
               0.0,
-              math_ops.div(
-                  math_ops.cast(self._global_step - begin_step, dtypes.float32),
+              tf.div(
+                  tf.cast(self._global_step - begin_step, tf.float32),
                   end_step - begin_step)))
-      sparsity = math_ops.add(
-          math_ops.multiply(initial_sparsity - target_sparsity,
-                            math_ops.pow(1 - p, exponent)),
+      sparsity = tf.add(
+          tf.multiply(initial_sparsity - target_sparsity,
+                      tf.pow(1 - p, exponent)),
           target_sparsity,
           name='sparsity')
 
     return sparsity
 
   def _setup_last_update_step(self):
-    with variable_scope.variable_scope(
+    with tf.variable_scope(
         self._spec.name, use_resource=self._spec.use_tpu) as scope:
       try:
-        last_update_step = variable_scope.get_variable(
+        last_update_step = tf.get_variable(
             'last_mask_update_step', [],
-            initializer=init_ops.zeros_initializer(),
+            initializer=tf.zeros_initializer(),
             trainable=False,
-            dtype=dtypes.int32)
+            dtype=tf.int32)
       except ValueError:
         scope.reuse_variables()
-        last_update_step = variable_scope.get_variable(
-            'last_mask_update_step', dtype=dtypes.int32)
+        last_update_step = tf.get_variable(
+            'last_mask_update_step', dtype=tf.int32)
     return last_update_step
 
   def _get_block_dims_map(self):
@@ -413,9 +399,8 @@ class Pruning(object):
           'Multiple matches in weight_sparsity_map for weight %s' % weight_name)
     # TODO(suyoggupta): This will work when initial_sparsity = 0. Generalize
     # to handle other cases as well.
-    return math_ops.mul(
-        self._sparsity,
-        math_ops.div(target_sparsity[0], self._spec.target_sparsity))
+    return tf.multiply(self._sparsity,
+                       tf.div(target_sparsity[0], self._spec.target_sparsity))
 
   def _update_mask(self, weights, threshold):
     """Updates the mask for a given weight tensor.
@@ -444,25 +429,23 @@ class Pruning(object):
       raise ValueError('Sparsity variable undefined')
 
     sparsity = self._get_sparsity(weights.op.name)
-    with ops.name_scope(weights.op.name + '_pruning_ops'):
-      abs_weights = math_ops.abs(weights)
-      k = math_ops.cast(
-          math_ops.round(
-              math_ops.cast(array_ops.size(abs_weights), dtypes.float32) *
-              (1 - sparsity)), dtypes.int32)
+    with tf.name_scope(weights.op.name + '_pruning_ops'):
+      abs_weights = tf.abs(weights)
+      k = tf.cast(
+          tf.round(tf.cast(tf.size(abs_weights), tf.float32) * (1 - sparsity)),
+          tf.int32)
       # Sort the entire array
-      values, _ = nn_ops.top_k(
-          array_ops.reshape(abs_weights, [-1]), k=array_ops.size(abs_weights))
+      values, _ = tf.nn.top_k(
+          tf.reshape(abs_weights, [-1]), k=tf.size(abs_weights))
       # Grab the (k-1) th value
-      current_threshold = array_ops.gather(values, k - 1)
-      smoothed_threshold = math_ops.add_n([
-          math_ops.multiply(current_threshold, 1 - self._spec.threshold_decay),
-          math_ops.multiply(threshold, self._spec.threshold_decay)
+      current_threshold = tf.gather(values, k - 1)
+      smoothed_threshold = tf.add_n([
+          tf.multiply(current_threshold, 1 - self._spec.threshold_decay),
+          tf.multiply(threshold, self._spec.threshold_decay)
       ])
 
-      new_mask = math_ops.cast(
-          math_ops.greater_equal(abs_weights, smoothed_threshold),
-          dtypes.float32)
+      new_mask = tf.cast(
+          tf.greater_equal(abs_weights, smoothed_threshold), tf.float32)
 
     return smoothed_threshold, new_mask
 
@@ -490,7 +473,7 @@ class Pruning(object):
       ValueError: if block pooling function is not AVG or MAX
     """
     block_dims = self._get_block_dims(weights.op.name)
-    squeezed_weights = array_ops.squeeze(weights)
+    squeezed_weights = tf.squeeze(weights)
     if squeezed_weights.get_shape().ndims != 2 or block_dims == [1, 1]:
       return self._update_mask(weights, threshold)
 
@@ -502,15 +485,15 @@ class Pruning(object):
       raise ValueError('Unknown pooling function for block sparsity: %s' %
                        self._block_pooling_function)
 
-    with ops.name_scope(weights.op.name + '_pruning_ops'):
-      abs_weights = math_ops.abs(squeezed_weights)
+    with tf.name_scope(weights.op.name + '_pruning_ops'):
+      abs_weights = tf.abs(squeezed_weights)
 
       pool_window = block_dims
       pool_fn = pruning_utils.factorized_pool
       squeeze_axis = None
       if not self._spec.use_tpu:
-        pool_fn = nn_ops.pool
-        abs_weights = array_ops.reshape(
+        pool_fn = tf.nn.pool
+        abs_weights = tf.reshape(
             abs_weights,
             [1, abs_weights.get_shape()[0],
              abs_weights.get_shape()[1], 1])
@@ -525,19 +508,18 @@ class Pruning(object):
           name=weights.op.name + '_pooled')
 
       if pooled_weights.get_shape().ndims != 2:
-        pooled_weights = array_ops.squeeze(pooled_weights, axis=squeeze_axis)
+        pooled_weights = tf.squeeze(pooled_weights, axis=squeeze_axis)
 
       smoothed_threshold, new_mask = self._update_mask(pooled_weights,
                                                        threshold)
 
       updated_mask = pruning_utils.expand_tensor(new_mask, block_dims)
-      sliced_mask = array_ops.slice(
+      sliced_mask = tf.slice(
           updated_mask, [0, 0],
           [squeezed_weights.get_shape()[0],
            squeezed_weights.get_shape()[1]])
 
-    return smoothed_threshold, array_ops.reshape(sliced_mask,
-                                                 array_ops.shape(weights))
+    return smoothed_threshold, tf.reshape(sliced_mask, tf.shape(weights))
 
   def _get_mask_assign_ops(self):
     # Make sure the assignment ops have not already been added to the list
@@ -570,56 +552,52 @@ class Pruning(object):
           if is_partitioned else pruning_utils.variable_assign(mask, new_mask))
 
   def mask_update_op(self):
-    with ops.name_scope(self._spec.name):
+    with tf.name_scope(self._spec.name):
       if not self._assign_ops:
         self._get_mask_assign_ops()
-      with ops.control_dependencies([
-          state_ops.assign(
+      with tf.control_dependencies([
+          tf.assign(
               self._last_update_step,
               self._global_step,
               name='last_mask_update_step_assign')
       ]):
-        with ops.control_dependencies(self._assign_ops):
-          logging.info('Updating masks.')
-          return control_flow_ops.no_op('mask_update')
+        with tf.control_dependencies(self._assign_ops):
+          tf.logging.info('Updating masks.')
+          return tf.no_op('mask_update')
 
   def conditional_mask_update_op(self):
 
     def maybe_update_masks():
-      with ops.name_scope(self._spec.name):
-        is_step_within_pruning_range = math_ops.logical_and(
-            math_ops.greater_equal(self._global_step,
-                                   self._spec.begin_pruning_step),
+      with tf.name_scope(self._spec.name):
+        is_step_within_pruning_range = tf.logical_and(
+            tf.greater_equal(self._global_step, self._spec.begin_pruning_step),
             # If end_pruning_step is negative, keep pruning forever!
-            math_ops.logical_or(
-                math_ops.less_equal(self._global_step,
-                                    self._spec.end_pruning_step),
-                math_ops.less(self._spec.end_pruning_step, 0)))
-        is_pruning_step = math_ops.less_equal(
-            math_ops.add(self._last_update_step, self._spec.pruning_frequency),
+            tf.logical_or(
+                tf.less_equal(self._global_step, self._spec.end_pruning_step),
+                tf.less(self._spec.end_pruning_step, 0)))
+        is_pruning_step = tf.less_equal(
+            tf.add(self._last_update_step, self._spec.pruning_frequency),
             self._global_step)
-        return math_ops.logical_and(is_step_within_pruning_range,
-                                    is_pruning_step)
+        return tf.logical_and(is_step_within_pruning_range, is_pruning_step)
 
     def mask_update_op():
       return self.mask_update_op()
 
     def no_update_op():
-      return control_flow_ops.no_op()
+      return tf.no_op()
 
-    return control_flow_ops.cond(maybe_update_masks(), mask_update_op,
-                                 no_update_op)
+    return tf.cond(maybe_update_masks(), mask_update_op, no_update_op)
 
   def add_pruning_summaries(self):
     """Adds summaries of weight sparsities and thresholds."""
-    with ops.name_scope(self._spec.name + '_summaries'):
-      summary.scalar('sparsity', self._sparsity)
-      summary.scalar('last_mask_update_step', self._last_update_step)
+    with tf.name_scope(self._spec.name + '_summaries'):
+      tf.summary.scalar('sparsity', self._sparsity)
+      tf.summary.scalar('last_mask_update_step', self._last_update_step)
       masks = get_masks()
       thresholds = get_thresholds()
       for mask, threshold in zip(masks, thresholds):
-        summary.scalar(mask.op.name + '/sparsity', nn_impl.zero_fraction(mask))
-        summary.scalar(threshold.op.name + '/threshold', threshold)
+        tf.summary.scalar(mask.op.name + '/sparsity', tf.nn.zero_fraction(mask))
+        tf.summary.scalar(threshold.op.name + '/threshold', threshold)
 
   def print_hparams(self):
-    logging.info(self._spec.to_json())
+    tf.logging.info(self._spec.to_json())
