@@ -164,10 +164,9 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
-<span class="kn">import</span> <span class="nn">os</span>
-
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_registry</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model_params</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">datasource</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tokenizers</span>
@@ -179,18 +178,18 @@
 <span class="k">class</span> <span class="nc">Librispeech960Base</span><span class="p">(</span><span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base parameters for Librispeech 960 hour task.&quot;&quot;&quot;</span>
 
-  <span class="c1"># Insert path to the base directory where the data are stored here.</span>
-  <span class="c1"># Generated using scripts in lingvo/tasks/asr/tools.</span>
-  <span class="n">DATADIR</span> <span class="o">=</span> <span class="s1">&#39;/tmp/librispeech&#39;</span>
-
-<div class="viewcode-block" id="Librispeech960Base._TFRecordPath"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base._TFRecordPath">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_TFRecordPath</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
-    <span class="k">return</span> <span class="s1">&#39;tfrecord:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">DATADIR</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">)</span></div>
-
 <div class="viewcode-block" id="Librispeech960Base._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base._CommonInputParams">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Input generator params for Librispeech.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">AsrInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+
+    <span class="c1"># Insert path to the base directory where the data are stored here.</span>
+    <span class="c1"># Generated using scripts in lingvo/tasks/asr/tools.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">PrefixedDataSourceWrapper</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_type</span> <span class="o">=</span> <span class="s1">&#39;tfrecord&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern_prefix</span> <span class="o">=</span> <span class="s1">&#39;/tmp/librispeech&#39;</span>
+
     <span class="n">p</span><span class="o">.</span><span class="n">frame_size</span> <span class="o">=</span> <span class="mi">80</span>
     <span class="n">p</span><span class="o">.</span><span class="n">append_eos_frame</span> <span class="o">=</span> <span class="kc">True</span>
 
@@ -222,14 +221,14 @@
 <div class="viewcode-block" id="Librispeech960Base.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Train">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_TFRecordPath</span><span class="p">(</span><span class="s1">&#39;train/train.tfrecords-*&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;train/train.tfrecords-*&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">281241</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="Librispeech960Base.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Dev">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_TFRecordPath</span><span class="p">(</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/dev-clean.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2703</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -237,7 +236,7 @@
 <div class="viewcode-block" id="Librispeech960Base.Devother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Devother">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Devother</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_TFRecordPath</span><span class="p">(</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/dev-other.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2864</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -245,7 +244,7 @@
 <div class="viewcode-block" id="Librispeech960Base.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Test">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_TFRecordPath</span><span class="p">(</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/test-clean.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2620</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -253,7 +252,7 @@
 <div class="viewcode-block" id="Librispeech960Base.Testother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Testother">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Testother</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_TFRecordPath</span><span class="p">(</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/test-other.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2939</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -373,23 +372,23 @@
     <span class="k">return</span> <span class="n">p</span></div></div>
 
 
-<div class="viewcode-block" id="Librispeech960GraphemeCloudTpu"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960GraphemeCloudTpu">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
-<span class="k">class</span> <span class="nc">Librispeech960GraphemeCloudTpu</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Librispeech 960 grapheme model with parameter tweaks for TPU training.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Librispeech960GraphemeTpuV2"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960GraphemeTpuV2">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">Librispeech960GraphemeTpuV2</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Librispeech 960 grapheme model for training on TPU V2.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Librispeech960GraphemeCloudTpu._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960GraphemeCloudTpu._CommonInputParams">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Librispeech960GraphemeTpuV2._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960GraphemeTpuV2._CommonInputParams">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960GraphemeCloudTpu</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960GraphemeTpuV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">48</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Librispeech960GraphemeCloudTpu.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960GraphemeCloudTpu.Task">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Librispeech960GraphemeTpuV2.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960GraphemeTpuV2.Task">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960GraphemeCloudTpu</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960GraphemeTpuV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">pad_steps</span> <span class="o">=</span> <span class="mi">0</span>
 
@@ -474,13 +473,13 @@
     <span class="k">return</span> <span class="n">p</span></div></div>
 
 
-<div class="viewcode-block" id="Librispeech960WpmCloudTpu"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960WpmCloudTpu">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
-<span class="k">class</span> <span class="nc">Librispeech960WpmCloudTpu</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Librispeech 960 WPM model with parameter tweaks for training on TPU.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Librispeech960WpmTpuV2"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960WpmTpuV2">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">Librispeech960WpmTpuV2</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Librispeech 960 WPM model for training on TPU V2.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Librispeech960WpmCloudTpu._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960WpmCloudTpu._CommonInputParams">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Librispeech960WpmTpuV2._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960WpmTpuV2._CommonInputParams">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960WpmCloudTpu</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960WpmTpuV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">48</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
@@ -488,9 +487,9 @@
 
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Librispeech960WpmCloudTpu.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960WpmCloudTpu.Task">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Librispeech960WpmTpuV2.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960WpmTpuV2.Task">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960WpmCloudTpu</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960WpmTpuV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">pad_steps</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
