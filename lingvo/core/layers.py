@@ -1085,6 +1085,147 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     return out
 
 
+class FCLayer(ProjectionLayer):
+  """Fully-connected layer (matmul + bias + optional activation)."""
+
+  @classmethod
+  def Params(cls):
+    p = super(FCLayer, cls).Params()
+    p.batch_norm = False
+    p.has_bias = True
+    return p
+
+
+class FeedForwardNet(quant_utils.QuantizableLayer):
+  """A simple multiple layer feedforward network.
+
+  This class represents a stack of fully connected feedforward network. Each
+  layer in the network can be configured for whether or not to have batch-norm
+  applied to its output, its activation function, whether or not to apply
+  dropout to post-activation output.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(FeedForwardNet, cls).Params()
+    p.Define('input_dim', 0, 'Depth of the input to the network.')
+    p.Define('hidden_layer_dims', [], 'Depth of the hidden layer outputs.')
+    p.Define(
+        'projection', ProjectionLayer.Params(),
+        'Projection layer params. A single parameter that will be shared by'
+        'all layers.')
+    p.Define(
+        'dropout', DropoutLayer.Params(),
+        'Dropout layer params. Can be a single params or a tuple/list of params'
+        ' having the same length as the number of layers.')
+    p.Define(
+        'batch_norm', False,
+        'Whether or not to apply BN to hidden layer output. '
+        'This can be a single bool or a tuple/list of bools having the'
+        ' same length as the number of layers.')
+    p.Define(
+        'activation', 'RELU',
+        'The activation function to use. Can be a single string, or a'
+        ' tuple/list of strings having the same length as the number'
+        ' of layers.')
+    p.Define(
+        'weight_norm', False,
+        'Whether or not to apply weight normalization to weights. This can be '
+        'a single bool or a tuple/list of bools having the same length as the '
+        'number of layers.')
+    p.Define('skip_connections', None, 'Must be None.')
+    p.Define(
+        'bn_fold_weights', None, 'Force folding the batch normalization '
+        'weights in the projection layer.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(FeedForwardNet, self).__init__(params)
+    p = self.params
+    assert p.name
+
+    assert p.skip_connections is None
+    batch_norm = p.batch_norm
+    num_layers = len(p.hidden_layer_dims)
+    if isinstance(batch_norm, (list, tuple)):
+      assert len(batch_norm) == num_layers
+    else:
+      batch_norm = [batch_norm] * num_layers
+    weight_norm = p.weight_norm
+    if isinstance(weight_norm, (list, tuple)):
+      assert len(weight_norm) == num_layers
+    else:
+      weight_norm = [weight_norm] * num_layers
+
+    activation = p.activation
+    if isinstance(activation, six.string_types):
+      activation = [activation] * num_layers
+    else:
+      assert len(activation) == num_layers
+    params_dropout_layers = p.dropout
+    if isinstance(params_dropout_layers, (list, tuple)):
+      assert len(params_dropout_layers) == num_layers
+    else:
+      params_dropout_layers = [params_dropout_layers] * num_layers
+
+    with tf.variable_scope(p.name):
+      # Residual connections work better in the form of:
+      #   y = x + Affine(Activation(BatchNorm(x)))
+      params_fc_layers = []
+      in_dim = p.input_dim
+      for i in range(num_layers):
+        out_dim = p.hidden_layer_dims[i]
+        proj_out_dim = out_dim
+        name = '%s_%d' % (p.name, i)
+        params_i = p.projection.Copy().Set(
+            batch_norm=batch_norm[i],
+            weight_norm=weight_norm[i],
+            has_bias=(not batch_norm[i]),
+            activation=activation[i],
+            input_dim=in_dim,
+            output_dim=proj_out_dim,
+            bn_fold_weights=p.bn_fold_weights,
+            name=name)
+        params_fc_layers.append(params_i)
+        in_dim = out_dim
+
+        if p.qdomain.default is not None:
+          params_i.qdomain.default = p.qdomain.default.Copy()
+
+      self.CreateChildren('fc', params_fc_layers)
+      self.CreateChildren('dropout', params_dropout_layers)
+
+  def FProp(self, theta, inputs, paddings=None):
+    p = self.params
+    num_layers = len(self.fc)
+
+    in_dim, layer_in = p.input_dim, inputs
+    for i in range(num_layers):
+      layer_in = py_utils.with_dependencies(
+          [py_utils.assert_shape_match([tf.shape(layer_in)[-1]], [in_dim])],
+          layer_in)
+      out_dim = p.hidden_layer_dims[i]
+      layer_out = self.fc[i].FProp(theta.fc[i], layer_in, paddings)
+      layer_out = self.dropout[i].FProp(theta.dropout[i], layer_out)
+      layer_in = layer_out
+      in_dim = out_dim
+    return layer_in
+
+  @classmethod
+  def FPropMeta(cls, p, inputs, paddings=None):
+    py_utils.CheckShapes((inputs,))
+    assert inputs[-1] == p.input_dim
+    flops = 0
+    in_dim = inputs[-1]
+    other_dims = inputs.num_elements() / in_dim
+    for out_dim in p.hidden_layer_dims:
+      flops += 5 * other_dims * in_dim * out_dim
+      in_dim = out_dim
+    out_shape = tshape.Shape(inputs[:-1] + [p.hidden_layer_dims[-1]])
+    return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
+
+
 class StackingOverTime(base_layer.BaseLayer):
   """Stacking applied along the time axis.
 
@@ -1293,17 +1434,6 @@ class StackingOverTime(base_layer.BaseLayer):
 
     # [batch_size, input_length, feature_dim]
     return tf.map_fn(_GatherOne, stacked)
-
-
-class FCLayer(ProjectionLayer):
-  """Fully-connected layer (matmul + bias + optional activation)."""
-
-  @classmethod
-  def Params(cls):
-    p = super(FCLayer, cls).Params()
-    p.batch_norm = False
-    p.has_bias = True
-    return p
 
 
 class PoolingLayer(quant_utils.QuantizableLayer):
@@ -2747,136 +2877,6 @@ class ConvSoftmax(quant_utils.QuantizableLayer):
         return logits[:, 0, :]
       else:
         return logits
-
-
-class FeedForwardNet(quant_utils.QuantizableLayer):
-  """A simple multiple layer feedforward network.
-
-  This class represents a stack of fully connected feedforward network. Each
-  layer in the network can be configured for whether or not to have batch-norm
-  applied to its output, its activation function, whether or not to apply
-  dropout to post-activation output.
-  """
-
-  @classmethod
-  def Params(cls):
-    p = super(FeedForwardNet, cls).Params()
-    p.Define('input_dim', 0, 'Depth of the input to the network.')
-    p.Define('hidden_layer_dims', [], 'Depth of the hidden layer outputs.')
-    p.Define(
-        'projection', ProjectionLayer.Params(),
-        'Projection layer params. A single parameter that will be shared by'
-        'all layers.')
-    p.Define(
-        'dropout', DropoutLayer.Params(),
-        'Dropout layer params. Can be a single params or a tuple/list of params'
-        ' having the same length as the number of layers.')
-    p.Define(
-        'batch_norm', False,
-        'Whether or not to apply BN to hidden layer output. '
-        'This can be a single bool or a tuple/list of bools having the'
-        ' same length as the number of layers.')
-    p.Define(
-        'activation', 'RELU',
-        'The activation function to use. Can be a single string, or a'
-        ' tuple/list of strings having the same length as the number'
-        ' of layers.')
-    p.Define(
-        'weight_norm', False,
-        'Whether or not to apply weight normalization to weights. This can be '
-        'a single bool or a tuple/list of bools having the same length as the '
-        'number of layers.')
-    p.Define('skip_connections', None, 'Must be None.')
-    p.Define(
-        'bn_fold_weights', None, 'Force folding the batch normalization '
-        'weights in the projection layer.')
-    return p
-
-  @base_layer.initializer
-  def __init__(self, params):
-    super(FeedForwardNet, self).__init__(params)
-    p = self.params
-    assert p.name
-
-    assert p.skip_connections is None
-    batch_norm = p.batch_norm
-    num_layers = len(p.hidden_layer_dims)
-    if isinstance(batch_norm, (list, tuple)):
-      assert len(batch_norm) == num_layers
-    else:
-      batch_norm = [batch_norm] * num_layers
-    weight_norm = p.weight_norm
-    if isinstance(weight_norm, (list, tuple)):
-      assert len(weight_norm) == num_layers
-    else:
-      weight_norm = [weight_norm] * num_layers
-
-    activation = p.activation
-    if isinstance(activation, six.string_types):
-      activation = [activation] * num_layers
-    else:
-      assert len(activation) == num_layers
-    params_dropout_layers = p.dropout
-    if isinstance(params_dropout_layers, (list, tuple)):
-      assert len(params_dropout_layers) == num_layers
-    else:
-      params_dropout_layers = [params_dropout_layers] * num_layers
-
-    with tf.variable_scope(p.name):
-      # Residual connections work better in the form of:
-      #   y = x + Affine(Activation(BatchNorm(x)))
-      params_fc_layers = []
-      in_dim = p.input_dim
-      for i in range(num_layers):
-        out_dim = p.hidden_layer_dims[i]
-        proj_out_dim = out_dim
-        name = '%s_%d' % (p.name, i)
-        params_i = p.projection.Copy().Set(
-            batch_norm=batch_norm[i],
-            weight_norm=weight_norm[i],
-            has_bias=(not batch_norm[i]),
-            activation=activation[i],
-            input_dim=in_dim,
-            output_dim=proj_out_dim,
-            bn_fold_weights=p.bn_fold_weights,
-            name=name)
-        params_fc_layers.append(params_i)
-        in_dim = out_dim
-
-        if p.qdomain.default is not None:
-          params_i.qdomain.default = p.qdomain.default.Copy()
-
-      self.CreateChildren('fc', params_fc_layers)
-      self.CreateChildren('dropout', params_dropout_layers)
-
-  def FProp(self, theta, inputs, paddings=None):
-    p = self.params
-    num_layers = len(self.fc)
-
-    in_dim, layer_in = p.input_dim, inputs
-    for i in range(num_layers):
-      layer_in = py_utils.with_dependencies(
-          [py_utils.assert_shape_match([tf.shape(layer_in)[-1]], [in_dim])],
-          layer_in)
-      out_dim = p.hidden_layer_dims[i]
-      layer_out = self.fc[i].FProp(theta.fc[i], layer_in, paddings)
-      layer_out = self.dropout[i].FProp(theta.dropout[i], layer_out)
-      layer_in = layer_out
-      in_dim = out_dim
-    return layer_in
-
-  @classmethod
-  def FPropMeta(cls, p, inputs, paddings=None):
-    py_utils.CheckShapes((inputs,))
-    assert inputs[-1] == p.input_dim
-    flops = 0
-    in_dim = inputs[-1]
-    other_dims = inputs.num_elements() / in_dim
-    for out_dim in p.hidden_layer_dims:
-      flops += 5 * other_dims * in_dim * out_dim
-      in_dim = out_dim
-    out_shape = tshape.Shape(inputs[:-1] + [p.hidden_layer_dims[-1]])
-    return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
 
 
 class DropoutLayer(base_layer.BaseLayer):
