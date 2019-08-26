@@ -824,22 +824,35 @@ The value when the key is not found.</p></li>
 
 <dl class="function">
 <dt id="lingvo.core.ops.v">
-<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">keys</em>, <em class="sig-param">vals=[]</em>, <em class="sig-param">unk=-1</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>Maps every element of x according a static mapping.</p>
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">labels</em>, <em class="sig-param">append_eos=True</em>, <em class="sig-param">maxlen=300</em>, <em class="sig-param">pad_to_maxlen=True</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts ASCII label strings into token ids.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A Tensor of type string.</p></li>
-<li><p><strong>keys</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>. The list of keys.</p></li>
-<li><p><strong>vals</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
-The list of values. If empty, defaults to [0 .. len(keys)).</p></li>
-<li><p><strong>unk</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.
-The value when the key is not found.</p></li>
+<li><p><strong>labels</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A vector of shape [batch].</p></li>
+<li><p><strong>append_eos</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#True" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+Whether to append &lt;/s&gt; at the end and treat it as a non-padded
+label.</p></li>
+<li><p><strong>maxlen</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">300</span></code>.
+an integer, sequence length of the output tensors.</p></li>
+<li><p><strong>pad_to_maxlen</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#True" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+Whether to pad the output to maxlen.</p></li>
 <li><p><strong>name</strong> – A name for the operation (optional).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A Tensor of type int32. Same shape of x.</p>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (token_ids, target_ids, paddings).</p>
+<dl class="simple">
+<dt>token_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A matrix of shape [batch, maxlen].</dt><dd><p>token_ids[i, j] is the i-th sample’s j-th token id.
+token_ids[i, 0] is always &lt;s&gt;.</p>
+</dd>
+<dt>target_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A matrix of shape [batch, maxlen].</dt><dd><p>target_ids[i, j] is the i-th sample’s j-th prediction label id.</p>
+</dd>
+<dt>paddings: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. A matrix of shape [batch, maxlen].</dt><dd><p>paddings[i, j] == 1.0 indicates that i-th training example’
+j-th target token is padded and should be ignored.</p>
+</dd>
+</dl>
+</p>
 </dd>
 </dl>
 </dd></dl>
