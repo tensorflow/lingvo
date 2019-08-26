@@ -1394,13 +1394,14 @@
         <span class="s1">&#39;(see https://arxiv.org/abs/1603.08042). &#39;</span>
         <span class="s1">&#39;Set to 0 to disable projection.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;layer_norm_epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-8</span><span class="p">,</span> <span class="s1">&#39;Tiny value to guard rsqrt against.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;enable_ln_on_c&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to apply layer normalization on state.c.&#39;</span><span class="p">)</span>
 
     <span class="c1"># TODO(yonghui): Get rid of the following two params.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_nonlinearity&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;Whether or not to apply tanh non-linearity on lstm output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;zo_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
              <span class="s1">&#39;If &gt; 0, applies ZoneOut regularization with the given prob.&#39;</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1430,13 +1431,17 @@
             <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="n">w_proj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
-      <span class="n">ln_params</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="s1">&#39;i_i&#39;</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>
-      <span class="k">for</span> <span class="n">ln_name</span> <span class="ow">in</span> <span class="n">ln_params</span><span class="p">:</span>
-        <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+      <span class="n">ln_gates</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="s1">&#39;i_i&#39;</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
+        <span class="n">ln_gates</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_c&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">ln_name</span> <span class="ow">in</span> <span class="n">ln_gates</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
@@ -1488,6 +1493,9 @@
 <span class="sd">      Layer normalized &#39;x&#39;, with the same shape as the input.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">gate_name</span> <span class="o">==</span> <span class="s1">&#39;c&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
+      <span class="n">x</span> <span class="o">+=</span> <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;bias_c&#39;</span><span class="p">]</span>
+      <span class="k">return</span> <span class="n">x</span>
     <span class="n">mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">centered</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">mean</span>
     <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">centered</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1556,6 +1564,8 @@
         <span class="s1">&#39;(see https://arxiv.org/abs/1603.08042). &#39;</span>
         <span class="s1">&#39;Set to 0 to disable projection.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;layer_norm_epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-8</span><span class="p">,</span> <span class="s1">&#39;Tiny value to guard rsqrt against.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;enable_ln_on_c&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to apply layer normalization on state.c.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">GeoMeanXavier</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -1590,12 +1600,17 @@
             <span class="n">_WeightInit</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_hidden_nodes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">]),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
-      <span class="k">for</span> <span class="n">ln_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]:</span>
-        <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+      <span class="n">ln_gates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
+        <span class="n">ln_gates</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_c&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">ln_name</span> <span class="ow">in</span> <span class="n">ln_gates</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
@@ -1645,37 +1660,38 @@
     <span class="n">gate_map</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">gate_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span><span class="p">:</span>
       <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">input_proj</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;wm_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gate_name</span><span class="p">))</span>
-      <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNorm</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span>
-                          <span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ln_scale_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gate_name</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">,</span>
-                          <span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;bias_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gate_name</span><span class="p">))</span>
+      <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNormGate</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">gate_name</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
       <span class="n">gate_map</span><span class="p">[</span><span class="n">gate_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span>
     <span class="k">return</span> <span class="n">gate_map</span></div>
 
-<div class="viewcode-block" id="DoubleProjectionLSTMCell._LayerNorm"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._LayerNorm">[docs]</a>  <span class="k">def</span> <span class="nf">_LayerNorm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
+<div class="viewcode-block" id="DoubleProjectionLSTMCell._LayerNormGate"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._LayerNormGate">[docs]</a>  <span class="k">def</span> <span class="nf">_LayerNormGate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">gate_name</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies layer normalization on the last dimension of &#39;x&#39;.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: a nested map of params</span>
+<span class="sd">      theta: a NestedMap of layer params.</span>
+<span class="sd">      gate_name: the name of the gate, e.g., &#39;i_i&#39;, &#39;f_g&#39;, &#39;c&#39;, etc.</span>
 <span class="sd">      x: activation tensor, where the last dimension represents channels.</span>
-<span class="sd">      scale: multiples to the noramlized results</span>
-<span class="sd">      bias: additions to the noramlized results for biasing</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Layer normalized &#39;x&#39;, with the same shape as the input.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">gate_name</span> <span class="o">==</span> <span class="s1">&#39;c&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
+      <span class="n">x</span> <span class="o">+=</span> <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;bias_c&#39;</span><span class="p">]</span>
+      <span class="k">return</span> <span class="n">x</span>
     <span class="n">mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">centered</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">mean</span>
     <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">centered</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">normed</span> <span class="o">=</span> <span class="n">centered</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_norm_epsilon</span><span class="p">)</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;ln_scale_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gate_name</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1.0</span>
+    <span class="n">bias</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;bias_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gate_name</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">normed</span> <span class="o">*</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">bias</span></div>
 
 <div class="viewcode-block" id="DoubleProjectionLSTMCell._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the new state.&quot;&quot;&quot;</span>
     <span class="n">new_c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">xmw</span><span class="p">[</span><span class="s1">&#39;f_g&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span>
         <span class="n">xmw</span><span class="p">[</span><span class="s1">&#39;i_g&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">xmw</span><span class="p">[</span><span class="s1">&#39;i_i&#39;</span><span class="p">])</span>
-    <span class="n">new_c_normed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNorm</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">ln_scale_c</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">,</span>
-                                   <span class="n">theta</span><span class="o">.</span><span class="n">bias_c</span><span class="p">)</span>
+    <span class="n">new_c_normed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNormGate</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="n">new_c</span><span class="p">)</span>
     <span class="n">new_m</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">xmw</span><span class="p">[</span><span class="s1">&#39;o_g&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">new_c_normed</span><span class="p">)</span>
     <span class="n">new_m</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">new_m</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w_output_proj</span><span class="p">)</span>
 
