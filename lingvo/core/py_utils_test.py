@@ -821,56 +821,6 @@ class PyUtilsTest(test_utils.TestCase):
       self.assertAllEqual(stacked.x, tf.constant([[1, 2], [3, 4]]))
       self.assertAllEqual(stacked.z.a, tf.constant([[1, 2], [10, 20]]))
 
-  def _RunSumTen(self, run_serial):
-
-    class LoggedNumberGenerator(object):
-
-      def __init__(self):
-        self._n = 0.
-        self.history = []
-
-      def Get(self):
-        k = self._n
-        self._n += 1.
-
-        def Work():
-          self.history += [k]
-          return np.array(k, np.float32)
-
-        return Work
-
-      def PyFunc(self):
-        work = self.Get()
-        return tf.py_func(work, [], tf.float32)
-
-    logger = LoggedNumberGenerator()
-
-    def Compute():
-      return tf.add_n([logger.PyFunc() for _ in range(10)])
-
-    with self.session() as sess:
-      if run_serial:
-        with py_utils.ForceSerialExecution():
-          total = Compute()
-      else:
-        total = Compute()
-      value = sess.run(total)
-
-    self.assertEqual(45.0, value)
-    return logger.history
-
-  def testForceSerialExecution(self):
-    # run_serial=False. 10 PyFunc() will be executed in a random order.
-    print('histo = ', self._RunSumTen(run_serial=False))
-    print('histo = ', self._RunSumTen(run_serial=False))
-    print('histo = ', self._RunSumTen(run_serial=False))
-    print('histo = ', self._RunSumTen(run_serial=False))
-
-    # run_serial=True. 10 PyFunc() will be executed in the same order
-    # in the python program order.
-    self.assertEqual([0., 1., 2., 3., 4., 5., 6., 7., 8., 9.],
-                     self._RunSumTen(run_serial=True))
-
 
 class DeterministicDropoutTest(test_utils.TestCase):
 
