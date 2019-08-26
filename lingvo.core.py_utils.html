@@ -1849,20 +1849,6 @@ Otherwise, these ops produce inconsistent values between FProp and BProp.</p>
 <dd><p>Converts every Tensor in nmap to a placeholder.</p>
 </dd></dl>
 
-<dl class="class">
-<dt id="lingvo.core.py_utils.ForceSerialExecution">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ForceSerialExecution</code><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ForceSerialExecution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ForceSerialExecution" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>A context within which all TF operations are executed serially.</p>
-<p>E.g.:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;&gt;</span> <span class="k">with</span> <span class="n">ForceSerialExecution</span><span class="p">():</span>
-<span class="o">&gt;&gt;</span>   <span class="n">x</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span>
-<span class="o">&gt;&gt;</span>   <span class="n">y</span> <span class="o">=</span> <span class="n">b</span> <span class="o">+</span> <span class="n">c</span>
-</pre></div>
-</div>
-<p>The resulting graph guarantees that x is computed before y.</p>
-</dd></dl>
-
 <dl class="function">
 <dt id="lingvo.core.py_utils.SoftmaxCrossEntropyFocalLoss">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">SoftmaxCrossEntropyFocalLoss</code><span class="sig-paren">(</span><em class="sig-param">logits</em>, <em class="sig-param">label_ids=None</em>, <em class="sig-param">label_probs=None</em>, <em class="sig-param">alpha=None</em>, <em class="sig-param">gamma=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SoftmaxCrossEntropyFocalLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SoftmaxCrossEntropyFocalLoss" title="Permalink to this definition">¶</a></dt>
