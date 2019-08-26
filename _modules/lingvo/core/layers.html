@@ -1230,6 +1230,147 @@
     <span class="k">return</span> <span class="n">out</span></div></div>
 
 
+<div class="viewcode-block" id="FCLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FCLayer">[docs]</a><span class="k">class</span> <span class="nc">FCLayer</span><span class="p">(</span><span class="n">ProjectionLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Fully-connected layer (matmul + bias + optional activation).&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FCLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FCLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FCLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="FeedForwardNet"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FeedForwardNet">[docs]</a><span class="k">class</span> <span class="nc">FeedForwardNet</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A simple multiple layer feedforward network.</span>
+
+<span class="sd">  This class represents a stack of fully connected feedforward network. Each</span>
+<span class="sd">  layer in the network can be configured for whether or not to have batch-norm</span>
+<span class="sd">  applied to its output, its activation function, whether or not to apply</span>
+<span class="sd">  dropout to post-activation output.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FeedForwardNet.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FeedForwardNet.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FeedForwardNet</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input to the network.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_layer_dims&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Depth of the hidden layer outputs.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;projection&#39;</span><span class="p">,</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Projection layer params. A single parameter that will be shared by&#39;</span>
+        <span class="s1">&#39;all layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Dropout layer params. Can be a single params or a tuple/list of params&#39;</span>
+        <span class="s1">&#39; having the same length as the number of layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;batch_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether or not to apply BN to hidden layer output. &#39;</span>
+        <span class="s1">&#39;This can be a single bool or a tuple/list of bools having the&#39;</span>
+        <span class="s1">&#39; same length as the number of layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;The activation function to use. Can be a single string, or a&#39;</span>
+        <span class="s1">&#39; tuple/list of strings having the same length as the number&#39;</span>
+        <span class="s1">&#39; of layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;weight_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether or not to apply weight normalization to weights. This can be &#39;</span>
+        <span class="s1">&#39;a single bool or a tuple/list of bools having the same length as the &#39;</span>
+        <span class="s1">&#39;number of layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_connections&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Must be None.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bn_fold_weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Force folding the batch normalization &#39;</span>
+        <span class="s1">&#39;weights in the projection layer.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">FeedForwardNet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">skip_connections</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="n">batch_norm</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span>
+    <span class="n">num_layers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch_norm</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch_norm</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">batch_norm</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_norm</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+    <span class="n">weight_norm</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">weight_norm</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weight_norm</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">weight_norm</span> <span class="o">=</span> <span class="p">[</span><span class="n">weight_norm</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+
+    <span class="n">activation</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">activation</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+      <span class="n">activation</span> <span class="o">=</span> <span class="p">[</span><span class="n">activation</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">activation</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+    <span class="n">params_dropout_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params_dropout_layers</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">params_dropout_layers</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">params_dropout_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">params_dropout_layers</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># Residual connections work better in the form of:</span>
+      <span class="c1">#   y = x + Affine(Activation(BatchNorm(x)))</span>
+      <span class="n">params_fc_layers</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">in_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+        <span class="n">out_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">proj_out_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">params_i</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">batch_norm</span><span class="o">=</span><span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">weight_norm</span><span class="o">=</span><span class="n">weight_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">has_bias</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+            <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">input_dim</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
+            <span class="n">output_dim</span><span class="o">=</span><span class="n">proj_out_dim</span><span class="p">,</span>
+            <span class="n">bn_fold_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bn_fold_weights</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">params_fc_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params_i</span><span class="p">)</span>
+        <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
+
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">params_i</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;fc&#39;</span><span class="p">,</span> <span class="n">params_fc_layers</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">params_dropout_layers</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FeedForwardNet.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FeedForwardNet.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">num_layers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">)</span>
+
+    <span class="n">in_dim</span><span class="p">,</span> <span class="n">layer_in</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">inputs</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+      <span class="n">layer_in</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">layer_in</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">in_dim</span><span class="p">])],</span>
+          <span class="n">layer_in</span><span class="p">)</span>
+      <span class="n">out_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">layer_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fc</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">layer_in</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+      <span class="n">layer_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dropout</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">layer_out</span><span class="p">)</span>
+      <span class="n">layer_in</span> <span class="o">=</span> <span class="n">layer_out</span>
+      <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
+    <span class="k">return</span> <span class="n">layer_in</span></div>
+
+<div class="viewcode-block" id="FeedForwardNet.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FeedForwardNet.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
+    <span class="k">assert</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="n">flops</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">in_dim</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">other_dims</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">/</span> <span class="n">in_dim</span>
+    <span class="k">for</span> <span class="n">out_dim</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">:</span>
+      <span class="n">flops</span> <span class="o">+=</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="n">out_dim</span>
+      <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
+    <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_shape</span><span class="p">,))</span></div></div>
+
+
 <div class="viewcode-block" id="StackingOverTime"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.StackingOverTime">[docs]</a><span class="k">class</span> <span class="nc">StackingOverTime</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Stacking applied along the time axis.</span>
 
@@ -1438,17 +1579,6 @@
 
     <span class="c1"># [batch_size, input_length, feature_dim]</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span><span class="n">_GatherOne</span><span class="p">,</span> <span class="n">stacked</span><span class="p">)</span></div></div>
-
-
-<div class="viewcode-block" id="FCLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FCLayer">[docs]</a><span class="k">class</span> <span class="nc">FCLayer</span><span class="p">(</span><span class="n">ProjectionLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Fully-connected layer (matmul + bias + optional activation).&quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="FCLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FCLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FCLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">return</span> <span class="n">p</span></div></div>
 
 
 <div class="viewcode-block" id="PoolingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PoolingLayer">[docs]</a><span class="k">class</span> <span class="nc">PoolingLayer</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
@@ -2892,136 +3022,6 @@
         <span class="k">return</span> <span class="n">logits</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">logits</span></div></div>
-
-
-<div class="viewcode-block" id="FeedForwardNet"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FeedForwardNet">[docs]</a><span class="k">class</span> <span class="nc">FeedForwardNet</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A simple multiple layer feedforward network.</span>
-
-<span class="sd">  This class represents a stack of fully connected feedforward network. Each</span>
-<span class="sd">  layer in the network can be configured for whether or not to have batch-norm</span>
-<span class="sd">  applied to its output, its activation function, whether or not to apply</span>
-<span class="sd">  dropout to post-activation output.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="FeedForwardNet.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FeedForwardNet.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FeedForwardNet</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input to the network.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_layer_dims&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Depth of the hidden layer outputs.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;projection&#39;</span><span class="p">,</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-        <span class="s1">&#39;Projection layer params. A single parameter that will be shared by&#39;</span>
-        <span class="s1">&#39;all layers.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-        <span class="s1">&#39;Dropout layer params. Can be a single params or a tuple/list of params&#39;</span>
-        <span class="s1">&#39; having the same length as the number of layers.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;batch_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;Whether or not to apply BN to hidden layer output. &#39;</span>
-        <span class="s1">&#39;This can be a single bool or a tuple/list of bools having the&#39;</span>
-        <span class="s1">&#39; same length as the number of layers.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;The activation function to use. Can be a single string, or a&#39;</span>
-        <span class="s1">&#39; tuple/list of strings having the same length as the number&#39;</span>
-        <span class="s1">&#39; of layers.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;weight_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;Whether or not to apply weight normalization to weights. This can be &#39;</span>
-        <span class="s1">&#39;a single bool or a tuple/list of bools having the same length as the &#39;</span>
-        <span class="s1">&#39;number of layers.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_connections&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Must be None.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;bn_fold_weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Force folding the batch normalization &#39;</span>
-        <span class="s1">&#39;weights in the projection layer.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
-  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">FeedForwardNet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
-
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">skip_connections</span> <span class="ow">is</span> <span class="kc">None</span>
-    <span class="n">batch_norm</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span>
-    <span class="n">num_layers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch_norm</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch_norm</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">batch_norm</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_norm</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
-    <span class="n">weight_norm</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">weight_norm</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weight_norm</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">weight_norm</span> <span class="o">=</span> <span class="p">[</span><span class="n">weight_norm</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
-
-    <span class="n">activation</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">activation</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-      <span class="n">activation</span> <span class="o">=</span> <span class="p">[</span><span class="n">activation</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">activation</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
-    <span class="n">params_dropout_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params_dropout_layers</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">params_dropout_layers</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">params_dropout_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">params_dropout_layers</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
-
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="c1"># Residual connections work better in the form of:</span>
-      <span class="c1">#   y = x + Affine(Activation(BatchNorm(x)))</span>
-      <span class="n">params_fc_layers</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="n">in_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
-        <span class="n">out_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">proj_out_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
-        <span class="n">params_i</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">batch_norm</span><span class="o">=</span><span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-            <span class="n">weight_norm</span><span class="o">=</span><span class="n">weight_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-            <span class="n">has_bias</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
-            <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-            <span class="n">input_dim</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
-            <span class="n">output_dim</span><span class="o">=</span><span class="n">proj_out_dim</span><span class="p">,</span>
-            <span class="n">bn_fold_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bn_fold_weights</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
-        <span class="n">params_fc_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params_i</span><span class="p">)</span>
-        <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
-
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">params_i</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;fc&#39;</span><span class="p">,</span> <span class="n">params_fc_layers</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">params_dropout_layers</span><span class="p">)</span>
-
-<div class="viewcode-block" id="FeedForwardNet.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FeedForwardNet.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">num_layers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">)</span>
-
-    <span class="n">in_dim</span><span class="p">,</span> <span class="n">layer_in</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">inputs</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
-      <span class="n">layer_in</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">layer_in</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">in_dim</span><span class="p">])],</span>
-          <span class="n">layer_in</span><span class="p">)</span>
-      <span class="n">out_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-      <span class="n">layer_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fc</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">layer_in</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
-      <span class="n">layer_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dropout</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">layer_out</span><span class="p">)</span>
-      <span class="n">layer_in</span> <span class="o">=</span> <span class="n">layer_out</span>
-      <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
-    <span class="k">return</span> <span class="n">layer_in</span></div>
-
-<div class="viewcode-block" id="FeedForwardNet.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FeedForwardNet.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
-    <span class="k">assert</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-    <span class="n">flops</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">in_dim</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">other_dims</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">/</span> <span class="n">in_dim</span>
-    <span class="k">for</span> <span class="n">out_dim</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">:</span>
-      <span class="n">flops</span> <span class="o">+=</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="n">out_dim</span>
-      <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
-    <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_shape</span><span class="p">,))</span></div></div>
 
 
 <div class="viewcode-block" id="DropoutLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DropoutLayer">[docs]</a><span class="k">class</span> <span class="nc">DropoutLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
