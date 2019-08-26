@@ -19,10 +19,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-
 from lingvo import model_registry
 from lingvo.core import base_model_params
+from lingvo.core import datasource
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import tokenizers
@@ -34,18 +33,18 @@ from lingvo.tasks.asr import model
 class Librispeech960Base(base_model_params.SingleTaskModelParams):
   """Base parameters for Librispeech 960 hour task."""
 
-  # Insert path to the base directory where the data are stored here.
-  # Generated using scripts in lingvo/tasks/asr/tools.
-  DATADIR = '/tmp/librispeech'
-
-  @classmethod
-  def _TFRecordPath(cls, file_pattern):
-    return 'tfrecord:' + os.path.join(cls.DATADIR, file_pattern)
-
   @classmethod
   def _CommonInputParams(cls, is_eval):
     """Input generator params for Librispeech."""
     p = input_generator.AsrInput.Params()
+
+    # Insert path to the base directory where the data are stored here.
+    # Generated using scripts in lingvo/tasks/asr/tools.
+    p.file_datasource = datasource.PrefixedDataSourceWrapper.Params()
+    p.file_datasource.base_datasource = datasource.SimpleDataSource.Params()
+    p.file_datasource.base_datasource.file_type = 'tfrecord'
+    p.file_datasource.file_pattern_prefix = '/tmp/librispeech'
+
     p.frame_size = 80
     p.append_eos_frame = True
 
@@ -77,14 +76,14 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
   @classmethod
   def Train(cls):
     p = cls._CommonInputParams(is_eval=False)
-    p.file_pattern = cls._TFRecordPath('train/train.tfrecords-*')
+    p.file_datasource.base_datasource.file_pattern = 'train/train.tfrecords-*'
     p.num_samples = 281241
     return p
 
   @classmethod
   def Dev(cls):
     p = cls._CommonInputParams(is_eval=True)
-    p.file_pattern = cls._TFRecordPath(
+    p.file_datasource.base_datasource.file_pattern = (
         'devtest/dev-clean.tfrecords-00000-of-00001')
     p.num_samples = 2703
     return p
@@ -92,7 +91,7 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
   @classmethod
   def Devother(cls):
     p = cls._CommonInputParams(is_eval=True)
-    p.file_pattern = cls._TFRecordPath(
+    p.file_datasource.base_datasource.file_pattern = (
         'devtest/dev-other.tfrecords-00000-of-00001')
     p.num_samples = 2864
     return p
@@ -100,7 +99,7 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
   @classmethod
   def Test(cls):
     p = cls._CommonInputParams(is_eval=True)
-    p.file_pattern = cls._TFRecordPath(
+    p.file_datasource.base_datasource.file_pattern = (
         'devtest/test-clean.tfrecords-00000-of-00001')
     p.num_samples = 2620
     return p
@@ -108,7 +107,7 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
   @classmethod
   def Testother(cls):
     p = cls._CommonInputParams(is_eval=True)
-    p.file_pattern = cls._TFRecordPath(
+    p.file_datasource.base_datasource.file_pattern = (
         'devtest/test-other.tfrecords-00000-of-00001')
     p.num_samples = 2939
     return p
@@ -229,22 +228,22 @@ class Librispeech960Grapheme(Librispeech960Base):
 
 
 @model_registry.RegisterSingleTaskModel
-class Librispeech960GraphemeCloudTpu(Librispeech960Grapheme):
-  """Librispeech 960 grapheme model with parameter tweaks for TPU training."""
+class Librispeech960GraphemeTpuV2(Librispeech960Grapheme):
+  """Librispeech 960 grapheme model for training on TPU V2."""
 
   @classmethod
   def _CommonInputParams(cls, is_eval):
-    p = super(Librispeech960GraphemeCloudTpu, cls)._CommonInputParams(is_eval)
+    p = super(Librispeech960GraphemeTpuV2, cls)._CommonInputParams(is_eval)
 
     p.pad_to_max_seq_length = True
-    p.bucket_batch_limit = [64] * len(p.bucket_upper_bound)
+    p.bucket_batch_limit = [48] * len(p.bucket_upper_bound)
     p.source_max_length = p.bucket_upper_bound[-1]
 
     return p
 
   @classmethod
   def Task(cls):
-    p = super(Librispeech960GraphemeCloudTpu, cls).Task()
+    p = super(Librispeech960GraphemeTpuV2, cls).Task()
 
     p.encoder.pad_steps = 0
 
@@ -330,12 +329,12 @@ class Librispeech960Wpm(Librispeech960Base):
 
 
 @model_registry.RegisterSingleTaskModel
-class Librispeech960WpmCloudTpu(Librispeech960Grapheme):
-  """Librispeech 960 WPM model with parameter tweaks for training on TPU."""
+class Librispeech960WpmTpuV2(Librispeech960Wpm):
+  """Librispeech 960 WPM model for training on TPU V2."""
 
   @classmethod
   def _CommonInputParams(cls, is_eval):
-    p = super(Librispeech960WpmCloudTpu, cls)._CommonInputParams(is_eval)
+    p = super(Librispeech960WpmTpuV2, cls)._CommonInputParams(is_eval)
 
     p.pad_to_max_seq_length = True
     p.bucket_batch_limit = [48] * len(p.bucket_upper_bound)
@@ -345,7 +344,7 @@ class Librispeech960WpmCloudTpu(Librispeech960Grapheme):
 
   @classmethod
   def Task(cls):
-    p = super(Librispeech960WpmCloudTpu, cls).Task()
+    p = super(Librispeech960WpmTpuV2, cls).Task()
 
     p.encoder.pad_steps = 0
     p.decoder.emb.max_num_shards = 1
