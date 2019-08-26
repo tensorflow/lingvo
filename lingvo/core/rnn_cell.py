@@ -1249,13 +1249,14 @@ class LayerNormalizedLSTMCellLean(RNNCell):
         '(see https://arxiv.org/abs/1603.08042). '
         'Set to 0 to disable projection.')
     p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqrt against.')
+    p.Define('enable_ln_on_c', True,
+             'Whether to apply layer normalization on state.c.')
 
     # TODO(yonghui): Get rid of the following two params.
     p.Define('output_nonlinearity', True,
              'Whether or not to apply tanh non-linearity on lstm output.')
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
-
     return p
 
   @base_layer.initializer
@@ -1285,13 +1286,17 @@ class LayerNormalizedLSTMCellLean(RNNCell):
             collections=self._VariableCollections())
         self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
 
-      ln_params = ['i_g', 'i_i', 'f_g', 'o_g', 'c']
-      for ln_name in ln_params:
-        pc = py_utils.WeightParams(
-            shape=[self.hidden_size],
-            init=py_utils.WeightInit.Constant(0.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
+      pc = py_utils.WeightParams(
+          shape=[self.hidden_size],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=self._VariableCollections())
+      ln_gates = ['i_g', 'i_i', 'f_g', 'o_g']
+      if p.enable_ln_on_c:
+        ln_gates += ['c']
+      else:
+        self.CreateVariable('bias_c', pc, self.AddGlobalVN)
+      for ln_name in ln_gates:
         self.CreateVariable('ln_scale_' + ln_name, pc, self.AddGlobalVN)
         self.CreateVariable('bias_' + ln_name, pc, self.AddGlobalVN)
 
@@ -1343,6 +1348,9 @@ class LayerNormalizedLSTMCellLean(RNNCell):
       Layer normalized 'x', with the same shape as the input.
     """
     p = self.params
+    if gate_name == 'c' and not p.enable_ln_on_c:
+      x += theta['bias_c']
+      return x
     mean = tf.reduce_mean(x, axis=[1], keepdims=True)
     centered = x - mean
     variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
@@ -1411,6 +1419,8 @@ class DoubleProjectionLSTMCell(RNNCell):
         '(see https://arxiv.org/abs/1603.08042). '
         'Set to 0 to disable projection.')
     p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqrt against.')
+    p.Define('enable_ln_on_c', True,
+             'Whether to apply layer normalization on state.c.')
     p.params_init = py_utils.WeightInit.GeoMeanXavier()
     return p
 
@@ -1445,12 +1455,17 @@ class DoubleProjectionLSTMCell(RNNCell):
             _WeightInit([p.num_input_hidden_nodes, self.hidden_size]),
             self.AddGlobalVN)
 
-      for ln_name in self.gates + ['c']:
-        pc = py_utils.WeightParams(
-            shape=[self.hidden_size],
-            init=py_utils.WeightInit.Constant(0.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
+      pc = py_utils.WeightParams(
+          shape=[self.hidden_size],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=self._VariableCollections())
+      ln_gates = self.gates
+      if p.enable_ln_on_c:
+        ln_gates += ['c']
+      else:
+        self.CreateVariable('bias_c', pc, self.AddGlobalVN)
+      for ln_name in ln_gates:
         self.CreateVariable('ln_scale_' + ln_name, pc, self.AddGlobalVN)
         self.CreateVariable('bias_' + ln_name, pc, self.AddGlobalVN)
 
@@ -1500,37 +1515,38 @@ class DoubleProjectionLSTMCell(RNNCell):
     gate_map = {}
     for gate_name in self.gates:
       g = tf.matmul(input_proj, theta.get('wm_%s' % gate_name))
-      g = self._LayerNorm(theta, g,
-                          theta.get('ln_scale_%s' % gate_name) + 1.0,
-                          theta.get('bias_%s' % gate_name))
+      g = self._LayerNormGate(theta, gate_name, g)
       gate_map[gate_name] = g
     return gate_map
 
-  def _LayerNorm(self, theta, x, scale, bias):
+  def _LayerNormGate(self, theta, gate_name, x):
     """Applies layer normalization on the last dimension of 'x'.
 
     Args:
-      theta: a nested map of params
+      theta: a NestedMap of layer params.
+      gate_name: the name of the gate, e.g., 'i_i', 'f_g', 'c', etc.
       x: activation tensor, where the last dimension represents channels.
-      scale: multiples to the noramlized results
-      bias: additions to the noramlized results for biasing
 
     Returns:
       Layer normalized 'x', with the same shape as the input.
     """
     p = self.params
+    if gate_name == 'c' and not p.enable_ln_on_c:
+      x += theta['bias_c']
+      return x
     mean = tf.reduce_mean(x, axis=[1], keepdims=True)
     centered = x - mean
     variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
     normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
+    scale = theta['ln_scale_%s' % gate_name] + 1.0
+    bias = theta['bias_%s' % gate_name]
     return normed * scale + bias
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
     new_c = tf.sigmoid(xmw['f_g']) * state0.c + tf.sigmoid(
         xmw['i_g']) * tf.tanh(xmw['i_i'])
-    new_c_normed = self._LayerNorm(theta, new_c, theta.ln_scale_c + 1.0,
-                                   theta.bias_c)
+    new_c_normed = self._LayerNormGate(theta, 'c', new_c)
     new_m = tf.sigmoid(xmw['o_g']) * tf.tanh(new_c_normed)
     new_m = tf.matmul(new_m, theta.w_output_proj)
 

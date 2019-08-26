@@ -1253,7 +1253,7 @@ class RNNCellTest(test_utils.TestCase):
     self._testLSTMSimpleDeterministicWithZoneOutHelper(tf.int32)
 
   def testLNLSTMCell(self):
-    m_v, c_v = self._testLNLSTMCell(rnn_cell.LayerNormalizedLSTMCell)
+    m_v, c_v = self._testLNLSTMCell(rnn_cell.LayerNormalizedLSTMCell.Params())
     m_expected = [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
                   [-0.00272907, 0.31641623]]
     c_expected = [[0.14834785, 0.3804915], [-0.00927538, 0.38059634],
@@ -1262,7 +1262,8 @@ class RNNCellTest(test_utils.TestCase):
     self.assertAllClose(c_expected, c_v)
 
   def testLNLSTMCellSimple(self):
-    m_v, c_v = self._testLNLSTMCell(rnn_cell.LayerNormalizedLSTMCellSimple)
+    m_v, c_v = self._testLNLSTMCell(
+        rnn_cell.LayerNormalizedLSTMCellSimple.Params())
     m_expected = [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
                   [-0.00272907, 0.31641623]]
     c_expected = [[0.14834785, 0.3804915], [-0.00927538, 0.38059634],
@@ -1272,7 +1273,7 @@ class RNNCellTest(test_utils.TestCase):
 
   def testLNLSTMCellProj(self):
     m_v, c_v = self._testLNLSTMCell(
-        rnn_cell.LayerNormalizedLSTMCellSimple, num_hidden_nodes=4)
+        rnn_cell.LayerNormalizedLSTMCellSimple.Params(), num_hidden_nodes=4)
     m_expected = [[0.39790073, 0.28511256], [0.41482946, 0.28972796],
                   [0.47132283, 0.03284446]]
     c_expected = [[-0.3667627, 1.03294277, 0.24229962, 0.43976486],
@@ -1282,7 +1283,8 @@ class RNNCellTest(test_utils.TestCase):
     self.assertAllClose(c_expected, c_v)
 
   def testLNLSTMCellLean(self):
-    m_v, c_v = self._testLNLSTMCell(rnn_cell.LayerNormalizedLSTMCellLean)
+    m_v, c_v = self._testLNLSTMCell(
+        rnn_cell.LayerNormalizedLSTMCellLean.Params())
     m_expected = [[-0.20482419, 0.55676991], [-0.55648255, 0.20511301],
                   [-0.20482422, 0.55676997]]
     c_expected = [[0.14834785, 0.3804915], [-0.00927544, 0.38059637],
@@ -1290,9 +1292,20 @@ class RNNCellTest(test_utils.TestCase):
     self.assertAllClose(m_expected, m_v)
     self.assertAllClose(c_expected, c_v)
 
+  def testLNLSTMCellLeanNoLnOnC(self):
+    """LayerNormalizedLSTMCellLean without normalization on 'c'."""
+    m_v, c_v = self._testLNLSTMCell(
+        rnn_cell.LayerNormalizedLSTMCellLean.Params().Set(enable_ln_on_c=False))
+    m_expected = [[0.039607, 0.265472], [-0.006777, 0.097824],
+                  [-0.002729, 0.316416]]
+    c_expected = [[0.14834785, 0.3804915], [-0.00927544, 0.38059637],
+                  [-0.01014781, 0.46336061]]
+    self.assertAllClose(m_expected, m_v)
+    self.assertAllClose(c_expected, c_v)
+
   def testLNLSTMCellLeanProj(self):
     m_v, c_v = self._testLNLSTMCell(
-        rnn_cell.LayerNormalizedLSTMCellLean, num_hidden_nodes=4)
+        rnn_cell.LayerNormalizedLSTMCellLean.Params(), num_hidden_nodes=4)
     m_expected = [[0.51581347, 0.22646663], [0.56025136, 0.16842051],
                   [0.58704823, -0.07126484]]
     c_expected = [[-0.36676273, 1.03294277, 0.24229959, 0.43976486],
@@ -1301,9 +1314,9 @@ class RNNCellTest(test_utils.TestCase):
     self.assertAllClose(m_expected, m_v)
     self.assertAllClose(c_expected, c_v)
 
-  def _testLNLSTMCell(self, cell_cls, num_hidden_nodes=0):
+  def _testLNLSTMCell(self, params, num_hidden_nodes=0):
     with self.session(use_gpu=False):
-      params = cell_cls.Params()
+      params = params.Copy()
       params.name = 'lstm'
       params.output_nonlinearity = True
       params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
@@ -1339,11 +1352,18 @@ class RNNCellTest(test_utils.TestCase):
       return m_v, c_v
 
   def testDoubleProjectionLSTMCell(self):
+    self._testDoubleProjectionLSTMCell(enable_ln_on_c=True)
+
+  def testDoubleProjectionLSTMCellNoLnOnC(self):
+    self._testDoubleProjectionLSTMCell(enable_ln_on_c=False)
+
+  def _testDoubleProjectionLSTMCell(self, enable_ln_on_c):
     with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=False)):
       params = rnn_cell.DoubleProjectionLSTMCell.Params()
       params.name = 'lstm'
       params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+      params.enable_ln_on_c = enable_ln_on_c
 
       params.vn.global_vn = False
       params.vn.per_step_vn = False
@@ -1375,8 +1395,11 @@ class RNNCellTest(test_utils.TestCase):
             lstm.theta.get('bias_%s' % gate).get_shape(),
             tf.TensorShape([params.num_hidden_nodes]))
       # LN and bias for 'c'.
-      self.assertEqual(lstm.theta.ln_scale_c.get_shape(),
-                       tf.TensorShape([params.num_hidden_nodes]))
+      if enable_ln_on_c:
+        self.assertEqual(lstm.theta.ln_scale_c.get_shape(),
+                         tf.TensorShape([params.num_hidden_nodes]))
+      else:
+        self.assertNotIn('ln_scale_c', lstm.theta)
       self.assertEqual(lstm.theta.bias_c.get_shape(),
                        tf.TensorShape([params.num_hidden_nodes]))
       # Output projection.
@@ -1404,11 +1427,19 @@ class RNNCellTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
 
       wts = tf.get_collection('DoubleProjectionLSTMCell_vars')
-      self.assertEqual(2 + 3 * 4 + 2, len(wts))
+      if enable_ln_on_c:
+        self.assertEqual(2 + 3 * 4 + 2, len(wts))
+      else:
+        self.assertEqual(2 + 3 * 4 + 1, len(wts))
 
-      m_expected = [[-0.751002], [0.784634], [0.784634]]
-      c_expected = [[1.261887, -0.029158], [-0.00341, 1.034558],
-                    [-0.003731, 1.259534]]
+      if enable_ln_on_c:
+        m_expected = [[-0.751002], [0.784634], [0.784634]]
+        c_expected = [[1.261887, -0.029158], [-0.00341, 1.034558],
+                      [-0.003731, 1.259534]]
+      else:
+        m_expected = [[-0.606178], [0.599713], [0.657852]]
+        c_expected = [[1.261887, -0.029158], [-0.00341, 1.034558],
+                      [-0.003731, 1.259534]]
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
 
