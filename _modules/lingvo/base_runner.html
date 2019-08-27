@@ -312,9 +312,9 @@
       <span class="n">loop_func</span><span class="p">(</span><span class="o">*</span><span class="n">loop_args</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done.&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
       <span class="k">return</span>
-    <span class="k">except</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="o">+</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">OutOfRangeError</span><span class="p">,</span>
-                                           <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">DataLossError</span><span class="p">,</span>
-                                           <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">except</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="o">+</span> <span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">OutOfRangeError</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">DataLossError</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
       <span class="c1"># Retry on these three errors.</span>
       <span class="c1">#   FailedPreconditionError: variables are not initialized.</span>
       <span class="c1">#   AbortedError: processes restarts.</span>
@@ -323,6 +323,7 @@
       <span class="c1">#       or removing checkpoints.</span>
       <span class="c1">#   InvalidArgumentError: variables were not initialized. Comes from</span>
       <span class="c1">#       ResourceVariableOp.</span>
+      <span class="c1">#   CancelledError: Node was closed (on TPU).</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span>
           <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> exception: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">e</span><span class="p">),</span> <span class="n">retrying</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -352,7 +353,7 @@
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">(</span>
             <span class="n">infeasible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;Fatal error encountered.&#39;</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (fatal error).&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (fatal error): </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> exception: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
 
