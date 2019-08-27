@@ -824,20 +824,41 @@ The value when the key is not found.</p></li>
 
 <dl class="function">
 <dt id="lingvo.core.ops.v">
-<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">*args</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>Decorator for marking endpoints deprecated.</p>
-<p>This decorator does not print deprecation messages.
-TODO(annarev): eventually start printing deprecation warnings when
-&#64;deprecation_endpoints decorator is added.</p>
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">hyps</em>, <em class="sig-param">prev_hyps</em>, <em class="sig-param">done_hyps</em>, <em class="sig-param">scores</em>, <em class="sig-param">atten_probs</em>, <em class="sig-param">eos_scores</em>, <em class="sig-param">eos_atten_probs</em>, <em class="sig-param">eos_id</em>, <em class="sig-param">num_hyps_per_beam</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates <code class="xref py py-obj docutils literal notranslate"><span class="pre">Hypothesis</span></code> protos from output of a beam search step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>*args</strong> – Deprecated endpoint names.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [t, b * k] with ids of the token selected.</p></li>
+<li><p><strong>prev_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [t, b * k] with index to the previous hyps which
+was selected.</p></li>
+<li><p><strong>done_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.
+A boolean tensor of shape [t, b * k] where value indicates if hyps
+was terminated.</p></li>
+<li><p><strong>scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must be one of the following types: <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">bfloat16</span></code>.
+A tensor of shape [t, b * k]. in_scores[i, j] is the local score of
+the j-th hyp at the i-th decoding step.</p></li>
+<li><p><strong>atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">scores</span></code>.
+A tensor of shape [t, b * k, s_len]. atten_probs[i, j, …]
+is the attention probs over the source words for the j-th hyp at the i-th
+timestep.</p></li>
+<li><p><strong>eos_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">scores</span></code>.
+A tensor of shape [t, b * k]. eos_scores[i, j] is the local
+score of the EOS token at the j-th hyp at the i-th decoding step.</p></li>
+<li><p><strong>eos_atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">scores</span></code>.
+A tensor of shape [t, b * k, s_len].
+eos_atten_probs[i, j, …] is the attention probs over the source words
+for the j-th terminated hyp at the i-th timestep.</p></li>
+<li><p><strong>eos_id</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Token id of the special end of sequence token.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Number of hyps per beam.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A function that takes symbol as an argument and adds
-_tf_deprecated_api_names to that symbol.
-_tf_deprecated_api_names would be set to a list of deprecated
-endpoint names for the symbol.</p>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A tensor of shape [t, b * k] with terminated hyps.</p>
 </dd>
 </dl>
 </dd></dl>
