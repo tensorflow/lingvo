@@ -570,6 +570,28 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">current_step</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="LinearRampupExponentialDecay"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupExponentialDecay">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupExponentialDecay</span><span class="p">(</span>
+    <span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A schedule that does the following...</span>
+
+<span class="sd">  1. Linearly ramps up from `p.warmup_init` to 1.0 initially;</span>
+<span class="sd">  2. Stays at constant 1.0 until the decay starts;</span>
+<span class="sd">  3. Exponential decays from 1.0 to `p.min`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LinearRampupExponentialDecay.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupExponentialDecay.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LinearRampupExponentialDecay</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">num_splits</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">warmup_init</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">num_splits</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">LinearRampupExponentialDecay</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="LinearRampupPiecewiseConstantSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupPiecewiseConstantSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupPiecewiseConstantSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A learning rate schedule that does the following.</span>
 
