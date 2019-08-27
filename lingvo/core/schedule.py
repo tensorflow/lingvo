@@ -425,6 +425,28 @@ class LinearRampupExponentialDecayScaledByNumSplitSchedule(
     return self.combine.Value(current_step)
 
 
+class LinearRampupExponentialDecay(
+    LinearRampupExponentialDecayScaledByNumSplitSchedule):
+  """A schedule that does the following...
+
+  1. Linearly ramps up from `p.warmup_init` to 1.0 initially;
+  2. Stays at constant 1.0 until the decay starts;
+  3. Exponential decays from 1.0 to `p.min`.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(LinearRampupExponentialDecay, cls).Params()
+    p.num_splits = 1
+    p.warmup_init = 0.0
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    assert params.num_splits == 1
+    super(LinearRampupExponentialDecay, self).__init__(params)
+
+
 class LinearRampupPiecewiseConstantSchedule(BaseLearningRateSchedule):
   """A learning rate schedule that does the following.
 
