@@ -1061,8 +1061,13 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span> <span class="o">+=</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MakeDirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_path</span> <span class="o">=</span> <span class="n">_GetSpecificCheckpoint</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">load_checkpoint_from</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_path</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Multitask params doesn&#39;t have &#39;task&#39;.</span>
+    <span class="k">if</span> <span class="s1">&#39;task&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_eval_path</span> <span class="o">=</span> <span class="n">_GetSpecificCheckpoint</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">load_checkpoint_from</span><span class="p">)</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">vizier_reporting_job</span><span class="p">)</span>
@@ -1237,8 +1242,13 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span> <span class="o">=</span> <span class="n">GetDecoderDir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span>
                                       <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MakeDirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_decode_path</span> <span class="o">=</span> <span class="n">_GetSpecificCheckpoint</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">load_checkpoint_from</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_decode_path</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Multitask params doesn&#39;t have &#39;task&#39;.</span>
+    <span class="k">if</span> <span class="s1">&#39;task&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_decode_path</span> <span class="o">=</span> <span class="n">_GetSpecificCheckpoint</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">load_checkpoint_from</span><span class="p">)</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">vizier_reporting_job</span><span class="p">)</span>
