@@ -167,9 +167,9 @@ class BaseRunner(object):
       loop_func(*loop_args)
       tf.logging.info('%s done.', job_name)
       return
-    except py_utils.transient_tf_errors + (tf.errors.OutOfRangeError,
-                                           tf.errors.DataLossError,
-                                           tf.errors.InvalidArgumentError) as e:
+    except py_utils.transient_tf_errors + (
+        tf.errors.OutOfRangeError, tf.errors.DataLossError,
+        tf.errors.InvalidArgumentError, tf.errors.CancelledError) as e:
       # Retry on these three errors.
       #   FailedPreconditionError: variables are not initialized.
       #   AbortedError: processes restarts.
@@ -178,6 +178,7 @@ class BaseRunner(object):
       #       or removing checkpoints.
       #   InvalidArgumentError: variables were not initialized. Comes from
       #       ResourceVariableOp.
+      #   CancelledError: Node was closed (on TPU).
       self._SetStatusMessage(
           '%s exception: %s\n' % (job_name, e), retrying=True)
 
@@ -207,7 +208,7 @@ class BaseRunner(object):
       if self._should_report_metrics:
         self._trial.ReportDone(
             infeasible=True, infeasible_reason='Fatal error encountered.')
-      tf.logging.info('%s done (fatal error).', job_name)
+      tf.logging.error('%s done (fatal error): %s', job_name, type(e))
 
       self._SetStatusMessage('%s exception: %s\n' % (job_name, e))
 
