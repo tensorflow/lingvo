@@ -916,8 +916,13 @@ class Evaler(base_runner.BaseRunner):
     if self._model_task_name:
       self._eval_dir += '_' + str(self._model_task_name)
     tf.gfile.MakeDirs(self._eval_dir)
-    self._eval_path = _GetSpecificCheckpoint(
-        self.params.task.eval.load_checkpoint_from)
+
+    self._eval_path = None
+    # Multitask params doesn't have 'task'.
+    if 'task' in self.params:
+      self._eval_path = _GetSpecificCheckpoint(
+          self.params.task.eval.load_checkpoint_from)
+
     self._summary_writer = self._CreateSummaryWriter(self._eval_dir)
     self._should_report_metrics = self._job_name.startswith(
         FLAGS.vizier_reporting_job)
@@ -1092,8 +1097,13 @@ class Decoder(base_runner.BaseRunner):
     self._decoder_dir = GetDecoderDir(self._logdir, self._job_name,
                                       self._model_task_name)
     tf.gfile.MakeDirs(self._decoder_dir)
-    self._decode_path = _GetSpecificCheckpoint(
-        self.params.task.eval.load_checkpoint_from)
+
+    self._decode_path = None
+    # Multitask params doesn't have 'task'.
+    if 'task' in self.params:
+      self._decode_path = _GetSpecificCheckpoint(
+          self.params.task.eval.load_checkpoint_from)
+
     self._summary_writer = self._CreateSummaryWriter(self._decoder_dir)
     self._should_report_metrics = self._job_name.startswith(
         FLAGS.vizier_reporting_job)
