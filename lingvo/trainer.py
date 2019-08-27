@@ -1482,6 +1482,7 @@ class RunnerManager(object):
       return self.Decoder(dataset_name.lower(), cfg, *common_args)
     elif job in ('ps', 'worker', 'input'):
       self._tf_server.join()
+    elif job == 'executor_tpu':
       # TODO(blee): Fix the instantiation of ExecutorTpu
       program_schedule, task_dict = self.GetProgramScheduleParams(
           'executor_tpu', ['Train', 'Test'])

@@ -79,10 +79,10 @@ class BaseProgram(object):
     self._program_dir = os.path.join(self._logdir, program_dir_name)
     self._summary_writer = tf.summary.FileWriter(self._program_dir)
 
+    tf.gfile.MakeDirs(self._logdir)
     # Just a standard spot that all programs may restore from.
     self._checkpoint_dir = os.path.join(self._logdir, 'train')
-    if not os.path.isdir(self._checkpoint_dir):
-      os.mkdir(self._checkpoint_dir)
+    tf.gfile.MakeDirs(self._checkpoint_dir)
 
     self._steps_per_loop = p.steps_per_loop
     self.num_splits_per_client = p.num_splits_per_client
@@ -291,12 +291,15 @@ class TrainProgram(BaseProgram):
     return self.tpu_ops
 
   def Run(self, sess):
+    tf.logging.info('Executing train program.')
     p = self.params
     self._checkpointer.RestoreIfNeeded(sess)
     gsteps = py_utils.GetGlobalStep()
 
-    self._infeed_pool.apply_async(self._InfeedLoop, args=(sess,))
+    infeed_future = self._infeed_pool.apply_async(
+        self._InfeedLoop, args=(sess,))
     ary = sess.run(self.tpu_ops)
+    infeed_future.wait()
 
     values = ary[0]
     outfeeds = ary[1]
@@ -370,10 +373,13 @@ class EvalProgram(BaseProgram):
       return self.tpu_ops
 
   def Run(self, sess):
+    tf.logging.info('Executing eval program.')
     self._checkpointer.RestoreIfNeeded(sess)
     gsteps = py_utils.GetGlobalStep()
-    self._infeed_pool.apply_async(self._InfeedLoop, args=(sess,))
+    infeed_future = self._infeed_pool.apply_async(
+        self._InfeedLoop, args=(sess,))
     ary = sess.run(self.tpu_ops)
+    infeed_future.wait()
     values = ary[0]
     eval_metrics = self._eval_metrics.PackMetricsValues(values)
     global_step = sess.run(gsteps)
@@ -425,11 +431,13 @@ class DecodeProgram(BaseProgram):
     return None
 
   def Run(self, sess):
+    tf.logging.info('Executing decode program.')
     self._checkpointer.RestoreIfNeeded(sess)
     gsteps = py_utils.GetGlobalStep()
     global_step = sess.run(gsteps)
 
-    self._infeed_pool.apply_async(self._InfeedLoop, args=(sess,))
+    infeed_future = self._infeed_pool.apply_async(
+        self._InfeedLoop, args=(sess,))
     dec_metrics = self._model_task.CreateDecoderMetrics()
     start_time = time.time()
     for i in range(self._steps_per_loop):
@@ -437,7 +445,7 @@ class DecodeProgram(BaseProgram):
       self._model_task.PostProcessDecodeOut(metrics_values, dec_metrics)
       tf.logging.info('step: %d %f' %
                       (i, dec_metrics['num_samples_in_batch'].total_value))
-
+    infeed_future.wait()
     num_examples_metric = dec_metrics['num_samples_in_batch']
     summaries = {k: v.Summary(k) for k, v in six.iteritems(dec_metrics)}
     elapsed_secs = time.time() - start_time
