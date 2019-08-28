@@ -313,7 +313,8 @@ class TransformerDecoderTestCaseBase(test_utils.TestCase):
                      per_word_avg_loss=False,
                      is_transparent=False,
                      dtype=tf.float32,
-                     fprop_dtype=None):
+                     fprop_dtype=None,
+                     use_task_emb=False):
     p = decoder.TransformerDecoder.Params()
     p.name = 'decoder'
     p.source_dim = 4
@@ -326,6 +327,9 @@ class TransformerDecoderTestCaseBase(test_utils.TestCase):
     p.token_emb.max_num_shards = 1
     p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim()
     p.position_emb.embedding_dim = 4
+    if use_task_emb:
+      p.task_emb = p.token_emb.Copy()
+      p.task_emb.vocab_size = 4
     p.trans_tpl.vn = disable_vn
     p.trans_tpl.source_dim = 4
     p.trans_tpl.tr_atten_tpl.source_dim = 4
@@ -351,7 +355,7 @@ class TransformerDecoderTestCaseBase(test_utils.TestCase):
 
     return p
 
-  def _Inputs(self, dtype=tf.float32):
+  def _Inputs(self, dtype=tf.float32, has_task_ids=False):
     np.random.seed(_NUMPY_RANDOM_SEED)
     src_time = 5
     src_batch = 4
@@ -378,9 +382,17 @@ class TransformerDecoderTestCaseBase(test_utils.TestCase):
     })
     encoder_outputs = py_utils.NestedMap(
         encoded=src_enc, padding=src_paddings, segment_id=None)
+
+    if has_task_ids:
+      task_ids = tf.constant(
+          np.random.randint(4, size=[src_batch]), dtype=tf.int32)
+      tgts['task_ids'] = tf.tile(
+          tf.expand_dims(tf.tile(task_ids, [num_hyps]), 1), [1, tgt_time])
+      encoder_outputs['target_task_ids'] = task_ids
+
     return (encoder_outputs, tgts, num_hyps)
 
-  def _InputsForAttentionTest(self, dtype=tf.float32):
+  def _InputsForAttentionTest(self, dtype=tf.float32, has_task_ids=False):
     np.random.seed(_NUMPY_RANDOM_SEED)
     src_time = 5
     src_batch = 2
@@ -409,6 +421,14 @@ class TransformerDecoderTestCaseBase(test_utils.TestCase):
     })
     encoder_outputs = py_utils.NestedMap(
         encoded=src_enc, padding=src_paddings, segment_id=None)
+
+    if has_task_ids:
+      task_ids = tf.constant(
+          np.random.randint(4, size=[src_batch]), dtype=tf.int32)
+      tgts['task_ids'] = tf.tile(
+          tf.expand_dims(tf.tile(task_ids, [num_hyps]), 1), [1, tgt_time])
+      encoder_outputs['target_task_ids'] = task_ids
+
     return (encoder_outputs, tgts, num_hyps)
 
 
@@ -565,6 +585,17 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
       self.assertAllClose(expected_probs_v, new_probs_v)
 
+  def testDecoderFPropWithTaskEmb(self, dtype=tf.float32):
+    with self.session(use_gpu=True):
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(dtype=dtype, use_task_emb=True)
+      dec = decoder.TransformerDecoder(p)
+      encoder_outputs, targets, _ = self._Inputs(dtype=dtype, has_task_ids=True)
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
+      tf.global_variables_initializer().run()
+      actual_loss = loss.eval()
+      self.assertAlmostEqual(16.155428, actual_loss, delta=0.0001)
+
   def _testExtendStep(self, sess, dec, encoder_outputs, tgts, num_hyps):
     p = self._DecoderParams()
 
@@ -610,7 +641,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
         [l_out1, l_out2, attention_map_fprop, attention_map_bs, src_enc_len])
 
     # Ensure that FProp and BeamSearch output are the same.
-    self.assertAllClose(l_out1_v, l_out2_v)
+    self.assertAllClose(l_out1_v, l_out2_v, rtol=1e-05, atol=1e-05)
 
     # Ensure that FProp and BeamSearch attention matrix is the same.
     self.assertAllClose(attention_map_fprop_v.probs, attention_map_bs_v.probs)
@@ -629,9 +660,18 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype)
       dec = decoder.TransformerDecoder(p)
-      encoder_outputs, targets, num_hyps = self._Inputs(dtype=dtype)
       encoder_outputs, targets, num_hyps = (
           self._InputsForAttentionTest(dtype=dtype))
+
+      self._testExtendStep(sess, dec, encoder_outputs, targets, num_hyps)
+
+  def testDecoderExtendStepWithTaskEmb(self, dtype=tf.float32):
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(dtype=dtype, use_task_emb=True)
+      dec = decoder.TransformerDecoder(p)
+      encoder_outputs, targets, num_hyps = (
+          self._InputsForAttentionTest(dtype=dtype, has_task_ids=True))
 
       self._testExtendStep(sess, dec, encoder_outputs, targets, num_hyps)
 

@@ -541,6 +541,11 @@ class TransformerEncoder(base_layer.BaseLayer):
         layers.PositionalEmbeddingLayer.Params().Set(embedding_dim=1024),
         'Positional Embedding layer params.')
 
+    # TODO(miachen): Extend this to more general logic of adding multiple
+    # embedding fields.
+    # Task embedding related
+    p.Define('task_emb', None, 'Task embedding layer params.')
+
     p.Define('model_dim', 1024, 'Characteristic depth (dimension).')
     p.Define('input_dropout_prob', 0.0, 'Prob at which we do input dropout.')
 
@@ -579,6 +584,11 @@ class TransformerEncoder(base_layer.BaseLayer):
 
       # Positional embeddings
       self.CreateChild('position_emb', p.position_emb)
+
+      # Task embeddings.
+      if p.task_emb:
+        assert p.task_emb.embedding_dim == p.token_emb.embedding_dim
+        self.CreateChild('task_emb', p.task_emb)
 
       dropout_tpl = layers.DropoutLayer.Params()
       dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
@@ -659,6 +669,9 @@ class TransformerEncoder(base_layer.BaseLayer):
         position_embs = tf.reshape(position_embs,
                                    [1, max_time, p.token_emb.embedding_dim])
       input_embs += position_embs
+      if p.task_emb:
+        input_embs += self.task_emb.EmbLookup(theta.task_emb,
+                                              input_batch.task_ids)
 
       if p.model_dim != p.token_emb.embedding_dim:
         input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)

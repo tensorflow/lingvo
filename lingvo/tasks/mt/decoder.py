@@ -866,6 +866,10 @@ class TransformerDecoder(MTBaseDecoder):
         'If set, will include scalar summaries for multi-headed attention'
         ' to visualize the sparsity statistics of attention weights.')
 
+    # TODO(miachen): Extend this to more general logic of adding multiple
+    # embedding fields.
+    p.Define('task_emb', None, 'Task embedding layer params.')
+
     # Default config for the token embedding.
     p.token_emb.vocab_size = 32000
     p.token_emb.embedding_dim = p.model_dim
@@ -908,8 +912,11 @@ class TransformerDecoder(MTBaseDecoder):
       self.CreateChild('emb_proj', proj_p)
 
     with tf.variable_scope(p.name):
-      self._token_emb = self.CreateChild('token_emb', p.token_emb)
+      self.CreateChild('token_emb', p.token_emb)
       self.CreateChild('position_emb', p.position_emb)
+      if p.task_emb:
+        assert p.task_emb.embedding_dim == p.token_emb.embedding_dim
+        self.CreateChild('task_emb', p.task_emb)
 
       dropout_tpl = layers.DropoutLayer.Params()
       dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
@@ -1086,6 +1093,9 @@ class TransformerDecoder(MTBaseDecoder):
       # [time, batch, model_dim]
       input_embs = token_embs + posit_embs
 
+      if p.task_emb:
+        input_embs += self.task_emb.EmbLookup(theta.task_emb, targets.task_ids)
+
       if p.model_dim != p.token_emb.embedding_dim:
         input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)
 
@@ -1133,6 +1143,21 @@ class TransformerDecoder(MTBaseDecoder):
       attention_map = py_utils.NestedMap(probs=aggregated_atten_probs)
       return py_utils.NestedMap(
           softmax_input=layer_out, attention=attention_map)
+
+  def AddExtraDecodingInfo(self, encoder_outputs, targets):
+    """Adds extra decoding information to encoded_outputs.
+
+    Args:
+      encoder_outputs: a NestedMap computed by encoder.
+      targets: a NestedMap containing target input fields.
+
+    Returns:
+      encoder_ouputs with extra information used for decoding.
+    """
+    p = self.params
+    if p.task_emb:
+      encoder_outputs['target_task_ids'] = targets.task_ids[:, 0]
+    return encoder_outputs
 
   def ExtendStep(self, theta, encoder_outputs, new_ids, t, prefix_states):
     """Extend prefix as represented by `prefix_states` by one more step.
@@ -1182,6 +1207,18 @@ class TransformerDecoder(MTBaseDecoder):
           [1, p.model_dim])
       input_embs = token_embs + posit_embs
 
+      # Infer num_hyps_per_beam: new_ids has orig_batch_size * num_hyps_per_beam
+      # source_paddings has orig_batch_size.
+      num_hyps_per_beam = tf.div(
+          py_utils.GetShape(new_ids)[0],
+          py_utils.GetShape(source_paddings)[1])
+
+      if p.task_emb:
+        input_embs += self.task_emb.EmbLookup(
+            theta.task_emb,
+            self._ExpandToNumHyps(encoder_outputs.target_task_ids,
+                                  num_hyps_per_beam))
+
       if p.model_dim != p.token_emb.embedding_dim:
         input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)
 
@@ -1190,12 +1227,6 @@ class TransformerDecoder(MTBaseDecoder):
       out_prefix_states = prefix_states.Pack(prefix_states.Flatten())
 
       layer_in = input_embs
-
-      # Infer num_hyps_per_beam: new_ids has orig_batch_size * num_hyps_per_beam
-      # source_paddings has orig_batch_size.
-      num_hyps_per_beam = tf.div(
-          py_utils.GetShape(new_ids)[0],
-          py_utils.GetShape(source_paddings)[1])
 
       # Infer true source encoder length from the padding.
       src_enc_len = tf.reduce_sum(1 - source_paddings, axis=0)

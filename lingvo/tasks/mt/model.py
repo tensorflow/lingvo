@@ -97,6 +97,8 @@ class MTBaseModel(base_model.BaseTask):
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
       encoder_outputs = self.enc.FPropDefaultTheta(input_batch.src)
+      encoder_outputs = self.dec.AddExtraDecodingInfo(encoder_outputs,
+                                                      input_batch.tgt)
       decoder_outs = self.dec.BeamSearchDecode(encoder_outputs)
 
       topk_hyps = decoder_outs.topk_hyps

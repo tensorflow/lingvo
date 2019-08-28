@@ -308,6 +308,44 @@ class TransformerEncoderTest(test_utils.TestCase):
       self.assertAllClose(
           expected_emb_out_sum, actual_emb_out_sum, rtol=1e-05, atol=1e-05)
 
+  def testForwardPassWithTaskEmb(self):
+    with self.session(use_gpu=False):
+      bs = 2
+      sl = 21
+      tf.set_random_seed(8372749040)
+      p = self._EncoderParams()
+      p.task_emb = p.token_emb.Copy()
+      p.task_emb.vocab_size = 4
+      mt_enc = encoder.TransformerEncoder(p)
+      batch = py_utils.NestedMap()
+      batch.ids = tf.constant(
+          np.random.randint(low=0, high=63, size=[bs, sl], dtype=np.int32))
+      batch.task_ids = tf.constant(
+          np.random.randint(low=0, high=3, size=[bs, sl], dtype=np.int32))
+      batch.paddings = tf.zeros([bs, sl])
+
+      enc_out = mt_enc.FPropDefaultTheta(batch)
+      enc_out_sum = tf.reduce_sum(enc_out.encoded, 0)
+
+      tf.global_variables_initializer().run()
+      actual_enc_out = enc_out_sum.eval()
+
+      # pyformat: disable
+      # pylint: disable=bad-whitespace
+      expected_enc_out = [
+          [ 1.2796677,  -31.786997, -0.4054339, -32.61311 ,
+            42.41403,   11.020338,  54.115948,  -61.322887,
+            39.593548,  15.315696,  -20.373957, 1.8548622,
+            -17.743631, 3.140956,   30.730812,  41.4348],
+          [ -1.0373995, -31.306532, -2.6323462, -32.078648,
+            45.80049,   16.409424,  55.00114,   -63.102333,
+            40.4261,    14.198621,  -23.027012, 1.0839912,
+            -20.739473, 0.7242553,  32.49956,   41.592197]]
+      # pylint: enable=bad-whitespace
+      # pyformat: enable
+      self.assertAllClose(
+          expected_enc_out, actual_enc_out, rtol=1e-05, atol=1e-05)
+
   def testForwardPassWithInputPacking(self):
     with self.session(use_gpu=False) as sess:
       with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):

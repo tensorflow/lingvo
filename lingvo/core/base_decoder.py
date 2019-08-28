@@ -134,6 +134,18 @@ class BaseBeamSearchDecoder(BaseDecoder):
     p.target_sequence_sampler.target_eos_id = p.target_eos_id
     self.CreateChild('target_sequence_sampler', p.target_sequence_sampler)
 
+  def AddExtraDecodingInfo(self, encoder_outputs, targets):
+    """Adds extra decoding information to encoded_outputs.
+
+    Args:
+      encoder_outputs: a NestedMap computed by encoder.
+      targets: a NestedMap containing target input fields.
+
+    Returns:
+      encoder_ouputs with extra information used for decoding.
+    """
+    return encoder_outputs
+
   def BeamSearchDecode(self, encoder_outputs, num_hyps_per_beam_override=0):
     """Performs beam search based decoding.
 
