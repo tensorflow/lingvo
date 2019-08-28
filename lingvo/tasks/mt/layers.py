@@ -63,6 +63,7 @@ class TransformerStack(base_layer.BaseLayer):
              'If True, assumes multiple training samples per input.')
     p.Define('has_aux_attention', False,
              'Allows encoder layers to attend auxiliary inputs.')
+    p.Define('mask_self_atten', False, 'If True, use masked self-attention.')
     p.transformer_tpl.tr_atten_tpl.num_attention_heads = 8
     p.transformer_tpl.tr_fflayer_tpl.hidden_dim = 8192
     return p
@@ -93,6 +94,7 @@ class TransformerStack(base_layer.BaseLayer):
         params.source_dim = p.model_dim
         params.packed_input = p.packed_input
         params.has_aux_atten = p.has_aux_attention
+        params.mask_self_atten = p.mask_self_atten
 
       self.CreateChildren('trans', transformer_layer_params)
 

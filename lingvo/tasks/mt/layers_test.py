@@ -52,6 +52,13 @@ class LayersTest(test_utils.TestCase):
     params.has_aux_attention = True
     return params
 
+  def _MaskedTransformerParams(self,
+                               is_eval=False,
+                               layer=mt_layers.TransformerStack):
+    params = self._TransformerParams(is_eval, layer)
+    params.mask_self_atten = True
+    return params
+
   def _TransformerStackFProp(self, dtype, fprop_dtype, layer):
     # time = 2,
     batch = 3
@@ -354,6 +361,36 @@ class LayersTest(test_utils.TestCase):
       self.assertAllCloseAccordingToType([[[-0.41714936, 1.89849663]] * batch,
                                           [[1.24795163, -1.43194675]] * batch],
                                          output)
+
+  def testMaskedTransformerStackFProp(self):
+    batch = 3
+    dtype = tf.float32
+    fprop_dtype = tf.float32
+    layer = mt_layers.TransformerStack
+    tf.flags.FLAGS.tpu_compatible = True
+    with self.session(use_gpu=False) as sess:
+      params = self._MaskedTransformerParams(layer=layer)
+      params.dtype = dtype
+      params.fprop_dtype = fprop_dtype
+      xformer = layer(params)
+
+      input_arr = np.array([
+          [[0, 1]] * batch,
+          [[1, -1]] * batch,
+      ], dtype=int)
+
+      paddings_arr = np.array([[0] * batch, [0] * batch], dtype=int)
+
+      inputs = tf.constant(input_arr.tolist(), dtype=fprop_dtype)
+      paddings = tf.constant(paddings_arr.tolist(), dtype=fprop_dtype)
+
+      output, _, _ = xformer.FProp(xformer.theta, inputs, paddings)
+
+      tf.global_variables_initializer().run()
+      output = sess.run(output)
+      self.assertAllClose(
+          [[[0.327082, 0.942791]] * batch, [[0.82785916, -0.71739358]] * batch],
+          output)
 
 
 if __name__ == '__main__':
