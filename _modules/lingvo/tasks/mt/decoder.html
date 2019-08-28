@@ -1011,6 +1011,10 @@
         <span class="s1">&#39;If set, will include scalar summaries for multi-headed attention&#39;</span>
         <span class="s1">&#39; to visualize the sparsity statistics of attention weights.&#39;</span><span class="p">)</span>
 
+    <span class="c1"># TODO(miachen): Extend this to more general logic of adding multiple</span>
+    <span class="c1"># embedding fields.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;task_emb&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Task embedding layer params.&#39;</span><span class="p">)</span>
+
     <span class="c1"># Default config for the token embedding.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">32000</span>
     <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
@@ -1053,8 +1057,11 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb_proj&#39;</span><span class="p">,</span> <span class="n">proj_p</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_token_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;token_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;token_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;position_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;task_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">)</span>
 
       <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
       <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_prob</span><span class="p">)</span>
@@ -1231,6 +1238,9 @@
       <span class="c1"># [time, batch, model_dim]</span>
       <span class="n">input_embs</span> <span class="o">=</span> <span class="n">token_embs</span> <span class="o">+</span> <span class="n">posit_embs</span>
 
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
+        <span class="n">input_embs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">task_emb</span><span class="p">,</span> <span class="n">targets</span><span class="o">.</span><span class="n">task_ids</span><span class="p">)</span>
+
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">:</span>
         <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb_proj</span><span class="p">,</span> <span class="n">input_embs</span><span class="p">)</span>
 
@@ -1278,6 +1288,21 @@
       <span class="n">attention_map</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">probs</span><span class="o">=</span><span class="n">aggregated_atten_probs</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
           <span class="n">softmax_input</span><span class="o">=</span><span class="n">layer_out</span><span class="p">,</span> <span class="n">attention</span><span class="o">=</span><span class="n">attention_map</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TransformerDecoder.AddExtraDecodingInfo"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.AddExtraDecodingInfo">[docs]</a>  <span class="k">def</span> <span class="nf">AddExtraDecodingInfo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds extra decoding information to encoded_outputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      encoder_outputs: a NestedMap computed by encoder.</span>
+<span class="sd">      targets: a NestedMap containing target input fields.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      encoder_ouputs with extra information used for decoding.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
+      <span class="n">encoder_outputs</span><span class="p">[</span><span class="s1">&#39;target_task_ids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">task_ids</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">encoder_outputs</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.ExtendStep"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">new_ids</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">prefix_states</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extend prefix as represented by `prefix_states` by one more step.</span>
@@ -1327,6 +1352,18 @@
           <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
       <span class="n">input_embs</span> <span class="o">=</span> <span class="n">token_embs</span> <span class="o">+</span> <span class="n">posit_embs</span>
 
+      <span class="c1"># Infer num_hyps_per_beam: new_ids has orig_batch_size * num_hyps_per_beam</span>
+      <span class="c1"># source_paddings has orig_batch_size.</span>
+      <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">div</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">new_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
+        <span class="n">input_embs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">task_emb</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ExpandToNumHyps</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="o">.</span><span class="n">target_task_ids</span><span class="p">,</span>
+                                  <span class="n">num_hyps_per_beam</span><span class="p">))</span>
+
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">:</span>
         <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb_proj</span><span class="p">,</span> <span class="n">input_embs</span><span class="p">)</span>
 
@@ -1335,12 +1372,6 @@
       <span class="n">out_prefix_states</span> <span class="o">=</span> <span class="n">prefix_states</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">prefix_states</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
       <span class="n">layer_in</span> <span class="o">=</span> <span class="n">input_embs</span>
-
-      <span class="c1"># Infer num_hyps_per_beam: new_ids has orig_batch_size * num_hyps_per_beam</span>
-      <span class="c1"># source_paddings has orig_batch_size.</span>
-      <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">div</span><span class="p">(</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">new_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
 
       <span class="c1"># Infer true source encoder length from the padding.</span>
       <span class="n">src_enc_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>

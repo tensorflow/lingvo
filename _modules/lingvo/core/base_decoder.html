@@ -279,6 +279,18 @@
     <span class="n">p</span><span class="o">.</span><span class="n">target_sequence_sampler</span><span class="o">.</span><span class="n">target_eos_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;target_sequence_sampler&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_sequence_sampler</span><span class="p">)</span>
 
+<div class="viewcode-block" id="BaseBeamSearchDecoder.AddExtraDecodingInfo"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.AddExtraDecodingInfo">[docs]</a>  <span class="k">def</span> <span class="nf">AddExtraDecodingInfo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds extra decoding information to encoded_outputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      encoder_outputs: a NestedMap computed by encoder.</span>
+<span class="sd">      targets: a NestedMap containing target input fields.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      encoder_ouputs with extra information used for decoding.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">encoder_outputs</span></div>
+
 <div class="viewcode-block" id="BaseBeamSearchDecoder.BeamSearchDecode"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Performs beam search based decoding.</span>
 

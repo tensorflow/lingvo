@@ -686,6 +686,11 @@
         <span class="n">layers</span><span class="o">.</span><span class="n">PositionalEmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">embedding_dim</span><span class="o">=</span><span class="mi">1024</span><span class="p">),</span>
         <span class="s1">&#39;Positional Embedding layer params.&#39;</span><span class="p">)</span>
 
+    <span class="c1"># TODO(miachen): Extend this to more general logic of adding multiple</span>
+    <span class="c1"># embedding fields.</span>
+    <span class="c1"># Task embedding related</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;task_emb&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Task embedding layer params.&#39;</span><span class="p">)</span>
+
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;model_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;Characteristic depth (dimension).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dropout_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Prob at which we do input dropout.&#39;</span><span class="p">)</span>
 
@@ -724,6 +729,11 @@
 
       <span class="c1"># Positional embeddings</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;position_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="p">)</span>
+
+      <span class="c1"># Task embeddings.</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;task_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">)</span>
 
       <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
       <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_prob</span><span class="p">)</span>
@@ -804,6 +814,9 @@
         <span class="n">position_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">position_embs</span><span class="p">,</span>
                                    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_time</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
       <span class="n">input_embs</span> <span class="o">+=</span> <span class="n">position_embs</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
+        <span class="n">input_embs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">task_emb</span><span class="p">,</span>
+                                              <span class="n">input_batch</span><span class="o">.</span><span class="n">task_ids</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">:</span>
         <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb_proj</span><span class="p">,</span> <span class="n">input_embs</span><span class="p">)</span>
