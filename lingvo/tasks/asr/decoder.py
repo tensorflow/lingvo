@@ -812,6 +812,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     del targets_per_batch_element
     p = self.params
     self.contextualizer.SetContextMap(targets, theta.contextualizer)
+    if 'weights' not in targets and 'paddings' in targets:
+      targets.weights = 1.0 - targets.paddings
     if p.use_while_loop_based_unrolling:
       predictions = self.ComputePredictionsDynamic(theta, encoder_outputs,
                                                    targets)
@@ -904,12 +906,14 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     return tf.transpose(atten_probs.stack(), [1, 0, 2])
 
   def _GetPredictionFromSequenceOutTensorArrays(self, seq_out_tas):
-    # [max_target_length, batch, dim] -> [batch, max_target_length, dim].
     return py_utils.NestedMap(
+        # softmax_input is of shape [time, batch, dim] for compatibility.
+        softmax_input=seq_out_tas.step_outs.stack(),
+        # logits is of shape [batch, time, dim].
         logits=tf.transpose(seq_out_tas.logits.stack(), [1, 0, 2]),
         attention=py_utils.NestedMap(
-            probs=self._GetAttenProbsFromSequenceOutTensorArrays(seq_out_tas
-                                                                 .atten_probs)))
+            probs=self._GetAttenProbsFromSequenceOutTensorArrays(
+                seq_out_tas.atten_probs)))
 
   def _GetInitialTargetInfo(self, targets, max_seq_length, target_embs):
     return AsrDecoderBase.TargetInfo(
@@ -1114,7 +1118,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       predictions = py_utils.NestedMap(
           # Transpose to [batch, time, num_classes].
           logits_without_bias=tf.transpose(seq_logits, [1, 0, 2]),
-          logits=tf.transpose(adjusted_logits, [1, 0, 2]))
+          logits=tf.transpose(adjusted_logits, [1, 0, 2]),
+          # softmax_input is of shape [time, batch, dim] for compatibility.
+          softmax_input=softmax_input)
       attention_map = py_utils.NestedMap(probs=accumulated_states.atten_probs)
       for k, v in additional_atten_probs:
         attention_map[k] = v
