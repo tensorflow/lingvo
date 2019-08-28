@@ -1431,7 +1431,6 @@ class RunnerManager(object):
     cluster.mode = FLAGS.mode
     cluster.job = job_name
     cluster.task = FLAGS.task
-    cluster.logdir = FLAGS.logdir
 
     cluster.controller.name = FLAGS.controller_job
     cluster.controller.gpus_per_replica = FLAGS.controller_gpus

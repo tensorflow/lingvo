@@ -74,6 +74,7 @@ class BaseRunner(object):
     # to early stop a trial.
     self._max_steps = None
 
+    self.params.cluster.logdir = logdir
     self._cluster = cluster_factory.Cluster(self.params.cluster)
     self._train_dir = os.path.join(self._logdir, 'train')
     self._graph = tf.Graph()
