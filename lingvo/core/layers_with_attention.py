@@ -236,6 +236,61 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     ])
     return h, atten_prob
 
+  def _FinishExtendStep(self,
+                        theta,
+                        query_vec,
+                        unnormalized_query_vec,
+                        extended_packed_src,
+                        t=None):
+    """Finish extending prefix by one more time step.
+
+    Isolating this function from ExtendStep allows generalizing self-attention
+    to causal attention on other inputs.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec: [target_batch, dim]
+      unnormalized_query_vec: [target_batch, dim]
+      extended_packed_src: A `.NestedMap` object containing source_vecs,
+        source_contexts, source_paddings, and source_segment_ids
+      t: a scalar, the current time step, 0-based.
+
+    Returns:
+      A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor
+      representing the output from the current state, and new_state is the new
+      state `.NestedMap`.
+    """
+    p = self.params
+    if t is not None:
+      source_seq_len = tf.shape(extended_packed_src.source_vecs)[0]
+      zero_padding = tf.fill([source_seq_len],
+                             tf.constant(0.0, dtype=query_vec.dtype))
+      per_step_source_padding = tf.where(
+          tf.less(tf.range(source_seq_len), tf.fill([source_seq_len], t + 1)),
+          zero_padding, tf.ones_like(zero_padding, dtype=query_vec.dtype))
+      query_batch_size = tf.shape(query_vec)[0]
+      per_step_source_padding = tf.tile(
+          tf.expand_dims(per_step_source_padding, axis=0),
+          [query_batch_size, 1])
+    else:
+      per_step_source_padding = None
+    ctx_vec, atten_prob, _ = self.atten.ComputeContextVectorWithCachedSource(
+        theta.atten,
+        extended_packed_src,
+        query_vec,
+        per_step_source_padding=per_step_source_padding)
+
+    ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
+    input_to_add = (
+        unnormalized_query_vec if p.add_unnormalized_input else query_vec)
+    h = input_to_add + tf.reshape(ctx_vec, tf.shape(query_vec))
+
+    new_states = py_utils.NestedMap(
+        key=extended_packed_src.source_vecs,
+        value=extended_packed_src.source_contexts)
+    return h, atten_prob, new_states
+
   def ExtendStep(self, theta, query_vec, prefix_state, t=None):
     """Extend prefix by one more time step.
 
@@ -265,36 +320,11 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         source_contexts=prefix_state.value,
         source_padding=None,
         source_segment_id=None)
-    extended_packed_src = self.atten.ExtendSourcePacked(
-        theta.atten, query_vec, query_vec, None, None, cached_packed_src, t)
-    if t is not None:
-      source_seq_len = tf.shape(extended_packed_src.source_vecs)[0]
-      zero_padding = tf.fill([source_seq_len],
-                             tf.constant(0.0, dtype=query_vec.dtype))
-      per_step_source_padding = tf.where(
-          tf.less(tf.range(source_seq_len), tf.fill([source_seq_len], t + 1)),
-          zero_padding, tf.ones_like(zero_padding, dtype=query_vec.dtype))
-      query_batch_size = tf.shape(query_vec)[0]
-      per_step_source_padding = tf.tile(
-          tf.expand_dims(per_step_source_padding, axis=0),
-          [query_batch_size, 1])
-    else:
-      per_step_source_padding = None
-    ctx_vec, atten_prob, _ = self.atten.ComputeContextVectorWithCachedSource(
-        theta.atten,
-        extended_packed_src,
-        query_vec,
-        per_step_source_padding=per_step_source_padding)
-
-    ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
-    input_to_add = (
-        unnormalized_query_vec if p.add_unnormalized_input else query_vec)
-    h = input_to_add + tf.reshape(ctx_vec, tf.shape(query_vec))
-
-    new_states = py_utils.NestedMap(
-        key=extended_packed_src.source_vecs,
-        value=extended_packed_src.source_contexts)
-    return h, atten_prob, new_states
+    extended_packed_src = self.atten.ExtendSourcePacked(theta.atten, query_vec,
+                                                        query_vec, None, None,
+                                                        cached_packed_src, t)
+    return self._FinishExtendStep(theta, query_vec, unnormalized_query_vec,
+                                  extended_packed_src, t)
 
 
 class TransformerFeedForwardLayer(base_layer.BaseLayer):
