@@ -462,6 +462,21 @@
     <span class="k">return</span> <span class="n">tensor</span>
 
 
+<span class="k">def</span> <span class="nf">GetRank</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns tensor&#39;s rank as an int if it&#39;s available, otherwise a Tensor.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tensor: The input tensor.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Either an int or a Tensor for the rank of the input tensor.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span>  <span class="c1"># int</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>  <span class="c1"># Tensor</span>
+
+
 <span class="k">def</span> <span class="nf">HasShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">,</span> <span class="n">ndims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Syntactic sugar for asserting that tensor has the expected shape.</span>
 
