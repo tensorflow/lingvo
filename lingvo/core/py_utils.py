@@ -317,6 +317,21 @@ def HasRank(tensor, expected_rank):
     return tensor
 
 
+def GetRank(tensor):
+  """Returns tensor's rank as an int if it's available, otherwise a Tensor.
+
+  Args:
+    tensor: The input tensor.
+
+  Returns:
+    Either an int or a Tensor for the rank of the input tensor.
+  """
+  if tensor.shape.ndims is not None:
+    return tensor.shape.ndims  # int
+  else:
+    return tf.rank(tensor)  # Tensor
+
+
 def HasShape(tensor, expected_shape, ndims=None):
   """Syntactic sugar for asserting that tensor has the expected shape.
 

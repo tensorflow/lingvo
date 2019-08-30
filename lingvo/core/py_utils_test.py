@@ -395,6 +395,32 @@ class PyUtilsTest(test_utils.TestCase):
     # GetShape() will return a Tensor.
     self.assertIsInstance(py_utils.GetShape(f), tf.Tensor)
 
+  def testGetRank(self):
+    a = tf.constant([1])
+    self.assertEqual(py_utils.GetRank(a), 1)
+
+    b = tf.constant([[1, 2]])
+    self.assertEqual(py_utils.GetRank(b), 2)
+
+    c = tf.zeros([1, a[0], a.shape[0].value, tf.shape(a)[0]])
+    self.assertEqual(py_utils.GetRank(c), 4)
+
+    d = tf.placeholder(tf.float32, shape=(1, None))
+    self.assertEqual(py_utils.GetRank(d), 2)
+
+    e = tf.zeros([d.shape[0].value, tf.shape(d)[0], tf.shape(d)[1]])
+    self.assertEqual(py_utils.GetRank(e), 3)
+
+    @tf.Defun(tf.float32)
+    def Identity(x):
+      return x
+
+    f = Identity(e)
+    # Function return value does not have shape info.
+    self.assertIsNone(f.shape.ndims)
+    # GetRank() will return a Tensor.
+    self.assertIsInstance(py_utils.GetRank(f), tf.Tensor)
+
   def testRenamingRules(self):
     pc = py_utils.WeightParams([3, 3])
     with tf.variable_scope('model'):
