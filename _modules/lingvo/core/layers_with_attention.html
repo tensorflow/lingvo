@@ -381,6 +381,61 @@
     <span class="p">])</span>
     <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">atten_prob</span></div>
 
+<div class="viewcode-block" id="TransformerAttentionLayer._FinishExtendStep"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerAttentionLayer._FinishExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">_FinishExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                        <span class="n">theta</span><span class="p">,</span>
+                        <span class="n">query_vec</span><span class="p">,</span>
+                        <span class="n">unnormalized_query_vec</span><span class="p">,</span>
+                        <span class="n">extended_packed_src</span><span class="p">,</span>
+                        <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Finish extending prefix by one more time step.</span>
+
+<span class="sd">    Isolating this function from ExtendStep allows generalizing self-attention</span>
+<span class="sd">    to causal attention on other inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      query_vec: [target_batch, dim]</span>
+<span class="sd">      unnormalized_query_vec: [target_batch, dim]</span>
+<span class="sd">      extended_packed_src: A `.NestedMap` object containing source_vecs,</span>
+<span class="sd">        source_contexts, source_paddings, and source_segment_ids</span>
+<span class="sd">      t: a scalar, the current time step, 0-based.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor</span>
+<span class="sd">      representing the output from the current state, and new_state is the new</span>
+<span class="sd">      state `.NestedMap`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">source_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">zero_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">source_seq_len</span><span class="p">],</span>
+                             <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">source_seq_len</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">source_seq_len</span><span class="p">],</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>
+          <span class="n">zero_padding</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">zero_padding</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+          <span class="p">[</span><span class="n">query_batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_prob</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithCachedSource</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
+        <span class="n">extended_packed_src</span><span class="p">,</span>
+        <span class="n">query_vec</span><span class="p">,</span>
+        <span class="n">per_step_source_padding</span><span class="o">=</span><span class="n">per_step_source_padding</span><span class="p">)</span>
+
+    <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
+    <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">unnormalized_query_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">query_vec</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">input_to_add</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">))</span>
+
+    <span class="n">new_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">key</span><span class="o">=</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_contexts</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">atten_prob</span><span class="p">,</span> <span class="n">new_states</span></div>
+
 <div class="viewcode-block" id="TransformerAttentionLayer.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">prefix_state</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extend prefix by one more time step.</span>
 
@@ -410,36 +465,11 @@
         <span class="n">source_contexts</span><span class="o">=</span><span class="n">prefix_state</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
         <span class="n">source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">source_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-    <span class="n">extended_packed_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ExtendSourcePacked</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cached_packed_src</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">source_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">zero_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">source_seq_len</span><span class="p">],</span>
-                             <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">source_seq_len</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">source_seq_len</span><span class="p">],</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>
-          <span class="n">zero_padding</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">zero_padding</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-      <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
-          <span class="p">[</span><span class="n">query_batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_prob</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithCachedSource</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
-        <span class="n">extended_packed_src</span><span class="p">,</span>
-        <span class="n">query_vec</span><span class="p">,</span>
-        <span class="n">per_step_source_padding</span><span class="o">=</span><span class="n">per_step_source_padding</span><span class="p">)</span>
-
-    <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
-    <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">unnormalized_query_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">query_vec</span><span class="p">)</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">input_to_add</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">))</span>
-
-    <span class="n">new_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">key</span><span class="o">=</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">,</span>
-        <span class="n">value</span><span class="o">=</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_contexts</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">atten_prob</span><span class="p">,</span> <span class="n">new_states</span></div></div>
+    <span class="n">extended_packed_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ExtendSourcePacked</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span>
+                                                        <span class="n">query_vec</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                                                        <span class="n">cached_packed_src</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FinishExtendStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">unnormalized_query_vec</span><span class="p">,</span>
+                                  <span class="n">extended_packed_src</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="TransformerFeedForwardLayer"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerFeedForwardLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerFeedForwardLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>

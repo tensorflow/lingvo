@@ -234,6 +234,32 @@ source_time].</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer._FinishExtendStep">
+<code class="sig-name descname">_FinishExtendStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">query_vec</em>, <em class="sig-param">unnormalized_query_vec</em>, <em class="sig-param">extended_packed_src</em>, <em class="sig-param">t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer._FinishExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer._FinishExtendStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finish extending prefix by one more time step.</p>
+<p>Isolating this function from ExtendStep allows generalizing self-attention
+to causal attention on other inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>query_vec</strong> – [target_batch, dim]</p></li>
+<li><p><strong>unnormalized_query_vec</strong> – [target_batch, dim]</p></li>
+<li><p><strong>extended_packed_src</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing source_vecs,
+source_contexts, source_paddings, and source_segment_ids</p></li>
+<li><p><strong>t</strong> – a scalar, the current time step, 0-based.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor
+representing the output from the current state, and new_state is the new
+state <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep">
 <code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">query_vec</em>, <em class="sig-param">prefix_state</em>, <em class="sig-param">t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extend prefix by one more time step.</p>
