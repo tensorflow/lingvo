@@ -1,0 +1,297 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.tools.kitti_exporter module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.car.ap_metric module" href="lingvo.tasks.car.ap_metric.html" />
+    <link rel="prev" title="lingvo.tasks.car.tools.kitti_data module" href="lingvo.tasks.car.tools.kitti_data.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.html">lingvo.tasks.car package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.tools.html">lingvo.tasks.car.tools package</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.tools.kitti_exporter module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.tasks.car.tools.kitti_exporter.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.car.tools.kitti_exporter">
+<span id="lingvo-tasks-car-tools-kitti-exporter-module"></span><h1>lingvo.tasks.car.tools.kitti_exporter module<a class="headerlink" href="#module-lingvo.tasks.car.tools.kitti_exporter" title="Permalink to this headline">¶</a></h1>
+<p>Create TFRecords files from KITTI raw data.</p>
+<p>Parses KITTI raw data with different splits, indicated with split files.
+A split file is a text file that specifies frame names to be included in the
+split, with one name per line. Splits with ‘test’ in the filename use testing
+data, while other splits use training data. This program expects KITTI raw data
+in the following directory structure:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>kitti_object/</dt><dd><dl class="simple">
+<dt>training/  # Contains KITTI raw train data</dt><dd><p>label2/
+velodyne/
+calib/
+image_2/</p>
+</dd>
+<dt>testing/  # Contains KITTI raw test data</dt><dd><p>velodyne/
+calib/
+image_2/</p>
+</dd>
+<dt>splits/  # Contains split files identifying frame names in the split.</dt><dd><p>split_name.txt</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+<p>Outputs examples in TFRecords files correspond to KITTI frames with the
+following format:</p>
+<blockquote>
+<div><p># frame information
+image/source_id: unique frame name e.g ‘000000’, ‘000010’</p>
+<p># 2D image data
+image/encoded: PNG encoded string
+image/height: image height
+image/width: image width
+image/format: ‘PNG’</p>
+<p># 3D velodyne pointcloud data (variable P points per frame)
+pointcloud/xyz = point positions (P x 3 tensor).
+pointcloud/reflectance: point reflectances (P x 1 tensor).</p>
+<p># Object level data (variable N objects per frame)
+object/image/bbox/xmin: min X pixel location in raw image (N x 1 tensor).</p>
+<p>object/image/bbox/xmax: max X pixel location in raw image (N x 1 tensor).</p>
+<p>object/image/bbox/ymin: min Y pixel location in raw image (N x 1 tensor).</p>
+<p>object/image/bbox/ymax: max Y pixel location in raw image (N x 1 tensor).</p>
+<p>object/label: one of {‘Car’, ‘Pedestrian’, ‘Cyclist’} identifying object
+class (N x 1 tensor).</p>
+<p>object/has_3d_info: 1 if object has valid 3D info else 0 (N x 1 tensor).</p>
+<p>object/occlusion: int in {0, 1, 2, 3} of occlusion state (N x 1 tensor).</p>
+<p>object/truncation: float in 0 (non-truncated) to 1 (truncated) (N x 1 tensor).</p>
+<p>object/velo/bbox/xyz: 3D bbox locations in velo frame (N x 3 tensor).</p>
+<p>object/velo/bbox/dim_xyz: length (dx), width (dy), height (dz) indicating
+object dimensions (N x 3 tensor).</p>
+<p>object/velo/bbox/phi: bbox rotation in velo frame (N x 1 tensor).</p>
+<p># Transformation matrices
+transform/velo_to_image_plane: 3x4 matrix from velo xyz to image plane xy.
+After multiplication, you need to divide by last coordinate to recover 2D
+pixel locations.</p>
+<p>transform/velo_to_camera: 4x4 matrix from velo xyz to camera xyz.</p>
+<p>transform/camera_to_velo 4x4 matrix from camera xyz to velo xyz.</p>
+</div></blockquote>
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_exporter._ReadObjectDataset">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_exporter.</code><code class="sig-name descname">_ReadObjectDataset</code><span class="sig-paren">(</span><em class="sig-param">root_dir</em>, <em class="sig-param">frame_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_exporter.html#_ReadObjectDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_exporter._ReadObjectDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads and parses KITTI dataset files into a list of TFExample protos.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_exporter._ExportObjectDatasetToTFRecord">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_exporter.</code><code class="sig-name descname">_ExportObjectDatasetToTFRecord</code><span class="sig-paren">(</span><em class="sig-param">root_dir</em>, <em class="sig-param">split_file</em>, <em class="sig-param">tfrecord_path</em>, <em class="sig-param">num_shards</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_exporter.html#_ExportObjectDatasetToTFRecord"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_exporter._ExportObjectDatasetToTFRecord" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exports KITTI dataset files to TFRecord files.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_exporter.main">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_exporter.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">unused_argv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_exporter.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_exporter.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.tasks.car.ap_metric.html" class="btn btn-neutral float-right" title="lingvo.tasks.car.ap_metric module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.tasks.car.tools.kitti_data.html" class="btn btn-neutral float-left" title="lingvo.tasks.car.tools.kitti_data module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,734 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.geometry &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.geometry</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.geometry</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Routines related to geometric operations on bboxes.</span>
+
+<span class="sd">Bboxes and coordinates are always in the last dimension of a tensor.</span>
+
+<span class="sd">2D BBoxes are represented by (ymin, xmin, ymax, xmax).</span>
+
+<span class="sd">2D BBoxes can also be represented by (centroid x, centroid y, width, height).</span>
+
+<span class="sd">2D coordinates are represented by (x, y).</span>
+
+<span class="sd">3D coordinates are represented by (x, y, z).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">functional_ops</span>
+
+
+<div class="viewcode-block" id="_BroadcastMatmul"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry._BroadcastMatmul">[docs]</a><span class="k">def</span> <span class="nf">_BroadcastMatmul</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Broadcast y and matmul with x.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: A tensor of shape [..., b].</span>
+<span class="sd">    y: A matrix of shape [b, c].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    z[..., c], where z[i..., :] = matmul(x[i..., :], y)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">y</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">x_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">x_reshaped</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">result</span><span class="p">,</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+                        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="CoordinateTransform"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.CoordinateTransform">[docs]</a><span class="k">def</span> <span class="nf">CoordinateTransform</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">pose</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Translate &#39;points&#39; to coordinates according to &#39;pose&#39; vector.</span>
+
+<span class="sd">  pose should contain 6 floating point values:</span>
+<span class="sd">    translate_x, translate_y, translate_z: The translation to apply.</span>
+<span class="sd">    yaw, roll, pitch: The rotation angles in radians.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points: Float shape [..., 3]: Points to transform to new coordinates.</span>
+<span class="sd">    pose: Float shape [6]: [translate_x, translate_y, translate_z, yaw, roll,</span>
+<span class="sd">      pitch]. The pose in the frame that &#39;points&#39; comes from, and the defintion</span>
+<span class="sd">      of the rotation and translation angles to apply to points.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    &#39;points&#39; transformed to the coordinates defined by &#39;pose&#39;.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">translate_x</span> <span class="o">=</span> <span class="n">pose</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">translate_y</span> <span class="o">=</span> <span class="n">pose</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">translate_z</span> <span class="o">=</span> <span class="n">pose</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+  <span class="c1"># Translate the points so the origin is the pose&#39;s center.</span>
+  <span class="n">translation</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="n">translate_x</span><span class="p">,</span> <span class="n">translate_y</span><span class="p">,</span> <span class="n">translate_z</span><span class="p">],</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+  <span class="n">translated_points</span> <span class="o">=</span> <span class="n">points</span> <span class="o">+</span> <span class="n">translation</span>
+
+  <span class="c1"># Define the rotation matrices for each of yaw, roll and pitch.</span>
+  <span class="c1">#</span>
+  <span class="c1"># The angle is expected to be in radians.</span>
+  <span class="c1"># pyformat: disable</span>
+  <span class="k">def</span> <span class="nf">UnitX</span><span class="p">(</span><span class="n">angle</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span>
+                       <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span>
+                       <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)],</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+  <span class="k">def</span> <span class="nf">UnitY</span><span class="p">(</span><span class="n">angle</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span>
+                       <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span>
+                       <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)],</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+  <span class="k">def</span> <span class="nf">UnitZ</span><span class="p">(</span><span class="n">angle</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span>
+                       <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span>
+                       <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="c1"># pyformat: enable</span>
+
+  <span class="c1"># Compose the rotations along the three axes.</span>
+  <span class="c1">#</span>
+  <span class="c1"># Yaw-&gt;Z, Roll-&gt;X, Pitch-&gt;Y to match onboard logic:</span>
+  <span class="n">yaw</span> <span class="o">=</span> <span class="n">pose</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+  <span class="n">roll</span> <span class="o">=</span> <span class="n">pose</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+  <span class="n">pitch</span> <span class="o">=</span> <span class="n">pose</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+  <span class="n">rotation_matrix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">UnitZ</span><span class="p">(</span><span class="n">yaw</span><span class="p">),</span> <span class="n">UnitX</span><span class="p">(</span><span class="n">roll</span><span class="p">)),</span> <span class="n">UnitY</span><span class="p">(</span><span class="n">pitch</span><span class="p">))</span>
+
+  <span class="c1"># Finally, rotate the points about the pose&#39;s origin according to the</span>
+  <span class="c1"># rotation matrix.</span>
+  <span class="n">rotated_points</span> <span class="o">=</span> <span class="n">_BroadcastMatmul</span><span class="p">(</span><span class="n">translated_points</span><span class="p">,</span> <span class="n">rotation_matrix</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">rotated_points</span></div>
+
+
+<div class="viewcode-block" id="XYWHToBBoxes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.XYWHToBBoxes">[docs]</a><span class="k">def</span> <span class="nf">XYWHToBBoxes</span><span class="p">(</span><span class="n">xywh</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Converts xywh to bboxes.&quot;&quot;&quot;</span>
+  <span class="n">mtrx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+          <span class="c1"># x    y    h    w</span>
+          <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-.</span><span class="mi">5</span><span class="p">],</span>  <span class="c1"># ymin</span>
+          <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-.</span><span class="mi">5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>  <span class="c1"># xmin</span>
+          <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>  <span class="c1"># ymax</span>
+          <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>  <span class="c1"># xmax</span>
+      <span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+      <span class="n">dtype</span><span class="o">=</span><span class="n">xywh</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">_BroadcastMatmul</span><span class="p">(</span><span class="n">xywh</span><span class="p">,</span> <span class="n">mtrx</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PointsToImagePlane"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.PointsToImagePlane">[docs]</a><span class="k">def</span> <span class="nf">PointsToImagePlane</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">velo_to_image_plane</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Converts 3D points to the image plane.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points: A [N, 3] Floating point tensor containing xyz points. Points are</span>
+<span class="sd">      assumed to be in velo coordinates.</span>
+<span class="sd">    velo_to_image_plane: A [3, 4] matrix from velo xyz to image plane xy.</span>
+<span class="sd">      After multiplication, you need to divide by last coordinate to recover 2D</span>
+<span class="sd">      pixel locations.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    points: A [N, 2] Floating point tensor containing points in</span>
+<span class="sd">      the image plane.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">num_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">points</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="n">num_points</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="n">velo_to_image_plane</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">velo_to_image_plane</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+
+  <span class="c1"># Add homogenous coordinates to points.</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">points</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">num_points</span><span class="p">,</span> <span class="mi">1</span><span class="p">))],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="c1"># Perform projection and divide by last coordinate to recover 2D pixel</span>
+  <span class="c1"># locations.</span>
+  <span class="n">points_image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">velo_to_image_plane</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="n">points_image</span> <span class="o">=</span> <span class="n">points_image</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="n">points_image</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+
+  <span class="n">points_image</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">points_image</span><span class="p">,</span> <span class="p">[</span><span class="n">num_points</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">points_image</span></div>
+
+
+<div class="viewcode-block" id="BBoxesToXYWH"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.BBoxesToXYWH">[docs]</a><span class="k">def</span> <span class="nf">BBoxesToXYWH</span><span class="p">(</span><span class="n">bboxes</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Converts bboxes to xywh.&quot;&quot;&quot;</span>
+  <span class="n">mtrx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+          <span class="c1"># ymin xmin ymax xmax</span>
+          <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>  <span class="c1"># x centroid</span>
+          <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>  <span class="c1"># y centroid</span>
+          <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>  <span class="c1"># width</span>
+          <span class="p">[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>  <span class="c1"># height</span>
+      <span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+      <span class="n">dtype</span><span class="o">=</span><span class="n">bboxes</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">_BroadcastMatmul</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="n">mtrx</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BBoxesCentroid"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.BBoxesCentroid">[docs]</a><span class="k">def</span> <span class="nf">BBoxesCentroid</span><span class="p">(</span><span class="n">bboxes</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns the centroids of bboxes.&quot;&quot;&quot;</span>
+  <span class="n">mtrx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+          <span class="c1"># ymin xmin ymax xmax</span>
+          <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>  <span class="c1"># x centroid</span>
+          <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>  <span class="c1"># y centroid</span>
+      <span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+      <span class="n">dtype</span><span class="o">=</span><span class="n">bboxes</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">_BroadcastMatmul</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="n">mtrx</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ReorderIndicesByPhi"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.ReorderIndicesByPhi">[docs]</a><span class="k">def</span> <span class="nf">ReorderIndicesByPhi</span><span class="p">(</span><span class="n">anchor</span><span class="p">,</span> <span class="n">bboxes</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Sort bboxes based their angles relative to the anchor point.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    anchor: A vector of (x0, y0).</span>
+<span class="sd">    bboxes: A matrix of shape [N, 4].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A permutation of tf.range(n) which can be used to reshuffle bboxes to the</span>
+<span class="sd">    sorted order. (e.g., tf.gather(bboxes, indices)).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">anchor</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">bboxes</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">_True</span><span class="p">(</span><span class="n">anchor</span><span class="p">,</span> <span class="n">bboxes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;True branch when num of bboxes is non-zero.&quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">centroid</span> <span class="o">=</span> <span class="n">BBoxesCentroid</span><span class="p">(</span><span class="n">bboxes</span><span class="p">)</span>
+
+    <span class="c1"># Computed dot products between centroid and the anchor point.</span>
+    <span class="n">dot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">centroid</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">anchor</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Normalize dot to get the cosine of the angles.</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">anchor</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">centroid</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">cosine</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">norm</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dot</span> <span class="o">/</span> <span class="n">norm</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n</span><span class="p">],</span> <span class="n">norm</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
+    <span class="c1"># Disambiguates the angle anchor--O--point is positive or negative by the</span>
+    <span class="c1"># sign of cross products between angle and points.  tf.cross takes 3-vector</span>
+    <span class="c1"># (x, y, z), so we set z to 0.  tf.cross does not support broadcasting, so</span>
+    <span class="c1"># we tile anchor to shape [n, 3].</span>
+    <span class="n">cross</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">anchor</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]),</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">centroid</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]))</span>
+
+    <span class="c1"># If the sign is positive, the points lie on the clockwise side of</span>
+    <span class="c1"># O--&gt;anchor. Hence, -1 - cosine moves the cosine values to [-2, 0].  If the</span>
+    <span class="c1"># sign is negative, the points lie on the counter-clockwise side of</span>
+    <span class="c1"># O--&gt;anchor. 1 + cosine moves the cosine values to [0, 2].</span>
+    <span class="c1">#</span>
+    <span class="c1"># The car dataset shows that the points are scanned in the counter-clockwise</span>
+    <span class="c1"># fashion. Therefore, top-k orders the points in the same order in which</span>
+    <span class="c1"># bboxes appears in the spin.</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">cross</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span> <span class="o">-</span> <span class="n">cosine</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">cosine</span><span class="p">)</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">indices</span>
+
+  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">anchor</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">bboxes</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">_False</span><span class="p">(</span><span class="n">anchor</span><span class="p">,</span> <span class="n">bboxes</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">anchor</span><span class="p">,</span> <span class="n">bboxes</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+  <span class="n">n</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">functional_ops</span><span class="o">.</span><span class="n">If</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">anchor</span><span class="p">,</span> <span class="n">bboxes</span><span class="p">],</span> <span class="n">_True</span><span class="p">,</span> <span class="n">_False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="_SmoothL1Norm"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry._SmoothL1Norm">[docs]</a><span class="k">def</span> <span class="nf">_SmoothL1Norm</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Smoothed L1 norm.&quot;&quot;&quot;</span>
+  <span class="c1"># F&amp;F paper formula (3).</span>
+  <span class="c1"># http://openaccess.thecvf.com/content_cvpr_2018/papers/Luo_Fast_and_Furious_CVPR_2018_paper.pdf</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistanceBetweenCentroidsAndBBoxesFastAndFurious"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.DistanceBetweenCentroidsAndBBoxesFastAndFurious">[docs]</a><span class="k">def</span> <span class="nf">DistanceBetweenCentroidsAndBBoxesFastAndFurious</span><span class="p">(</span><span class="n">centroids</span><span class="p">,</span> <span class="n">bboxes</span><span class="p">,</span> <span class="n">masks</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes the distance between centroids and bboxes.</span>
+
+<span class="sd">  The distance/loss is loosely following the &#39;Fast and Furious&#39; paper by Luo et</span>
+<span class="sd">  al., CVPR&#39;18.  This is just one way of calculating the distances. We will</span>
+<span class="sd">  probably develop other ways.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    centroids: [..., 4]. x/y/w/h for bboxes.</span>
+<span class="sd">    bboxes: [..., 4]. ymin/xmin/ymax/xmax for bboxes.</span>
+<span class="sd">    masks: [...]. masks[i] == 1 means i-th entry (centroids[i] and bboxes[i])</span>
+<span class="sd">      should be considered in the distance/loss calculation.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A [...] tensor. i-th value is the distance measure of centroids[i] and</span>
+<span class="sd">    bboxes[i].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">centroids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+  <span class="c1"># &quot;gt&quot; suffix means &#39;ground truth&#39;.</span>
+  <span class="n">x_gt</span><span class="p">,</span> <span class="n">y_gt</span><span class="p">,</span> <span class="n">w_gt</span><span class="p">,</span> <span class="n">h_gt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">BBoxesToXYWH</span><span class="p">(</span><span class="n">bboxes</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">Pos</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">x</span><span class="p">)</span>
+
+  <span class="c1"># The following terms are zeros when masks[i] is 0.</span>
+  <span class="n">l_x</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">masks</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_gt</span><span class="p">)</span> <span class="o">/</span> <span class="n">Pos</span><span class="p">(</span><span class="n">w_gt</span><span class="p">))</span>
+  <span class="n">l_y</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">masks</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_gt</span><span class="p">)</span> <span class="o">/</span> <span class="n">Pos</span><span class="p">(</span><span class="n">h_gt</span><span class="p">))</span>
+  <span class="n">s_w</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">masks</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Pos</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">/</span> <span class="n">Pos</span><span class="p">(</span><span class="n">w_gt</span><span class="p">)))</span>
+  <span class="n">s_h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">masks</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Pos</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="n">Pos</span><span class="p">(</span><span class="n">h_gt</span><span class="p">)))</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">_SmoothL1Norm</span><span class="p">(</span><span class="n">l_x</span><span class="p">)</span> <span class="o">+</span> <span class="n">_SmoothL1Norm</span><span class="p">(</span><span class="n">l_y</span><span class="p">)</span> <span class="o">+</span> <span class="n">_SmoothL1Norm</span><span class="p">(</span><span class="n">s_w</span><span class="p">)</span> <span class="o">+</span>
+          <span class="n">_SmoothL1Norm</span><span class="p">(</span><span class="n">s_h</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="DistanceBetweenCentroids"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.DistanceBetweenCentroids">[docs]</a><span class="k">def</span> <span class="nf">DistanceBetweenCentroids</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">masks</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes the distance between centroids.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    u: [..., 4]. x/y/w/h for bboxes.</span>
+<span class="sd">    v: [..., 4]. x/y/w/h for bboxes.</span>
+<span class="sd">    masks: [...]. masks[i] == 1 means i-th entry (u[i] and v[i]) should be</span>
+<span class="sd">      considered in the distance/loss calculation.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A [...] tensor. i-th value is the distance measure of u[i] and v[i].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">masks</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">_SmoothL1Norm</span><span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">v</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<span class="c1"># TODO(zhifengc/drpng): Consider other possible loss formuation:</span>
+<span class="c1"># E.g.,</span>
+<span class="c1">#  (L1(u[x], v[x]) + L1(u[w], v[w]))*(L1(u[y], v[y]) + L1(u[h], v[h]))</span>
+
+
+<div class="viewcode-block" id="_IsOnLeftHandSideOrOn"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry._IsOnLeftHandSideOrOn">[docs]</a><span class="k">def</span> <span class="nf">_IsOnLeftHandSideOrOn</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Checks if a point lays on a vector direction, or is to the left.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    point: a tensor of shape [..., 2] of points to check.</span>
+<span class="sd">    v1: a float tensor of shape [..., 2] of vertices.</span>
+<span class="sd">    v2: a tensor of shape and type as v1. The second vertices.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor of booleans indicating whether each point is on the left</span>
+<span class="sd">    of, or exactly on, the direction indicated by the vertices.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">v1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">v2</span><span class="p">))</span>
+  <span class="n">point_x</span> <span class="o">=</span> <span class="n">point</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+  <span class="n">point_y</span> <span class="o">=</span> <span class="n">point</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+  <span class="n">v1_x</span> <span class="o">=</span> <span class="n">v1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+  <span class="n">v2_x</span> <span class="o">=</span> <span class="n">v2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+  <span class="n">v1_y</span> <span class="o">=</span> <span class="n">v1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+  <span class="n">v2_y</span> <span class="o">=</span> <span class="n">v2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+  <span class="c1"># Prepare for broadcast: All point operations are on the left,</span>
+  <span class="c1"># and all v1/v2 operations are on the right.</span>
+  <span class="n">point_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">point_x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">point_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">point_y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">v1_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v1_x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="n">v2_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v2_x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="n">v1_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v1_y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="n">v2_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v2_y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="n">d1</span> <span class="o">=</span> <span class="p">(</span><span class="n">point_y</span> <span class="o">-</span> <span class="n">v1_y</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">v2_x</span> <span class="o">-</span> <span class="n">v1_x</span><span class="p">)</span>
+  <span class="n">d2</span> <span class="o">=</span> <span class="p">(</span><span class="n">point_x</span> <span class="o">-</span> <span class="n">v1_x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">v2_y</span> <span class="o">-</span> <span class="n">v1_y</span><span class="p">)</span>
+  <span class="n">d</span> <span class="o">=</span> <span class="n">d1</span> <span class="o">-</span> <span class="n">d2</span>
+
+  <span class="k">return</span> <span class="n">d</span> <span class="o">&gt;=</span> <span class="mf">0.</span></div>
+
+
+<div class="viewcode-block" id="_IsCounterClockwiseDirection"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry._IsCounterClockwiseDirection">[docs]</a><span class="k">def</span> <span class="nf">_IsCounterClockwiseDirection</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="n">v3</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Checks if the path from v1 to v3 via v2 is counter-clockwise.</span>
+
+<span class="sd">  When v1 is equal to v2, or v2 equals v3, return true, by fiat. Tis will</span>
+<span class="sd">  work when the v&#39;s are padded vectors.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    v1: a float Tensor of shape [..., 2], indicating the starting point.</span>
+<span class="sd">    v2: a Tensor of same type and shape as v1, indicating the via point.</span>
+<span class="sd">    v3: a Tensor of same type and shape as v1, indicating the ending point.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    True for all directions such that v1 to v3 via v2 is a counter clockwise</span>
+<span class="sd">  direction.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># Check if it&#39;s on the left hand side, strictly, and without broadcasting.</span>
+  <span class="n">v1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">v2</span><span class="p">))</span>
+  <span class="n">v1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">v3</span><span class="p">))</span>
+  <span class="n">v1_x</span><span class="p">,</span> <span class="n">v1_y</span> <span class="o">=</span> <span class="n">v1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">v1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+  <span class="n">v2_x</span><span class="p">,</span> <span class="n">v2_y</span> <span class="o">=</span> <span class="n">v2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">v2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+  <span class="n">v3_x</span><span class="p">,</span> <span class="n">v3_y</span> <span class="o">=</span> <span class="n">v3</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">v3</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+  <span class="n">d1</span> <span class="o">=</span> <span class="p">(</span><span class="n">v3_y</span> <span class="o">-</span> <span class="n">v1_y</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">v2_x</span> <span class="o">-</span> <span class="n">v1_x</span><span class="p">)</span>
+  <span class="n">d2</span> <span class="o">=</span> <span class="p">(</span><span class="n">v3_x</span> <span class="o">-</span> <span class="n">v1_x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">v2_y</span> <span class="o">-</span> <span class="n">v1_y</span><span class="p">)</span>
+  <span class="n">d</span> <span class="o">=</span> <span class="n">d1</span> <span class="o">-</span> <span class="n">d2</span>
+  <span class="k">return</span> <span class="n">d</span> <span class="o">&gt;=</span> <span class="mf">0.</span></div>
+
+
+<div class="viewcode-block" id="IsWithinBBox"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.IsWithinBBox">[docs]</a><span class="k">def</span> <span class="nf">IsWithinBBox</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">bbox</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Checks if points are within a 2-d bbox.</span>
+
+<span class="sd">  The function returns true if points are strictly inside the box. It also</span>
+<span class="sd">  returns true when the points are exactly on the box edges.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points: a float Tensor of shape [..., 2] of points to be tested. The last</span>
+<span class="sd">      coordinates are (x, y).</span>
+<span class="sd">    bbox: a float Tensor of shape [..., 4, 2] of bboxes. The last coordinates</span>
+<span class="sd">      are the four corners of the bbox and (x, y). The corners are assumed to be</span>
+<span class="sd">      given in counter-clockwise order.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    If pshape = tf.shape(points)[:-1] and bshape = tf.shape(bbox)[:-2],</span>
+<span class="sd">    a tensor of shape tf.concat(pshape, bshape), of booleans, where</span>
+<span class="sd">    each element is true if the point is inside to the corresponding box.</span>
+<span class="sd">    If a point falls exactly on an edge of the bbox, it is also true.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">bshape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">bbox</span><span class="p">)[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+  <span class="n">pshape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">points</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">bbox</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">bbox</span><span class="p">,</span> <span class="n">bshape</span> <span class="o">+</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">pshape</span> <span class="o">+</span> <span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+  <span class="c1"># Enumerate all 4 edges:</span>
+  <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="n">v3</span><span class="p">,</span> <span class="n">v4</span> <span class="o">=</span> <span class="p">(</span><span class="n">bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:],</span>
+                    <span class="n">bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:])</span>
+  <span class="n">v1v2v3_check</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">_IsCounterClockwiseDirection</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="n">v3</span><span class="p">))</span>
+  <span class="n">v2v3v4_check</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">_IsCounterClockwiseDirection</span><span class="p">(</span><span class="n">v2</span><span class="p">,</span> <span class="n">v3</span><span class="p">,</span> <span class="n">v4</span><span class="p">))</span>
+  <span class="n">v4v1v2_check</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">_IsCounterClockwiseDirection</span><span class="p">(</span><span class="n">v4</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">))</span>
+  <span class="n">v3v4v1_check</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">_IsCounterClockwiseDirection</span><span class="p">(</span><span class="n">v3</span><span class="p">,</span> <span class="n">v4</span><span class="p">,</span> <span class="n">v1</span><span class="p">))</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span><span class="n">v1v2v3_check</span><span class="p">,</span> <span class="p">[</span><span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="n">v3</span><span class="p">]),</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span><span class="n">v2v3v4_check</span><span class="p">,</span> <span class="p">[</span><span class="n">v3</span><span class="p">,</span> <span class="n">v3</span><span class="p">,</span> <span class="n">v4</span><span class="p">]),</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span><span class="n">v4v1v2_check</span><span class="p">,</span> <span class="p">[</span><span class="n">v4</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">]),</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span><span class="n">v3v4v1_check</span><span class="p">,</span> <span class="p">[</span><span class="n">v3</span><span class="p">,</span> <span class="n">v4</span><span class="p">,</span> <span class="n">v1</span><span class="p">])</span>
+  <span class="p">]):</span>
+    <span class="n">is_inside</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+            <span class="n">_IsOnLeftHandSideOrOn</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">),</span>
+            <span class="n">_IsOnLeftHandSideOrOn</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="n">v3</span><span class="p">)),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+            <span class="n">_IsOnLeftHandSideOrOn</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">v3</span><span class="p">,</span> <span class="n">v4</span><span class="p">),</span>
+            <span class="n">_IsOnLeftHandSideOrOn</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">v4</span><span class="p">,</span> <span class="n">v1</span><span class="p">)))</span>
+  <span class="k">return</span> <span class="n">is_inside</span></div>
+
+
+<div class="viewcode-block" id="BBoxCorners"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.BBoxCorners">[docs]</a><span class="k">def</span> <span class="nf">BBoxCorners</span><span class="p">(</span><span class="n">bboxes</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extract the corner points from a 7-DOF bbox representation.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    bboxes: A [batch, num_boxes, 7] floating point bounding box representation</span>
+<span class="sd">      ([x, y, z, dx, dy, dz, phi]).</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A [batch, num_boxes, 8, 3] floating point Tensor containing</span>
+<span class="sd">      the corner (x, y, z) points for every bounding box.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># Code adapted from vale/soapbox codebase.</span>
+  <span class="c1">#</span>
+  <span class="c1"># Corners in normalized box frame (unit cube centered at origin).</span>
+  <span class="c1">#</span>
+  <span class="c1"># Dimensions is [length, width, height].</span>
+  <span class="n">corners</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span>
+      <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>  <span class="c1"># top</span>
+      <span class="p">[</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>  <span class="c1"># top</span>
+      <span class="p">[</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>  <span class="c1"># top</span>
+      <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>  <span class="c1"># top</span>
+      <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">],</span>  <span class="c1"># bottom</span>
+      <span class="p">[</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">],</span>  <span class="c1"># bottom</span>
+      <span class="p">[</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">],</span>  <span class="c1"># bottom</span>
+      <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">],</span>  <span class="c1"># bottom</span>
+  <span class="p">])</span>
+
+  <span class="n">batch</span><span class="p">,</span> <span class="n">nb</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+  <span class="c1"># Extract location, dimension, and rotation.</span>
+  <span class="n">location</span> <span class="o">=</span> <span class="n">bboxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+  <span class="n">dimensions</span> <span class="o">=</span> <span class="n">bboxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+  <span class="n">phi_world</span> <span class="o">=</span> <span class="n">bboxes</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">6</span><span class="p">]</span>
+
+  <span class="c1"># Convert rotation_phis into rotation matrices along unit z.</span>
+  <span class="n">cos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi_world</span><span class="p">)</span>
+  <span class="n">sin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi_world</span><span class="p">)</span>
+  <span class="n">zero</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">cos</span><span class="p">)</span>
+  <span class="n">one</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">cos</span><span class="p">)</span>
+  <span class="n">rotations_world</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">cos</span><span class="p">,</span> <span class="o">-</span><span class="n">sin</span><span class="p">,</span> <span class="n">zero</span><span class="p">,</span> <span class="n">sin</span><span class="p">,</span> <span class="n">cos</span><span class="p">,</span> <span class="n">zero</span><span class="p">,</span> <span class="n">zero</span><span class="p">,</span> <span class="n">zero</span><span class="p">,</span> <span class="n">one</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+      <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">nb</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+  <span class="c1"># Create axis-aligned corners from length/width/height.</span>
+  <span class="n">corners</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bni,ji-&gt;bnji&#39;</span><span class="p">,</span> <span class="n">dimensions</span><span class="p">,</span> <span class="n">corners</span><span class="p">)</span>
+
+  <span class="c1"># Rotate the corners coordinates to the rotated world frame.</span>
+  <span class="n">corners</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bnij,bnkj-&gt;bnki&#39;</span><span class="p">,</span> <span class="n">rotations_world</span><span class="p">,</span> <span class="n">corners</span><span class="p">)</span>
+
+  <span class="c1"># Translate corners to the world location.</span>
+  <span class="n">corners</span> <span class="o">=</span> <span class="n">corners</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">nb</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">corners</span></div>
+
+
+<div class="viewcode-block" id="IsWithinBBox3D"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.IsWithinBBox3D">[docs]</a><span class="k">def</span> <span class="nf">IsWithinBBox3D</span><span class="p">(</span><span class="n">points_3d</span><span class="p">,</span> <span class="n">bboxes_3d</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Checks if points are within a 3-d bbox.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points_3d: [num_points, 3] float32 Tensor specifying points in 3-d space as</span>
+<span class="sd">      [x, y, z] coordinates.</span>
+<span class="sd">    bboxes_3d: [num_bboxes, 7] float32 Tensor specifying a 3-d bboxes specified</span>
+<span class="sd">      as [x, y, z, dx, dy, dz, phi] where x, y and z is the center of the box.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    boolean Tensor of shape [num_points, num_bboxes] indicating whether the</span>
+<span class="sd">    points belong within each box.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">points_3d</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">points_3d</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">points_3d</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">points_3d</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="n">num_points</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">points_3d</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+  <span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+  <span class="n">num_bboxes</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+  <span class="c1"># Compute the 3-D corners of the bounding boxes.</span>
+  <span class="n">bboxes_3d_b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="n">bbox_corners</span> <span class="o">=</span> <span class="n">BBoxCorners</span><span class="p">(</span><span class="n">bboxes_3d_b</span><span class="p">)</span>
+  <span class="n">bbox_corners</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">bbox_corners</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="c1"># First four points are the top of the bounding box.</span>
+  <span class="c1"># Counter-clockwise arrangement of points specifying 2-d Euclidean box.</span>
+  <span class="c1">#   (x0, y1) &lt;--- (x1, y1)</span>
+  <span class="c1">#                    ^</span>
+  <span class="c1">#                    |</span>
+  <span class="c1">#                    |</span>
+  <span class="c1">#   (x0, y0) ---&gt; (x1, y0)</span>
+  <span class="n">bboxes_2d_corners</span> <span class="o">=</span> <span class="n">bbox_corners</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+  <span class="n">bboxes_2d_corners</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">bboxes_2d_corners</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+  <span class="c1"># Determine if points lie within 2-D (x, y) plane for all bounding boxes.</span>
+  <span class="n">points_2d</span> <span class="o">=</span> <span class="n">points_3d</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+  <span class="n">is_inside_2d</span> <span class="o">=</span> <span class="n">IsWithinBBox</span><span class="p">(</span><span class="n">points_2d</span><span class="p">,</span> <span class="n">bboxes_2d_corners</span><span class="p">)</span>
+  <span class="n">is_inside_2d</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">is_inside_2d</span><span class="p">,</span> <span class="p">[</span><span class="n">num_points</span><span class="p">,</span> <span class="n">num_bboxes</span><span class="p">])</span>
+
+  <span class="c1"># Determine if points lie with the z-dimension for all bounding boxes.</span>
+  <span class="p">[</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">dz</span><span class="p">,</span> <span class="n">_</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_ComputeLimits</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">width</span><span class="p">):</span>
+    <span class="n">left</span> <span class="o">=</span> <span class="n">center</span> <span class="o">-</span> <span class="n">width</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="n">center</span> <span class="o">+</span> <span class="n">width</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="k">return</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span>
+
+  <span class="n">z0</span><span class="p">,</span> <span class="n">z1</span> <span class="o">=</span> <span class="n">_ComputeLimits</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">dz</span><span class="p">)</span>
+  <span class="n">z_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">points_3d</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_BroadcastAcrossPoints</span><span class="p">(</span><span class="n">z</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_points</span><span class="p">]))</span>
+
+  <span class="n">is_inside_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">z_points</span><span class="p">,</span> <span class="n">_BroadcastAcrossPoints</span><span class="p">(</span><span class="n">z1</span><span class="p">)),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">z_points</span><span class="p">,</span> <span class="n">_BroadcastAcrossPoints</span><span class="p">(</span><span class="n">z0</span><span class="p">)))</span>
+  <span class="n">is_inside_z</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">is_inside_z</span><span class="p">,</span> <span class="p">[</span><span class="n">num_points</span><span class="p">,</span> <span class="n">num_bboxes</span><span class="p">])</span>
+
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">is_inside_z</span><span class="p">,</span> <span class="n">is_inside_2d</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SphericalCoordinatesTransform"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.SphericalCoordinatesTransform">[docs]</a><span class="k">def</span> <span class="nf">SphericalCoordinatesTransform</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Converts points from xyz coordinates to spherical coordinates.</span>
+
+<span class="sd">  https://en.wikipedia.org/wiki/Spherical_coordinate_system#Coordinate_system_conversions</span>
+<span class="sd">  for definitions of the transformations.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points_xyz: A floating point tensor with shape [..., 3], where the inner 3</span>
+<span class="sd">      dimensions correspond to xyz coordinates.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A floating point tensor with the same shape [..., 3], where the inner</span>
+<span class="sd">    dimensions correspond to (dist, theta, phi), where phi corresponds to</span>
+<span class="sd">    azimuth/yaw (rotation around z), and theta corresponds to pitch/inclination</span>
+<span class="sd">    (rotation around y).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+  <span class="n">theta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">acos</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="mf">1e-7</span><span class="p">))</span>
+  <span class="c1"># Note: tf.atan2 takes in (y, x).</span>
+  <span class="n">phi</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">points_xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,366 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.kitti_ap_metric &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.kitti_ap_metric</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.kitti_ap_metric</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Average Precision metric class for KITTI.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">ap_metric</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">ops</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="KITTIAPMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_ap_metric.html#lingvo.tasks.car.kitti_ap_metric.KITTIAPMetrics">[docs]</a><span class="k">class</span> <span class="nc">KITTIAPMetrics</span><span class="p">(</span><span class="n">ap_metric</span><span class="o">.</span><span class="n">APMetrics</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;The KITTI implementation of AP metric.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="KITTIAPMetrics._GetData"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_ap_metric.html#lingvo.tasks.car.kitti_ap_metric.KITTIAPMetrics._GetData">[docs]</a>  <span class="k">def</span> <span class="nf">_GetData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">classid</span><span class="p">,</span>
+               <span class="n">difficulty</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">rotation</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns groundtruth and prediction for the classid in a NestedMap.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      classid: int32 specifying the class</span>
+<span class="sd">      difficulty: String in [easy, moderate, hard]. If None specified, all</span>
+<span class="sd">        difficulty levels are permitted.</span>
+<span class="sd">      distance: int32 specifying a binned Euclidean distance of the ground truth</span>
+<span class="sd">        bounding box. If None is specified, all distances are selected.</span>
+<span class="sd">      num_points: int32 specifying a binned number of laser points within the</span>
+<span class="sd">        ground truth bounding box. If None is specified, all boxes are selected.</span>
+<span class="sd">      rotation: int32 specifying a binned rotation within the ground truth</span>
+<span class="sd">        bounding box. If None is specified, all boxes are selected.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      NestedMap containing iou_threshold, groundtruth and predictions for</span>
+<span class="sd">      specified, classid, difficulty level and binned distance. If no bboxes</span>
+<span class="sd">      are found with these parameters, returns None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">classid</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">classid</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumClasses</span><span class="p">()</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoadBoundingBoxes</span><span class="p">(</span>
+        <span class="s1">&#39;groundtruth&#39;</span><span class="p">,</span>
+        <span class="n">classid</span><span class="p">,</span>
+        <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
+        <span class="n">num_points</span><span class="o">=</span><span class="n">num_points</span><span class="p">,</span>
+        <span class="n">rotation</span><span class="o">=</span><span class="n">rotation</span><span class="p">)</span>
+    <span class="c1"># Note that we do not specify num_points for predictions because only</span>
+    <span class="c1"># groundtruth boxes contain points.</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoadBoundingBoxes</span><span class="p">(</span>
+        <span class="s1">&#39;prediction&#39;</span><span class="p">,</span> <span class="n">classid</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="n">rotation</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># KITTI ignores detections that are too small.</span>
+    <span class="n">min_height</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">difficulty</span><span class="p">:</span>
+      <span class="n">min_height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">MinHeight2D</span><span class="p">()[</span><span class="n">difficulty</span><span class="p">]</span>
+    <span class="n">pd_ignore</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">heights_in_pixels</span> <span class="o">&lt;</span> <span class="n">min_height</span>
+    <span class="c1"># We first fetch the ground truth boxes for the specified class id</span>
+    <span class="c1"># into gt_boxes.</span>
+    <span class="n">gt_boxes</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">boxes</span>
+    <span class="n">gt_imgids</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">imgids</span>
+    <span class="c1"># Ignore bboxes that are more difficult than this levels by setting their</span>
+    <span class="c1"># gt_ignore to 1 (IgnoreOneMatch).</span>
+    <span class="k">if</span> <span class="n">difficulty</span><span class="p">:</span>
+      <span class="n">gt_ignore</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">difficulties</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">()[</span><span class="n">difficulty</span><span class="p">]</span>
+      <span class="n">gt_ignore</span> <span class="o">=</span> <span class="n">gt_ignore</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">gt_ignore</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># Extract the bounding boxes from the groundtruth for &#39;similar&#39;</span>
+    <span class="c1"># categories.  Add these to the list of ground truth bounding boxes</span>
+    <span class="c1"># with an ignore setting of 1 (IgnoreOneMatch).</span>
+    <span class="k">if</span> <span class="n">classid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">IgnoreClassIndices</span><span class="p">():</span>
+      <span class="k">for</span> <span class="n">class_id_to_ignore</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">IgnoreClassIndices</span><span class="p">()[</span><span class="n">classid</span><span class="p">]:</span>
+        <span class="n">g_ignore</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoadBoundingBoxes</span><span class="p">(</span>
+            <span class="s1">&#39;groundtruth&#39;</span><span class="p">,</span> <span class="n">class_id</span><span class="o">=</span><span class="n">class_id_to_ignore</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">g_ignore</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">n_ignore_boxes</span> <span class="o">=</span> <span class="n">g_ignore</span><span class="o">.</span><span class="n">boxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+          <span class="n">gt_imgids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">gt_imgids</span><span class="p">,</span> <span class="n">g_ignore</span><span class="o">.</span><span class="n">imgids</span><span class="p">])</span>
+          <span class="n">gt_boxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">gt_boxes</span><span class="p">,</span> <span class="n">g_ignore</span><span class="o">.</span><span class="n">boxes</span><span class="p">])</span>
+          <span class="n">gt_ignore</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">gt_ignore</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_ignore_boxes</span><span class="p">)])</span>
+
+    <span class="c1"># Extract the DontCare bounding boxes from the data, and add</span>
+    <span class="c1"># these to the list of bounding boxes to evaluate with an ignore</span>
+    <span class="c1"># setting of 2 (IgnoreAllMatches).  Only relevant to KITTI.</span>
+    <span class="k">if</span> <span class="s1">&#39;DontCare&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">():</span>
+      <span class="n">g_ignore</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoadBoundingBoxes</span><span class="p">(</span>
+          <span class="s1">&#39;groundtruth&#39;</span><span class="p">,</span> <span class="n">class_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;DontCare&#39;</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">g_ignore</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n_ignore_boxes</span> <span class="o">=</span> <span class="n">g_ignore</span><span class="o">.</span><span class="n">boxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">gt_imgids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">gt_imgids</span><span class="p">,</span> <span class="n">g_ignore</span><span class="o">.</span><span class="n">imgids</span><span class="p">])</span>
+        <span class="n">gt_boxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">gt_boxes</span><span class="p">,</span> <span class="n">g_ignore</span><span class="o">.</span><span class="n">boxes</span><span class="p">])</span>
+        <span class="n">gt_ignore</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">gt_ignore</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_ignore_boxes</span><span class="p">)])</span>
+
+    <span class="n">iou_threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iou_thresholds</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">classid</span><span class="p">]]</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">iou_threshold</span><span class="o">=</span><span class="n">iou_threshold</span><span class="p">,</span>
+        <span class="n">gt</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">imgid</span><span class="o">=</span><span class="n">gt_imgids</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">gt_boxes</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="n">gt_ignore</span><span class="p">),</span>
+        <span class="n">pd</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">imgid</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">imgids</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">score</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="n">pd_ignore</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="KITTIAPMetrics._BuildMetric"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_ap_metric.html#lingvo.tasks.car.kitti_ap_metric.KITTIAPMetrics._BuildMetric">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildMetric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feed_data</span><span class="p">,</span> <span class="n">classid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Construct tensors and the feed_dict for KITTI metric op.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      feed_data: a NestedMap returned by _GetData()</span>
+<span class="sd">      classid: integer. Unused in this implementation.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      scalar_metrics: a dict mapping all the metric names to fetch tensors.</span>
+<span class="sd">      curves: a dict mapping all the curve names to fetch tensors.</span>
+<span class="sd">      feed_dict: a dict mapping all the tensors in feed_tensors to feed values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">feed_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">dummy_scalar</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+      <span class="n">dummy_curve</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumberOfPrecisionRecallPoints</span><span class="p">(),</span> <span class="mi">2</span><span class="p">],</span>
+                             <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">scalar_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ap&#39;</span><span class="p">:</span> <span class="n">dummy_scalar</span><span class="p">}</span>
+      <span class="n">curve_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pr&#39;</span><span class="p">:</span> <span class="n">dummy_curve</span><span class="p">}</span>
+      <span class="k">return</span> <span class="n">scalar_metrics</span><span class="p">,</span> <span class="n">curve_metrics</span><span class="p">,</span> <span class="p">{}</span>
+
+    <span class="n">feed_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">f_iou</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_iou</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">iou_threshold</span>
+
+    <span class="n">f_gt_bbox</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_gt_bbox</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">gt</span><span class="o">.</span><span class="n">bbox</span>
+
+    <span class="n">f_gt_imgid</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_gt_imgid</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">gt</span><span class="o">.</span><span class="n">imgid</span>
+
+    <span class="n">f_gt_ignore</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_gt_ignore</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">gt</span><span class="o">.</span><span class="n">ignore</span>
+
+    <span class="n">f_pd_bbox</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_pd_bbox</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">bbox</span>
+
+    <span class="n">f_pd_imgid</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_pd_imgid</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">imgid</span>
+
+    <span class="n">f_pd_ignore</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_pd_ignore</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">ignore</span>
+
+    <span class="n">f_pd_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_pd_score</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">score</span>
+
+    <span class="n">ap</span><span class="p">,</span> <span class="n">pr</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">average_precision3d</span><span class="p">(</span>
+        <span class="n">iou_threshold</span><span class="o">=</span><span class="n">f_iou</span><span class="p">,</span>
+        <span class="n">groundtruth_bbox</span><span class="o">=</span><span class="n">f_gt_bbox</span><span class="p">,</span>
+        <span class="n">groundtruth_imageid</span><span class="o">=</span><span class="n">f_gt_imgid</span><span class="p">,</span>
+        <span class="n">groundtruth_ignore</span><span class="o">=</span><span class="n">f_gt_ignore</span><span class="p">,</span>
+        <span class="n">prediction_bbox</span><span class="o">=</span><span class="n">f_pd_bbox</span><span class="p">,</span>
+        <span class="n">prediction_imageid</span><span class="o">=</span><span class="n">f_pd_imgid</span><span class="p">,</span>
+        <span class="n">prediction_ignore</span><span class="o">=</span><span class="n">f_pd_ignore</span><span class="p">,</span>
+        <span class="n">prediction_score</span><span class="o">=</span><span class="n">f_pd_score</span><span class="p">,</span>
+        <span class="n">num_recall_points</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumberOfPrecisionRecallPoints</span><span class="p">())</span>
+
+    <span class="n">scalar_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ap&#39;</span><span class="p">:</span> <span class="n">ap</span><span class="p">}</span>
+    <span class="n">curve_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pr&#39;</span><span class="p">:</span> <span class="n">pr</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">scalar_metrics</span><span class="p">,</span> <span class="n">curve_metrics</span><span class="p">,</span> <span class="n">feed_dict</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

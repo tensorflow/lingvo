@@ -1,0 +1,579 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.kitti_decoder &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.kitti_decoder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.kitti_decoder</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Base models for point-cloud based detection.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">metrics</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">base_decoder</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">detection_3d_lib</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">detection_3d_metrics</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">geometry</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">kitti_ap_metric</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">kitti_metadata</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">transform_util</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="KITTIDecoder"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_decoder.html#lingvo.tasks.car.kitti_decoder.KITTIDecoder">[docs]</a><span class="k">class</span> <span class="nc">KITTIDecoder</span><span class="p">(</span><span class="n">base_decoder</span><span class="o">.</span><span class="n">BaseDecoder</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A decoder to use for decoding a detector model on KITTI.</span>
+
+<span class="sd">  This class implements the basic Decoder metrics for KITTI to provide</span>
+<span class="sd">  visualizations and AP calculations.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="KITTIDecoder.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_decoder.html#lingvo.tasks.car.kitti_decoder.KITTIDecoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTIDecoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;filter_predictions_outside_frustum&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If true, predictions whose bounding box center is outside of the &#39;</span>
+        <span class="s1">&#39;image frustum are dropped.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;truncation_threshold&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;Specifies how much of a bounding box can be truncated &#39;</span>
+        <span class="s1">&#39;by the edge of the image frustum and still be kept. A value of 0.0 &#39;</span>
+        <span class="s1">&#39;means that we only drop predictions whose 2d bounding box &#39;</span>
+        <span class="s1">&#39;falls entirely outside the image frustum.  A value of 1.0 means &#39;</span>
+        <span class="s1">&#39;we drop predictions where *any* portion of the bounding box falls &#39;</span>
+        <span class="s1">&#39;outside the frustum.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ap_metric</span> <span class="o">=</span> <span class="n">kitti_ap_metric</span><span class="o">.</span><span class="n">KITTIAPMetrics</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+        <span class="n">kitti_metadata</span><span class="o">.</span><span class="n">KITTIMetadata</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="KITTIDecoder.CreateDecoderMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_decoder.html#lingvo.tasks.car.kitti_decoder.KITTIDecoder.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decoder metrics for KITTI.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">kitti_metric_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ap_metric</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="bp">cls</span><span class="o">=</span><span class="n">kitti_ap_metric</span><span class="o">.</span><span class="n">KITTIAPMetrics</span><span class="p">)</span>
+    <span class="n">apm</span> <span class="o">=</span> <span class="n">kitti_metric_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+    <span class="n">class_names</span> <span class="o">=</span> <span class="n">apm</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span>
+
+    <span class="c1"># Convert the list of class names to a dictionary mapping class_id -&gt; name.</span>
+    <span class="n">class_id_to_name</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">class_names</span><span class="p">))</span>
+
+    <span class="n">top_down_transform</span> <span class="o">=</span> <span class="n">transform_util</span><span class="o">.</span><span class="n">MakeCarToImageTransform</span><span class="p">(</span>
+        <span class="n">pixels_per_meter</span><span class="o">=</span><span class="mf">32.</span><span class="p">,</span>
+        <span class="n">image_ref_x</span><span class="o">=</span><span class="mf">512.</span><span class="p">,</span>
+        <span class="n">image_ref_y</span><span class="o">=</span><span class="mf">1408.</span><span class="p">,</span>
+        <span class="n">flip_axes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">decoder_metrics</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;top_down_visualization&#39;</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">detection_3d_metrics</span><span class="o">.</span><span class="n">TopDownVisualizationMetric</span><span class="p">(</span>
+                <span class="n">top_down_transform</span><span class="p">,</span>
+                <span class="n">image_height</span><span class="o">=</span><span class="mi">1536</span><span class="p">,</span>
+                <span class="n">image_width</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+                <span class="n">class_id_to_name</span><span class="o">=</span><span class="n">class_id_to_name</span><span class="p">)),</span>
+        <span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
+        <span class="s1">&#39;kitti_AP_v2&#39;</span><span class="p">:</span> <span class="n">apm</span><span class="p">,</span>
+    <span class="p">})</span>
+
+    <span class="n">decoder_metrics</span><span class="o">.</span><span class="n">mesh</span> <span class="o">=</span> <span class="n">detection_3d_metrics</span><span class="o">.</span><span class="n">WorldViewer</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">summarize_boxes_on_image</span><span class="p">:</span>
+      <span class="n">decoder_metrics</span><span class="o">.</span><span class="n">camera_visualization</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">detection_3d_metrics</span><span class="o">.</span><span class="n">CameraVisualization</span><span class="p">(</span>
+              <span class="n">bbox_score_threshold</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">visualization_classification_threshold</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">decoder_metrics</span></div>
+
+<div class="viewcode-block" id="KITTIDecoder._CreateFrustumMask"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_decoder.html#lingvo.tasks.car.kitti_decoder.KITTIDecoder._CreateFrustumMask">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateFrustumMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bbox_corners_image</span><span class="p">,</span> <span class="n">bbox2d_corners_image_clipped</span><span class="p">,</span>
+                         <span class="n">image_height</span><span class="p">,</span> <span class="n">image_width</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a box mask for boxes whose projections fall outside of image.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">bbox_corners_image</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_predictions_outside_frustum</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_MinMax</span><span class="p">(</span><span class="n">bbox_corners</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Computes the min and max over corners.&quot;&quot;&quot;</span>
+      <span class="n">bbox_min</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">bbox_corners</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">bbox_max</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">bbox_corners</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">bbox_min</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">bbox_min</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">])</span>
+      <span class="n">bbox_max</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">bbox_max</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">bbox_min</span><span class="p">,</span> <span class="n">bbox_max</span>
+
+    <span class="n">bbox_min_x</span><span class="p">,</span> <span class="n">bbox_max_x</span> <span class="o">=</span> <span class="n">_MinMax</span><span class="p">(</span><span class="n">bbox_corners_image</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">bbox_min_y</span><span class="p">,</span> <span class="n">bbox_max_y</span> <span class="o">=</span> <span class="n">_MinMax</span><span class="p">(</span><span class="n">bbox_corners_image</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Compute the fraction of the clipped 2d image projection and the</span>
+    <span class="c1"># full 2d image projection.  We simply need to divide the area</span>
+    <span class="c1"># of each cropped box by the area of the full box to get the</span>
+    <span class="c1"># overlap fraction.</span>
+    <span class="n">original_area</span> <span class="o">=</span> <span class="p">(</span><span class="n">bbox_max_x</span> <span class="o">-</span> <span class="n">bbox_min_x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">bbox_max_y</span> <span class="o">-</span> <span class="n">bbox_min_y</span><span class="p">)</span>
+    <span class="n">bbox_clipped_x_min</span> <span class="o">=</span> <span class="n">bbox2d_corners_image_clipped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">bbox_clipped_y_min</span> <span class="o">=</span> <span class="n">bbox2d_corners_image_clipped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">bbox_clipped_x_max</span> <span class="o">=</span> <span class="n">bbox2d_corners_image_clipped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">bbox_clipped_y_max</span> <span class="o">=</span> <span class="n">bbox2d_corners_image_clipped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">clipped_area</span> <span class="o">=</span> <span class="p">(</span><span class="n">bbox_clipped_x_max</span> <span class="o">-</span> <span class="n">bbox_clipped_x_min</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">bbox_clipped_y_max</span> <span class="o">-</span> <span class="n">bbox_clipped_y_min</span><span class="p">)</span>
+    <span class="n">fraction</span> <span class="o">=</span> <span class="n">clipped_area</span> <span class="o">/</span> <span class="n">original_area</span>
+
+    <span class="n">frustum_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">fraction</span> <span class="o">&gt;</span> <span class="n">p</span><span class="o">.</span><span class="n">truncation_threshold</span><span class="p">)</span>
+    <span class="n">frustum_mask</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">frustum_mask</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">])</span>
+    <span class="n">frustum_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">frustum_mask</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">frustum_mask</span></div>
+
+<div class="viewcode-block" id="KITTIDecoder._BBox2DImage"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_decoder.html#lingvo.tasks.car.kitti_decoder.KITTIDecoder._BBox2DImage">[docs]</a>  <span class="k">def</span> <span class="nf">_BBox2DImage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bbox_corners_image</span><span class="p">,</span> <span class="n">input_images</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute [xmin, ymin, xmax, ymax] 2D bounding boxes from corners.&quot;&quot;&quot;</span>
+    <span class="c1"># Clip the boundaries of the bounding box to the image width/height.</span>
+    <span class="n">bci_x</span> <span class="o">=</span> <span class="n">bbox_corners_image</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">image_width</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+        <span class="n">input_images</span><span class="o">.</span><span class="n">width</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bci_x</span><span class="p">))</span>
+    <span class="n">bci_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">bci_x</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">image_width</span><span class="p">))</span>
+
+    <span class="n">bci_y</span> <span class="o">=</span> <span class="n">bbox_corners_image</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">image_height</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+        <span class="n">input_images</span><span class="o">.</span><span class="n">height</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bci_y</span><span class="p">))</span>
+    <span class="n">bci_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">bci_y</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">image_height</span><span class="p">))</span>
+
+    <span class="n">bbox_corners_image_clipped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bci_x</span><span class="p">,</span> <span class="n">bci_y</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Compute the [xmin, ymin, xmax, ymax] bounding boxes from [batch,</span>
+    <span class="c1"># num_boxes, 8, 2] extrema.</span>
+    <span class="n">min_vals</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">bbox_corners_image_clipped</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">max_vals</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">bbox_corners_image_clipped</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">bbox2d_corners_image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">min_vals</span><span class="p">,</span> <span class="n">max_vals</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">bbox2d_corners_image</span></div>
+
+<div class="viewcode-block" id="KITTIDecoder.ProcessOutputs"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_decoder.html#lingvo.tasks.car.kitti_decoder.KITTIDecoder.ProcessOutputs">[docs]</a>  <span class="k">def</span> <span class="nf">ProcessOutputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">model_outputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Produce additional decoder outputs for KITTI.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      input_batch: A .NestedMap of the inputs to the model.</span>
+<span class="sd">      model_outputs: A .NestedMap of the outputs of the model, including::</span>
+<span class="sd">        - per_class_predicted_bboxes: [batch, num_classes, num_boxes, 7] float</span>
+<span class="sd">          Tensor with per class 3D (7 DOF) bounding boxes.</span>
+<span class="sd">        - per_class_predicted_bbox_scores: [batch, num_classes, num_boxes] float</span>
+<span class="sd">          Tensor with per class, per box scores.</span>
+<span class="sd">        - per_class_valid_mask: [batch, num_classes, num_boxes] masking Tensor</span>
+<span class="sd">          indicating which boxes were still kept after NMS for each class.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap of additional decoder outputs needed for</span>
+<span class="sd">      PostProcessDecodeOut.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">per_class_predicted_bboxes</span> <span class="o">=</span> <span class="n">model_outputs</span><span class="o">.</span><span class="n">per_class_predicted_bboxes</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span>
+        <span class="n">per_class_predicted_bboxes</span><span class="p">)</span>
+    <span class="n">flattened_num_boxes</span> <span class="o">=</span> <span class="n">num_classes</span> <span class="o">*</span> <span class="n">num_boxes</span>
+
+    <span class="n">input_labels</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">decoder_copy</span><span class="o">.</span><span class="n">labels</span>
+    <span class="n">input_lasers</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">decoder_copy</span><span class="o">.</span><span class="n">lasers</span>
+    <span class="n">input_images</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">decoder_copy</span><span class="o">.</span><span class="n">images</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/cpu:0&#39;</span><span class="p">):</span>
+      <span class="c1"># Convert the predicted bounding box points to their corners</span>
+      <span class="c1"># and then project them to the image plane.</span>
+      <span class="c1">#</span>
+      <span class="c1"># This output can be used to:</span>
+      <span class="c1">#</span>
+      <span class="c1"># A) Visualize bounding boxes (2d or 3d) on the camera image.</span>
+      <span class="c1">#</span>
+      <span class="c1"># B) Compute the height of the predicted boxes to filter &#39;too small&#39; boxes</span>
+      <span class="c1">#    as is done in the KITTI eval.</span>
+      <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">per_class_predicted_bboxes</span><span class="p">,</span>
+                                    <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">flattened_num_boxes</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+      <span class="n">bbox_corners</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">BBoxCorners</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">)</span>
+      <span class="n">bbox_corners</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">bbox_corners</span><span class="p">,</span>
+                                       <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">flattened_num_boxes</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+      <span class="n">utils_3d</span> <span class="o">=</span> <span class="n">detection_3d_lib</span><span class="o">.</span><span class="n">Utils3D</span><span class="p">()</span>
+      <span class="n">bbox_corners_image</span> <span class="o">=</span> <span class="n">utils_3d</span><span class="o">.</span><span class="n">CornersToImagePlane</span><span class="p">(</span>
+          <span class="n">bbox_corners</span><span class="p">,</span> <span class="n">input_images</span><span class="o">.</span><span class="n">velo_to_image_plane</span><span class="p">)</span>
+      <span class="n">bbox_corners_image</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+          <span class="n">bbox_corners_image</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">flattened_num_boxes</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+      <span class="c1"># Clip the bounding box corners so they remain within</span>
+      <span class="c1"># the image coordinates.</span>
+      <span class="n">bbox2d_corners_image_clipped</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BBox2DImage</span><span class="p">(</span><span class="n">bbox_corners_image</span><span class="p">,</span>
+                                                       <span class="n">input_images</span><span class="p">)</span>
+      <span class="n">bbox2d_corners_image_clipped</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+          <span class="n">bbox2d_corners_image_clipped</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">flattened_num_boxes</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+
+      <span class="c1"># Compute the frustum mask to filter out bounding boxes that</span>
+      <span class="c1"># are &#39;outside the frustum&#39;.</span>
+      <span class="n">frustum_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateFrustumMask</span><span class="p">(</span><span class="n">bbox_corners_image</span><span class="p">,</span>
+                                             <span class="n">bbox2d_corners_image_clipped</span><span class="p">,</span>
+                                             <span class="n">input_images</span><span class="o">.</span><span class="n">height</span><span class="p">,</span>
+                                             <span class="n">input_images</span><span class="o">.</span><span class="n">width</span><span class="p">)</span>
+
+      <span class="c1"># Reshape all of these back to [batch_size, num_classes, num_boxes, ...]</span>
+      <span class="n">bbox_corners_image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">bbox_corners_image</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+      <span class="n">bbox2d_corners_image_clipped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">bbox2d_corners_image_clipped</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">frustum_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">frustum_mask</span><span class="p">,</span>
+                                <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">])</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="c1"># For mAP eval</span>
+        <span class="s1">&#39;source_ids&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">source_id</span><span class="p">,</span>
+        <span class="s1">&#39;difficulties&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
+        <span class="s1">&#39;num_points_in_bboxes&#39;</span><span class="p">:</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_num_points</span><span class="p">,</span>
+        <span class="c1"># For exporting.</span>
+        <span class="s1">&#39;velo_to_image_plane&#39;</span><span class="p">:</span> <span class="n">input_images</span><span class="o">.</span><span class="n">velo_to_image_plane</span><span class="p">,</span>
+        <span class="s1">&#39;velo_to_camera&#39;</span><span class="p">:</span> <span class="n">input_images</span><span class="o">.</span><span class="n">velo_to_camera</span><span class="p">,</span>
+        <span class="c1"># Predictions.</span>
+        <span class="s1">&#39;bbox_corners_image&#39;</span><span class="p">:</span> <span class="n">bbox_corners_image</span><span class="p">,</span>
+        <span class="s1">&#39;bbox2d_corners_image&#39;</span><span class="p">:</span> <span class="n">bbox2d_corners_image_clipped</span><span class="p">,</span>
+        <span class="s1">&#39;frustum_mask&#39;</span><span class="p">:</span> <span class="n">frustum_mask</span><span class="p">,</span>
+        <span class="c1"># Ground truth.</span>
+        <span class="s1">&#39;bboxes_3d&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">,</span>
+        <span class="s1">&#39;bboxes_3d_mask&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">bboxes_3d_mask</span><span class="p">,</span>
+        <span class="s1">&#39;unfiltered_bboxes_3d_mask&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span><span class="p">,</span>
+        <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+    <span class="p">})</span>
+
+    <span class="n">laser_sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SampleLaserForVisualization</span><span class="p">(</span>
+        <span class="n">input_lasers</span><span class="o">.</span><span class="n">points_xyz</span><span class="p">,</span> <span class="n">input_lasers</span><span class="o">.</span><span class="n">points_padding</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">laser_sample</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">summarize_boxes_on_image</span><span class="p">:</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">camera_images</span> <span class="o">=</span> <span class="n">input_images</span><span class="o">.</span><span class="n">image</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="KITTIDecoder.PostProcessDecodeOut"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_decoder.html#lingvo.tasks.car.kitti_decoder.KITTIDecoder.PostProcessDecodeOut">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out_dict</span><span class="p">,</span> <span class="n">dec_metrics_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Post-processes the decoder outputs.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Update num_samples_in_batch.</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_predicted_bboxes</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">num_samples_in_batch</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+
+    <span class="c1"># Apply frustum mask to predicted box outputs.</span>
+    <span class="n">masked_pred_bbox_scores</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_predicted_bbox_scores</span> <span class="o">*</span>
+        <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">frustum_mask</span><span class="p">)</span>
+    <span class="n">visualization_weights</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">visualization_weights</span> <span class="o">*</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">frustum_mask</span><span class="p">)</span>
+
+    <span class="c1"># TODO(bencaine): Add class base colors to camera image projection.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">summarize_boxes_on_image</span><span class="p">:</span>
+      <span class="c1"># Update the camera visualization.</span>
+      <span class="n">flattened_bbox_corners</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bbox_corners_image</span><span class="p">,</span>
+                                          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="n">flattened_visualization_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">visualization_weights</span><span class="p">,</span>
+                                                   <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">camera_visualization</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+              <span class="s1">&#39;camera_images&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">camera_images</span><span class="p">,</span>
+              <span class="c1"># TODO(vrv): Use 2D output instead of 3D output.</span>
+              <span class="s1">&#39;bbox_corners&#39;</span><span class="p">:</span> <span class="n">flattened_bbox_corners</span><span class="p">,</span>
+              <span class="s1">&#39;bbox_scores&#39;</span><span class="p">:</span> <span class="n">flattened_visualization_weights</span><span class="p">,</span>
+          <span class="p">}))</span>
+
+    <span class="c1"># Update decoder output by removing z-coordinate, thus reshaping the bboxes</span>
+    <span class="c1"># to [batch, num_bboxes, 5] to be compatible with</span>
+    <span class="c1"># TopDownVisualizationMetric.</span>
+
+    <span class="c1"># Indices corresponding to the 2D bbox parameters (x, y, dx, dy, phi).</span>
+    <span class="n">bbox_2d_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+    <span class="n">bboxes_2d</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">bbox_2d_idx</span><span class="p">]</span>
+    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_predicted_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">bbox_2d_idx</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">points_sampled</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Updating sample for top down visualization&#39;</span><span class="p">)</span>
+      <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">mesh</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+              <span class="s1">&#39;points_xyz&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">points_xyz</span><span class="p">,</span>
+              <span class="s1">&#39;points_padding&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">points_padding</span><span class="p">,</span>
+          <span class="p">}))</span>
+
+      <span class="c1"># Flatten our predictions/scores to match the API of the visualization</span>
+      <span class="c1"># The last dimension of flattened_bboxes is 5 due to the mask</span>
+      <span class="c1"># above using bbox_2d_idx.</span>
+      <span class="n">flattened_bboxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span>
+                                    <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span> <span class="o">*</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+      <span class="n">flattened_visualization_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">visualization_weights</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span> <span class="o">*</span> <span class="n">num_boxes</span><span class="p">])</span>
+      <span class="c1"># Create a label id mask for now to maintain compatibility.</span>
+      <span class="c1"># TODO(bencaine): Refactor visualizations to reflect new structure.</span>
+      <span class="n">flattened_visualization_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+          <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
+          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">])</span>
+      <span class="n">flattened_visualization_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">flattened_visualization_labels</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span> <span class="o">*</span> <span class="n">num_boxes</span><span class="p">])</span>
+
+      <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">top_down_visualization</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+              <span class="s1">&#39;visualization_labels&#39;</span><span class="p">:</span> <span class="n">flattened_visualization_labels</span><span class="p">,</span>
+              <span class="s1">&#39;predicted_bboxes&#39;</span><span class="p">:</span> <span class="n">flattened_bboxes</span><span class="p">,</span>
+              <span class="s1">&#39;visualization_weights&#39;</span><span class="p">:</span> <span class="n">flattened_visualization_weights</span><span class="p">,</span>
+              <span class="s1">&#39;points_xyz&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">points_xyz</span><span class="p">,</span>
+              <span class="s1">&#39;points_padding&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">points_padding</span><span class="p">,</span>
+              <span class="s1">&#39;gt_bboxes_2d&#39;</span><span class="p">:</span> <span class="n">bboxes_2d</span><span class="p">,</span>
+              <span class="s1">&#39;gt_bboxes_2d_weights&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d_mask</span><span class="p">,</span>
+              <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+              <span class="s1">&#39;difficulties&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
+              <span class="s1">&#39;source_ids&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">source_ids</span><span class="p">,</span>
+          <span class="p">}))</span>
+
+    <span class="c1"># Update KITTI AP metrics.</span>
+    <span class="k">for</span> <span class="n">batch_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+      <span class="c1"># Use class scores since it&#39;s masked</span>
+      <span class="n">pred_bboxes</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_predicted_bboxes</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span>
+      <span class="n">pred_bbox_scores</span> <span class="o">=</span> <span class="n">masked_pred_bbox_scores</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span>
+
+      <span class="c1"># Compute height in 2D perspective view, that will be used for filtering</span>
+      <span class="c1"># outputs downstream.</span>
+      <span class="n">pred_bbox2d_corners_image</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bbox2d_corners_image</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span>
+      <span class="c1"># We assume y2 &gt;= y1, so pred_heights_image will always be &gt;= 0.</span>
+      <span class="n">pred_heights_image</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">pred_bbox2d_corners_image</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">-</span>
+          <span class="n">pred_bbox2d_corners_image</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">])</span>
+
+      <span class="n">gt_mask</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+      <span class="n">gt_labels</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
+      <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
+      <span class="n">gt_difficulties</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
+      <span class="n">gt_num_points</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">num_points_in_bboxes</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
+
+      <span class="k">for</span> <span class="n">metric_class</span> <span class="ow">in</span> <span class="p">[</span><span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">kitti_AP_v2</span><span class="p">]:</span>
+        <span class="n">metric_class</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+            <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">source_ids</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+                <span class="n">groundtruth_labels</span><span class="o">=</span><span class="n">gt_labels</span><span class="p">,</span>
+                <span class="n">groundtruth_bboxes</span><span class="o">=</span><span class="n">gt_bboxes</span><span class="p">,</span>
+                <span class="n">groundtruth_difficulties</span><span class="o">=</span><span class="n">gt_difficulties</span><span class="p">,</span>
+                <span class="n">groundtruth_num_points</span><span class="o">=</span><span class="n">gt_num_points</span><span class="p">,</span>
+                <span class="n">detection_scores</span><span class="o">=</span><span class="n">pred_bbox_scores</span><span class="p">,</span>
+                <span class="n">detection_boxes</span><span class="o">=</span><span class="n">pred_bboxes</span><span class="p">,</span>
+                <span class="n">detection_heights_in_pixels</span><span class="o">=</span><span class="n">pred_heights_image</span><span class="p">,</span>
+            <span class="p">))</span>
+
+    <span class="c1"># Returned values are saved in model_dir/decode. We can offline convert</span>
+    <span class="c1"># them into KITTI&#39;s format.</span>
+    <span class="c1"># velo_to_image_plane and velo_to_camera are needed for converting 3D bboxes</span>
+    <span class="c1"># back to the camera coordinate as required by KITTI&#39;s format.</span>
+    <span class="c1">#</span>
+    <span class="n">output_to_save</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+      <span class="n">gt_save_mask</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+      <span class="n">pd_save_mask</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_valid_mask</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+      <span class="c1"># Create a class id matrix we can then mask out</span>
+      <span class="c1"># since when you use the boolean mask in numpy it collapses the matrix</span>
+      <span class="c1"># from [num_classes, num_bboxes,...] to just [num_valid_bbboxes].</span>
+      <span class="n">class_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_classes</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">])</span>
+
+      <span class="n">saved_results</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">img_id</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">source_ids</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+          <span class="n">bboxes</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_predicted_bboxes</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">pd_save_mask</span><span class="p">],</span>
+          <span class="n">scores</span><span class="o">=</span><span class="n">masked_pred_bbox_scores</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">pd_save_mask</span><span class="p">],</span>
+          <span class="n">class_ids</span><span class="o">=</span><span class="n">class_ids</span><span class="p">[</span><span class="n">pd_save_mask</span><span class="p">],</span>
+          <span class="n">gt_labels</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
+          <span class="n">gt_bboxes</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
+          <span class="n">gt_difficulties</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
+          <span class="n">velo_to_image_plane</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">velo_to_image_plane</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+          <span class="n">velo_to_camera</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">velo_to_camera</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+          <span class="n">bboxes_2d</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bbox2d_corners_image</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">pd_save_mask</span><span class="p">],</span>
+      <span class="p">)</span>
+
+      <span class="n">serialized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SaveTensors</span><span class="p">(</span><span class="n">saved_results</span><span class="p">)</span>
+      <span class="n">output_to_save</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">source_ids</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">serialized</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">output_to_save</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

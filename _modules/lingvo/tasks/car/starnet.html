@@ -1,0 +1,1073 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.starnet &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.starnet</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.starnet</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;StarNet: A sparse, targeted detection network.</span>
+
+<span class="sd">Point clouds and anchors are sampled from the raw points, at centers determined</span>
+<span class="sd">by a sampler. Each center can have multiple anchors bboxes. Each center&#39;s</span>
+<span class="sd">point cloud is featurized and then used to regress and classify the associated</span>
+<span class="sd">anchors bboxes.</span>
+
+<span class="sd">The featurizer could be range from a simple MLPMax network, to more complex</span>
+<span class="sd">point-based models such as PointNet++, PointCNN, PCNN, etc.</span>
+
+<span class="sd">In V1, anchor_bboxes shared the same featurization around each cell</span>
+<span class="sd">(featurized_cell), but they had different regression/classification networks</span>
+<span class="sd">for each offset/dimension/rotation that produced predictions.</span>
+
+<span class="sd">In V2, we bring the featurization closer to each anchor_bbox, by featurizing</span>
+<span class="sd">at each anchor_bbox (offset) location instead. Note that anchor_bboxes at the</span>
+<span class="sd">same offset, but with different rotation/dimension priors will have the same</span>
+<span class="sd">featurization.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">builder_lib</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">detection_3d_lib</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">point_detector</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="Builder"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.Builder">[docs]</a><span class="k">class</span> <span class="nc">Builder</span><span class="p">(</span><span class="n">builder_lib</span><span class="o">.</span><span class="n">ModelBuilderBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Builder for StarNet Model.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Builder.MLPMaxFeaturizer"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.Builder.MLPMaxFeaturizer">[docs]</a>  <span class="k">def</span> <span class="nf">MLPMaxFeaturizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;MLP followed by Max Featurizer.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;feat&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetValue</span><span class="p">(</span><span class="s1">&#39;get_value&#39;</span><span class="p">,</span> <span class="s1">&#39;features&#39;</span><span class="p">),</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">_MLP</span><span class="p">(</span><span class="s1">&#39;mlp&#39;</span><span class="p">,</span> <span class="n">dims</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Max</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Builder.PaddedMLPMaxFeaturizer"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.Builder.PaddedMLPMaxFeaturizer">[docs]</a>  <span class="k">def</span> <span class="nf">PaddedMLPMaxFeaturizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">use_bn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;MLP followed by Max on padded points.&quot;&quot;&quot;</span>
+
+    <span class="c1"># TODO(bencaine): Add simple builder test</span>
+    <span class="c1"># Avoid batch norm in the first layer since our FC layers do BN-FC-Relu</span>
+    <span class="c1"># So the first op on the raw data would be BN, which is weird for absolute</span>
+    <span class="c1"># xyz values.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;feat&#39;</span><span class="p">,</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">_FeaturesFC</span><span class="p">(</span><span class="s1">&#39;input_fc&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">use_bn</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">_FeaturesMLP</span><span class="p">(</span><span class="s1">&#39;mlp&#39;</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">use_bn</span><span class="o">=</span><span class="n">use_bn</span><span class="p">),</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">_PaddedMax</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Builder.FC"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.Builder.FC">[docs]</a>  <span class="k">def</span> <span class="nf">FC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">use_bn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">activation_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fully-connected layer.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">use_bn</span><span class="p">,</span> <span class="n">activation_fn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder.Linear"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.Builder.Linear">[docs]</a>  <span class="k">def</span> <span class="nf">Linear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">params_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Linear layer for predicting residuals and classification logits.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">params_init</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder.Bias"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.Builder.Bias">[docs]</a>  <span class="k">def</span> <span class="nf">Bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">params_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Bias layer with optional initialization.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">params_init</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder.LinearWithBias"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.Builder.LinearWithBias">[docs]</a>  <span class="k">def</span> <span class="nf">LinearWithBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                     <span class="n">name</span><span class="p">,</span>
+                     <span class="n">idims</span><span class="p">,</span>
+                     <span class="n">odims</span><span class="p">,</span>
+                     <span class="n">linear_params_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">bias_params_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Linear with bias layer with optional initialization.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">linear_params_init</span><span class="p">),</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">bias_params_init</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Builder.Atten"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.Builder.Atten">[docs]</a>  <span class="k">def</span> <span class="nf">Atten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">depth</span><span class="p">,</span>
+            <span class="n">dims</span><span class="p">,</span>
+            <span class="n">hdims</span><span class="p">,</span>
+            <span class="n">heads</span><span class="p">,</span>
+            <span class="n">odims</span><span class="p">,</span>
+            <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">linear_params_init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">bias_params_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Stacked self-attention followed with a projection.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SelfAttenStack</span><span class="p">(</span><span class="s1">&#39;attens&#39;</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">hdims</span><span class="p">,</span> <span class="n">heads</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LinearWithBias</span><span class="p">(</span><span class="s1">&#39;proj&#39;</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">linear_params_init</span><span class="p">,</span>
+                            <span class="n">bias_params_init</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Builder.GINFeaturizer"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.Builder.GINFeaturizer">[docs]</a>  <span class="k">def</span> <span class="nf">GINFeaturizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fc_dims</span><span class="p">,</span> <span class="n">mlp_dims</span><span class="p">,</span> <span class="n">num_laser_features</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;GIN-based Featurizer.&quot;&quot;&quot;</span>
+    <span class="n">total_input_features</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">num_laser_features</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="c1"># Dropping the cell center xyz prevents the model from over-fitting</span>
+        <span class="c1"># to the absolute coordinates.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SeqToKey</span><span class="p">(</span>
+            <span class="s1">&#39;drop_cell_center_xyz&#39;</span><span class="p">,</span> <span class="s1">&#39;features&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_GetValue</span><span class="p">(</span><span class="s1">&#39;get_features&#39;</span><span class="p">,</span> <span class="s1">&#39;features&#39;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyFn</span><span class="p">(</span><span class="s1">&#39;drop_cell_center_xyz&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:])),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_FeaturesFC</span><span class="p">(</span><span class="s1">&#39;fc0&#39;</span><span class="p">,</span> <span class="n">total_input_features</span><span class="p">,</span> <span class="n">fc_dims</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_GIN</span><span class="p">(</span>
+            <span class="s1">&#39;gin&#39;</span><span class="p">,</span>
+            <span class="n">mlp_dims</span><span class="p">,</span>
+            <span class="n">aggregate_sub</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_PaddedMax</span><span class="p">(</span><span class="s1">&#39;p_max&#39;</span><span class="p">),</span>
+            <span class="n">readout_sub</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_PaddedMean</span><span class="p">(</span><span class="s1">&#39;p_mean&#39;</span><span class="p">),</span>
+            <span class="n">combine_method</span><span class="o">=</span><span class="s1">&#39;concat&#39;</span><span class="p">))</span>  <span class="c1"># pyformat: disable</span></div>
+
+<div class="viewcode-block" id="Builder.GINFeaturizerV2"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.Builder.GINFeaturizerV2">[docs]</a>  <span class="k">def</span> <span class="nf">GINFeaturizerV2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">name</span><span class="p">,</span>
+                      <span class="n">fc_dims</span><span class="p">,</span>
+                      <span class="n">mlp_dims</span><span class="p">,</span>
+                      <span class="n">num_laser_features</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                      <span class="n">fc_use_bn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;GIN-based Featurizer for Model V2.&quot;&quot;&quot;</span>
+    <span class="n">total_input_features</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">num_laser_features</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_FeaturesFC</span><span class="p">(</span>
+            <span class="s1">&#39;fc0&#39;</span><span class="p">,</span> <span class="n">total_input_features</span><span class="p">,</span> <span class="n">fc_dims</span><span class="p">,</span> <span class="n">use_bn</span><span class="o">=</span><span class="n">fc_use_bn</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_GIN</span><span class="p">(</span>
+            <span class="s1">&#39;gin&#39;</span><span class="p">,</span>
+            <span class="n">mlp_dims</span><span class="p">,</span>
+            <span class="n">aggregate_sub</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_PaddedMax</span><span class="p">(</span><span class="s1">&#39;p_max&#39;</span><span class="p">),</span>
+            <span class="n">readout_sub</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_PaddedMean</span><span class="p">(</span><span class="s1">&#39;p_mean&#39;</span><span class="p">),</span>
+            <span class="n">combine_method</span><span class="o">=</span><span class="s1">&#39;concat&#39;</span><span class="p">))</span>  <span class="c1"># pyformat: disable</span></div>
+
+<div class="viewcode-block" id="Builder.ZerosCellFeaturizer"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.Builder.ZerosCellFeaturizer">[docs]</a>  <span class="k">def</span> <span class="nf">ZerosCellFeaturizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Produces features with 0 values, used for disabling cell featurizer.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_ZerosFeature</span><span class="p">(</span><span class="n">nested_data</span><span class="p">):</span>
+      <span class="c1"># Points has shape [batch_size, num_anchors, points_per_anchor, 3].</span>
+      <span class="c1"># The featurizer should produce features for each anchor.</span>
+      <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">nested_data</span><span class="o">.</span><span class="n">points</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">dims</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyFn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_ZerosFeature</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="LossNormType"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.LossNormType">[docs]</a><span class="k">class</span> <span class="nc">LossNormType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+  <span class="n">NO_NORM</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">NORM_BY_NUM_POS_PER_CENTER</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="ModelBase"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelBase">[docs]</a><span class="k">class</span> <span class="nc">ModelBase</span><span class="p">(</span><span class="n">point_detector</span><span class="o">.</span><span class="n">PointDetectorBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;StarNet Detection Model.</span>
+
+<span class="sd">  This model expects that input_batch contains:</span>
+<span class="sd">    cell_center_xyz: [N, C, 3]</span>
+<span class="sd">    cell_points_xyz: [N, C, P, 3]</span>
+<span class="sd">    cell_feature: [N, C, P, 1]</span>
+<span class="sd">    anchor_bboxes: [N, C, B, 7]</span>
+<span class="sd">    anchor_localization_residuals: [N, C, B, 7]</span>
+<span class="sd">    assigned_gt_labels: [N, C, B]</span>
+<span class="sd">    assigned_cls_mask: [N, C, B]</span>
+
+<span class="sd">  where:</span>
+<span class="sd">    N - batch size</span>
+<span class="sd">    C - num centers</span>
+<span class="sd">    P - num points per center</span>
+<span class="sd">    B - num anchor bboxes per center</span>
+
+<span class="sd">  The centers for the anchor_bboxes should match those of cell_center_xyz.</span>
+<span class="sd">  Specifically, num_anchor_bboxes_per_center should match that of the</span>
+<span class="sd">  corresponding input generator.</span>
+
+<span class="sd">  Base class implements common Decoder functions, though they can be</span>
+<span class="sd">  overridden if desired.</span>
+
+<span class="sd">  Sub-classes are expected to implement ComputePredictions.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ModelBase.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelBase.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+             <span class="n">num_classes</span><span class="p">,</span>
+             <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
+             <span class="n">num_laser_features</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ModelBase</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_anchor_bboxes_per_center&#39;</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
+        <span class="s1">&#39;The number of anchor bboxes per center. This should match that &#39;</span>
+        <span class="s1">&#39;of the corresponding input generator.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;focal_loss_alpha&#39;</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span>
+             <span class="s1">&#39;Alpha parameter for focal loss for classification.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;focal_loss_gamma&#39;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span>
+             <span class="s1">&#39;Gamma parameter for focal loss for classification.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;huber_loss_delta&#39;</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="mf">3.</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span>
+             <span class="s1">&#39;delta threshold for scaled huber loss.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;loss_weight_localization&#39;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span>
+             <span class="s1">&#39;Weighting factor for localization loss.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;loss_weight_classification&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+             <span class="s1">&#39;Weighting factor for classification loss.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;loss_norm_type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Normalization type for class and regularization weights.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;squash_rotation_predictions&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Apply tanh squashing to rotation predictions to ensure outputs &#39;</span>
+        <span class="s1">&#39;are between (-pi, pi).&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;location_loss_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;Weight multiplier for contribution of location loss &#39;</span>
+        <span class="s1">&#39;to full localization/regression loss&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;dimension_loss_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;Weight multiplier for contribution of dimension loss &#39;</span>
+        <span class="s1">&#39;to full localization/regression loss&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;rotation_loss_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;Weight multiplier for contribution of rotation loss &#39;</span>
+        <span class="s1">&#39;to full localization/regression loss&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;corner_loss_weight&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;Weight multiplier for contribution of corner loss &#39;</span>
+        <span class="s1">&#39;to full localization/regression loss&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;per_class_loss_weight&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_classes</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="s1">&#39;A list with a float value per class with a multiple to multiply &#39;</span>
+        <span class="s1">&#39;the classification losses of that classes anchors by. Note that &#39;</span>
+        <span class="s1">&#39;the background class is always class 0, and should be assigned a &#39;</span>
+        <span class="s1">&#39;weight of 0.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ModelBase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span> <span class="o">=</span> <span class="n">detection_3d_lib</span><span class="o">.</span><span class="n">Utils3D</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">per_class_loss_weight</span><span class="p">)</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`Need `per_class_loss_weight` to be of len equal &#39;</span>
+                       <span class="s1">&#39;to the number of classes.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_class_loss_weight</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Background class should be assigned 0 weight. &#39;</span>
+                       <span class="s1">&#39;per_class_loss_weight=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                           <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">per_class_loss_weight</span><span class="p">)))</span>
+
+<div class="viewcode-block" id="ModelBase.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelBase.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute loss for the sparse detector model v1.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: A `.NestedMap` expected to contain cell_center_xyz,</span>
+<span class="sd">        cell_points_xyz, cell_feature, anchor_bboxes,</span>
+<span class="sd">        anchor_localization_residuals, assigned_gt_labels, and</span>
+<span class="sd">        assigned_cls_mask. See class doc string for details.</span>
+<span class="sd">      predictions: A `.NestedMap` object containing residuals and</span>
+<span class="sd">        classification_logits.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Two dicts:</span>
+<span class="sd">        A dict containing str keys and (metric, weight) pairs as values, where</span>
+<span class="sd">        one of the keys is expected to be &#39;loss&#39;.</span>
+<span class="sd">        A dict containing arbitrary tensors describing something about each</span>
+<span class="sd">        training example, where the first dimension of each tensor is the batch</span>
+<span class="sd">        index.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">cell_center_xyz</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Assert shapes of inputs.</span>
+    <span class="n">anchor_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">anchor_localization_residuals</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_localization_residuals</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">predictions</span><span class="o">.</span><span class="n">residuals</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+
+    <span class="n">assigned_gt_labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_gt_labels</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">])</span>
+    <span class="n">predicted_classification_logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">predictions</span><span class="o">.</span><span class="n">classification_logits</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span>
+        <span class="p">])</span>
+
+    <span class="c1"># assigned_cls_mask is for weighting the classification loss.</span>
+    <span class="c1"># Ignored targets will have their mask = 0; this happens when their IOU is</span>
+    <span class="c1"># not high enough to be a foreground object and not low enough to be</span>
+    <span class="c1"># background.</span>
+    <span class="n">class_weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_cls_mask</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">])</span>
+    <span class="n">class_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">class_weights</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Broadcast per class loss weights. For each anchor, there are num_classes</span>
+    <span class="c1"># prediction heads, we weight the outputs of these heads by the per class</span>
+    <span class="c1"># loss weights.</span>
+    <span class="n">per_class_loss_weight</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[[</span><span class="n">p</span><span class="o">.</span><span class="n">per_class_loss_weight</span><span class="p">]]],</span>
+                                        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">per_class_loss_weight</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">per_class_loss_weight</span><span class="p">,</span>
+                                              <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">])</span>
+    <span class="n">class_weights</span> <span class="o">*=</span> <span class="n">per_class_loss_weight</span>
+    <span class="n">class_weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">class_weights</span><span class="p">,</span> <span class="p">[</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span>
+    <span class="p">])</span>
+
+    <span class="c1"># We use assigned_reg_mask for masking the regression loss.</span>
+    <span class="c1"># Only foreground objects will have assigned_reg_mask = 1.</span>
+    <span class="n">reg_weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_reg_mask</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">])</span>
+    <span class="n">reg_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">reg_weights</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_norm_type</span> <span class="o">==</span> <span class="n">LossNormType</span><span class="o">.</span><span class="n">NORM_BY_NUM_POS_PER_CENTER</span><span class="p">:</span>
+      <span class="c1"># Compute number of positive anchors per example.</span>
+      <span class="n">foreground_mask</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+          <span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_reg_mask</span><span class="p">,</span>
+          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">])</span>
+
+      <span class="c1"># Sum to get the number of foreground anchors for each example.</span>
+      <span class="n">loss_normalization</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">foreground_mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+      <span class="n">loss_normalization</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">loss_normalization</span><span class="p">,</span>
+                                      <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">loss_normalization</span><span class="p">))</span>
+
+      <span class="c1"># Reshape for broadcasting.</span>
+      <span class="n">loss_normalization</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">loss_normalization</span><span class="p">,</span>
+                                      <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+      <span class="c1"># Normalize so that the loss is independent of # centers.</span>
+      <span class="n">loss_normalization</span> <span class="o">*=</span> <span class="n">num_centers</span>
+      <span class="n">class_weights</span> <span class="o">/=</span> <span class="n">loss_normalization</span>
+      <span class="n">reg_weights</span> <span class="o">/=</span> <span class="n">loss_normalization</span>
+
+    <span class="n">classification_loss</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SigmoidCrossEntropyFocalLoss</span><span class="p">(</span>
+        <span class="n">logits</span><span class="o">=</span><span class="n">predicted_classification_logits</span><span class="p">,</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">assigned_gt_labels</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">),</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_alpha</span><span class="p">,</span>
+        <span class="n">gamma</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_gamma</span><span class="p">)</span>
+
+    <span class="c1"># Apply mask.</span>
+    <span class="n">classification_loss</span> <span class="o">*=</span> <span class="n">class_weights</span>
+
+    <span class="c1"># TODO(jngiam): Consider normalizing by num_foreground_anchors for each</span>
+    <span class="c1"># example instead. This would match the 1/N_positive normalization in</span>
+    <span class="c1"># point pillars.</span>
+
+    <span class="c1"># Reduce sum over centers, boxes and classes.</span>
+    <span class="n">classification_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">classification_loss</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+    <span class="c1"># Reduce mean over batch.</span>
+    <span class="n">classification_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">classification_loss</span><span class="p">)</span>
+
+    <span class="c1"># Localization regression loss with Huber loss (SmoothL1).</span>
+    <span class="n">regression_loc_and_dims_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">anchor_localization_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">6</span><span class="p">],</span>
+        <span class="n">predictions</span><span class="o">=</span><span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">6</span><span class="p">],</span>
+        <span class="n">delta</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">huber_loss_delta</span><span class="p">)</span>
+
+    <span class="c1"># TODO(jngiam): Consider other methods for rotation loss such as softmax</span>
+    <span class="c1"># binning.</span>
+    <span class="c1"># For the rotation loss, we use SmoothL1(sine(delta)), this enables the</span>
+    <span class="c1"># rotation loss to be the same independent of direction.</span>
+    <span class="n">rotation_delta</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span> <span class="o">-</span> <span class="n">anchor_localization_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:])</span>
+    <span class="n">regression_rotation_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">rotation_delta</span><span class="p">),</span>
+        <span class="n">predictions</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">rotation_delta</span><span class="p">),</span>
+        <span class="n">delta</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">huber_loss_delta</span><span class="p">)</span>
+
+    <span class="n">reg_loc_loss</span> <span class="o">=</span> <span class="n">regression_loc_and_dims_loss</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">reg_dim_loss</span> <span class="o">=</span> <span class="n">regression_loc_and_dims_loss</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+
+    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ResidualsToBBoxes</span><span class="p">(</span><span class="n">anchor_bboxes</span><span class="p">,</span>
+                                                 <span class="n">anchor_localization_residuals</span><span class="p">)</span>
+    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ResidualsToBBoxes</span><span class="p">(</span><span class="n">anchor_bboxes</span><span class="p">,</span>
+                                                        <span class="n">predicted_residuals</span><span class="p">)</span>
+
+    <span class="c1"># Apply mask to individual losses.</span>
+    <span class="c1">#</span>
+    <span class="c1"># And then reduce sum over centers, boxes, residuals, and batch</span>
+    <span class="c1"># and divide by the batch_size.</span>
+    <span class="n">regression_rotation_loss</span> <span class="o">*=</span> <span class="n">reg_weights</span>
+    <span class="n">reg_rot_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">regression_rotation_loss</span><span class="p">)</span> <span class="o">/</span> <span class="n">batch_size</span>
+
+    <span class="n">reg_loc_loss</span> <span class="o">*=</span> <span class="n">reg_weights</span>
+    <span class="n">reg_loc_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">reg_loc_loss</span><span class="p">)</span> <span class="o">/</span> <span class="n">batch_size</span>
+
+    <span class="n">reg_dim_loss</span> <span class="o">*=</span> <span class="n">reg_weights</span>
+    <span class="n">reg_dim_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">reg_dim_loss</span><span class="p">)</span> <span class="o">/</span> <span class="n">batch_size</span>
+
+    <span class="c1"># Do not create corner loss graph if weight is 0.0</span>
+    <span class="c1"># TODO(bcyang): Remove condition after fixing corner loss NaN issue</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">corner_loss_weight</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="n">reg_corner_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">CornerLoss</span><span class="p">(</span>
+          <span class="n">gt_bboxes</span><span class="o">=</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="n">predicted_bboxes</span><span class="o">=</span><span class="n">predicted_bboxes</span><span class="p">)</span>
+      <span class="n">reg_corner_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">reg_corner_loss</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+      <span class="n">reg_corner_loss</span> <span class="o">*=</span> <span class="n">reg_weights</span>
+      <span class="n">reg_corner_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">reg_corner_loss</span><span class="p">)</span> <span class="o">/</span> <span class="n">batch_size</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">reg_corner_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Sum components of regression loss.</span>
+    <span class="n">regression_loss</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">location_loss_weight</span> <span class="o">*</span> <span class="n">reg_loc_loss</span> <span class="o">+</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">dimension_loss_weight</span> <span class="o">*</span> <span class="n">reg_dim_loss</span> <span class="o">+</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">rotation_loss_weight</span> <span class="o">*</span> <span class="n">reg_rot_loss</span> <span class="o">+</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">corner_loss_weight</span> <span class="o">*</span> <span class="n">reg_corner_loss</span><span class="p">)</span>
+
+    <span class="c1"># Compute total loss.</span>
+    <span class="n">total_loss</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">loss_weight_localization</span> <span class="o">*</span> <span class="n">regression_loss</span> <span class="o">+</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">loss_weight_classification</span> <span class="o">*</span> <span class="n">classification_loss</span><span class="p">)</span>
+
+    <span class="n">metrics_dict</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">total_loss</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
+        <span class="s1">&#39;loss/regression&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">regression_loss</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
+        <span class="s1">&#39;loss/regression/loc&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">reg_loc_loss</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
+        <span class="s1">&#39;loss/regression/dim&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">reg_dim_loss</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
+        <span class="s1">&#39;loss/regression/rot&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">reg_rot_loss</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
+        <span class="s1">&#39;loss/regression/corner&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">reg_corner_loss</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
+        <span class="s1">&#39;loss/classification&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">classification_loss</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
+    <span class="p">})</span>
+    <span class="n">per_example_dict</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;residuals&#39;</span><span class="p">:</span> <span class="n">predicted_residuals</span><span class="p">,</span>
+        <span class="s1">&#39;classification_logits&#39;</span><span class="p">:</span> <span class="n">predicted_classification_logits</span><span class="p">,</span>
+        <span class="s1">&#39;predicted_bboxes&#39;</span><span class="p">:</span> <span class="n">predicted_bboxes</span><span class="p">,</span>
+        <span class="s1">&#39;gt_bboxes&#39;</span><span class="p">:</span> <span class="n">gt_bboxes</span><span class="p">,</span>
+        <span class="s1">&#39;reg_weights&#39;</span><span class="p">:</span> <span class="n">reg_weights</span><span class="p">,</span>
+    <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">metrics_dict</span><span class="p">,</span> <span class="n">per_example_dict</span></div>
+
+<div class="viewcode-block" id="ModelBase.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelBase.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes predictions for `input_batch`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: A `.NestedMap` expected to contain cell_center_xyz,</span>
+<span class="sd">        cell_points_xyz, cell_feature, anchor_bboxes,</span>
+<span class="sd">        anchor_localization_residuals, assigned_gt_labels, and</span>
+<span class="sd">        assigned_cls_mask. See class doc string for details.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `.NestedMap` object containing residuals and classification_logits.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ModelBase._BBoxesAndLogits"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelBase._BBoxesAndLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_BBoxesAndLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decode an input batch, computing predicted bboxes from residuals.&quot;&quot;&quot;</span>
+    <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_predictions_per_center</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span>
+        <span class="n">predictions</span><span class="o">.</span><span class="n">residuals</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="c1"># Decode residuals.</span>
+    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ResidualsToBBoxes</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span> <span class="n">predictions</span><span class="o">.</span><span class="n">residuals</span><span class="p">)</span>
+
+    <span class="c1"># Reshape to [batch_size, num_centers * num_predictions_per_center, ...]</span>
+    <span class="n">num_predicted_boxes</span> <span class="o">=</span> <span class="n">num_centers</span> <span class="o">*</span> <span class="n">num_predictions_per_center</span>
+    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span>
+                                  <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_predicted_boxes</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">classification_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">classification_logits</span><span class="p">,</span>
+                                       <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_predicted_boxes</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;predicted_bboxes&#39;</span><span class="p">:</span> <span class="n">predicted_bboxes</span><span class="p">,</span>
+        <span class="s1">&#39;classification_logits&#39;</span><span class="p">:</span> <span class="n">classification_logits</span><span class="p">,</span>
+    <span class="p">})</span></div></div>
+
+
+<div class="viewcode-block" id="ModelV1"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelV1">[docs]</a><span class="k">class</span> <span class="nc">ModelV1</span><span class="p">(</span><span class="n">ModelBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;StarNet Model V1.</span>
+
+<span class="sd">  In this model, each center is first featurized into a single feature vector,</span>
+<span class="sd">  which is then used to predict the residuals for all the bboxes at that center.</span>
+<span class="sd">  Concretely, each featurized center needs to make B * (7 + num_classes)</span>
+<span class="sd">  predictions.</span>
+
+<span class="sd">  Effectively, anchor_bboxes shared the same featurization around each cell</span>
+<span class="sd">  (featurized_cell), but have different regression/classification networks</span>
+<span class="sd">  for each offset/dimension/rotation that produced predictions.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ModelV1.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelV1.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+             <span class="n">num_classes</span><span class="p">,</span>
+             <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
+             <span class="n">num_laser_features</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ModelV1</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+        <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span>
+        <span class="n">num_anchor_bboxes_per_center</span><span class="o">=</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
+        <span class="n">num_laser_features</span><span class="o">=</span><span class="n">num_laser_features</span><span class="p">)</span>
+
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">Builder</span><span class="p">()</span>
+    <span class="n">final_feature_dims</span> <span class="o">=</span> <span class="mi">1024</span>
+    <span class="c1"># The first 7 here corresponds to the concatenation of the following</span>
+    <span class="c1"># features:</span>
+    <span class="c1">#   x, y, z of the center.</span>
+    <span class="c1">#   x, y, z of each point relative to the center.</span>
+    <span class="c1">#   features of the point.</span>
+    <span class="n">num_features</span> <span class="o">=</span> <span class="mi">6</span> <span class="o">+</span> <span class="n">num_laser_features</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;cell_featurizer&#39;</span><span class="p">,</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">MLPMaxFeaturizer</span><span class="p">([</span><span class="n">num_features</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="n">final_feature_dims</span><span class="p">]),</span>
+        <span class="s1">&#39;Point cloud feature extractor.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;localization_regressor&#39;</span><span class="p">,</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="s1">&#39;localization&#39;</span><span class="p">,</span> <span class="n">final_feature_dims</span><span class="p">,</span>
+                       <span class="n">num_anchor_bboxes_per_center</span> <span class="o">*</span> <span class="mi">7</span><span class="p">),</span>
+        <span class="s1">&#39;Localization residual regressor.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;classifier&#39;</span><span class="p">,</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="s1">&#39;classification&#39;</span><span class="p">,</span> <span class="n">final_feature_dims</span><span class="p">,</span>
+                       <span class="n">num_anchor_bboxes_per_center</span> <span class="o">*</span> <span class="n">num_classes</span><span class="p">),</span>
+        <span class="s1">&#39;Classification layer (producing logits).&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ModelV1</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cell_featurizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_featurizer</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;localization_regressor&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">localization_regressor</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;classifier&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">classifier</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModelV1.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelV1.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes predictions for `input_batch`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: A `.NestedMap` expected to contain cell_center_xyz,</span>
+<span class="sd">        cell_points_xyz, cell_feature, anchor_bboxes,</span>
+<span class="sd">        anchor_localization_residuals, assigned_gt_labels, and</span>
+<span class="sd">        assigned_cls_mask. See class doc string for details.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `.NestedMap` object containing residuals and classification_logits.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()))</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span>
+        <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;input_batch shapes: &#39;</span><span class="p">)</span>
+
+    <span class="n">cell_feature</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">cell_feature</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_points_per_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span>
+        <span class="n">cell_feature</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">cell_points_xyz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">cell_points_xyz</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_points_per_cell</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">cell_center_xyz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">cell_center_xyz</span><span class="p">,</span>
+                                        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+    <span class="n">cell_points_padding</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">cell_points_padding</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_points_per_cell</span><span class="p">])</span>
+
+    <span class="c1"># TODO(jngiam): Make concat_feature computation a layer or configureable.</span>
+    <span class="n">cell_center_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">cell_center_xyz</span><span class="p">,</span>
+                                 <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">centered_cell_points_xyz</span> <span class="o">=</span> <span class="n">cell_points_xyz</span> <span class="o">-</span> <span class="n">cell_center_xyz</span>
+    <span class="n">concat_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">cell_center_xyz</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_points_per_cell</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+        <span class="n">centered_cell_points_xyz</span><span class="p">,</span> <span class="n">cell_feature</span>
+    <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pyformat: disable</span>
+
+    <span class="c1"># Featurize point clouds at each center.</span>
+    <span class="n">point_input</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;points&#39;</span><span class="p">:</span> <span class="n">centered_cell_points_xyz</span><span class="p">,</span>
+        <span class="s1">&#39;features&#39;</span><span class="p">:</span> <span class="n">concat_feature</span><span class="p">,</span>
+        <span class="s1">&#39;padding&#39;</span><span class="p">:</span> <span class="n">cell_points_padding</span><span class="p">,</span>
+    <span class="p">})</span>
+    <span class="n">featurized_cell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_featurizer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">cell_featurizer</span><span class="p">,</span>
+                                                 <span class="n">point_input</span><span class="p">)</span>
+    <span class="n">featurized_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">featurized_cell</span><span class="p">,</span>
+                                        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Predict localization residuals.</span>
+    <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">localization_regressor</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">localization_regressor</span><span class="p">,</span> <span class="n">featurized_cell</span><span class="p">)</span>
+    <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">predicted_residuals</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">squash_rotation_predictions</span><span class="p">:</span>
+      <span class="n">predicted_rotations</span> <span class="o">=</span> <span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span>
+      <span class="n">predicted_rotations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">predicted_rotations</span><span class="p">)</span>
+      <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="n">predicted_rotations</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Predict object classification at each bbox.</span>
+    <span class="n">predicted_classification_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">classifier</span><span class="p">,</span> <span class="n">featurized_cell</span><span class="p">)</span>
+    <span class="n">predicted_classification_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">predicted_classification_logits</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span>
+        <span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;residuals&#39;</span><span class="p">:</span> <span class="n">predicted_residuals</span><span class="p">,</span>
+        <span class="s1">&#39;classification_logits&#39;</span><span class="p">:</span> <span class="n">predicted_classification_logits</span><span class="p">,</span>
+    <span class="p">})</span></div></div>
+
+
+<div class="viewcode-block" id="ModelV2"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelV2">[docs]</a><span class="k">class</span> <span class="nc">ModelV2</span><span class="p">(</span><span class="n">ModelBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;StarNet Model V2.</span>
+
+<span class="sd">  This model is similar to V1 except that featurizations are computed at the</span>
+<span class="sd">  location of each anchor_bbox instead of each cell center.</span>
+
+<span class="sd">  In V2, we don&#39;t share the featurization among anchor_bboxes in the same cell.</span>
+<span class="sd">  Instead, the model featurizes at each anchor_bbox (offset) location.</span>
+<span class="sd">  Note that anchor_bboxes at the same offset, but with different</span>
+<span class="sd">  rotation/dimension priors will have the same featurization.</span>
+
+<span class="sd">  Note: This model makes assumptions about the ordering of anchor_bboxes, and</span>
+<span class="sd">  assumes that offsets correspond to the &#39;outer dimensions&#39;; see</span>
+<span class="sd">  input_generator._AnchorBoxSettings.GenerateAnchorSettings for details.</span>
+
+<span class="sd">  Note that the different rotation/dimension settings will have their own</span>
+<span class="sd">  classification/regression heads - and these are now shared across all offsets.</span>
+
+<span class="sd">  In summary, we want the featurizer to be location (xyz coordinate) specific,</span>
+<span class="sd">  and at each location, we want to have rotation/dimension specific regressors.</span>
+<span class="sd">  This makes it more natural to leverage featurizers that produce features</span>
+<span class="sd">  at these anchor-offset specific locations. For example, one could apply a</span>
+<span class="sd">  PCNN/PointConv model on the entire point cloud (instead of each cell) and</span>
+<span class="sd">  produce features at given anchor locations.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ModelV2.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelV2.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+             <span class="n">num_classes</span><span class="p">,</span>
+             <span class="n">num_anchor_bboxes_offsets</span><span class="p">,</span>
+             <span class="n">num_anchor_bboxes_rotations</span><span class="p">,</span>
+             <span class="n">num_anchor_bboxes_dimensions</span><span class="p">,</span>
+             <span class="n">num_laser_features</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">num_anchor_bboxes_per_center</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">num_anchor_bboxes_offsets</span> <span class="o">*</span> <span class="n">num_anchor_bboxes_rotations</span> <span class="o">*</span>
+        <span class="n">num_anchor_bboxes_dimensions</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ModelV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
+                                   <span class="n">num_laser_features</span><span class="p">)</span>
+
+    <span class="c1"># Good defaults from V1 tuning.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">loss_norm_type</span> <span class="o">=</span> <span class="n">LossNormType</span><span class="o">.</span><span class="n">NORM_BY_NUM_POS_PER_CENTER</span>
+
+    <span class="c1"># V2 specifics below.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_anchor_bboxes_offsets&#39;</span><span class="p">,</span> <span class="n">num_anchor_bboxes_offsets</span><span class="p">,</span>
+        <span class="s1">&#39;The number of anchor bboxes offsets per center. &#39;</span>
+        <span class="s1">&#39;This should match that of the corresponding input generator.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_anchor_bboxes_rotations&#39;</span><span class="p">,</span> <span class="n">num_anchor_bboxes_rotations</span><span class="p">,</span>
+        <span class="s1">&#39;The number of anchor bboxes rotations per center. &#39;</span>
+        <span class="s1">&#39;This should match that of the corresponding input generator.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_anchor_bboxes_dimensions&#39;</span><span class="p">,</span> <span class="n">num_anchor_bboxes_dimensions</span><span class="p">,</span>
+        <span class="s1">&#39;The number of anchor bboxes dimensions per center. &#39;</span>
+        <span class="s1">&#39;This should match that of the corresponding input generator.&#39;</span><span class="p">)</span>
+
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">Builder</span><span class="p">()</span>
+    <span class="n">builder</span><span class="o">.</span><span class="n">linear_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">KaimingUniformFanInRelu</span><span class="p">()</span>
+
+    <span class="c1"># In Model V2, the inputs to the cell featurizer only include the relative</span>
+    <span class="c1"># coordinates of each point concatenated with the point&#39;s features.</span>
+    <span class="c1"># GINFeaturizerV2 takes that into account and expects input_dims=4.</span>
+    <span class="n">num_gin_layers</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">gin_hidden_dims</span> <span class="o">=</span> <span class="mi">128</span>
+    <span class="n">gin_layers</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span><span class="n">gin_hidden_dims</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">gin_hidden_dims</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="n">gin_hidden_dims</span><span class="p">]</span>
+    <span class="p">]</span> <span class="o">*</span> <span class="n">num_gin_layers</span>  <span class="c1"># pyformat: disable</span>
+
+    <span class="c1"># Models can specify different cell featurizers as long as cell_feature_dims</span>
+    <span class="c1"># is also set correctly.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;cell_feature_dims&#39;</span><span class="p">,</span> <span class="n">gin_hidden_dims</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_gin_layers</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="s1">&#39;Dimensions of the features produced by the cell featurizer. &#39;</span>
+        <span class="s1">&#39;This should match the output of the cell_featurizer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;cell_featurizer&#39;</span><span class="p">,</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">GINFeaturizerV2</span><span class="p">(</span>
+            <span class="s1">&#39;feat&#39;</span><span class="p">,</span>
+            <span class="n">gin_hidden_dims</span><span class="p">,</span>
+            <span class="n">gin_layers</span><span class="p">,</span>
+            <span class="n">num_laser_features</span><span class="o">=</span><span class="n">num_laser_features</span><span class="p">),</span>
+        <span class="s1">&#39;Point cloud local cell feature extractor.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># The cell_feature_projector layer projects the featurized cells to each</span>
+    <span class="c1"># offset location. This is mainly to keep compatibility with V1. Note that</span>
+    <span class="c1"># this may be removed once we find a better global featurizer.</span>
+    <span class="c1"># A FC layer will automatically be created at init that projects the</span>
+    <span class="c1"># cell features to each anchor location with this dims.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;anchor_projected_feature_dims&#39;</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="s1">&#39;Dimensions of projected &#39;</span>
+        <span class="s1">&#39;features from cell featurizer. A FC layer will be used to &#39;</span>
+        <span class="s1">&#39;project the cell features.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;oracle_location&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If true, the model predicts the ground truth for location.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;oracle_dimension&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If true, the model predicts the ground truth for dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;oracle_rotation&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If true, the model predicts the ground truth for rotation.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;oracle_classification&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If true, the model predicts the ground truth for classification.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ModelV2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">Builder</span><span class="p">()</span>
+    <span class="n">builder</span><span class="o">.</span><span class="n">linear_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">KaimingUniformFanInRelu</span><span class="p">()</span>
+
+    <span class="n">num_anchors_per_offset</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_rotations</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_dimensions</span><span class="p">)</span>
+
+    <span class="c1"># Create params for fixed sub layers.</span>
+    <span class="n">cell_feature_projector_p</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">FC</span><span class="p">(</span>
+        <span class="s1">&#39;cell_feature_projector&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_feature_dims</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_offsets</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">anchor_projected_feature_dims</span><span class="p">)</span>
+
+    <span class="n">localization_regressor_p</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="s1">&#39;localization_regressor&#39;</span><span class="p">,</span>
+                                              <span class="n">p</span><span class="o">.</span><span class="n">anchor_projected_feature_dims</span><span class="p">,</span>
+                                              <span class="n">num_anchors_per_offset</span> <span class="o">*</span> <span class="mi">7</span><span class="p">,</span>
+                                              <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.</span><span class="p">))</span>
+
+    <span class="n">classifier_p</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">LinearWithBias</span><span class="p">(</span>
+        <span class="s1">&#39;classifier&#39;</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">anchor_projected_feature_dims</span><span class="p">,</span>
+        <span class="n">num_anchors_per_offset</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span>
+        <span class="n">bias_params_init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="o">-</span><span class="mf">4.595</span><span class="p">))</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cell_featurizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_featurizer</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cell_feature_projector&#39;</span><span class="p">,</span> <span class="n">cell_feature_projector_p</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;localization_regressor&#39;</span><span class="p">,</span> <span class="n">localization_regressor_p</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;classifier&#39;</span><span class="p">,</span> <span class="n">classifier_p</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModelV2.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelV2.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes predictions for `input_batch`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: A `.NestedMap` expected to contain lasers.points_xyz,</span>
+<span class="sd">        lasers.points_feature, lasers.points_padding, cell_center_xyz,</span>
+<span class="sd">        cell_points_xyz, cell_feature, anchor_bboxes,</span>
+<span class="sd">        anchor_localization_residuals, assigned_gt_labels, and</span>
+<span class="sd">        assigned_cls_mask. See class doc string for details.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `.NestedMap` object containing residuals and classification_logits.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()))</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span>
+        <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;input_batch shapes: &#39;</span><span class="p">)</span>
+
+    <span class="c1"># Validate Shapes</span>
+    <span class="n">cell_feature</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">cell_feature</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_points_per_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span>
+        <span class="n">cell_feature</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">cell_points_xyz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">cell_points_xyz</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_points_per_cell</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">cell_center_xyz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">cell_center_xyz</span><span class="p">,</span>
+                                        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+    <span class="n">cell_points_padding</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">cell_points_padding</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_points_per_cell</span><span class="p">])</span>
+
+    <span class="c1"># Center each cell</span>
+    <span class="n">cell_center_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">cell_center_xyz</span><span class="p">,</span>
+                                 <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">centered_cell_points_xyz</span> <span class="o">=</span> <span class="n">cell_points_xyz</span> <span class="o">-</span> <span class="n">cell_center_xyz</span>
+    <span class="n">concat_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+        <span class="n">centered_cell_points_xyz</span><span class="p">,</span> <span class="n">cell_feature</span>
+    <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pyformat: disable</span>
+
+    <span class="c1"># Featurize point clouds at each center.</span>
+    <span class="n">point_input</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;points&#39;</span><span class="p">:</span> <span class="n">centered_cell_points_xyz</span><span class="p">,</span>
+        <span class="s1">&#39;features&#39;</span><span class="p">:</span> <span class="n">concat_feature</span><span class="p">,</span>
+        <span class="s1">&#39;padding&#39;</span><span class="p">:</span> <span class="n">cell_points_padding</span><span class="p">,</span>
+    <span class="p">})</span>
+    <span class="n">featurized_cell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_featurizer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">cell_featurizer</span><span class="p">,</span>
+                                                 <span class="n">point_input</span><span class="p">)</span>
+    <span class="n">featurized_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">featurized_cell</span><span class="p">,</span>
+                                        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Project each featurized_cell features to each bbox per center.</span>
+    <span class="n">featurized_anchors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_feature_projector</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">cell_feature_projector</span><span class="p">,</span> <span class="n">featurized_cell</span><span class="p">)</span>
+
+    <span class="c1"># Reshape output so that we have features per offset.</span>
+    <span class="n">featurized_anchors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">featurized_anchors</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_offsets</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Predict localization residuals.</span>
+    <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">localization_regressor</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">localization_regressor</span><span class="p">,</span> <span class="n">featurized_anchors</span><span class="p">)</span>
+    <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">predicted_residuals</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">oracle_location</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_dimension</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_rotation</span><span class="p">]):</span>
+      <span class="n">gt_residuals</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+          <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_localization_residuals</span><span class="p">,</span>
+          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+      <span class="n">residuals</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_location</span><span class="p">:</span>
+        <span class="n">residuals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gt_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">residuals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_dimension</span><span class="p">:</span>
+        <span class="n">residuals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gt_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">residuals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">])</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_rotation</span><span class="p">:</span>
+        <span class="n">residuals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gt_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">residuals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:])</span>
+      <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">residuals</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">squash_rotation_predictions</span><span class="p">:</span>
+      <span class="n">predicted_rotations</span> <span class="o">=</span> <span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span>
+      <span class="n">predicted_rotations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">predicted_rotations</span><span class="p">)</span>
+      <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="n">predicted_rotations</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Predict object classification at each bbox.</span>
+    <span class="n">predicted_classification_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">classifier</span><span class="p">,</span> <span class="n">featurized_anchors</span><span class="p">)</span>
+    <span class="n">predicted_classification_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">predicted_classification_logits</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span>
+        <span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_classification</span><span class="p">:</span>
+      <span class="n">assigned_gt_labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+          <span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_gt_labels</span><span class="p">,</span>
+          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">])</span>
+      <span class="n">predicted_classification_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">assigned_gt_labels</span><span class="p">,</span>
+                                                   <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;residuals&#39;</span><span class="p">:</span> <span class="n">predicted_residuals</span><span class="p">,</span>
+        <span class="s1">&#39;classification_logits&#39;</span><span class="p">:</span> <span class="n">predicted_classification_logits</span><span class="p">,</span>
+    <span class="p">})</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

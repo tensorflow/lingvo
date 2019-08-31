@@ -1,0 +1,819 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.kitti_input_generator &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.kitti_input_generator</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.kitti_input_generator</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Input generator for KITTI data.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">ops</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">geometry</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">input_extractor</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">input_preprocessors</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">kitti_metadata</span>
+
+
+<div class="viewcode-block" id="_Dense"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator._Dense">[docs]</a><span class="k">def</span> <span class="nf">_Dense</span><span class="p">(</span><span class="n">sparse</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse_to_dense</span><span class="p">(</span>
+      <span class="n">sparse_indices</span><span class="o">=</span><span class="n">sparse</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span>
+      <span class="n">output_shape</span><span class="o">=</span><span class="n">sparse</span><span class="o">.</span><span class="n">dense_shape</span><span class="p">,</span>
+      <span class="n">sparse_values</span><span class="o">=</span><span class="n">sparse</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+      <span class="n">default_value</span><span class="o">=</span><span class="n">default_value</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ComputeKITTIDifficulties"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.ComputeKITTIDifficulties">[docs]</a><span class="k">def</span> <span class="nf">ComputeKITTIDifficulties</span><span class="p">(</span><span class="n">box_image_height</span><span class="p">,</span> <span class="n">occlusion</span><span class="p">,</span> <span class="n">truncation</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute difficulties from box height, occlusion, and truncation.&quot;&quot;&quot;</span>
+  <span class="c1"># Easy: No occlusion, max truncation 15%</span>
+  <span class="n">easy_level</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">((</span><span class="n">box_image_height</span> <span class="o">&gt;=</span> <span class="mf">40.</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">occlusion</span> <span class="o">&lt;=</span> <span class="mf">0.</span><span class="p">)</span>
+                           <span class="o">&amp;</span> <span class="p">(</span><span class="n">truncation</span> <span class="o">&lt;=</span> <span class="mf">0.15</span><span class="p">))</span> <span class="o">*</span> <span class="mi">3</span>
+  <span class="c1"># Moderate: max occlusion: partly occluded, max truncation 30%</span>
+  <span class="n">moderate_level</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">((</span><span class="n">occlusion</span> <span class="o">&lt;=</span> <span class="mf">1.</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">truncation</span> <span class="o">&lt;=</span> <span class="mf">0.3</span><span class="p">)</span>
+                               <span class="o">&amp;</span> <span class="p">(</span><span class="n">box_image_height</span> <span class="o">&gt;=</span> <span class="mf">25.</span><span class="p">))</span> <span class="o">*</span> <span class="mi">2</span>
+  <span class="c1"># Hard: Difficult to see, max truncation 50%</span>
+  <span class="n">hard_level</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">((</span><span class="n">occlusion</span> <span class="o">&lt;=</span> <span class="mf">2.</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">truncation</span> <span class="o">&lt;=</span> <span class="mf">0.5</span><span class="p">)</span>
+                           <span class="o">&amp;</span> <span class="p">(</span><span class="n">box_image_height</span> <span class="o">&gt;=</span> <span class="mf">25.</span><span class="p">))</span> <span class="o">*</span> <span class="mi">1</span>
+
+  <span class="c1"># Occlusion = 3 and higher truncation is &quot;super hard&quot;, and</span>
+  <span class="c1"># will map to 0 (ignored).</span>
+  <span class="n">difficulties</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">hard_level</span><span class="p">,</span> <span class="n">moderate_level</span><span class="p">),</span> <span class="n">easy_level</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">difficulties</span></div>
+
+
+<div class="viewcode-block" id="KITTILaserExtractor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor">[docs]</a><span class="k">class</span> <span class="nc">KITTILaserExtractor</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">LaserExtractor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base extractor for the laser points from a KITTI tf.Example.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="KITTILaserExtractor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTILaserExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">max_num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_features</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="KITTILaserExtractor.FeatureMap"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;pointcloud/xyz&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="s1">&#39;pointcloud/reflectance&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">feature_map</span></div>
+
+<div class="viewcode-block" id="KITTILaserExtractor._Extract"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor._Extract">[docs]</a>  <span class="k">def</span> <span class="nf">_Extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;pointcloud/xyz&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">points_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;pointcloud/reflectance&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_features</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">npoints</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+      <span class="n">points_feature</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">points_feature</span><span class="p">,</span>
+                                            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_features</span><span class="p">])</span>
+      <span class="n">points_padding</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">npoints</span><span class="p">]),</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">points_padding</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">points_xyz</span><span class="o">=</span><span class="n">points_xyz</span><span class="p">,</span>
+        <span class="n">points_feature</span><span class="o">=</span><span class="n">points_feature</span><span class="p">,</span>
+        <span class="n">points_padding</span><span class="o">=</span><span class="n">points_padding</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="KITTIImageExtractor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor">[docs]</a><span class="k">class</span> <span class="nc">KITTIImageExtractor</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">FieldsExtractor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts the image information (left camera) from a KITTI tf.Example.</span>
+
+<span class="sd">  Produces:</span>
+<span class="sd">    image: [512, 1382, 3] - Floating point Tensor containing image data. Note</span>
+<span class="sd">    that image may not be produced if decode_image is set to False. During</span>
+<span class="sd">    training, we may not want to decode the images.</span>
+
+<span class="sd">    width: [1] - integer scalar width of the original image.</span>
+
+<span class="sd">    height: [1] - integer scalar width of the original image.</span>
+
+<span class="sd">    velo_to_image_plane: [3, 4] - transformation matrix from velo xyz to image</span>
+<span class="sd">    plane xy. After multiplication, you need to divide by last coordinate to</span>
+<span class="sd">    recover 2D pixel locations.</span>
+
+<span class="sd">    velo_to_camera: [4, 4] - transformation matrix from velo xyz to camera xyz.</span>
+
+<span class="sd">    camera_to_velo: [4, 4] - transformation matrix from camera xyz to velo xyz.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">_KITTI_MAX_HEIGHT</span> <span class="o">=</span> <span class="mi">512</span>
+  <span class="n">_KITTI_MAX_WIDTH</span> <span class="o">=</span> <span class="mi">1382</span>
+
+<div class="viewcode-block" id="KITTIImageExtractor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTIImageExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decode_image&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to decode and produce image.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="KITTIImageExtractor.FeatureMap"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;image/format&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="s1">&#39;png&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;image/height&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+        <span class="s1">&#39;image/width&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+        <span class="s1">&#39;image/source_id&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">),</span>
+        <span class="c1"># The camera calibration matrices can be used later with width/height</span>
+        <span class="c1"># to perform out of camera frustum point dropping.</span>
+        <span class="s1">&#39;transform/velo_to_image_plane&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="s1">&#39;transform/velo_to_camera&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="s1">&#39;transform/camera_to_velo&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">decode_image</span><span class="p">:</span>
+      <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;image/encoded&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span>
+                                                        <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span>
+                                                        <span class="n">default_value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">feature_map</span></div>
+
+<div class="viewcode-block" id="KITTIImageExtractor._Extract"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor._Extract">[docs]</a>  <span class="k">def</span> <span class="nf">_Extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">decode_image</span><span class="p">:</span>
+      <span class="n">raw</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;image/encoded&#39;</span><span class="p">]</span>
+      <span class="n">image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">decode_png</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+      <span class="n">image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">convert_image_dtype</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="c1"># Padding instead of rescaling to preserve the pixel coordinates.</span>
+      <span class="n">image</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
+          <span class="n">image</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_KITTI_MAX_HEIGHT</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_KITTI_MAX_WIDTH</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+    <span class="n">width</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;image/width&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;image/height&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">velo_to_image_plane</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;transform/velo_to_image_plane&#39;</span><span class="p">]</span>
+    <span class="n">velo_to_camera</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;transform/velo_to_camera&#39;</span><span class="p">]</span>
+    <span class="n">camera_to_velo</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;transform/camera_to_velo&#39;</span><span class="p">]</span>
+
+    <span class="n">extracted_features</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
+        <span class="n">velo_to_image_plane</span><span class="o">=</span><span class="n">velo_to_image_plane</span><span class="p">,</span>
+        <span class="n">velo_to_camera</span><span class="o">=</span><span class="n">velo_to_camera</span><span class="p">,</span>
+        <span class="n">camera_to_velo</span><span class="o">=</span><span class="n">camera_to_velo</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">decode_image</span><span class="p">:</span>
+      <span class="n">extracted_features</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">image</span>
+
+    <span class="k">return</span> <span class="n">extracted_features</span></div>
+
+<div class="viewcode-block" id="KITTIImageExtractor.Shape"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">width</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="n">height</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="n">velo_to_image_plane</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]),</span>
+        <span class="n">velo_to_camera</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]),</span>
+        <span class="n">camera_to_velo</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">decode_image</span><span class="p">:</span>
+      <span class="n">shape</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span>
+          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_KITTI_MAX_HEIGHT</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_KITTI_MAX_WIDTH</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">shape</span></div>
+
+<div class="viewcode-block" id="KITTIImageExtractor.DType"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.DType">[docs]</a>  <span class="k">def</span> <span class="nf">DType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">width</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+        <span class="n">velo_to_image_plane</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">velo_to_camera</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">camera_to_velo</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">decode_image</span><span class="p">:</span>
+      <span class="n">dtype</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="k">return</span> <span class="n">dtype</span></div></div>
+
+
+<span class="c1"># Various coordinate systems in the outputs:</span>
+<span class="c1"># - bboxes: 2D &quot;image&quot; coordinate.</span>
+<span class="c1"># - bboxes_3d[3:6] (locations): 3D &quot;world&quot; coordinate.</span>
+<span class="c1"># - bboxes_3d[:3] (dimension)</span>
+<span class="c1"># - points_xyz: 3D &quot;world&quot; coordinate.</span>
+<span class="c1">#</span>
+<span class="c1"># To convert from:</span>
+<span class="c1"># &quot;camera&quot; to &quot;world&quot;: use extrinsics/R and extrinsics/t.</span>
+<span class="c1"># &quot;camera&quot; to &quot;image&quot;: use intrinsics/K</span>
+
+
+<div class="viewcode-block" id="KITTILabelExtractor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor">[docs]</a><span class="k">class</span> <span class="nc">KITTILabelExtractor</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">FieldsExtractor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts the object labels from a KITTI tf.Example.</span>
+
+<span class="sd">  Emits:</span>
+<span class="sd">    bboxes_count: Scalar number of 2D bounding boxes in the example.</span>
+
+<span class="sd">    bboxes: [p.max_num_objects, 4] - 2D bounding box data in [ymin, xmin, ymax,</span>
+<span class="sd">    xmax] format.</span>
+
+<span class="sd">    bboxes_padding: [p.max_num_objects] - Padding for bboxes.</span>
+
+<span class="sd">    bboxes_3d: [p.max_num_objects, 7] - 3D bounding box data in [x, y, z, dx,</span>
+<span class="sd">    dy, dz, phi] format.  x, y, z are the object center; dx, dy, dz are the</span>
+<span class="sd">    dimensions of the box, and phi is the rotation angle around the z-axis.</span>
+<span class="sd">    3D bboxes are defined in the velodyne coordinate frame.</span>
+
+<span class="sd">    bboxes_3d_mask: [p.max_num_objects] - Mask for bboxes (mask is the inversion</span>
+<span class="sd">    of padding).</span>
+
+<span class="sd">    bboxes3d_proj_to_image_plane: [p.max_num_objects, 8, 2] - For each</span>
+<span class="sd">    bounding box, the 8 corners of the bounding box in projected image</span>
+<span class="sd">    coordinates (x, y).</span>
+
+<span class="sd">    bboxes_td: [p.max_num_objects, 4] - The 3D bounding box data in top down</span>
+<span class="sd">    projected coordinates (ymin, xmin, ymax, xmax).  This currently ignores</span>
+<span class="sd">    rotation.</span>
+
+<span class="sd">    bboxes_td_mask: [p.max_num_objects]: Mask for bboxes_td.</span>
+
+<span class="sd">    bboxes_3d_num_points: [p.max_num_objects]: Number of points in each box.</span>
+
+<span class="sd">    labels: [p.max_num_objects] - Integer label for each bounding box object</span>
+<span class="sd">    corresponding to the index in KITTI_CLASS_NAMES.</span>
+
+<span class="sd">    texts: [p.max_num_objects] - The class name for each label in labels.</span>
+
+<span class="sd">    source_id: Scalar string. The unique identifier for each example.</span>
+
+<span class="sd">  See ComputeKITTIDifficulties for more info of the following::</span>
+
+<span class="sd">    box_image_height: [p.max_num_objects] - The height of the box in pixels</span>
+<span class="sd">    of each box in the projected image plane.</span>
+
+<span class="sd">    occlusion: [p.max_num_objects] - The occlusion level of each bounding box.</span>
+
+<span class="sd">    truncation: [p.max_num_objects] - The truncation level of each bounding box.</span>
+
+<span class="sd">    difficulties: [p.max_num_objects] - The computed difficulty based on the</span>
+<span class="sd">    above three factors.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">KITTI_CLASS_NAMES</span> <span class="o">=</span> <span class="n">kitti_metadata</span><span class="o">.</span><span class="n">KITTIMetadata</span><span class="p">()</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span>
+
+  <span class="c1"># Sub-classes for filtering labels when training class specific models.</span>
+  <span class="n">SUBCLASS_DICT</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s1">&#39;human&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+      <span class="s1">&#39;cyclist&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">6</span><span class="p">],</span>
+      <span class="s1">&#39;motor&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>
+      <span class="s1">&#39;pedestrian&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+  <span class="p">}</span>
+
+<div class="viewcode-block" id="KITTILabelExtractor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTILabelExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_num_objects&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;The number of objects per example.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;filter_labels&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;If not None, specifies a list of label &#39;</span>
+             <span class="s1">&#39;indices to keep.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="KITTILabelExtractor.FeatureMap"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;image/source_id&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;object/image/bbox/xmin&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="s1">&#39;object/image/bbox/xmax&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="s1">&#39;object/image/bbox/ymin&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="s1">&#39;object/image/bbox/ymax&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="s1">&#39;object/label&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">),</span>
+        <span class="s1">&#39;object/has_3d_info&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="s1">&#39;object/occlusion&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="s1">&#39;object/truncation&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="s1">&#39;object/velo/bbox/xyz&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="s1">&#39;object/velo/bbox/dim_xyz&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="s1">&#39;object/velo/bbox/phi&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="s1">&#39;transform/velo_to_image_plane&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+    <span class="p">}</span></div>
+
+<div class="viewcode-block" id="KITTILabelExtractor._Extract"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor._Extract">[docs]</a>  <span class="k">def</span> <span class="nf">_Extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">source_id</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;image/source_id&#39;</span><span class="p">],</span> <span class="p">[])</span>
+    <span class="n">xmin</span> <span class="o">=</span> <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;object/image/bbox/xmin&#39;</span><span class="p">])</span>
+    <span class="n">xmax</span> <span class="o">=</span> <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;object/image/bbox/xmax&#39;</span><span class="p">])</span>
+    <span class="n">ymin</span> <span class="o">=</span> <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;object/image/bbox/ymin&#39;</span><span class="p">])</span>
+    <span class="n">ymax</span> <span class="o">=</span> <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;object/image/bbox/ymax&#39;</span><span class="p">])</span>
+
+    <span class="c1"># 2d bounding box in image coordinates.</span>
+    <span class="n">bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">ymin</span><span class="p">,</span> <span class="n">xmin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">,</span> <span class="n">xmax</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">bboxes_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+
+    <span class="n">bboxes_padding</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">bboxes_count</span><span class="p">]),</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+
+    <span class="n">dim_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;object/velo/bbox/dim_xyz&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">loc_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;object/velo/bbox/xyz&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;object/velo/bbox/phi&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="c1"># bboxes_3d is in [x, y, z, dx, dy, dz, phi].</span>
+    <span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">loc_xyz</span><span class="p">,</span> <span class="n">dim_xyz</span><span class="p">,</span> <span class="n">phi</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">bboxes_td</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+        <span class="n">cy</span> <span class="o">-</span> <span class="n">dy</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">cx</span> <span class="o">-</span> <span class="n">dx</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">cy</span> <span class="o">+</span> <span class="n">dy</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">cx</span> <span class="o">+</span> <span class="n">dx</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pyformat: disable</span>
+    <span class="n">bboxes_td</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">bboxes_td</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+
+    <span class="n">has_3d_info</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;object/has_3d_info&#39;</span><span class="p">]))</span>
+    <span class="n">bboxes_3d_mask</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">has_3d_info</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+    <span class="n">bboxes_td_mask</span> <span class="o">=</span> <span class="n">bboxes_3d_mask</span>
+
+    <span class="c1"># Fill in difficulties from bounding box height, truncation and occlusion.</span>
+    <span class="n">bb_height</span> <span class="o">=</span> <span class="n">ymax</span> <span class="o">-</span> <span class="n">ymin</span>
+    <span class="n">box_image_height</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">bb_height</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+    <span class="n">box_image_height</span> <span class="o">*=</span> <span class="n">bboxes_3d_mask</span>
+
+    <span class="c1"># 0 to 3 indicating occlusion level. 0 means fully visible, 1 means partly,</span>
+    <span class="n">occlusion</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;object/occlusion&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">occlusion</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">occlusion</span><span class="p">)</span>
+    <span class="n">occlusion</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">occlusion</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+    <span class="n">occlusion</span> <span class="o">*=</span> <span class="n">bboxes_3d_mask</span>
+
+    <span class="c1"># Truncation: 0 -&gt; not truncated, 1.0 -&gt; truncated</span>
+    <span class="n">truncation</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;object/truncation&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">truncation</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">truncation</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+    <span class="n">truncation</span> <span class="o">*=</span> <span class="n">bboxes_3d_mask</span>
+
+    <span class="n">difficulties</span> <span class="o">=</span> <span class="n">ComputeKITTIDifficulties</span><span class="p">(</span><span class="n">box_image_height</span><span class="p">,</span> <span class="n">occlusion</span><span class="p">,</span>
+                                            <span class="n">truncation</span><span class="p">)</span>
+    <span class="n">difficulties</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">difficulties</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+
+    <span class="c1"># Make a batch axis to call BBoxCorners, and take the first result back.</span>
+    <span class="n">bbox3d_corners</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">BBoxCorners</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="o">...</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Project the 3D bbox to the image plane.</span>
+    <span class="n">velo_to_image_plane</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;transform/velo_to_image_plane&#39;</span><span class="p">]</span>
+    <span class="n">bboxes3d_proj_to_image_plane</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">PointsToImagePlane</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bbox3d_corners</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span> <span class="n">velo_to_image_plane</span><span class="p">)</span>
+
+    <span class="c1"># Output is [num_objects, 8 corners per object, (x, y)].</span>
+    <span class="n">bboxes3d_proj_to_image_plane</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bboxes3d_proj_to_image_plane</span><span class="p">,</span>
+                                              <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="n">bboxes3d_proj_to_image_plane</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
+        <span class="n">bboxes3d_proj_to_image_plane</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+    <span class="n">texts</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;object/label&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">static_map_string_int</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">texts</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">KITTI_CLASS_NAMES</span><span class="p">)</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+    <span class="n">texts</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">texts</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+
+    <span class="c1"># Filter labels by setting bboxes_padding, bboxes_3d_mask, and</span>
+    <span class="c1"># bboxes_td_mask appropriately.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">valid_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">filter_labels</span><span class="p">])</span>
+      <span class="n">bbox_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">valid_labels</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">bbox_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">bbox_mask</span><span class="p">)</span>
+      <span class="n">bboxes_padding</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">bbox_mask</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">bboxes_padding</span><span class="p">)</span>
+      <span class="n">filtered_bboxes_3d_mask</span> <span class="o">=</span> <span class="n">bboxes_3d_mask</span> <span class="o">*</span> <span class="n">bbox_mask</span>
+      <span class="n">bboxes_td_mask</span> <span class="o">*=</span> <span class="n">bbox_mask</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">filtered_bboxes_3d_mask</span> <span class="o">=</span> <span class="n">bboxes_3d_mask</span>
+
+    <span class="c1"># Placeholder for counting the number of laser points that reside within</span>
+    <span class="c1"># each 3-d bounding box. This must be filled in outside of this function</span>
+    <span class="c1"># based on the loaded 3-d laser points.</span>
+    <span class="n">bboxes_3d_num_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">bboxes_3d_num_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">bboxes_3d_num_points</span><span class="p">,</span>
+                                                <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+
+    <span class="c1"># Pad bboxes_3d.</span>
+    <span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">source_id</span><span class="o">=</span><span class="n">source_id</span><span class="p">,</span>
+        <span class="n">bboxes_count</span><span class="o">=</span><span class="n">bboxes_count</span><span class="p">,</span>
+        <span class="n">bboxes</span><span class="o">=</span><span class="n">bboxes</span><span class="p">,</span>
+        <span class="n">bboxes_padding</span><span class="o">=</span><span class="n">bboxes_padding</span><span class="p">,</span>
+        <span class="n">bboxes_3d</span><span class="o">=</span><span class="n">bboxes_3d</span><span class="p">,</span>
+        <span class="n">bboxes_3d_mask</span><span class="o">=</span><span class="n">filtered_bboxes_3d_mask</span><span class="p">,</span>
+        <span class="n">unfiltered_bboxes_3d_mask</span><span class="o">=</span><span class="n">bboxes_3d_mask</span><span class="p">,</span>
+        <span class="n">bboxes3d_proj_to_image_plane</span><span class="o">=</span><span class="n">bboxes3d_proj_to_image_plane</span><span class="p">,</span>
+        <span class="n">bboxes_td</span><span class="o">=</span><span class="n">bboxes_td</span><span class="p">,</span>
+        <span class="n">bboxes_td_mask</span><span class="o">=</span><span class="n">bboxes_td_mask</span><span class="p">,</span>
+        <span class="n">bboxes_3d_num_points</span><span class="o">=</span><span class="n">bboxes_3d_num_points</span><span class="p">,</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
+        <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">,</span>
+        <span class="n">box_image_height</span><span class="o">=</span><span class="n">box_image_height</span><span class="p">,</span>
+        <span class="n">occlusion</span><span class="o">=</span><span class="n">occlusion</span><span class="p">,</span>
+        <span class="n">truncation</span><span class="o">=</span><span class="n">truncation</span><span class="p">,</span>
+        <span class="n">difficulties</span><span class="o">=</span><span class="n">difficulties</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="KITTILabelExtractor.Shape"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">source_id</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([]),</span>
+        <span class="n">bboxes_count</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([]),</span>
+        <span class="n">bboxes</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">4</span><span class="p">]),</span>
+        <span class="n">bboxes_padding</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="n">bboxes_3d</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">7</span><span class="p">]),</span>
+        <span class="n">bboxes_3d_mask</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="n">unfiltered_bboxes_3d_mask</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="n">bboxes3d_proj_to_image_plane</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+        <span class="n">bboxes_td</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">4</span><span class="p">]),</span>
+        <span class="n">bboxes_td_mask</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="n">bboxes_3d_num_points</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="n">texts</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="n">box_image_height</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="n">occlusion</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="n">truncation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="n">difficulties</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="KITTILabelExtractor.DType"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.DType">[docs]</a>  <span class="k">def</span> <span class="nf">DType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">source_id</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span>
+        <span class="n">bboxes_count</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="n">bboxes</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">bboxes_padding</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">bboxes_3d</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">bboxes_3d_mask</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">unfiltered_bboxes_3d_mask</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">bboxes3d_proj_to_image_plane</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">bboxes_td</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">bboxes_td_mask</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">bboxes_3d_num_points</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="n">texts</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span>
+        <span class="n">box_image_height</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">occlusion</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">truncation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">difficulties</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="KITTIBase"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIBase">[docs]</a><span class="k">class</span> <span class="nc">KITTIBase</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">BaseExtractor</span><span class="p">):</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">class_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">KITTI_CLASS_NAMES</span></div>
+
+
+<div class="viewcode-block" id="KITTILaser"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILaser">[docs]</a><span class="k">class</span> <span class="nc">KITTILaser</span><span class="p">(</span><span class="n">KITTIBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;KITTI object detection dataset.</span>
+
+<span class="sd">  This class emits KITTI images, labels, and the raw laser</span>
+<span class="sd">  representation of the data.  See KITTIGrid and KITTISparse</span>
+<span class="sd">  for alternative laser representations.</span>
+
+<span class="sd">  Input batch contains outputs from:</span>
+<span class="sd">    - KITTIImageExtractor</span>
+<span class="sd">    - KITTILabelExtractor</span>
+<span class="sd">    - KITTILaserExtractor</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="KITTILaser.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILaser.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Defaults params.&quot;&quot;&quot;</span>
+    <span class="n">extractors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">images</span><span class="o">=</span><span class="n">KITTIImageExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">lasers</span><span class="o">=</span><span class="n">KITTILaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="n">preprocessors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">count_points</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CountNumberOfPointsInBoxes3D</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">viz_copy</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CreateDecoderCopy</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">pad_lasers</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">PadLaserFeatures</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">max_num_points</span><span class="o">=</span><span class="mi">128500</span><span class="p">))</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTILaser</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">preprocessors</span><span class="o">=</span><span class="n">preprocessors</span><span class="p">,</span>
+        <span class="n">preprocessors_order</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;viz_copy&#39;</span><span class="p">,</span> <span class="s1">&#39;count_points&#39;</span><span class="p">,</span> <span class="s1">&#39;pad_lasers&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">class_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">KITTI_CLASS_NAMES</span></div>
+
+
+<div class="viewcode-block" id="KITTISparseLaser"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTISparseLaser">[docs]</a><span class="k">class</span> <span class="nc">KITTISparseLaser</span><span class="p">(</span><span class="n">KITTIBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;KITTI object detection dataset for sparse detection models.</span>
+
+<span class="sd">  This class emits KITTI images, labels, and the sparse laser</span>
+<span class="sd">  representation of the data.  See KITTIGrid and KITTISparse</span>
+<span class="sd">  for alternative laser representations.</span>
+
+<span class="sd">  Input batch contains outputs from:</span>
+<span class="sd">    - KITTILabelExtractor</span>
+<span class="sd">    - KITTILaserExtractor</span>
+
+<span class="sd">  Transformed with:</span>
+<span class="sd">   - Metadata annotation:</span>
+<span class="sd">     - CountNumberOfPointsInBoxes3D</span>
+<span class="sd">   - Visualization:</span>
+<span class="sd">     - CreateDecoderCopy</span>
+<span class="sd">   - Sparse gather of points for featurization:</span>
+<span class="sd">     - SparseCenterSelector</span>
+<span class="sd">     - SparseCellGatherFeatures</span>
+<span class="sd">   - Anchor creation for classification regression targets:</span>
+<span class="sd">     - TileAnchorBBoxes</span>
+<span class="sd">     - AnchorAssignment</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="KITTISparseLaser.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTISparseLaser.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Defaults params.&quot;&quot;&quot;</span>
+    <span class="n">extractors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">images</span><span class="o">=</span><span class="n">KITTIImageExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">lasers</span><span class="o">=</span><span class="n">KITTILaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="n">preprocessors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">count_points</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CountNumberOfPointsInBoxes3D</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">viz_copy</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CreateDecoderCopy</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">keep_xyz_range</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">DropLaserPointsOutOfRange</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">select_centers</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">SparseCenterSelector</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">gather_features</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">SparseCellGatherFeatures</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">tile_anchors</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">TileAnchorBBoxes</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">assign_anchors</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">AnchorAssignment</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">pad_lasers</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">PadLaserFeatures</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTISparseLaser</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">preprocessors</span><span class="o">=</span><span class="n">preprocessors</span><span class="p">,</span>
+        <span class="n">preprocessors_order</span><span class="o">=</span><span class="p">[</span>
+            <span class="s1">&#39;viz_copy&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;keep_xyz_range&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;count_points&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;select_centers&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;gather_features&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;tile_anchors&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;assign_anchors&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;pad_lasers&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="KITTIGrid"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIGrid">[docs]</a><span class="k">class</span> <span class="nc">KITTIGrid</span><span class="p">(</span><span class="n">KITTIBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;KITTI object detection dataset.</span>
+
+<span class="sd">  This class emits KITTI images, labels, and the fixed grid laser</span>
+<span class="sd">  representation of the data.</span>
+
+<span class="sd">  Input batch contains outputs from:</span>
+<span class="sd">    - KITTILabelExtractor</span>
+<span class="sd">    - KITTILaserExtractor</span>
+
+<span class="sd">  Transformed with:</span>
+<span class="sd">   - Metadata annotation:</span>
+<span class="sd">     - CountNumberOfPointsInBoxes3D</span>
+<span class="sd">   - Visualization:</span>
+<span class="sd">     - CreateDecoderCopy</span>
+<span class="sd">   - Points to Pillars</span>
+<span class="sd">     - PointsToGrid</span>
+<span class="sd">     - GridToPillars</span>
+<span class="sd">   - Anchor creation for classification regression targets:</span>
+<span class="sd">     - GridAnchorCenters</span>
+<span class="sd">     - TileAnchorBBoxes</span>
+<span class="sd">     - AnchorAssignment</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="KITTIGrid.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIGrid.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Defaults params.&quot;&quot;&quot;</span>
+    <span class="n">extractors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">lasers</span><span class="o">=</span><span class="n">KITTILaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="n">preprocessors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">count_points</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CountNumberOfPointsInBoxes3D</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">viz_copy</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CreateDecoderCopy</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">points_to_grid</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">PointsToGrid</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">grid_to_pillars</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">GridToPillars</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">grid_anchor_centers</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">GridAnchorCenters</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">tile_anchors</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">TileAnchorBBoxes</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">assign_anchors</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">AnchorAssignment</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">pad_lasers</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">PadLaserFeatures</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">max_num_points</span><span class="o">=</span><span class="mi">128500</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTIGrid</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">preprocessors</span><span class="o">=</span><span class="n">preprocessors</span><span class="p">,</span>
+        <span class="n">preprocessors_order</span><span class="o">=</span><span class="p">[</span>
+            <span class="s1">&#39;viz_copy&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;count_points&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;points_to_grid&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;grid_to_pillars&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;grid_anchor_centers&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;tile_anchors&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;assign_anchors&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;pad_lasers&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

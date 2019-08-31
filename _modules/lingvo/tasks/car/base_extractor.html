@@ -1,0 +1,412 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.base_extractor &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.base_extractor</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.base_extractor</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Base extractor interface.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">generic_input</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+
+
+<span class="c1"># Items exceeding this value will be dropped and not sent to the trainer.</span>
+<span class="n">BUCKET_UPPER_BOUND</span> <span class="o">=</span> <span class="mi">9999</span>
+
+
+<div class="viewcode-block" id="_ParseSequenceExample"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._ParseSequenceExample">[docs]</a><span class="k">def</span> <span class="nf">_ParseSequenceExample</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">):</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_sequence_example</span><span class="p">(</span>
+      <span class="n">serialized</span><span class="o">=</span><span class="n">record</span><span class="p">,</span> <span class="n">context_features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sequence_features</span><span class="o">=</span><span class="n">feature_map</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">features</span></div>
+
+
+<span class="c1"># Supported raw record types and the corresponding parsing functions.</span>
+<span class="n">_PARSING_FUNCTIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;EXAMPLE&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">,</span>
+    <span class="s1">&#39;SEQUENCE_EXAMPLE&#39;</span><span class="p">:</span> <span class="n">_ParseSequenceExample</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="_BaseExtractor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor">[docs]</a><span class="k">class</span> <span class="nc">_BaseExtractor</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;The base extractor for all V06+-derived Minecraft datasets.</span>
+
+<span class="sd">  Subclasses should define and pass in a custom dictionary of extractors to</span>
+<span class="sd">  select which fields from V06+ datasets to output from an input</span>
+<span class="sd">  generator.</span>
+
+<span class="sd">  Preprocessors are applied to all the extracted outputs jointly, in the</span>
+<span class="sd">  specified sequence.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="_BaseExtractor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">extractors</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Defaults params.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      extractors: An NestedMap of extractor names to Extractors.  A few</span>
+<span class="sd">        extractor types are *required*:</span>
+<span class="sd">        &#39;labels&#39;: A LabelExtractor.Params().</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A base_layer Params object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">_BaseExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;extractors&#39;</span><span class="p">,</span> <span class="n">extractors</span><span class="p">,</span> <span class="s1">&#39;A NestedMap of FieldsExtractors.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;preprocessors&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(),</span>
+             <span class="s1">&#39;A NestedMap of Preprocessors.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;preprocessors_order&#39;</span><span class="p">,</span> <span class="p">[],</span>
+        <span class="s1">&#39;A list corresponding to flattened keys in preprocessors &#39;</span>
+        <span class="s1">&#39;NestedMap. This specifies the execution order of the &#39;</span>
+        <span class="s1">&#39;preprocessors.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;record_type&#39;</span><span class="p">,</span> <span class="s1">&#39;EXAMPLE&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Raw record format, default to tf.Example.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">64</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">_BaseExtractor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># Instantiate every extractor as a child layer.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">eparam</span><span class="p">)</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">eparam</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="p">)</span>
+
+    <span class="c1"># Instantiate preprocessors based on their ordering.</span>
+    <span class="n">flattened_processors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">())</span>
+
+    <span class="c1"># Validate that all keys in preprocessors_order appear are valid.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">flattened_processors</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;preprocessor_order specifies keys which were not found in &#39;</span>
+          <span class="s1">&#39;preprocessors. preprocessors_order=</span><span class="si">{}</span><span class="s1"> preprocessors keys=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="p">,</span> <span class="n">flattened_processors</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+    <span class="n">preprocessors</span> <span class="o">=</span> <span class="p">[</span><span class="n">flattened_processors</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;preprocessors&#39;</span><span class="p">,</span> <span class="n">preprocessors</span><span class="p">)</span>
+
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DType</span><span class="p">()</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Shape</span><span class="p">()</span>
+    <span class="n">dtypes</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">dtypes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()))</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;InpGen: &#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="_BaseExtractor.Shape"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Shape</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">preprocessor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocessors</span><span class="p">:</span>
+      <span class="n">shapes</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="o">.</span><span class="n">TransformShapes</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">shapes</span></div>
+
+<div class="viewcode-block" id="_BaseExtractor.DType"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.DType">[docs]</a>  <span class="k">def</span> <span class="nf">DType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">DType</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">preprocessor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocessors</span><span class="p">:</span>
+      <span class="n">dtypes</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="o">.</span><span class="n">TransformDTypes</span><span class="p">(</span><span class="n">dtypes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dtypes</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">class_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Return a list of class names strings.&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="_BaseExtractor._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">Proc</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Parses a serialized tf.Example record.&quot;&quot;&quot;</span>
+      <span class="n">bucket</span><span class="p">,</span> <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ExtractUsingExtractors</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">outputs</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">bucket</span>
+
+    <span class="c1"># Ensure buckets above BUCKET_UPPER_BOUND are dropped.</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">()</span>
+    <span class="n">args</span><span class="p">[</span><span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">BUCKET_UPPER_BOUND</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
+        <span class="n">processor</span><span class="o">=</span><span class="n">Proc</span><span class="p">,</span> <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_BaseExtractor.ExtractUsingExtractors"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.ExtractUsingExtractors">[docs]</a>  <span class="k">def</span> <span class="nf">ExtractUsingExtractors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extracts Tensors from a tf.Example record using self.extractors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      record: A tf.Example input to pass to tf.parse_single_example.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      bucket_id: A scalar int Tensor.</span>
+<span class="sd">      extracted: a NestedMap of Tensors extracted.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">feature_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">FeatureMap</span><span class="p">()))</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_PARSING_FUNCTIONS</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid record_type: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span><span class="p">))</span>
+    <span class="n">parsing_fn</span> <span class="o">=</span> <span class="n">_PARSING_FUNCTIONS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span><span class="p">]</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">parsing_fn</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">ExtractAndFilter</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;extract&#39;</span><span class="p">):</span>
+          <span class="n">extracted</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">Extract</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;filter&#39;</span><span class="p">):</span>
+          <span class="n">bucket</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">bucket</span><span class="p">,</span> <span class="n">extracted</span>
+
+    <span class="n">bucket_extracted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">ExtractAndFilter</span><span class="p">)</span>
+    <span class="n">buckets</span> <span class="o">=</span> <span class="n">bucket_extracted</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">extracted</span> <span class="o">=</span> <span class="n">bucket_extracted</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Return the maximum bucket id so that any extractor can decide whether</span>
+    <span class="c1"># to filter the entire example.</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">preprocessor</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="p">,</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">preprocessors</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">extracted</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="o">.</span><span class="n">TransformFeatures</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">buckets</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()),</span> <span class="n">extracted</span></div>
+
+<div class="viewcode-block" id="_BaseExtractor.InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">batched_outputs</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSource</span><span class="p">()</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NestedMapFromBatchedOutputs</span><span class="p">(</span><span class="n">batched_outputs</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">bucket_keys</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="_BaseExtractor._NestedMapFromBatchedOutputs"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor._NestedMapFromBatchedOutputs">[docs]</a>  <span class="k">def</span> <span class="nf">_NestedMapFromBatchedOutputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a NestedMap from a tuple of outputs from generic_input_op.&quot;&quot;&quot;</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">()</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Shape</span><span class="p">()</span>
+    <span class="n">shapes</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;input extractor shape: &#39;</span><span class="p">)</span>
+    <span class="n">flatten_shapes</span> <span class="o">=</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DType</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">shapes</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">dtypes</span><span class="o">.</span><span class="n">DebugString</span><span class="p">(),</span> <span class="n">shapes</span><span class="o">.</span><span class="n">DebugString</span><span class="p">())</span>
+    <span class="n">flatten_dtypes</span> <span class="o">=</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">flatten_shapes</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">flatten_shapes</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">flatten_dtypes</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">flatten_dtypes</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">))</span>
+
+    <span class="n">rets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dtype</span><span class="p">),</span> <span class="n">shape</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">flatten_dtypes</span><span class="p">,</span>
+                                              <span class="n">flatten_shapes</span><span class="p">):</span>
+      <span class="k">assert</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">output</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+          <span class="n">name</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">output</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="c1"># Pad every output to make shapes fixed according to the corresponding</span>
+      <span class="c1"># declared shape, since the shapes of outputs are lost through</span>
+      <span class="c1"># generic_input_op.</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">shape</span><span class="o">.</span><span class="n">assert_is_fully_defined</span><span class="p">()</span>
+      <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid shape for </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+      <span class="n">padded</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">]</span> <span class="o">+</span> <span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">())</span>
+      <span class="n">rets</span> <span class="o">+=</span> <span class="p">[</span><span class="n">padded</span><span class="p">]</span>
+
+    <span class="n">rets</span> <span class="o">=</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="c1"># Drops tf.string tensors, which is not supported on TPUs.</span>
+      <span class="n">rets</span> <span class="o">=</span> <span class="n">rets</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rets</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,469 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.tools.kitti_data module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.car.tools.kitti_exporter module" href="lingvo.tasks.car.tools.kitti_exporter.html" />
+    <link rel="prev" title="lingvo.tasks.car.tools.export_kitti_detection module" href="lingvo.tasks.car.tools.export_kitti_detection.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.html">lingvo.tasks.car package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.tools.html">lingvo.tasks.car.tools package</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.tools.kitti_data module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.tasks.car.tools.kitti_data.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.car.tools.kitti_data">
+<span id="lingvo-tasks-car-tools-kitti-data-module"></span><h1>lingvo.tasks.car.tools.kitti_data module<a class="headerlink" href="#module-lingvo.tasks.car.tools.kitti_data" title="Permalink to this headline">¶</a></h1>
+<p>Library for parsing KITTI raw data.</p>
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data.LoadVeloBinFile">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">LoadVeloBinFile</code><span class="sig-paren">(</span><em class="sig-param">filepath</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#LoadVeloBinFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data.LoadVeloBinFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads and parse raw KITTI velodyne binary file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filepath</strong> – Path to a raw KITTI velodyne binary file.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary with keys xyz and reflectance containing numpy arrays.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data.LoadLabelFile">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">LoadLabelFile</code><span class="sig-paren">(</span><em class="sig-param">filepath</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#LoadLabelFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data.LoadLabelFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads and parse raw KITTI label file.</p>
+<p>The ordering of the arrays for bbox, dimensions, and location follows the
+order in the table below. We refer to the length (dx), width (dy), height (dz)
+for clarity.</p>
+<p>Each line in the label contains (per KITTI documentation):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 15%" />
+<col style="width: 0%" />
+<col style="width: 74%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>Values</p></td>
+<td colspan="2"><p>Name</p></td>
+<td><p>Description</p></td>
+</tr>
+<tr class="row-even"><td><p>1</p></td>
+<td colspan="2"><p>type</p></td>
+<td><p>Describes the type of object: ‘Car’, ‘Van’, ‘Truck’,
+‘Pedestrian’, ‘Person_sitting’, ‘Cyclist’, ‘Tram’,
+‘Misc’ or ‘DontCare’</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td colspan="2"><p>truncated</p></td>
+<td><p>Float from 0 (non-truncated) to 1 (truncated), where
+truncated refers to the object leaving image
+boundaries.</p></td>
+</tr>
+<tr class="row-even"><td><p>1</p></td>
+<td colspan="2"><p>occluded</p></td>
+<td><p>Integer (0,1,2,3) indicating occlusion state:
+0 = fully visible, 1 = partly occluded
+2 = largely occluded, 3 = unknown</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td colspan="2"><p>alpha</p></td>
+<td><p>Observation angle of object, ranging [-pi..pi]</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td colspan="2"><p>bbox</p></td>
+<td><p>2D bounding box of object in the image (0-based
+index): left, top, right, bottom pixel coordinates.</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td colspan="2"><p>dimensions</p></td>
+<td><p>3D object dimensions: height, width, length (meters)</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td colspan="2"><p>location</p></td>
+<td><p>3D object location x,y,z in camera coordinates
+(in meters)</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td colspan="2"><p>rotation_y</p></td>
+<td><p>Rotation ry around Y-axis in camera coordinates
+[-pi..pi]</p></td>
+</tr>
+<tr class="row-even"><td><p>1</p></td>
+<td colspan="3"><dl>
+<dt>score    | Only for results: Float, indicating confidence in</dt><dd><div class="line-block">
+<div class="line">detection, needed for p/r curves, higher is better.</div>
+</div>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filepath</strong> – Path to a raw KITTI label file.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>type,
+truncated, occluded, alpha, bbox, dimensions, location, rotation_y, score.
+Note that the order of the floats in bbox, dimensions, and location
+correspond to that in the doc-string above.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A list of dictionary with keys corresponding to the name column above</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data._ValidateLabeledObject">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">_ValidateLabeledObject</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#_ValidateLabeledObject"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data._ValidateLabeledObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate that obj has expected values.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data.ParseCalibrationDict">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">ParseCalibrationDict</code><span class="sig-paren">(</span><em class="sig-param">raw_calib</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#ParseCalibrationDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data.ParseCalibrationDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse transformation matrices in a raw KITTI calibration dictionary.</p>
+<p>Per the KITTI documentation:</p>
+<p>All matrices are stored row-major, i.e., the first values correspond
+to the first row. R0_rect contains a 3x3 matrix which you need to extend to
+a 4x4 matrix by adding a 1 as the bottom-right element and 0’s elsewhere.
+Tr_xxx is a 3x4 matrix (R|t), which you need to extend to a 4x4 matrix
+in the same way.</p>
+<p>IMPORTANT: The coordinates in the camera coordinate system can be projected in
+the image by using the 3x4 projection matrix in the calib folder, where for
+the left color camera for which the images are provided, P2 must be used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>raw_calib</strong> – A dictionary of raw KITTI calibration values with keys P0, P1,
+P2, P3, R0_rect, Tr_imu_to_velo, and Tr_velo_to_cam containing flattened
+matrices of appropriate size.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary with keys P0, P1, P2, P3, R0_rect, Tr_imu_to_velo,
+and Tr_velo_to_cam containing reshaped and extended matrices.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data.LoadCalibrationFile">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">LoadCalibrationFile</code><span class="sig-paren">(</span><em class="sig-param">filepath</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#LoadCalibrationFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data.LoadCalibrationFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read and parse a raw KITTI calibration file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filepath</strong> – Path to a raw KITTI calibration file.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary with keys P0, P1, P2, P3, R0_rect, Tr_imu_to_velo,
+and Tr_velo_to_cam containing reshaped and extended transformation
+matrices.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data.VeloToImagePlaneTransformation">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">VeloToImagePlaneTransformation</code><span class="sig-paren">(</span><em class="sig-param">calib</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#VeloToImagePlaneTransformation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data.VeloToImagePlaneTransformation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the transformation matrix from velo xyz to image plane xy.</p>
+<p>Per the KITTI documentation, to project a point from Velodyne coordinates into
+the left color image, you can use this formula:</p>
+<blockquote>
+<div><p>x = P2 * R0_rect * Tr_velo_to_cam * y</p>
+</div></blockquote>
+<p>After applying the transformation, you will need to divide the by the last
+coordinate to recover the 2D pixel locations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>calib</strong> – A calibration dictionary returned by LoadCalibrationFile.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A numpy 3x4 transformation matrix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data.VeloToCameraTransformation">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">VeloToCameraTransformation</code><span class="sig-paren">(</span><em class="sig-param">calib</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#VeloToCameraTransformation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data.VeloToCameraTransformation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the transformation matrix from velo xyz to camera xyz.</p>
+<p>Per the KITTI documentation, to project a point from Velodyne coordinates into
+the left color image, you can use this formula:</p>
+<blockquote>
+<div><p>x = P2 * R0_rect * Tr_velo_to_cam * y</p>
+</div></blockquote>
+<p>NOTE: The above formula further projects the xyz point to the image plane
+using P2, which we do not apply in this function since we are working with
+xyz (3D coordinates).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>calib</strong> – A calibration dictionary returned by LoadCalibrationFile.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A numpy 4x4 transformation matrix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data.CameraToVeloTransformation">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">CameraToVeloTransformation</code><span class="sig-paren">(</span><em class="sig-param">calib</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#CameraToVeloTransformation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data.CameraToVeloTransformation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the transformation matrix from camera to velo.</p>
+<p>This is the inverse transformation of CameraToVeloTransformation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>calib</strong> – A calibartion dictionary returned by LoadCalibrationFile.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A numpy 4x4 transformation matrix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data.AnnotateKITTIObjectsWithBBox3D">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">AnnotateKITTIObjectsWithBBox3D</code><span class="sig-paren">(</span><em class="sig-param">objects</em>, <em class="sig-param">calib</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#AnnotateKITTIObjectsWithBBox3D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data.AnnotateKITTIObjectsWithBBox3D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add our canonical bboxes 3d format to KITTI objects.</p>
+<p>The annotated bboxes 3d are in the velodyne coordinate frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>objects</strong> – A list of KITTI objects returned by LoadLabelFile.</p></li>
+<li><p><strong>calib</strong> – A calibartion dictionary returned by LoadCalibrationFile.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The original list of KITTI objects, where each object has new keys
+‘has_3d_info’ indicating if the object has valid 3D bounding box data, and
+‘bbox3d’ which corresponds to our canonical bboxes 3d format.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data._KITTIObjectHas3DInfo">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">_KITTIObjectHas3DInfo</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#_KITTIObjectHas3DInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data._KITTIObjectHas3DInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether KITTI object has valid 3D bounding box information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data._KITTIObjectToBBox3D">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">_KITTIObjectToBBox3D</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">cam_to_velo_transform</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#_KITTIObjectToBBox3D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data._KITTIObjectToBBox3D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert one object given the transformation matrix.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.kitti_data.BBox3DToKITTIObject">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.kitti_data.</code><code class="sig-name descname">BBox3DToKITTIObject</code><span class="sig-paren">(</span><em class="sig-param">bbox3d</em>, <em class="sig-param">velo_to_cam_transform</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/kitti_data.html#BBox3DToKITTIObject"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.kitti_data.BBox3DToKITTIObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert one bbox3d into KITTI’s location, dimension, and rotation_y.</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.tasks.car.tools.kitti_exporter.html" class="btn btn-neutral float-right" title="lingvo.tasks.car.tools.kitti_exporter module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.tasks.car.tools.export_kitti_detection.html" class="btn btn-neutral float-left" title="lingvo.tasks.car.tools.export_kitti_detection module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

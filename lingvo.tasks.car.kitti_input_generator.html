@@ -1,0 +1,561 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.kitti_input_generator module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.car.kitti_metadata module" href="lingvo.tasks.car.kitti_metadata.html" />
+    <link rel="prev" title="lingvo.tasks.car.kitti_decoder module" href="lingvo.tasks.car.kitti_decoder.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.html">lingvo.tasks.car package</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.kitti_input_generator module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.tasks.car.kitti_input_generator.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.car.kitti_input_generator">
+<span id="lingvo-tasks-car-kitti-input-generator-module"></span><h1>lingvo.tasks.car.kitti_input_generator module<a class="headerlink" href="#module-lingvo.tasks.car.kitti_input_generator" title="Permalink to this headline">¶</a></h1>
+<p>Input generator for KITTI data.</p>
+<dl class="function">
+<dt id="lingvo.tasks.car.kitti_input_generator._Dense">
+<code class="sig-prename descclassname">lingvo.tasks.car.kitti_input_generator.</code><code class="sig-name descname">_Dense</code><span class="sig-paren">(</span><em class="sig-param">sparse</em>, <em class="sig-param">default_value=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#_Dense"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator._Dense" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.kitti_input_generator.ComputeKITTIDifficulties">
+<code class="sig-prename descclassname">lingvo.tasks.car.kitti_input_generator.</code><code class="sig-name descname">ComputeKITTIDifficulties</code><span class="sig-paren">(</span><em class="sig-param">box_image_height</em>, <em class="sig-param">occlusion</em>, <em class="sig-param">truncation</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#ComputeKITTIDifficulties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.ComputeKITTIDifficulties" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute difficulties from box height, occlusion, and truncation.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.kitti_input_generator.</code><code class="sig-name descname">KITTILaserExtractor</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILaserExtractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.LaserExtractor" title="lingvo.tasks.car.input_extractor.LaserExtractor"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_extractor.LaserExtractor</span></code></a></p>
+<p>Base extractor for the laser points from a KITTI tf.Example.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILaserExtractor.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor.FeatureMap">
+<code class="sig-name descname">FeatureMap</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILaserExtractor.FeatureMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor.FeatureMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an dictionary from tf.Example feature names to Features.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor._Extract">
+<code class="sig-name descname">_Extract</code><span class="sig-paren">(</span><em class="sig-param">features</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILaserExtractor._Extract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor._Extract" title="Permalink to this definition">¶</a></dt>
+<dd><p>The subclass-defined implementation of Extract().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>features</strong> – A dictionary of (Sparse)Tensors which includes tensors from all
+extractors.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A NestedMap of output Tensors whose key names match self.Shape()’s</dt><dd><p>keys.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.kitti_input_generator.</code><code class="sig-name descname">KITTIImageExtractor</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTIImageExtractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor" title="lingvo.tasks.car.input_extractor.FieldsExtractor"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_extractor.FieldsExtractor</span></code></a></p>
+<p>Extracts the image information (left camera) from a KITTI tf.Example.</p>
+<dl>
+<dt>Produces:</dt><dd><p>image: [512, 1382, 3] - Floating point Tensor containing image data. Note
+that image may not be produced if decode_image is set to False. During
+training, we may not want to decode the images.</p>
+<p>width: [1] - integer scalar width of the original image.</p>
+<p>height: [1] - integer scalar width of the original image.</p>
+<p>velo_to_image_plane: [3, 4] - transformation matrix from velo xyz to image
+plane xy. After multiplication, you need to divide by last coordinate to
+recover 2D pixel locations.</p>
+<p>velo_to_camera: [4, 4] - transformation matrix from velo xyz to camera xyz.</p>
+<p>camera_to_velo: [4, 4] - transformation matrix from camera xyz to velo xyz.</p>
+</dd>
+</dl>
+<dl class="attribute">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor._KITTI_MAX_HEIGHT">
+<code class="sig-name descname">_KITTI_MAX_HEIGHT</code><em class="property"> = 512</em><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor._KITTI_MAX_HEIGHT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor._KITTI_MAX_WIDTH">
+<code class="sig-name descname">_KITTI_MAX_WIDTH</code><em class="property"> = 1382</em><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor._KITTI_MAX_WIDTH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTIImageExtractor.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.FeatureMap">
+<code class="sig-name descname">FeatureMap</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTIImageExtractor.FeatureMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.FeatureMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an dictionary from tf.Example feature names to Features.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor._Extract">
+<code class="sig-name descname">_Extract</code><span class="sig-paren">(</span><em class="sig-param">features</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTIImageExtractor._Extract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor._Extract" title="Permalink to this definition">¶</a></dt>
+<dd><p>The subclass-defined implementation of Extract().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>features</strong> – A dictionary of (Sparse)Tensors which includes tensors from all
+extractors.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A NestedMap of output Tensors whose key names match self.Shape()’s</dt><dd><p>keys.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.Shape">
+<code class="sig-name descname">Shape</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTIImageExtractor.Shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.Shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a NestedMap of un-batched fully-specified tf.TensorShapes.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.DType">
+<code class="sig-name descname">DType</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTIImageExtractor.DType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.DType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a NestedMap mapping names to tf.DType.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.kitti_input_generator.</code><code class="sig-name descname">KITTILabelExtractor</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILabelExtractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor" title="lingvo.tasks.car.input_extractor.FieldsExtractor"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_extractor.FieldsExtractor</span></code></a></p>
+<p>Extracts the object labels from a KITTI tf.Example.</p>
+<dl>
+<dt>Emits:</dt><dd><p>bboxes_count: Scalar number of 2D bounding boxes in the example.</p>
+<p>bboxes: [p.max_num_objects, 4] - 2D bounding box data in [ymin, xmin, ymax,
+xmax] format.</p>
+<p>bboxes_padding: [p.max_num_objects] - Padding for bboxes.</p>
+<p>bboxes_3d: [p.max_num_objects, 7] - 3D bounding box data in [x, y, z, dx,
+dy, dz, phi] format.  x, y, z are the object center; dx, dy, dz are the
+dimensions of the box, and phi is the rotation angle around the z-axis.
+3D bboxes are defined in the velodyne coordinate frame.</p>
+<p>bboxes_3d_mask: [p.max_num_objects] - Mask for bboxes (mask is the inversion
+of padding).</p>
+<p>bboxes3d_proj_to_image_plane: [p.max_num_objects, 8, 2] - For each
+bounding box, the 8 corners of the bounding box in projected image
+coordinates (x, y).</p>
+<p>bboxes_td: [p.max_num_objects, 4] - The 3D bounding box data in top down
+projected coordinates (ymin, xmin, ymax, xmax).  This currently ignores
+rotation.</p>
+<p>bboxes_td_mask: [p.max_num_objects]: Mask for bboxes_td.</p>
+<p>bboxes_3d_num_points: [p.max_num_objects]: Number of points in each box.</p>
+<p>labels: [p.max_num_objects] - Integer label for each bounding box object
+corresponding to the index in KITTI_CLASS_NAMES.</p>
+<p>texts: [p.max_num_objects] - The class name for each label in labels.</p>
+<p>source_id: Scalar string. The unique identifier for each example.</p>
+</dd>
+</dl>
+<p>See ComputeKITTIDifficulties for more info of the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">box_image_height</span><span class="p">:</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]</span> <span class="o">-</span> <span class="n">The</span> <span class="n">height</span> <span class="n">of</span> <span class="n">the</span> <span class="n">box</span> <span class="ow">in</span> <span class="n">pixels</span>
+<span class="n">of</span> <span class="n">each</span> <span class="n">box</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">projected</span> <span class="n">image</span> <span class="n">plane</span><span class="o">.</span>
+
+<span class="n">occlusion</span><span class="p">:</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]</span> <span class="o">-</span> <span class="n">The</span> <span class="n">occlusion</span> <span class="n">level</span> <span class="n">of</span> <span class="n">each</span> <span class="n">bounding</span> <span class="n">box</span><span class="o">.</span>
+
+<span class="n">truncation</span><span class="p">:</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]</span> <span class="o">-</span> <span class="n">The</span> <span class="n">truncation</span> <span class="n">level</span> <span class="n">of</span> <span class="n">each</span> <span class="n">bounding</span> <span class="n">box</span><span class="o">.</span>
+
+<span class="n">difficulties</span><span class="p">:</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]</span> <span class="o">-</span> <span class="n">The</span> <span class="n">computed</span> <span class="n">difficulty</span> <span class="n">based</span> <span class="n">on</span> <span class="n">the</span>
+<span class="n">above</span> <span class="n">three</span> <span class="n">factors</span><span class="o">.</span>
+</pre></div>
+</div>
+<dl class="attribute">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES">
+<code class="sig-name descname">KITTI_CLASS_NAMES</code><em class="property"> = ['Background', 'Car', 'Van', 'Truck', 'Pedestrian', 'Person_sitting', 'Cyclist', 'Tram', 'Misc', 'DontCare']</em><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.SUBCLASS_DICT">
+<code class="sig-name descname">SUBCLASS_DICT</code><em class="property"> = {'cyclist': [6], 'human': [4, 5], 'motor': [1, 2, 3, 7], 'pedestrian': [4]}</em><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.SUBCLASS_DICT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILabelExtractor.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.FeatureMap">
+<code class="sig-name descname">FeatureMap</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILabelExtractor.FeatureMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.FeatureMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an dictionary from tf.Example feature names to Features.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor._Extract">
+<code class="sig-name descname">_Extract</code><span class="sig-paren">(</span><em class="sig-param">features</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILabelExtractor._Extract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor._Extract" title="Permalink to this definition">¶</a></dt>
+<dd><p>The subclass-defined implementation of Extract().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>features</strong> – A dictionary of (Sparse)Tensors which includes tensors from all
+extractors.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A NestedMap of output Tensors whose key names match self.Shape()’s</dt><dd><p>keys.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.Shape">
+<code class="sig-name descname">Shape</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILabelExtractor.Shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.Shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a NestedMap of un-batched fully-specified tf.TensorShapes.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.DType">
+<code class="sig-name descname">DType</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILabelExtractor.DType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.DType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a NestedMap mapping names to tf.DType.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIBase">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.kitti_input_generator.</code><code class="sig-name descname">KITTIBase</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTIBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor" title="lingvo.tasks.car.base_extractor._BaseExtractor"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.base_extractor._BaseExtractor</span></code></a></p>
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIBase.class_names">
+<em class="property">property </em><code class="sig-name descname">class_names</code><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIBase.class_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILaser">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.kitti_input_generator.</code><code class="sig-name descname">KITTILaser</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILaser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILaser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.kitti_input_generator.KITTIBase" title="lingvo.tasks.car.kitti_input_generator.KITTIBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.kitti_input_generator.KITTIBase</span></code></a></p>
+<p>KITTI object detection dataset.</p>
+<p>This class emits KITTI images, labels, and the raw laser
+representation of the data.  See KITTIGrid and KITTISparse
+for alternative laser representations.</p>
+<dl class="simple">
+<dt>Input batch contains outputs from:</dt><dd><ul class="simple">
+<li><p>KITTIImageExtractor</p></li>
+<li><p>KITTILabelExtractor</p></li>
+<li><p>KITTILaserExtractor</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILaser.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTILaser.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILaser.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTILaser.class_names">
+<em class="property">property </em><code class="sig-name descname">class_names</code><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTILaser.class_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTISparseLaser">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.kitti_input_generator.</code><code class="sig-name descname">KITTISparseLaser</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTISparseLaser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTISparseLaser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.kitti_input_generator.KITTIBase" title="lingvo.tasks.car.kitti_input_generator.KITTIBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.kitti_input_generator.KITTIBase</span></code></a></p>
+<p>KITTI object detection dataset for sparse detection models.</p>
+<p>This class emits KITTI images, labels, and the sparse laser
+representation of the data.  See KITTIGrid and KITTISparse
+for alternative laser representations.</p>
+<dl class="simple">
+<dt>Input batch contains outputs from:</dt><dd><ul class="simple">
+<li><p>KITTILabelExtractor</p></li>
+<li><p>KITTILaserExtractor</p></li>
+</ul>
+</dd>
+<dt>Transformed with:</dt><dd><ul class="simple">
+<li><p>Metadata annotation:
+- CountNumberOfPointsInBoxes3D</p></li>
+<li><p>Visualization:
+- CreateDecoderCopy</p></li>
+<li><p>Sparse gather of points for featurization:
+- SparseCenterSelector
+- SparseCellGatherFeatures</p></li>
+<li><p>Anchor creation for classification regression targets:
+- TileAnchorBBoxes
+- AnchorAssignment</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTISparseLaser.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTISparseLaser.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTISparseLaser.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIGrid">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.kitti_input_generator.</code><code class="sig-name descname">KITTIGrid</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTIGrid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIGrid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.kitti_input_generator.KITTIBase" title="lingvo.tasks.car.kitti_input_generator.KITTIBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.kitti_input_generator.KITTIBase</span></code></a></p>
+<p>KITTI object detection dataset.</p>
+<p>This class emits KITTI images, labels, and the fixed grid laser
+representation of the data.</p>
+<dl class="simple">
+<dt>Input batch contains outputs from:</dt><dd><ul class="simple">
+<li><p>KITTILabelExtractor</p></li>
+<li><p>KITTILaserExtractor</p></li>
+</ul>
+</dd>
+<dt>Transformed with:</dt><dd><ul class="simple">
+<li><p>Metadata annotation:
+- CountNumberOfPointsInBoxes3D</p></li>
+<li><p>Visualization:
+- CreateDecoderCopy</p></li>
+<li><p>Points to Pillars
+- PointsToGrid
+- GridToPillars</p></li>
+<li><p>Anchor creation for classification regression targets:
+- GridAnchorCenters
+- TileAnchorBBoxes
+- AnchorAssignment</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="lingvo.tasks.car.kitti_input_generator.KITTIGrid.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/kitti_input_generator.html#KITTIGrid.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.kitti_input_generator.KITTIGrid.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.tasks.car.kitti_metadata.html" class="btn btn-neutral float-right" title="lingvo.tasks.car.kitti_metadata module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.tasks.car.kitti_decoder.html" class="btn btn-neutral float-left" title="lingvo.tasks.car.kitti_decoder module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

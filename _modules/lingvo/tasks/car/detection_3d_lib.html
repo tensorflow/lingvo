@@ -1,0 +1,1041 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.detection_3d_lib &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.detection_3d_lib</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.detection_3d_lib</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Library of useful for functions for working with 3D object detection.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">geometry</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">ops</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="Utils3D"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D">[docs]</a><span class="k">class</span> <span class="nc">Utils3D</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Helper routines for 3D detection problems.</span>
+
+<span class="sd">  One common method to do 3D anchor box assignment is to match anchors to</span>
+<span class="sd">  ground-truth bboxes. First, we generate proposal anchors at given priors</span>
+<span class="sd">  (center locations, dimension prior, offset prior) to tile the input space.</span>
+<span class="sd">  After tiling the input space, each anchor can be assigned to a ground-truth</span>
+<span class="sd">  bbox by measuring IOU and taking a threshold. Note that a ground-truth bbox</span>
+<span class="sd">  may be assigned to multiple anchors - this is expected, and is managed at</span>
+<span class="sd">  inference time by non-max suppression.</span>
+
+<span class="sd">  Note: This implementation is designed to be used at input generation, and</span>
+<span class="sd">  does not support a batch dimension.</span>
+
+<span class="sd">  The following functions in this utility class helps with that:</span>
+
+<span class="sd">    CreateDenseCoordinates: Makes it easy to create a dense grid of coordinates</span>
+<span class="sd">      that would usually correspond to center locations.</span>
+
+<span class="sd">    MakeAnchorBoxes: Given a list of center coordinates, dimension priors, and</span>
+<span class="sd">      offset priors, this function creates actual anchor bbox parameters at each</span>
+<span class="sd">      coordinate. More than one box can be at each center.</span>
+
+<span class="sd">    IOUAxisAlignedBoxes: This function computes the IOU between two lists of</span>
+<span class="sd">      boxes.</span>
+
+<span class="sd">    AssignAnchors: This function assigns each anchor a ground-truth bbox. Note</span>
+<span class="sd">      that one ground-truth bbox can be assigned to multiple anchors. The model</span>
+<span class="sd">      is expected to regress the residuals each anchor and it&#39;s corresponding</span>
+<span class="sd">      ground-truth bbox parameters.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Utils3D.ScaledHuberLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.ScaledHuberLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ScaledHuberLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Scaled Huber (SmoothL1) Loss.</span>
+
+<span class="sd">    This function wraps tf.losses.huber_loss to rescale it by 1 / delta, and</span>
+<span class="sd">    uses Reduction.NONE.</span>
+
+<span class="sd">    This scaling results in the following formulation instead:</span>
+
+<span class="sd">      (1/d) * 0.5 * x^2       if \|x\| &lt;= d</span>
+<span class="sd">      \|x\| - 0.5 * d           if \|x\| &gt; d</span>
+
+<span class="sd">    where x is labels - predictions.</span>
+
+<span class="sd">    Hence, delta changes where the quadratic bowl is, but does not change the</span>
+<span class="sd">    overall shape of the loss outside of delta.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      labels: The ground truth output tensor, same dimensions as &#39;predictions&#39;.</span>
+<span class="sd">      predictions: The predicted outputs.</span>
+<span class="sd">      weights: Optional Tensor whose rank is either 0, or the same rank as</span>
+<span class="sd">        labels, and must be broadcastable to labels (i.e., all dimensions must</span>
+<span class="sd">        be either 1, or the same as the corresponding losses dimension).</span>
+<span class="sd">      delta: float, the point where the huber loss function changes from a</span>
+<span class="sd">        quadratic to linear.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Weighted loss float Tensor. This has the same shape as labels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">delta</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">huber_loss</span><span class="p">(</span>
+        <span class="n">labels</span><span class="p">,</span>
+        <span class="n">predictions</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+        <span class="n">delta</span><span class="o">=</span><span class="n">delta</span><span class="p">,</span>
+        <span class="n">reduction</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">Reduction</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Utils3D.CornerLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.CornerLoss">[docs]</a>  <span class="k">def</span> <span class="nf">CornerLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gt_bboxes</span><span class="p">,</span> <span class="n">predicted_bboxes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Corner regularization loss.</span>
+
+<span class="sd">    This function computes the corner loss, an alternative regression loss</span>
+<span class="sd">    for box residuals. This was used in the Frustum-PointNets paper [1].</span>
+
+<span class="sd">    We compute the predicted bboxes (all 8 corners) and compute a SmoothedL1</span>
+<span class="sd">    loss between the corners of the predicted boxes and ground truth. Hence,</span>
+<span class="sd">    this loss can help encourage the model to maximize the IoU of the</span>
+<span class="sd">    predictions.</span>
+
+<span class="sd">    [1] Frustum PointNets for 3D Object Detection from RGB-D Data</span>
+<span class="sd">        https://arxiv.org/pdf/1711.08488.pdf</span>
+
+<span class="sd">    TODO(bcyang): support arbitrary input shapes [..., 7].</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      gt_bboxes: tf.float32 of shape [batch_size, num_centers,</span>
+<span class="sd">        num_anchor_bboxes_per_center, 7] which contains (x, y, z, dx, dy, dz,</span>
+<span class="sd">        phi), corresponding to ground truth bbox parameters.</span>
+<span class="sd">      predicted_bboxes: tf.float32 of same shape as gt_bboxes containing</span>
+<span class="sd">        predicted bbox parameters.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      tf.float32 Tensor of shape [batch_size, num_centers,</span>
+<span class="sd">      num_anchor_bboxes_per_center] where each entry contains the corner loss</span>
+<span class="sd">      for the corresponding bbox.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span>
+        <span class="n">gt_bboxes</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">gt_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">predicted_bboxes</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+
+    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">gt_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span> <span class="o">*</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">predicted_bboxes</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span> <span class="o">*</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">rot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">rotated_gt_bboxes</span> <span class="o">=</span> <span class="n">gt_bboxes</span> <span class="o">+</span> <span class="n">rot</span>
+
+    <span class="n">gt_corners</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">BBoxCorners</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">)</span>
+    <span class="n">rotated_gt_corners</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">BBoxCorners</span><span class="p">(</span><span class="n">rotated_gt_bboxes</span><span class="p">)</span>
+    <span class="n">predicted_corners</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">BBoxCorners</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">)</span>
+
+    <span class="n">corner_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">predicted_corners</span> <span class="o">-</span> <span class="n">gt_corners</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">rotated_corner_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+        <span class="n">predicted_corners</span> <span class="o">-</span> <span class="n">rotated_gt_corners</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">total_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">corner_dist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">rotated_total_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">rotated_corner_dist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">min_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">total_dist</span><span class="p">,</span> <span class="n">rotated_total_dist</span><span class="p">)</span>
+
+    <span class="n">huber_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">total_dist</span><span class="p">),</span> <span class="n">predictions</span><span class="o">=</span><span class="n">min_dist</span><span class="p">)</span>
+    <span class="n">huber_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">huber_loss</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">huber_loss</span></div>
+
+<div class="viewcode-block" id="Utils3D.CreateDenseCoordinates"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.CreateDenseCoordinates">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDenseCoordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ranges</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a matrix of coordinate locations corresponding to a dense grid.</span>
+
+<span class="sd">    Example: To create (x, y) coordinates corresponding over a 10x10 grid with</span>
+<span class="sd">      step sizes 1, call CreateDenseCoordinates([(1, 10, 10), (1, 10, 10)]).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      ranges: A list of 3-tuples, each tuple is expected to contain (min, max,</span>
+<span class="sd">        num_steps). Each list element corresponds to one dimesion. Each tuple</span>
+<span class="sd">        will be passed into np.linspace to create the values for a single</span>
+<span class="sd">        dimension.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      tf.float32 tensor of shape [total_points, len(ranges)], where</span>
+<span class="sd">      total_points = product of all num_steps.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">total_points</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">([</span><span class="n">r_steps</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">r_steps</span> <span class="ow">in</span> <span class="n">ranges</span><span class="p">]))</span>
+    <span class="n">cycle_steps</span> <span class="o">=</span> <span class="n">total_points</span>
+    <span class="n">stack_coordinates</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">r_start</span><span class="p">,</span> <span class="n">r_stop</span><span class="p">,</span> <span class="n">r_steps</span> <span class="ow">in</span> <span class="n">ranges</span><span class="p">:</span>
+      <span class="n">values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">lin_space</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">r_start</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">r_stop</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">r_steps</span><span class="p">))</span>
+      <span class="n">cycle_steps</span> <span class="o">//=</span> <span class="n">r_steps</span>
+      <span class="n">gather_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">total_points</span><span class="p">)</span> <span class="o">//</span> <span class="n">cycle_steps</span><span class="p">)</span> <span class="o">%</span> <span class="n">r_steps</span>
+      <span class="n">stack_coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">gather_idx</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">stack_coordinates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Utils3D.MakeAnchorBoxes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.MakeAnchorBoxes">[docs]</a>  <span class="k">def</span> <span class="nf">MakeAnchorBoxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">anchor_centers</span><span class="p">,</span>
+                      <span class="n">anchor_box_dimensions</span><span class="p">,</span>
+                      <span class="n">anchor_box_offsets</span><span class="p">,</span>
+                      <span class="n">anchor_box_rotations</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create anchor boxes from centers, dimensions, offsets.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      anchor_centers: [A, dims] tensor. Center locations to generate boxes at.</span>
+<span class="sd">      anchor_box_dimensions: [B, dims] tensor corresponding to dimensions of</span>
+<span class="sd">        each box. The inner-most dimension of this tensor must match</span>
+<span class="sd">        anchor_centers.</span>
+<span class="sd">      anchor_box_offsets: [B, dims] tensor corresponding to offsets of each box.</span>
+<span class="sd">      anchor_box_rotations: [B] tensor corresponding to rotation of each box. If</span>
+<span class="sd">        None, rotation will be set to 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      anchor_bboxes: [num_anchors_center, num_boxes_per_center, 2 * dims + 1]</span>
+<span class="sd">        tensor. Usually dims=3 for 3D, where [..., :dims] corresponds to</span>
+<span class="sd">        location, [..., dims:2*dims] corresponds to dimensions, and [..., -1]</span>
+<span class="sd">        corresponds to rotation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_centers</span><span class="p">,</span> <span class="n">dims</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">anchor_centers</span><span class="p">)</span>
+    <span class="n">num_box_per_center</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">anchor_box_dimensions</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Offset the centers by the box offsets</span>
+    <span class="n">anchor_centers</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">anchor_centers</span><span class="p">,</span> <span class="p">[</span><span class="n">num_centers</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="p">])</span>
+    <span class="n">anchor_box_offsets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">anchor_box_offsets</span><span class="p">,</span>
+                                    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_box_per_center</span><span class="p">,</span> <span class="n">dims</span><span class="p">])</span>
+    <span class="n">anchor_box_centers</span> <span class="o">=</span> <span class="n">anchor_centers</span> <span class="o">+</span> <span class="n">anchor_box_offsets</span>
+    <span class="n">anchor_box_centers</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">anchor_box_centers</span><span class="p">,</span> <span class="p">[</span><span class="n">num_centers</span><span class="p">,</span> <span class="n">num_box_per_center</span><span class="p">,</span> <span class="n">dims</span><span class="p">])</span>
+
+    <span class="c1"># Concat the dimensions and rotation parameters</span>
+    <span class="n">anchor_box_dimensions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">anchor_box_dimensions</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">num_centers</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">anchor_box_rotations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">anchor_box_rotations</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_centers</span><span class="p">,</span> <span class="n">num_box_per_center</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">anchor_box_rotations</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">anchor_box_rotations</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_box_per_center</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+          <span class="p">[</span><span class="n">num_centers</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">anchor_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">anchor_box_centers</span><span class="p">,</span> <span class="n">anchor_box_dimensions</span><span class="p">,</span> <span class="n">anchor_box_rotations</span><span class="p">],</span>
+        <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">anchor_bboxes</span></div>
+
+<div class="viewcode-block" id="Utils3D.IOU2DRotatedBoxes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.IOU2DRotatedBoxes">[docs]</a>  <span class="k">def</span> <span class="nf">IOU2DRotatedBoxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bboxes_u</span><span class="p">,</span> <span class="n">bboxes_v</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes IoU between every pair of bboxes with headings.</span>
+
+<span class="sd">    This function ignores the z dimension, which is not usually considered</span>
+<span class="sd">    during anchor assignment.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      bboxes_u: tf.float32. [U, dims]. [..., :7] are (x, y, z, dx, dy, dz, r).</span>
+<span class="sd">      bboxes_v: tf.float32. [V, dims]. [..., :7] are (x, y, z, dx, dy, dz, r).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      tf.float32 tensor with shape [U, V], where [i, j] is IoU between</span>
+<span class="sd">        i-th bbox of bboxes_u and j-th bbox of bboxes_v.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_IgnoreZCoordinate</span><span class="p">(</span><span class="n">bboxes</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Set z center to 0, and z dimension to 1.&quot;&quot;&quot;</span>
+      <span class="n">num_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+          <span class="n">bboxes</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bboxes</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_bboxes</span><span class="p">,)),</span>
+          <span class="n">bboxes</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">bboxes</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">num_bboxes</span><span class="p">,)),</span>
+          <span class="n">bboxes</span><span class="p">[:,</span> <span class="mi">6</span><span class="p">]</span>
+      <span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>   <span class="c1"># pyformat: disable</span>
+
+    <span class="n">bboxes_u</span> <span class="o">=</span> <span class="n">_IgnoreZCoordinate</span><span class="p">(</span><span class="n">bboxes_u</span><span class="p">)</span>
+    <span class="n">bboxes_v</span> <span class="o">=</span> <span class="n">_IgnoreZCoordinate</span><span class="p">(</span><span class="n">bboxes_v</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">pairwise_iou3d</span><span class="p">(</span><span class="n">bboxes_u</span><span class="p">,</span> <span class="n">bboxes_v</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Utils3D.AssignAnchors"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.AssignAnchors">[docs]</a>  <span class="k">def</span> <span class="nf">AssignAnchors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                    <span class="n">anchor_bboxes</span><span class="p">,</span>
+                    <span class="n">gt_bboxes</span><span class="p">,</span>
+                    <span class="n">gt_bboxes_labels</span><span class="p">,</span>
+                    <span class="n">gt_bboxes_mask</span><span class="p">,</span>
+                    <span class="n">foreground_assignment_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+                    <span class="n">background_assignment_threshold</span><span class="o">=</span><span class="mf">0.35</span><span class="p">,</span>
+                    <span class="n">background_class_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                    <span class="n">force_match</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">similarity_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Assigns anchors to bboxes using a similarity function (SSD-based).</span>
+
+<span class="sd">    Each anchor box is assigned to the top matching ground truth box.</span>
+<span class="sd">    Ground truth boxes can be assigned to multiple anchor boxes.</span>
+
+<span class="sd">    Assignments can result in 3 outcomes:</span>
+<span class="sd">      Positive assignment (if score &gt;= foreground_assignment_threshold):</span>
+<span class="sd">        assigned_gt_labels will reflect the assigned box label and</span>
+<span class="sd">        assigned_cls_mask will be set to 1.0</span>
+<span class="sd">      Background assignment (if score &lt;= background_assignment_threshold):</span>
+<span class="sd">        assigned_gt_labels will be background_class_id and assigned_cls_mask</span>
+<span class="sd">        will be set to 1.0</span>
+<span class="sd">      Ignore assignment (otherwise):</span>
+<span class="sd">        assigned_gt_labels will be background_class_id and assigned_cls_mask</span>
+<span class="sd">        will be set to 0.0</span>
+
+<span class="sd">    The detection loss function would usually:</span>
+
+<span class="sd">      Use assigned_cls_mask for weighting the classification loss. The mask</span>
+<span class="sd">      is set such that the loss applies to foreground and background assignments</span>
+<span class="sd">      only - ignored anchors will be set to 0.</span>
+
+<span class="sd">      Use assigned_reg_mask for weighting the regression loss. The mask is set</span>
+<span class="sd">      such that the loss applies to foreground assignments only.</span>
+
+<span class="sd">    The thresholds (foreground_assignment_threshold and</span>
+<span class="sd">    background_assignment_threshold) should be tuned per dataset.</span>
+
+<span class="sd">    TODO(jngiam): Consider having a separate threshold for regression boxes; a</span>
+<span class="sd">    separate threshold is used in PointRCNN.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      anchor_bboxes: tf.float32. [A, 7], where [..., :] corresponds to box</span>
+<span class="sd">        parameters (x, y, z, dx, dy, dz, r).</span>
+<span class="sd">      gt_bboxes: tf.float32. [G, 7], where [..., :] corresponds to ground truth</span>
+<span class="sd">        box parameters (x, y, z, dx, dy, dz, r).</span>
+<span class="sd">      gt_bboxes_labels: tensor with shape [G]. Ground truth labels for each</span>
+<span class="sd">        bounding box.</span>
+<span class="sd">      gt_bboxes_mask: tensor with shape [G]. Mask for ground truth boxes, 1 iff</span>
+<span class="sd">        the gt_bbox is a real bbox.</span>
+<span class="sd">      foreground_assignment_threshold: Similarity score threshold for assigning</span>
+<span class="sd">        foreground bounding boxes; scores need to be &gt;=</span>
+<span class="sd">        foreground_assignment_threshold to be assigned to foreground.</span>
+<span class="sd">      background_assignment_threshold: Similarity score threshold for assigning</span>
+<span class="sd">        background bounding boxes; scores need to be &lt;=</span>
+<span class="sd">        background_assignment_threshold to be assigned to background.</span>
+<span class="sd">      background_class_id: class id to be assigned to anchors_gt_class if no</span>
+<span class="sd">        anchor boxes match.</span>
+<span class="sd">      force_match: Boolean specifying if force matching is enabled. If</span>
+<span class="sd">        force matching is enabled, then matched anchors which are also the</span>
+<span class="sd">        highest scoring with a ground-truth box are considered foreground</span>
+<span class="sd">        matches as long as their similarity score &gt; 0.</span>
+<span class="sd">      similarity_fn: Function that computes the a similarity score (e.g., IOU)</span>
+<span class="sd">        between pairs of bounding boxes. This function should take in two</span>
+<span class="sd">        tensors corresponding to anchor and ground-truth bboxes, and return a</span>
+<span class="sd">        matrix [A, G] with the similarity score between each pair of bboxes. The</span>
+<span class="sd">        score must be non-negative, with greater scores representing more</span>
+<span class="sd">        similar. The fore/background_assignment_thresholds will be applied to</span>
+<span class="sd">        this score to determine if the an anchor is foreground, background or</span>
+<span class="sd">        ignored. If set to None, the function will default to IOU2DRotatedBoxes.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      NestedMap with the following keys:</span>
+
+<span class="sd">        assigned_gt_bbox: shape [A, 7] bbox parameters assigned to each anchor.</span>
+
+<span class="sd">        assigned_gt_similarity_score: shape [A] (iou) score between the anchor</span>
+<span class="sd">        and the gt bbox.</span>
+
+<span class="sd">        assigned_gt_labels: shape [A] label assigned to bbox.</span>
+
+<span class="sd">        assigned_cls_mask: shape [A] mask for classification loss per anchor.</span>
+<span class="sd">        This should be 1.0 if the anchor has a foreground or background</span>
+<span class="sd">        assignment; otherwise, it will be assigned to 0.0.</span>
+
+<span class="sd">        assigned_reg_mask: shape [A] mask for regression loss per anchor.</span>
+<span class="sd">        This should be 1.0 if the anchor has a foreground assignment;</span>
+<span class="sd">        otherwise, it will be assigned to 0.0.</span>
+<span class="sd">        Note: background anchors do not have regression targets.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">similarity_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">similarity_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">IOU2DRotatedBoxes</span>
+
+    <span class="c1"># Shape validation.</span>
+    <span class="n">anchor_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">anchor_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">num_anchor_bboxes</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">anchor_bboxes</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">num_gt_bboxes</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Compute similarity score and reduce max by anchors and by ground-truth.</span>
+    <span class="n">similarity_score</span> <span class="o">=</span> <span class="n">similarity_fn</span><span class="p">(</span><span class="n">anchor_bboxes</span><span class="p">,</span> <span class="n">gt_bboxes</span><span class="p">)</span>
+    <span class="n">similarity_score</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">similarity_score</span><span class="p">,</span>
+                                         <span class="p">[</span><span class="n">num_anchor_bboxes</span><span class="p">,</span> <span class="n">num_gt_bboxes</span><span class="p">])</span>
+
+    <span class="c1"># Reduce over ground-truth boxes, so we have the max score per anchor.</span>
+    <span class="n">anchor_max_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">similarity_score</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">anchor_max_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">similarity_score</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">force_match</span><span class="p">:</span>
+      <span class="c1"># Reduce over anchors, so we have the max score per ground truth box.</span>
+      <span class="n">gt_max_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">similarity_score</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keep_dims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+      <span class="c1"># Force matches occur when the top matching gt bbox for an anchor is the</span>
+      <span class="c1"># top matching anchor for the gt bbox. When force matching, we match</span>
+      <span class="c1"># these boxes as long as their similarity score exceeds 0.</span>
+      <span class="n">force_matches</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">similarity_score</span><span class="p">,</span> <span class="n">gt_max_score</span><span class="p">)</span>
+          <span class="o">&amp;</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">similarity_score</span><span class="p">,</span> <span class="n">anchor_max_score</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span>
+          <span class="o">&amp;</span> <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">similarity_score</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span>
+          <span class="o">&amp;</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">gt_bboxes_mask</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))</span>
+      <span class="n">force_match_indicator</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">force_matches</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">force_match_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">force_matches</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+      <span class="c1"># In assigning foreground/background anchors later, force_match_indicator</span>
+      <span class="c1"># is used to determine which anchors are force foreground, and the index</span>
+      <span class="c1"># assigned will be taken from anchor_max_idx.</span>
+
+      <span class="c1"># Force matchers must also be the max scoring gt bbox per anchor.</span>
+      <span class="c1"># We overwrite anchor_max_idx to ensure that the right match is done.</span>
+      <span class="n">anchor_max_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">force_match_indicator</span><span class="p">,</span> <span class="n">force_match_idx</span><span class="p">,</span>
+                                <span class="n">anchor_max_idx</span><span class="p">)</span>
+
+    <span class="c1"># Ensure that max score boxes are not padded boxes by setting score to 0</span>
+    <span class="c1"># for boxes that are padded.</span>
+    <span class="n">gathered_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">gt_bboxes_mask</span><span class="p">,</span> <span class="n">anchor_max_idx</span><span class="p">)</span>
+    <span class="n">anchor_max_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">gathered_mask</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">anchor_max_score</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">anchor_max_score</span><span class="p">))</span>
+
+    <span class="c1"># Boolean tensors corresponding to whether an anchor is background or</span>
+    <span class="c1"># foreground based on thresholding.</span>
+    <span class="n">background_anchors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">anchor_max_score</span><span class="p">,</span>
+                                       <span class="n">background_assignment_threshold</span><span class="p">)</span>
+    <span class="n">foreground_anchors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">anchor_max_score</span><span class="p">,</span>
+                                          <span class="n">foreground_assignment_threshold</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">force_match</span><span class="p">:</span>
+      <span class="c1"># Background anchors are below threshold and not force matches.</span>
+      <span class="n">background_anchors</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="n">force_match_indicator</span>
+      <span class="c1"># Foreground anchors are above thresholds or force matches.</span>
+      <span class="n">foreground_anchors</span> <span class="o">|=</span> <span class="n">force_match_indicator</span>
+
+    <span class="c1"># Add dummy background bbox to gt_boxes to facilitate batch gather.</span>
+    <span class="n">dummy_bbox</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="c1"># Since we are concatenating the dummy bbox, the index corresponds to the</span>
+    <span class="c1"># number of boxes.</span>
+    <span class="n">dummy_bbox_idx</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="n">dummy_bbox</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">gt_bboxes_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">gt_bboxes_labels</span><span class="p">,</span> <span class="p">[</span><span class="n">background_class_id</span><span class="p">]],</span>
+                                 <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Gather indices so that all foreground boxes are gathered from gt_bboxes,</span>
+    <span class="c1"># while all background and ignore boxes gather the dummy_bbox.</span>
+    <span class="n">anchor_gather_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">foreground_anchors</span><span class="p">,</span> <span class="n">anchor_max_idx</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+            <span class="n">dummy_bbox_idx</span><span class="p">,</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">anchor_max_idx</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">anchor_max_idx</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
+    <span class="c1"># Gather the bboxes and weights.</span>
+    <span class="n">assigned_gt_bbox</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="n">anchor_gather_idx</span><span class="p">)</span>
+    <span class="n">assigned_gt_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">gt_bboxes_labels</span><span class="p">,</span> <span class="n">anchor_gather_idx</span><span class="p">)</span>
+
+    <span class="c1"># Set masks for classification and regression losses.</span>
+    <span class="n">assigned_cls_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">background_anchors</span> <span class="o">|</span> <span class="n">foreground_anchors</span><span class="p">)</span>
+    <span class="n">assigned_reg_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">foreground_anchors</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">assigned_gt_bbox</span><span class="o">=</span><span class="n">assigned_gt_bbox</span><span class="p">,</span>
+        <span class="n">assigned_gt_similarity_score</span><span class="o">=</span><span class="n">anchor_max_score</span><span class="p">,</span>
+        <span class="n">assigned_gt_labels</span><span class="o">=</span><span class="n">assigned_gt_labels</span><span class="p">,</span>
+        <span class="n">assigned_cls_mask</span><span class="o">=</span><span class="n">assigned_cls_mask</span><span class="p">,</span>
+        <span class="n">assigned_reg_mask</span><span class="o">=</span><span class="n">assigned_reg_mask</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Utils3D.LocalizationResiduals"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.LocalizationResiduals">[docs]</a>  <span class="k">def</span> <span class="nf">LocalizationResiduals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">anchor_bboxes</span><span class="p">,</span> <span class="n">assigned_gt_bboxes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the anchor residuals for every bbox.</span>
+
+<span class="sd">    For a given bbox, compute residuals in the following way:</span>
+
+<span class="sd">      Let the anchor_bbox = (x_a, y_a, z_a, dx_a, dy_a, dz_a, phi_a)</span>
+<span class="sd">      and the assigned_gt_bbox = (x_gt, y_gt, z_gt, dx_gt, dy_gt, dz_gt, phi_gt)</span>
+
+<span class="sd">      Define diagonal_xy = sqrt(dx_a^2 + dy_a^2)</span>
+
+<span class="sd">      Then the corresponding residuals are given by:</span>
+
+<span class="sd">        x_residual = (x_gt - x_a) / (diagonal_xy)</span>
+<span class="sd">        y_residual = (y_gt - y_a) / (diagonal_xy)</span>
+<span class="sd">        z_residual = (z_gt - z_a) / (dz_a)</span>
+
+<span class="sd">        dx_residual = log(dx_gt / dx_a)</span>
+<span class="sd">        dy_residual = log(dy_gt / dy_a)</span>
+<span class="sd">        dz_residual = log(dz_gt / dz_a)</span>
+
+<span class="sd">        phi_residual = phi_gt - phi_a</span>
+
+<span class="sd">      The normalization for x and y residuals by the diagonal was first</span>
+<span class="sd">      proposed by [1]. Intuitively, this reflects that objects can usually</span>
+<span class="sd">      move freely in the x-y plane, including diagonally. On the other hand,</span>
+<span class="sd">      moving in the z-axis (up and down) can be considered orthogonal to x-y.</span>
+
+<span class="sd">      For phi_residual, one way to frame the loss is with</span>
+<span class="sd">      SmoothL1(sine(phi_residual - phi_predicted)).</span>
+<span class="sd">      The use of sine to wrap the phi residual was proposed by [2]. This</span>
+<span class="sd">      stems from the observation that bboxes at phi and phi + pi are the same</span>
+<span class="sd">      bbox, fully overlapping in 3D space, except that the direction is</span>
+<span class="sd">      different. Note that the use of sine makes this residual invariant to</span>
+<span class="sd">      direction when a symmetric loss like SmoothL1 is used. In</span>
+<span class="sd">      ResidualsToBBoxes, we ensure that the phi predicted is between [0, pi).</span>
+
+<span class="sd">    The Huber (SmoothL1) loss can then be applied to the delta between these</span>
+<span class="sd">    target residuals and the model predicted residuals.</span>
+
+<span class="sd">    [1] VoxelNet: End-to-End Learning for Point Cloud Based 3D Object Detection</span>
+<span class="sd">        https://arxiv.org/abs/1711.06396</span>
+
+<span class="sd">    [2] SECOND: Sparsely Embedded Convolutional Detection</span>
+<span class="sd">        https://pdfs.semanticscholar.org/5125/a16039cabc6320c908a4764f32596e018ad3.pdf</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      anchor_bboxes: tf.float32. where [..., :7] contains (x, y, z, dx, dy, dz,</span>
+<span class="sd">        phi), corresponding to each anchor bbox parameters.</span>
+<span class="sd">      assigned_gt_bboxes: tf.float32 of the same shape as anchor_bboxes</span>
+<span class="sd">        containing the corresponding assigned ground-truth bboxes.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tf.float32 tensor of the same shape as anchor_bboxes with target</span>
+<span class="sd">      residuals for every corresponding bbox.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">anchor_bboxes_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">anchor_bboxes</span><span class="p">)</span>
+    <span class="n">anchor_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">anchor_bboxes_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">7</span><span class="p">)],</span> <span class="n">anchor_bboxes</span><span class="p">)</span>
+    <span class="n">assigned_gt_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">assigned_gt_bboxes</span><span class="p">,</span>
+                                           <span class="n">anchor_bboxes_shape</span><span class="p">)</span>
+
+    <span class="n">x_a</span><span class="p">,</span> <span class="n">y_a</span><span class="p">,</span> <span class="n">z_a</span><span class="p">,</span> <span class="n">dx_a</span><span class="p">,</span> <span class="n">dy_a</span><span class="p">,</span> <span class="n">dz_a</span><span class="p">,</span> <span class="n">phi_a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span>
+        <span class="n">anchor_bboxes</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">x_gt</span><span class="p">,</span> <span class="n">y_gt</span><span class="p">,</span> <span class="n">z_gt</span><span class="p">,</span> <span class="n">dx_gt</span><span class="p">,</span> <span class="n">dy_gt</span><span class="p">,</span> <span class="n">dz_gt</span><span class="p">,</span> <span class="n">phi_gt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span>
+        <span class="n">assigned_gt_bboxes</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">diagonal_xy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">dx_a</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">dy_a</span><span class="p">))</span>
+
+    <span class="c1"># The anchor dimensions is usually a hard-coded param given to the input</span>
+    <span class="c1"># generator and should not be 0. We use CheckNumerics to ensure that is the</span>
+    <span class="c1"># case.</span>
+    <span class="n">x_residual</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">((</span><span class="n">x_gt</span> <span class="o">-</span> <span class="n">x_a</span><span class="p">)</span> <span class="o">/</span> <span class="n">diagonal_xy</span><span class="p">)</span>
+    <span class="n">y_residual</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">((</span><span class="n">y_gt</span> <span class="o">-</span> <span class="n">y_a</span><span class="p">)</span> <span class="o">/</span> <span class="n">diagonal_xy</span><span class="p">)</span>
+    <span class="n">z_residual</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">((</span><span class="n">z_gt</span> <span class="o">-</span> <span class="n">z_a</span><span class="p">)</span> <span class="o">/</span> <span class="n">dz_a</span><span class="p">)</span>
+
+    <span class="n">dx_residual</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">dx_gt</span> <span class="o">/</span> <span class="n">dx_a</span><span class="p">))</span>
+    <span class="n">dy_residual</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">dy_gt</span> <span class="o">/</span> <span class="n">dy_a</span><span class="p">))</span>
+    <span class="n">dz_residual</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">dz_gt</span> <span class="o">/</span> <span class="n">dz_a</span><span class="p">))</span>
+
+    <span class="n">phi_residual</span> <span class="o">=</span> <span class="n">phi_gt</span> <span class="o">-</span> <span class="n">phi_a</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+        <span class="n">x_residual</span><span class="p">,</span> <span class="n">y_residual</span><span class="p">,</span> <span class="n">z_residual</span><span class="p">,</span>
+        <span class="n">dx_residual</span><span class="p">,</span> <span class="n">dy_residual</span><span class="p">,</span> <span class="n">dz_residual</span><span class="p">,</span>
+        <span class="n">phi_residual</span><span class="p">,</span>
+    <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pyformat: disable</span></div>
+
+<div class="viewcode-block" id="Utils3D.ResidualsToBBoxes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.ResidualsToBBoxes">[docs]</a>  <span class="k">def</span> <span class="nf">ResidualsToBBoxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">anchor_bboxes</span><span class="p">,</span> <span class="n">residuals</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Converts anchor_boxes and residuals to predicted bboxes.</span>
+
+<span class="sd">    This converts predicted residuals into bboxes using the following formulae:</span>
+
+<span class="sd">      x_predicted = x_a + x_residual \* diagonal_xy</span>
+<span class="sd">      y_predicted = y_a + y_residual \* diagonal_xy</span>
+<span class="sd">      z_predicted = z_a + z_residual \* dz_a</span>
+
+<span class="sd">      dx_predicted = dx_a \* exp(dx_residual)</span>
+<span class="sd">      dy_predicted = dy_a \* exp(dy_residual)</span>
+<span class="sd">      dz_predicted = dz_a \* exp(dz_residual)</span>
+
+<span class="sd">      phi_predicted = phi_a + phi_residual</span>
+
+<span class="sd">    These equations follow from those in LocalizationResiduals, where we solve</span>
+<span class="sd">    for the \*_gt variables.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      anchor_bboxes: tf.float32. where [..., :7] contains (x, y, z, dx, dy, dz,</span>
+<span class="sd">        phi), corresponding to each anchor bbox parameters.</span>
+<span class="sd">      residuals: tf.float32 of the same shape as anchor_bboxes containing</span>
+<span class="sd">        predicted residuals at each anchor location.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tf.float32 tensor of the same shape as anchor_bboxes with predicted</span>
+<span class="sd">      bboxes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">anchor_bboxes_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">anchor_bboxes</span><span class="p">)</span>
+    <span class="n">anchor_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">anchor_bboxes_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">7</span><span class="p">)],</span> <span class="n">anchor_bboxes</span><span class="p">)</span>
+    <span class="n">residuals</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">residuals</span><span class="p">,</span> <span class="n">anchor_bboxes_shape</span><span class="p">)</span>
+
+    <span class="n">x_a</span><span class="p">,</span> <span class="n">y_a</span><span class="p">,</span> <span class="n">z_a</span><span class="p">,</span> <span class="n">dx_a</span><span class="p">,</span> <span class="n">dy_a</span><span class="p">,</span> <span class="n">dz_a</span><span class="p">,</span> <span class="n">phi_a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span>
+        <span class="n">anchor_bboxes</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">x_residual</span><span class="p">,</span> <span class="n">y_residual</span><span class="p">,</span> <span class="n">z_residual</span><span class="p">,</span> <span class="n">dx_residual</span><span class="p">,</span> <span class="n">dy_residual</span><span class="p">,</span> <span class="n">dz_residual</span><span class="p">,</span>
+     <span class="n">phi_residual</span><span class="p">)</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span>
+         <span class="n">residuals</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">diagonal_xy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">dx_a</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">dy_a</span><span class="p">))</span>
+
+    <span class="n">x_predicted</span> <span class="o">=</span> <span class="n">x_a</span> <span class="o">+</span> <span class="n">x_residual</span> <span class="o">*</span> <span class="n">diagonal_xy</span>
+    <span class="n">y_predicted</span> <span class="o">=</span> <span class="n">y_a</span> <span class="o">+</span> <span class="n">y_residual</span> <span class="o">*</span> <span class="n">diagonal_xy</span>
+    <span class="n">z_predicted</span> <span class="o">=</span> <span class="n">z_a</span> <span class="o">+</span> <span class="n">z_residual</span> <span class="o">*</span> <span class="n">dz_a</span>
+
+    <span class="n">dx_predicted</span> <span class="o">=</span> <span class="n">dx_a</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">dx_residual</span><span class="p">)</span>
+    <span class="n">dy_predicted</span> <span class="o">=</span> <span class="n">dy_a</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">dy_residual</span><span class="p">)</span>
+    <span class="n">dz_predicted</span> <span class="o">=</span> <span class="n">dz_a</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">dz_residual</span><span class="p">)</span>
+
+    <span class="c1"># Assuming a sine(delta_phi) transformation is used in the loss, then, it</span>
+    <span class="c1"># is not possible to distinguish direction, hence, we use floormod here to</span>
+    <span class="c1"># ensure that the predicted_phi is always in [0, np.pi) for consistency.</span>
+    <span class="c1"># A separate direction classifier should be added the model if needed.</span>
+    <span class="n">phi_predicted</span> <span class="o">=</span> <span class="n">phi_a</span> <span class="o">+</span> <span class="n">phi_residual</span>
+    <span class="n">phi_predicted</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">phi_predicted</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+        <span class="n">x_predicted</span><span class="p">,</span> <span class="n">y_predicted</span><span class="p">,</span> <span class="n">z_predicted</span><span class="p">,</span>
+        <span class="n">dx_predicted</span><span class="p">,</span> <span class="n">dy_predicted</span><span class="p">,</span> <span class="n">dz_predicted</span><span class="p">,</span>
+        <span class="n">phi_predicted</span><span class="p">,</span>
+    <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pyformat: disable</span></div>
+
+<div class="viewcode-block" id="Utils3D.NMSIndices"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.NMSIndices">[docs]</a>  <span class="k">def</span> <span class="nf">NMSIndices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">bboxes</span><span class="p">,</span>
+                 <span class="n">scores</span><span class="p">,</span>
+                 <span class="n">max_output_size</span><span class="p">,</span>
+                 <span class="n">nms_iou_threshold</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+                 <span class="n">score_threshold</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply NMS to a series of 3d bounding boxes in 7-DOF format.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      bboxes: A [num_boxes, 7] floating point Tensor of bounding boxes in [x, y,</span>
+<span class="sd">        z, dx, dy, dz, phi] format.</span>
+<span class="sd">      scores: A [num_boxes] floating point Tensor containing box</span>
+<span class="sd">        scores.</span>
+<span class="sd">      max_output_size: Maximum number of boxes to predict per input.</span>
+<span class="sd">      nms_iou_threshold: IoU threshold to use when determining whether two boxes</span>
+<span class="sd">        overlap for purposes of suppression.</span>
+<span class="sd">      score_threshold: The score threshold passed to NMS that allows NMS to</span>
+<span class="sd">        quickly ignore irrelevant boxes.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The NMS indices and the mask of the padded indices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+
+    <span class="c1"># Extract x, y, w, h, then convert to extrema.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Note that we drop the rotation angle because we don&#39;t have an NMS</span>
+    <span class="c1"># operation that takes rotation into account.</span>
+    <span class="n">bboxes_2d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">bboxes</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bboxes</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">bboxes</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">bboxes</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">bboxes_extrema</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">XYWHToBBoxes</span><span class="p">(</span><span class="n">bboxes_2d</span><span class="p">)</span>
+
+    <span class="c1"># Compute NMS with padding; we use the padded version so this function can</span>
+    <span class="c1"># be used in a map_fn.  This function returns the scalar number of boxes</span>
+    <span class="c1"># for each example.</span>
+    <span class="c1">#</span>
+    <span class="c1"># We use an IoU threshold of 0.3 since our anchor boxes have rotations</span>
+    <span class="c1"># that make the default IoU threshold of 0.5 possibly too high.</span>
+    <span class="n">nms_index_padded</span><span class="p">,</span> <span class="n">num_valid</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">non_max_suppression_padded</span><span class="p">(</span>
+        <span class="n">bboxes_extrema</span><span class="p">,</span>
+        <span class="n">scores</span><span class="p">,</span>
+        <span class="n">iou_threshold</span><span class="o">=</span><span class="n">nms_iou_threshold</span><span class="p">,</span>
+        <span class="n">max_output_size</span><span class="o">=</span><span class="n">max_output_size</span><span class="p">,</span>
+        <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
+        <span class="n">pad_to_max_output_size</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Return the mask of valid indices instead of just a scalar number.</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">num_valid</span><span class="p">]),</span>
+         <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">max_output_size</span> <span class="o">-</span> <span class="n">num_valid</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">nms_index_padded</span><span class="p">,</span> <span class="n">mask</span></div>
+
+<div class="viewcode-block" id="Utils3D.BatchedNMSIndices"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.BatchedNMSIndices">[docs]</a>  <span class="k">def</span> <span class="nf">BatchedNMSIndices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                        <span class="n">bboxes</span><span class="p">,</span>
+                        <span class="n">scores</span><span class="p">,</span>
+                        <span class="n">nms_iou_threshold</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+                        <span class="n">score_threshold</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                        <span class="n">max_num_boxes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Batched version of NMSIndices.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      bboxes: A [batch_size, num_boxes, 7] floating point Tensor of bounding</span>
+<span class="sd">        boxes in [x, y, z, dx, dy, dz, phi] format.</span>
+<span class="sd">      scores: A [batch_size, num_boxes, num_classes] floating point Tensor</span>
+<span class="sd">        containing box scores.</span>
+<span class="sd">      nms_iou_threshold: IoU threshold to use when determining whether two boxes</span>
+<span class="sd">        overlap for purposes of suppression.</span>
+<span class="sd">      score_threshold: The score threshold passed to NMS that allows NMS to</span>
+<span class="sd">        quickly ignore irrelevant boxes.</span>
+<span class="sd">      max_num_boxes: The maximum number of boxes per example to emit. If None,</span>
+<span class="sd">        this value is set to num_boxes from the shape of bboxes.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The NMS indices and the mask of the padded indices for each example</span>
+<span class="sd">        in the batch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">max_num_boxes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">max_output_size</span> <span class="o">=</span> <span class="n">max_num_boxes</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">max_output_size</span> <span class="o">=</span> <span class="n">num_boxes</span>
+
+    <span class="n">output_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_output_size</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">NMSBody</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+      <span class="n">bbox</span><span class="p">,</span> <span class="n">score</span> <span class="o">=</span> <span class="n">args</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">NMSIndices</span><span class="p">(</span><span class="n">bbox</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_output_size</span><span class="p">,</span> <span class="n">nms_iou_threshold</span><span class="p">,</span>
+                             <span class="n">score_threshold</span><span class="p">)</span>
+
+    <span class="n">nms_indices</span><span class="p">,</span> <span class="n">valid_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span>
+        <span class="n">fn</span><span class="o">=</span><span class="n">NMSBody</span><span class="p">,</span>
+        <span class="n">elems</span><span class="o">=</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="n">scores</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">nms_indices</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">nms_indices</span><span class="p">,</span> <span class="n">output_shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">nms_indices</span><span class="p">,</span> <span class="n">valid_mask</span></div>
+
+<div class="viewcode-block" id="Utils3D.BatchedOrientedNMSIndices"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.BatchedOrientedNMSIndices">[docs]</a>  <span class="k">def</span> <span class="nf">BatchedOrientedNMSIndices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bboxes</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">nms_iou_threshold</span><span class="p">,</span>
+                                <span class="n">score_threshold</span><span class="p">,</span> <span class="n">max_boxes_per_class</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs batched version of a Per-Class 3D (7-DOF) Non Max Suppression.</span>
+
+<span class="sd">    All outputs have shape [batch_size, num_classes, max_boxes_per_class].</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      bboxes: A [batch_size, num_boxes, 7] floating point Tensor of bounding</span>
+<span class="sd">        boxes in [x, y, z, dx, dy, dz, phi] format.</span>
+<span class="sd">      scores: A [batch_size, num_boxes, num_classes] floating point Tensor</span>
+<span class="sd">        containing box scores.</span>
+<span class="sd">      nms_iou_threshold: Either a float or a list of floats of len num_classes</span>
+<span class="sd">        with the IoU threshold to use when determining whether two boxes overlap</span>
+<span class="sd">        for purposes of suppression.</span>
+<span class="sd">      score_threshold: Either a float or a list of floats of len num_classes</span>
+<span class="sd">        with the score threshold that allows NMS to quickly ignore boxes.</span>
+<span class="sd">      max_boxes_per_class: An integer scalar with the maximum number of boxes</span>
+<span class="sd">        per example to emit per class.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      bbox_indices: An int32 Tensor with the indices of the chosen boxes.</span>
+<span class="sd">      Values are in sort order until the class_idx switches.</span>
+
+<span class="sd">      bbox_scores: A float32 Tensor with the score for each box.</span>
+
+<span class="sd">      valid_mask: A float32 Tensor with 1/0 values indicating the validity of</span>
+<span class="sd">      each box. 1 indicates valid, and 0 invalid.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">num_classes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span>
+
+    <span class="c1"># Force the thresholds to be tensors of len num_classes</span>
+    <span class="n">nms_iou_threshold</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">nms_iou_threshold</span><span class="p">),</span> <span class="p">[</span><span class="n">num_classes</span><span class="p">])</span>
+    <span class="n">score_threshold</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">score_threshold</span><span class="p">),</span> <span class="p">[</span><span class="n">num_classes</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">NMSBody</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+      <span class="n">per_sample_bboxes</span><span class="p">,</span> <span class="n">per_sample_scores</span> <span class="o">=</span> <span class="n">args</span>
+      <span class="n">indices</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">non_max_suppression_3d</span><span class="p">(</span>
+          <span class="n">per_sample_bboxes</span><span class="p">,</span>
+          <span class="n">per_sample_scores</span><span class="p">,</span>
+          <span class="n">nms_iou_threshold</span><span class="o">=</span><span class="n">nms_iou_threshold</span><span class="p">,</span>
+          <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
+          <span class="n">max_boxes_per_class</span><span class="o">=</span><span class="n">max_boxes_per_class</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">indices</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">mask</span>
+
+    <span class="n">bbox_indices</span><span class="p">,</span> <span class="n">bbox_scores</span><span class="p">,</span> <span class="n">valid_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span>
+        <span class="n">fn</span><span class="o">=</span><span class="n">NMSBody</span><span class="p">,</span>
+        <span class="n">elems</span><span class="o">=</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="n">scores</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">output_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">max_boxes_per_class</span><span class="p">]</span>
+    <span class="n">bbox_indices</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">bbox_indices</span><span class="p">,</span> <span class="n">output_shape</span><span class="p">)</span>
+    <span class="n">bbox_scores</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">bbox_scores</span><span class="p">,</span> <span class="n">output_shape</span><span class="p">)</span>
+    <span class="n">valid_mask</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">valid_mask</span><span class="p">,</span> <span class="n">output_shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">bbox_indices</span><span class="p">,</span> <span class="n">bbox_scores</span><span class="p">,</span> <span class="n">valid_mask</span></div>
+
+<div class="viewcode-block" id="Utils3D.CornersToImagePlane"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.CornersToImagePlane">[docs]</a>  <span class="k">def</span> <span class="nf">CornersToImagePlane</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">corners</span><span class="p">,</span> <span class="n">velo_to_image_plane</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Project 3d box corners to the image plane.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      corners: A [batch, num_boxes, 8, 3] floating point tensor containing the 8</span>
+<span class="sd">        corners points for each 3d bounding box.</span>
+<span class="sd">      velo_to_image_plane: A [batch, 3, 4] batch set of projection matrices from</span>
+<span class="sd">        velo xyz to image plane xy. After multiplication, you need to divide by</span>
+<span class="sd">        last coordinate to recover 2D pixel locations.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A [batch, num_boxes, 8, 2] floating point Tensor containing</span>
+<span class="sd">        the 3D bounding box corners projected to the image plane.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">corners</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">CornersToPlaneBody</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Body of function to convert each bounding box to the image plane.&quot;&quot;&quot;</span>
+      <span class="p">(</span><span class="n">corners</span><span class="p">,</span> <span class="n">velo_to_image_plane</span><span class="p">)</span> <span class="o">=</span> <span class="n">args</span>
+      <span class="c1"># corners[i] is [num_boxes, 8, 3]: flatten the points in this batch and do</span>
+      <span class="c1"># the conversion in one call.</span>
+      <span class="n">bbox_corners</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">corners</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+      <span class="n">image_plane_corners</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">PointsToImagePlane</span><span class="p">(</span><span class="n">bbox_corners</span><span class="p">,</span>
+                                                        <span class="n">velo_to_image_plane</span><span class="p">)</span>
+      <span class="n">image_plane_corners</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">image_plane_corners</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">image_plane_corners</span>
+
+    <span class="n">corners_in_image_plane</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span>
+        <span class="n">fn</span><span class="o">=</span><span class="n">CornersToPlaneBody</span><span class="p">,</span>
+        <span class="n">elems</span><span class="o">=</span><span class="p">(</span><span class="n">corners</span><span class="p">,</span> <span class="n">velo_to_image_plane</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">corners_in_image_plane</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">corners_in_image_plane</span><span class="p">,</span>
+                                               <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">corners_in_image_plane</span></div></div>
+
+
+<div class="viewcode-block" id="RandomPadOrTrimTo"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.RandomPadOrTrimTo">[docs]</a><span class="k">def</span> <span class="nf">RandomPadOrTrimTo</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">,</span> <span class="n">num_points_out</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Pads or Trims a list of Tensors on the major dimension.</span>
+
+<span class="sd">  Slices if there are more points, or pads if not enough.</span>
+
+<span class="sd">  In this implementation:</span>
+<span class="sd">    Padded points are random duplications of real points.</span>
+<span class="sd">    Sliced points are a random subset of the real points.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tensor_list: A list of tf.Tensor objects to pad or trim along first dim. All</span>
+<span class="sd">      tensors are expected to have the same first dimension.</span>
+<span class="sd">    num_points_out: An int for the requested number of points to trim/pad to.</span>
+<span class="sd">    seed: Random seed to use for random generators.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple of output_tensors and a padding indicator. The output tuple is:</span>
+<span class="sd">      output_tensors: A list of padded or trimmed versions of our tensor_list</span>
+<span class="sd">        input tensors, all with the same first dimension.</span>
+<span class="sd">      padding: A tf.float32 tf.Tensor of shape [num_points_out] with 0 if the</span>
+<span class="sd">        point is real, 1 if it is padded.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">actual_num</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">point_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">num_points_out</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="n">padding_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">point_idx</span> <span class="o">&lt;</span> <span class="n">actual_num</span><span class="p">,</span>
+                            <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_points_out</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                            <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">num_points_out</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+
+  <span class="k">def</span> <span class="nf">_Slicing</span><span class="p">():</span>
+    <span class="c1"># Choose a random set of indices.</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">actual_num</span><span class="p">)</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_shuffle</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)[:</span><span class="n">num_points_out</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensor_list</span><span class="p">]</span>
+
+  <span class="k">def</span> <span class="nf">_Padding</span><span class="p">():</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="n">num_points_out</span> <span class="o">-</span> <span class="n">actual_num</span><span class="p">],</span>
+                                <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                <span class="n">maxval</span><span class="o">=</span><span class="n">actual_num</span><span class="p">,</span>
+                                <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                                <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">padded</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensor_list</span><span class="p">:</span>
+      <span class="n">padded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">padded</span>
+
+  <span class="k">def</span> <span class="nf">_PadZeros</span><span class="p">():</span>
+    <span class="n">padded</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensor_list</span><span class="p">:</span>
+      <span class="n">shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([[</span><span class="n">num_points_out</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">padded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">padded</span>
+
+  <span class="n">data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+      <span class="n">actual_num</span> <span class="o">&gt;</span> <span class="n">num_points_out</span><span class="p">,</span>
+      <span class="n">_Slicing</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">actual_num</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">_PadZeros</span><span class="p">,</span> <span class="n">_Padding</span><span class="p">))</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">padding_tensor</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

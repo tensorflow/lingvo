@@ -1,0 +1,456 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.tools.kitti_exporter &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.tools.kitti_exporter</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.tools.kitti_exporter</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Create TFRecords files from KITTI raw data.</span>
+
+<span class="sd">Parses KITTI raw data with different splits, indicated with split files.</span>
+<span class="sd">A split file is a text file that specifies frame names to be included in the</span>
+<span class="sd">split, with one name per line. Splits with &#39;test&#39; in the filename use testing</span>
+<span class="sd">data, while other splits use training data. This program expects KITTI raw data</span>
+<span class="sd">in the following directory structure:</span>
+
+<span class="sd">  kitti_object/</span>
+<span class="sd">      training/  # Contains KITTI raw train data</span>
+<span class="sd">          label2/</span>
+<span class="sd">          velodyne/</span>
+<span class="sd">          calib/</span>
+<span class="sd">          image_2/</span>
+<span class="sd">      testing/  # Contains KITTI raw test data</span>
+<span class="sd">          velodyne/</span>
+<span class="sd">          calib/</span>
+<span class="sd">          image_2/</span>
+<span class="sd">      splits/  # Contains split files identifying frame names in the split.</span>
+<span class="sd">          split_name.txt</span>
+
+<span class="sd">Outputs examples in TFRecords files correspond to KITTI frames with the</span>
+<span class="sd">following format:</span>
+
+<span class="sd">  # frame information</span>
+<span class="sd">  image/source_id: unique frame name e.g &#39;000000&#39;, &#39;000010&#39;</span>
+
+<span class="sd">  # 2D image data</span>
+<span class="sd">  image/encoded: PNG encoded string</span>
+<span class="sd">  image/height: image height</span>
+<span class="sd">  image/width: image width</span>
+<span class="sd">  image/format: &#39;PNG&#39;</span>
+
+<span class="sd">  # 3D velodyne pointcloud data (variable P points per frame)</span>
+<span class="sd">  pointcloud/xyz = point positions (P x 3 tensor).</span>
+<span class="sd">  pointcloud/reflectance: point reflectances (P x 1 tensor).</span>
+
+<span class="sd">  # Object level data (variable N objects per frame)</span>
+<span class="sd">  object/image/bbox/xmin: min X pixel location in raw image (N x 1 tensor).</span>
+
+<span class="sd">  object/image/bbox/xmax: max X pixel location in raw image (N x 1 tensor).</span>
+
+<span class="sd">  object/image/bbox/ymin: min Y pixel location in raw image (N x 1 tensor).</span>
+
+<span class="sd">  object/image/bbox/ymax: max Y pixel location in raw image (N x 1 tensor).</span>
+
+<span class="sd">  object/label: one of {&#39;Car&#39;, &#39;Pedestrian&#39;, &#39;Cyclist&#39;} identifying object</span>
+<span class="sd">  class (N x 1 tensor).</span>
+
+<span class="sd">  object/has_3d_info: 1 if object has valid 3D info else 0 (N x 1 tensor).</span>
+
+<span class="sd">  object/occlusion: int in {0, 1, 2, 3} of occlusion state (N x 1 tensor).</span>
+
+<span class="sd">  object/truncation: float in 0 (non-truncated) to 1 (truncated) (N x 1 tensor).</span>
+
+<span class="sd">  object/velo/bbox/xyz: 3D bbox locations in velo frame (N x 3 tensor).</span>
+
+<span class="sd">  object/velo/bbox/dim_xyz: length (dx), width (dy), height (dz) indicating</span>
+<span class="sd">  object dimensions (N x 3 tensor).</span>
+
+<span class="sd">  object/velo/bbox/phi: bbox rotation in velo frame (N x 1 tensor).</span>
+
+<span class="sd">  # Transformation matrices</span>
+<span class="sd">  transform/velo_to_image_plane: 3x4 matrix from velo xyz to image plane xy.</span>
+<span class="sd">  After multiplication, you need to divide by last coordinate to recover 2D</span>
+<span class="sd">  pixel locations.</span>
+
+<span class="sd">  transform/velo_to_camera: 4x4 matrix from velo xyz to camera xyz.</span>
+
+<span class="sd">  transform/camera_to_velo 4x4 matrix from camera xyz to velo xyz.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">app</span>
+<span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">flags</span>
+<span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">logging</span>
+
+<span class="kn">import</span> <span class="nn">contextlib2</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car.tools</span> <span class="k">import</span> <span class="n">kitti_data</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="k">import</span> <span class="n">Image</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;kitti_object_dir&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s1">&#39;Path to a kitti object directory.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;split&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s1">&#39;Name of the split file to be used for parsing.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;tfrecord_path&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Output tfrecord path.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
+    <span class="s1">&#39;num_shards&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of output shards (between 1 and 99999). Files&#39;</span>
+    <span class="s1">&#39;named </span><span class="si">{tfrecord_path}</span><span class="s1">-</span><span class="si">{shard_num}</span><span class="s1">-of-</span><span class="si">{total_shards}</span><span class="s1">.&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="_ReadObjectDataset"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_exporter.html#lingvo.tasks.car.tools.kitti_exporter._ReadObjectDataset">[docs]</a><span class="k">def</span> <span class="nf">_ReadObjectDataset</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="n">frame_names</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reads and parses KITTI dataset files into a list of TFExample protos.&quot;&quot;&quot;</span>
+  <span class="n">examples</span> <span class="o">=</span> <span class="p">[]</span>
+
+  <span class="n">total_frames</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">frame_names</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">frame_index</span><span class="p">,</span> <span class="n">frame_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">frame_names</span><span class="p">):</span>
+    <span class="n">image_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="s1">&#39;image_2&#39;</span><span class="p">,</span> <span class="n">frame_name</span> <span class="o">+</span> <span class="s1">&#39;.png&#39;</span><span class="p">)</span>
+    <span class="n">calib_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="n">frame_name</span> <span class="o">+</span> <span class="s1">&#39;.txt&#39;</span><span class="p">)</span>
+    <span class="n">velo_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="s1">&#39;velodyne&#39;</span><span class="p">,</span> <span class="n">frame_name</span> <span class="o">+</span> <span class="s1">&#39;.bin&#39;</span><span class="p">)</span>
+    <span class="n">label_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="s1">&#39;label_2&#39;</span><span class="p">,</span> <span class="n">frame_name</span> <span class="o">+</span> <span class="s1">&#39;.txt&#39;</span><span class="p">)</span>
+
+    <span class="n">example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">()</span>
+    <span class="n">feature</span> <span class="o">=</span> <span class="n">example</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">feature</span>
+
+    <span class="c1"># frame information</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;image/source_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">bytes_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">frame_name</span><span class="p">]</span>
+
+    <span class="c1"># 2D image data</span>
+    <span class="n">encoded_image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">image_file_path</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;image/encoded&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">bytes_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">encoded_image</span><span class="p">]</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">encoded_image</span><span class="p">)))</span>
+    <span class="k">assert</span> <span class="n">image</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span>
+    <span class="k">assert</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+    <span class="n">image_width</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">image_height</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;image/width&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">image_width</span><span class="p">]</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;image/height&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">image_height</span><span class="p">]</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;image/format&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">bytes_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;PNG&#39;</span><span class="p">]</span>
+
+    <span class="c1"># 3D velodyne point data</span>
+    <span class="n">velo_dict</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">LoadVeloBinFile</span><span class="p">(</span><span class="n">velo_file_path</span><span class="p">)</span>
+    <span class="n">point_list</span> <span class="o">=</span> <span class="n">velo_dict</span><span class="p">[</span><span class="s1">&#39;xyz&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;pointcloud/xyz&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">point_list</span>
+    <span class="n">reflectance_list</span> <span class="o">=</span> <span class="n">velo_dict</span><span class="p">[</span><span class="s1">&#39;reflectance&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;pointcloud/reflectance&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">reflectance_list</span>
+
+    <span class="c1"># Object data</span>
+    <span class="n">calib_dict</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">LoadCalibrationFile</span><span class="p">(</span><span class="n">calib_file_path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Exists</span><span class="p">(</span><span class="n">label_file_path</span><span class="p">):</span>
+      <span class="c1"># Load object labels for training data</span>
+      <span class="n">object_dicts</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">LoadLabelFile</span><span class="p">(</span><span class="n">label_file_path</span><span class="p">)</span>
+      <span class="n">object_dicts</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">AnnotateKITTIObjectsWithBBox3D</span><span class="p">(</span>
+          <span class="n">object_dicts</span><span class="p">,</span> <span class="n">calib_dict</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># No object labels for test data</span>
+      <span class="n">object_dicts</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">num_objects</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">object_dicts</span><span class="p">)</span>
+    <span class="n">xmins</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_objects</span>
+    <span class="n">xmaxs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_objects</span>
+    <span class="n">ymins</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_objects</span>
+    <span class="n">ymaxs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_objects</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_objects</span>
+    <span class="n">has_3d_infos</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_objects</span>
+
+    <span class="c1"># 3D info</span>
+    <span class="n">occlusions</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_objects</span>
+    <span class="n">truncations</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_objects</span>
+    <span class="n">xyzs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_objects</span>
+    <span class="n">dim_xyzs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_objects</span>
+    <span class="n">phis</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_objects</span>
+
+    <span class="k">for</span> <span class="n">object_index</span><span class="p">,</span> <span class="n">object_dict</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">object_dicts</span><span class="p">):</span>
+      <span class="n">xmins</span><span class="p">[</span><span class="n">object_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">object_dict</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">xmaxs</span><span class="p">[</span><span class="n">object_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">object_dict</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+      <span class="n">ymins</span><span class="p">[</span><span class="n">object_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">object_dict</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">ymaxs</span><span class="p">[</span><span class="n">object_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">object_dict</span><span class="p">[</span><span class="s1">&#39;bbox&#39;</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+      <span class="n">labels</span><span class="p">[</span><span class="n">object_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">object_dict</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+      <span class="n">has_3d_infos</span><span class="p">[</span><span class="n">object_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">object_dict</span><span class="p">[</span><span class="s1">&#39;has_3d_info&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="mi">0</span>
+      <span class="n">occlusions</span><span class="p">[</span><span class="n">object_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">object_dict</span><span class="p">[</span><span class="s1">&#39;occluded&#39;</span><span class="p">]</span>
+      <span class="n">truncations</span><span class="p">[</span><span class="n">object_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">object_dict</span><span class="p">[</span><span class="s1">&#39;truncated&#39;</span><span class="p">]</span>
+      <span class="n">xyzs</span><span class="p">[</span><span class="n">object_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">object_dict</span><span class="p">[</span><span class="s1">&#39;bbox3d&#39;</span><span class="p">][:</span><span class="mi">3</span><span class="p">]</span>
+      <span class="n">dim_xyzs</span><span class="p">[</span><span class="n">object_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">object_dict</span><span class="p">[</span><span class="s1">&#39;bbox3d&#39;</span><span class="p">][</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+      <span class="n">phis</span><span class="p">[</span><span class="n">object_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">object_dict</span><span class="p">[</span><span class="s1">&#39;bbox3d&#39;</span><span class="p">][</span><span class="mi">6</span><span class="p">]</span>
+
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;object/image/bbox/xmin&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">xmins</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;object/image/bbox/xmax&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">xmaxs</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;object/image/bbox/ymin&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">ymins</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;object/image/bbox/ymax&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">ymaxs</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;object/label&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">bytes_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">labels</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;object/has_3d_info&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">has_3d_infos</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;object/occlusion&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">occlusions</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;object/truncation&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">truncations</span>
+    <span class="n">xyzs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xyzs</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;object/velo/bbox/xyz&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">xyzs</span>
+    <span class="n">dim_xyzs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dim_xyzs</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;object/velo/bbox/dim_xyz&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">dim_xyzs</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;object/velo/bbox/phi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">phis</span>
+
+    <span class="c1"># Transformation matrices</span>
+    <span class="n">velo_to_image_plane</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">VeloToImagePlaneTransformation</span><span class="p">(</span><span class="n">calib_dict</span><span class="p">)</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;transform/velo_to_image_plane&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">velo_to_image_plane</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">velo_to_camera</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">VeloToCameraTransformation</span><span class="p">(</span><span class="n">calib_dict</span><span class="p">)</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;transform/velo_to_camera&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">velo_to_camera</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">cam_to_velo</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">CameraToVeloTransformation</span><span class="p">(</span><span class="n">calib_dict</span><span class="p">)</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;transform/camera_to_velo&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">cam_to_velo</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+
+    <span class="n">examples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">example</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">frame_index</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Processed frame </span><span class="si">%d</span><span class="s1"> of </span><span class="si">%d</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">frame_index</span><span class="p">,</span> <span class="n">total_frames</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">examples</span></div>
+
+
+<div class="viewcode-block" id="_ExportObjectDatasetToTFRecord"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_exporter.html#lingvo.tasks.car.tools.kitti_exporter._ExportObjectDatasetToTFRecord">[docs]</a><span class="k">def</span> <span class="nf">_ExportObjectDatasetToTFRecord</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="n">split_file</span><span class="p">,</span> <span class="n">tfrecord_path</span><span class="p">,</span>
+                                   <span class="n">num_shards</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Exports KITTI dataset files to TFRecord files.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">num_shards</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;TFRecord dataset must have at least one shard.&#39;</span><span class="p">)</span>
+
+  <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reading frame names from split_file </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">split_file</span><span class="p">)</span>
+  <span class="n">frame_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">split_file</span><span class="p">)]</span>
+  <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reading object dataset with </span><span class="si">%d</span><span class="s1"> frames.&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">frame_names</span><span class="p">))</span>
+  <span class="n">dataset</span> <span class="o">=</span> <span class="n">_ReadObjectDataset</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="n">frame_names</span><span class="p">)</span>
+  <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Saving object dataset at </span><span class="si">%s</span><span class="s1"> with </span><span class="si">%d</span><span class="s1"> shards.&#39;</span><span class="p">,</span> <span class="n">tfrecord_path</span><span class="p">,</span>
+               <span class="n">num_shards</span><span class="p">)</span>
+
+  <span class="n">tf_record_output_filenames</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-</span><span class="si">{:05d}</span><span class="s1">-of-</span><span class="si">{:05d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tfrecord_path</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">num_shards</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_shards</span><span class="p">)</span>
+  <span class="p">]</span>
+
+  <span class="k">with</span> <span class="n">contextlib2</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">exit_stack</span><span class="p">:</span>
+    <span class="n">tf_record_writers</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">exit_stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">TFRecordWriter</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">tf_record_output_filenames</span>
+    <span class="p">]</span>
+    <span class="n">total_examples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">example_index</span><span class="p">,</span> <span class="n">example</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dataset</span><span class="p">):</span>
+      <span class="n">output_shard_index</span> <span class="o">=</span> <span class="n">example_index</span> <span class="o">%</span> <span class="n">num_shards</span>
+      <span class="n">serialized_example</span> <span class="o">=</span> <span class="n">example</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">()</span>
+      <span class="n">tf_record_writers</span><span class="p">[</span><span class="n">output_shard_index</span><span class="p">]</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">serialized_example</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">example_index</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Wrote frame </span><span class="si">%d</span><span class="s1"> of </span><span class="si">%d</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">example_index</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_exporter.html#lingvo.tasks.car.tools.kitti_exporter.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">unused_argv</span><span class="p">):</span>
+  <span class="n">split_type</span> <span class="o">=</span> <span class="s1">&#39;testing&#39;</span> <span class="k">if</span> <span class="s1">&#39;test&#39;</span> <span class="ow">in</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">split</span> <span class="k">else</span> <span class="s1">&#39;training&#39;</span>
+  <span class="n">root_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">kitti_object_dir</span><span class="p">,</span> <span class="n">split_type</span><span class="p">)</span>
+  <span class="n">split_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">kitti_object_dir</span><span class="p">,</span> <span class="s1">&#39;splits&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.txt&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">split</span><span class="p">))</span>
+  <span class="n">_ExportObjectDatasetToTFRecord</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="n">split_file</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tfrecord_path</span><span class="p">,</span>
+                                 <span class="n">FLAGS</span><span class="o">.</span><span class="n">num_shards</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">flags</span><span class="o">.</span><span class="n">mark_flag_as_required</span><span class="p">(</span><span class="s1">&#39;kitti_object_dir&#39;</span><span class="p">)</span>
+  <span class="n">flags</span><span class="o">.</span><span class="n">mark_flag_as_required</span><span class="p">(</span><span class="s1">&#39;split&#39;</span><span class="p">)</span>
+  <span class="n">flags</span><span class="o">.</span><span class="n">mark_flag_as_required</span><span class="p">(</span><span class="s1">&#39;tfrecord_path&#39;</span><span class="p">)</span>
+  <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,622 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.breakdown_metric module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.car.builder_lib module" href="lingvo.tasks.car.builder_lib.html" />
+    <link rel="prev" title="lingvo.tasks.car.base_extractor module" href="lingvo.tasks.car.base_extractor.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.html">lingvo.tasks.car package</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.breakdown_metric module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.tasks.car.breakdown_metric.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.car.breakdown_metric">
+<span id="lingvo-tasks-car-breakdown-metric-module"></span><h1>lingvo.tasks.car.breakdown_metric module<a class="headerlink" href="#module-lingvo.tasks.car.breakdown_metric" title="Permalink to this headline">¶</a></h1>
+<p>Library for calculating precision recall conditioned on a variate.</p>
+<p>ByDistance: Calculate precision recall based on distance in world coordinates.
+ByRotation: Calculate precision recall based on rotation in world coordinates.
+ByNumPoints: Calculate maximum recall based on number of points in bounding box.
+ByDifficulty: Calculate precision recall based on difficulty.</p>
+<dl class="class">
+<dt id="lingvo.tasks.car.breakdown_metric.BreakdownMetric">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.breakdown_metric.</code><code class="sig-name descname">BreakdownMetric</code><span class="sig-paren">(</span><em class="sig-param">p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#BreakdownMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base class for calculating precision recall conditioned on a variate.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.BreakdownMetric.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#BreakdownMetric.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric.Params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.BreakdownMetric.NumBinsOfHistogram">
+<code class="sig-name descname">NumBinsOfHistogram</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#BreakdownMetric.NumBinsOfHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric.NumBinsOfHistogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns int32 of number of bins in histogram.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.BreakdownMetric.ComputeMetrics">
+<code class="sig-name descname">ComputeMetrics</code><span class="sig-paren">(</span><em class="sig-param">compute_metrics_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#BreakdownMetric.ComputeMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric.ComputeMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute precision-recall analysis conditioned on particular metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>compute_metrics_fn</strong> – Function that that calculates precision-recall metrics
+and accepts named arguments for conditioning. Typically, this would be
+APMetrics._ComputeFinalMetrics().</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.BreakdownMetric.GenerateSummaries">
+<code class="sig-name descname">GenerateSummaries</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#BreakdownMetric.GenerateSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric.GenerateSummaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate list of image summaries plotting precision-recall analysis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – string providing scope</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of image summaries</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.BreakdownMetric.Discretize">
+<code class="sig-name descname">Discretize</code><span class="sig-paren">(</span><em class="sig-param">values</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#BreakdownMetric.Discretize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric.Discretize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Discretize statistics into integer values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>values</strong> – 1-D np.array of variate to be discretized.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>1-D np.array of int32 ranging within [0, cls.NumOfBinsOfHistogram()]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.BreakdownMetric._AccumulateHistogram">
+<code class="sig-name descname">_AccumulateHistogram</code><span class="sig-paren">(</span><em class="sig-param">statistics=None</em>, <em class="sig-param">labels=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#BreakdownMetric._AccumulateHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric._AccumulateHistogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulate histogram of binned statistic by label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>statistics</strong> – int32 np.array of shape [K, 1] of binned statistic</p></li>
+<li><p><strong>labels</strong> – int32 np.array of shape [K, 1] of labels</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.BreakdownMetric._AccumulateCumulative">
+<code class="sig-name descname">_AccumulateCumulative</code><span class="sig-paren">(</span><em class="sig-param">statistics=None</em>, <em class="sig-param">labels=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#BreakdownMetric._AccumulateCumulative"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric._AccumulateCumulative" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulate cumulative of real-valued statistic by label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>statistics</strong> – float32 np.array of shape [K, 1] of statistic</p></li>
+<li><p><strong>labels</strong> – int32 np.array of shape [K, 1] of labels</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.BreakdownMetric.AccumulateCumulative">
+<code class="sig-name descname">AccumulateCumulative</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#BreakdownMetric.AccumulateCumulative"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric.AccumulateCumulative" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulate cumulative of real-valued statistic by label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>result</strong> – A NestedMap with these fields:
+.labels: [N]. Groundtruth boxes’ labels.
+.bboxes: [N, 7]. Groundtruth boxes coordinates.
+.difficulties: [N]. Groundtruth boxes difficulties.
+.num_points: [N]. Number of laser points in bounding boxes.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.breakdown_metric.ByName">
+<code class="sig-prename descclassname">lingvo.tasks.car.breakdown_metric.</code><code class="sig-name descname">ByName</code><span class="sig-paren">(</span><em class="sig-param">breakdown_metric_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByName" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a BreakdownMetric class by name.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDistance">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.breakdown_metric.</code><code class="sig-name descname">ByDistance</code><span class="sig-paren">(</span><em class="sig-param">p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDistance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDistance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric" title="lingvo.tasks.car.breakdown_metric.BreakdownMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.breakdown_metric.BreakdownMetric</span></code></a></p>
+<p>Calculate average precision as function of distance.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDistance.NumBinsOfHistogram">
+<code class="sig-name descname">NumBinsOfHistogram</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDistance.NumBinsOfHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDistance.NumBinsOfHistogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns int32 of number of bins in histogram.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDistance._CalculateEuclideanDistanceFromOrigin">
+<em class="property">classmethod </em><code class="sig-name descname">_CalculateEuclideanDistanceFromOrigin</code><span class="sig-paren">(</span><em class="sig-param">bboxes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDistance._CalculateEuclideanDistanceFromOrigin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDistance._CalculateEuclideanDistanceFromOrigin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Euclidean distance from the origin for each bounding box.</p>
+<p>Note that the LabelsExtractor originally returns groundtruth_bboxes of
+shape [N, 7] where N is the number of bounding boxes. The last axis is
+ordered [x, y, z, w, h, d, phi]. Hence, the Euclidean distance to the origin
+is the L2 norm of the first 3 entries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>bboxes</strong> – [N, 7] np.float of N bounding boxes. See details above.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>np.array [N] of Euclidean distances.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDistance.Discretize">
+<code class="sig-name descname">Discretize</code><span class="sig-paren">(</span><em class="sig-param">bboxes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDistance.Discretize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDistance.Discretize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Discretize statistics into integer values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>values</strong> – 1-D np.array of variate to be discretized.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>1-D np.array of int32 ranging within [0, cls.NumOfBinsOfHistogram()]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDistance.AccumulateHistogram">
+<code class="sig-name descname">AccumulateHistogram</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDistance.AccumulateHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDistance.AccumulateHistogram" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDistance.ComputeMetrics">
+<code class="sig-name descname">ComputeMetrics</code><span class="sig-paren">(</span><em class="sig-param">compute_metrics_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDistance.ComputeMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDistance.ComputeMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute precision-recall analysis conditioned on particular metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>compute_metrics_fn</strong> – Function that that calculates precision-recall metrics
+and accepts named arguments for conditioning. Typically, this would be
+APMetrics._ComputeFinalMetrics().</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDistance.GenerateSummaries">
+<code class="sig-name descname">GenerateSummaries</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDistance.GenerateSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDistance.GenerateSummaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an image summary for AP versus distance by class.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.breakdown_metric.ByNumPoints">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.breakdown_metric.</code><code class="sig-name descname">ByNumPoints</code><span class="sig-paren">(</span><em class="sig-param">p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByNumPoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByNumPoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric" title="lingvo.tasks.car.breakdown_metric.BreakdownMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.breakdown_metric.BreakdownMetric</span></code></a></p>
+<p>Calculate average precision as function of the number of points.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByNumPoints.NumBinsOfHistogram">
+<code class="sig-name descname">NumBinsOfHistogram</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByNumPoints.NumBinsOfHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByNumPoints.NumBinsOfHistogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns int32 of number of bins in histogram.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByNumPoints._LogSpacedBinEdgesofPoints">
+<code class="sig-name descname">_LogSpacedBinEdgesofPoints</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByNumPoints._LogSpacedBinEdgesofPoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByNumPoints._LogSpacedBinEdgesofPoints" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByNumPoints.Discretize">
+<code class="sig-name descname">Discretize</code><span class="sig-paren">(</span><em class="sig-param">num_points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByNumPoints.Discretize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByNumPoints.Discretize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Discretize statistics into integer values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>values</strong> – 1-D np.array of variate to be discretized.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>1-D np.array of int32 ranging within [0, cls.NumOfBinsOfHistogram()]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByNumPoints.AccumulateHistogram">
+<code class="sig-name descname">AccumulateHistogram</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByNumPoints.AccumulateHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByNumPoints.AccumulateHistogram" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByNumPoints.AccumulateCumulative">
+<code class="sig-name descname">AccumulateCumulative</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByNumPoints.AccumulateCumulative"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByNumPoints.AccumulateCumulative" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulate cumulative of real-valued statistic by label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>result</strong> – A NestedMap with these fields:
+.labels: [N]. Groundtruth boxes’ labels.
+.bboxes: [N, 7]. Groundtruth boxes coordinates.
+.difficulties: [N]. Groundtruth boxes difficulties.
+.num_points: [N]. Number of laser points in bounding boxes.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByNumPoints.ComputeMetrics">
+<code class="sig-name descname">ComputeMetrics</code><span class="sig-paren">(</span><em class="sig-param">compute_metrics_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByNumPoints.ComputeMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByNumPoints.ComputeMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute precision-recall analysis conditioned on particular metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>compute_metrics_fn</strong> – Function that that calculates precision-recall metrics
+and accepts named arguments for conditioning. Typically, this would be
+APMetrics._ComputeFinalMetrics().</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByNumPoints.GenerateSummaries">
+<code class="sig-name descname">GenerateSummaries</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByNumPoints.GenerateSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByNumPoints.GenerateSummaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an image summary for max recall by number of points by class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByNumPoints._GenerateCumulativeSummaries">
+<code class="sig-name descname">_GenerateCumulativeSummaries</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByNumPoints._GenerateCumulativeSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByNumPoints._GenerateCumulativeSummaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an image summary for CDF of a variate.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.breakdown_metric.ByRotation">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.breakdown_metric.</code><code class="sig-name descname">ByRotation</code><span class="sig-paren">(</span><em class="sig-param">p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByRotation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByRotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric" title="lingvo.tasks.car.breakdown_metric.BreakdownMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.breakdown_metric.BreakdownMetric</span></code></a></p>
+<p>Calculate average precision as function of rotation.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByRotation.NumBinsOfHistogram">
+<code class="sig-name descname">NumBinsOfHistogram</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByRotation.NumBinsOfHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByRotation.NumBinsOfHistogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns int32 of number of bins in histogram.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByRotation._CalculateRotation">
+<code class="sig-name descname">_CalculateRotation</code><span class="sig-paren">(</span><em class="sig-param">bboxes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByRotation._CalculateRotation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByRotation._CalculateRotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate rotation angle mod between (0, 2 * pi) for each box.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>bboxes</strong> – [N, 7] np.float of N bounding boxes. See details above.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>np.array [N] of rotation angles in radians.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByRotation.Discretize">
+<code class="sig-name descname">Discretize</code><span class="sig-paren">(</span><em class="sig-param">bboxes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByRotation.Discretize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByRotation.Discretize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Discretize statistics into integer values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>values</strong> – 1-D np.array of variate to be discretized.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>1-D np.array of int32 ranging within [0, cls.NumOfBinsOfHistogram()]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByRotation.AccumulateHistogram">
+<code class="sig-name descname">AccumulateHistogram</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByRotation.AccumulateHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByRotation.AccumulateHistogram" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByRotation.ComputeMetrics">
+<code class="sig-name descname">ComputeMetrics</code><span class="sig-paren">(</span><em class="sig-param">compute_metrics_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByRotation.ComputeMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByRotation.ComputeMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute precision-recall analysis conditioned on particular metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>compute_metrics_fn</strong> – Function that that calculates precision-recall metrics
+and accepts named arguments for conditioning. Typically, this would be
+APMetrics._ComputeFinalMetrics().</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByRotation.GenerateSummaries">
+<code class="sig-name descname">GenerateSummaries</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByRotation.GenerateSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByRotation.GenerateSummaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an image summary for AP versus rotation by class.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDifficulty">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.breakdown_metric.</code><code class="sig-name descname">ByDifficulty</code><span class="sig-paren">(</span><em class="sig-param">p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDifficulty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDifficulty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric" title="lingvo.tasks.car.breakdown_metric.BreakdownMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.breakdown_metric.BreakdownMetric</span></code></a></p>
+<p>Calculate average precision as function of difficulty.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDifficulty.NumBinsOfHistogram">
+<code class="sig-name descname">NumBinsOfHistogram</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDifficulty.NumBinsOfHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDifficulty.NumBinsOfHistogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns int32 of number of bins in histogram.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDifficulty.Discretize">
+<code class="sig-name descname">Discretize</code><span class="sig-paren">(</span><em class="sig-param">difficulties</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDifficulty.Discretize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDifficulty.Discretize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Discretize statistics into integer values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>values</strong> – 1-D np.array of variate to be discretized.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>1-D np.array of int32 ranging within [0, cls.NumOfBinsOfHistogram()]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDifficulty.AccumulateHistogram">
+<code class="sig-name descname">AccumulateHistogram</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDifficulty.AccumulateHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDifficulty.AccumulateHistogram" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDifficulty.ComputeMetrics">
+<code class="sig-name descname">ComputeMetrics</code><span class="sig-paren">(</span><em class="sig-param">compute_metrics_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDifficulty.ComputeMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDifficulty.ComputeMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute precision-recall analysis conditioned on particular metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>compute_metrics_fn</strong> – Function that that calculates precision-recall metrics
+and accepts named arguments for conditioning. Typically, this would be
+APMetrics._ComputeFinalMetrics().</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.breakdown_metric.ByDifficulty.GenerateSummaries">
+<code class="sig-name descname">GenerateSummaries</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#ByDifficulty.GenerateSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.ByDifficulty.GenerateSummaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an image summary for precision recall by difficulty.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.tasks.car.builder_lib.html" class="btn btn-neutral float-right" title="lingvo.tasks.car.builder_lib module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.tasks.car.base_extractor.html" class="btn btn-neutral float-left" title="lingvo.tasks.car.base_extractor module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

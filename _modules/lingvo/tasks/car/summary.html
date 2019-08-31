@@ -1,0 +1,784 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.summary &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.summary</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.summary</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Functions to help with plotting summaries.</span>
+
+<span class="sd">These functions try to take care in ensuring that transformations on points and</span>
+<span class="sd">headings are consistent.  For example, when points are transformed from the</span>
+<span class="sd">standard x/y plane (+x going right, +y going up) to an alternate formulation</span>
+<span class="sd">such as &#39;flipped axes&#39;, the heading must also be updated to account for the</span>
+<span class="sd">change in axis directions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">plot</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">transform_util</span>
+<span class="kn">import</span> <span class="nn">matplotlib.patheffects</span> <span class="k">as</span> <span class="nn">path_effects</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">PIL.Image</span> <span class="k">as</span> <span class="nn">Image</span>
+<span class="kn">import</span> <span class="nn">PIL.ImageColor</span> <span class="k">as</span> <span class="nn">ImageColor</span>
+<span class="kn">import</span> <span class="nn">PIL.ImageDraw</span> <span class="k">as</span> <span class="nn">ImageDraw</span>
+<span class="kn">import</span> <span class="nn">PIL.ImageFont</span> <span class="k">as</span> <span class="nn">ImageFont</span>
+
+
+<span class="c1"># Source code for keys can be found at:</span>
+<span class="c1"># https://github.com/python-pillow/Pillow/blob/080bfd3ee1412b401d520fe26c51e2f5515e3a65/src/PIL/ImageColor.py#L163</span>
+<div class="viewcode-block" id="_PILColorList"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary._PILColorList">[docs]</a><span class="k">def</span> <span class="nf">_PILColorList</span><span class="p">():</span>
+  <span class="n">pil_color_list</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ImageColor</span><span class="o">.</span><span class="n">colormap</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+  <span class="n">pil_color_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;black&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">pil_color_list</span></div>
+
+
+<span class="n">PIL_COLOR_LIST</span> <span class="o">=</span> <span class="n">_PILColorList</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="ExtractRunIds"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.ExtractRunIds">[docs]</a><span class="k">def</span> <span class="nf">ExtractRunIds</span><span class="p">(</span><span class="n">run_segments</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extract the RunIds from the run_segments feature field.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    run_segments: a string Tensor of shape [batch, 1] containing a text proto.</span>
+
+<span class="sd">      See `SummaryTest.testExtractRunIds` for an example.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A string Tensor of shape [batch], containing the extracted run id.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">run_segments</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">run_segments</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">run_segments</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;[^:]+: &quot;(.+)&quot;\n[^:]+: (\d+)(.|\n)*&#39;</span><span class="p">,</span>
+                          <span class="sa">r</span><span class="s1">&#39;\1_\2&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CameraImageSummary"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.CameraImageSummary">[docs]</a><span class="k">def</span> <span class="nf">CameraImageSummary</span><span class="p">(</span><span class="n">frontal_images</span><span class="p">,</span> <span class="n">run_segment_strings</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">)):</span>
+  <span class="sd">&quot;&quot;&quot;Write frontal_images as tf.Summaries.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    frontal_images: Float tensor of frontal camera images: Shape: [batch,</span>
+<span class="sd">      height, width, depth]. Expected aspect ratio of 3:2 for visualization.</span>
+<span class="sd">    run_segment_strings: Tensor of strings: Shape: [batch, 1].  The associated</span>
+<span class="sd">      RunSegment proto for the batch.</span>
+<span class="sd">    figsize: Tuple indicating size of camera image. Default is (6, 4)</span>
+<span class="sd">    indicating a 3:2 aspect ratio for visualization.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># Parse the run segment strings to extract the run segment info.</span>
+  <span class="n">run_segment_ids</span> <span class="o">=</span> <span class="n">ExtractRunIds</span><span class="p">(</span><span class="n">run_segment_strings</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">DrawCameraImage</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">frontal_image</span><span class="p">,</span> <span class="n">run_segment_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Draw camera image for image summary.&quot;&quot;&quot;</span>
+    <span class="n">plot</span><span class="o">.</span><span class="n">AddImage</span><span class="p">(</span>
+        <span class="n">fig</span><span class="o">=</span><span class="n">fig</span><span class="p">,</span>
+        <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">frontal_image</span> <span class="o">/</span> <span class="mf">256.</span><span class="p">,</span>
+        <span class="n">show_colorbar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">suppress_xticks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">suppress_yticks</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">txt</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">y</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+        <span class="n">s</span><span class="o">=</span><span class="n">run_segment_id</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span>
+        <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+        <span class="n">transform</span><span class="o">=</span><span class="n">axes</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+        <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+    <span class="n">txt</span><span class="o">.</span><span class="n">set_path_effects</span><span class="p">([</span>
+        <span class="n">path_effects</span><span class="o">.</span><span class="n">Stroke</span><span class="p">(</span><span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">foreground</span><span class="o">=</span><span class="s1">&#39;lightblue&#39;</span><span class="p">),</span>
+        <span class="n">path_effects</span><span class="o">.</span><span class="n">Normal</span><span class="p">()</span>
+    <span class="p">])</span>
+
+  <span class="k">with</span> <span class="n">plot</span><span class="o">.</span><span class="n">MatplotlibFigureSummary</span><span class="p">(</span>
+      <span class="s1">&#39;examples&#39;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span> <span class="n">max_outputs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="k">as</span> <span class="n">fig</span><span class="p">:</span>
+    <span class="c1"># Plot raw frontal image samples for each example.</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">AddSubplot</span><span class="p">([</span><span class="n">frontal_images</span><span class="p">,</span> <span class="n">run_segment_ids</span><span class="p">],</span> <span class="n">DrawCameraImage</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_CarToImageTransform"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary._CarToImageTransform">[docs]</a><span class="k">def</span> <span class="nf">_CarToImageTransform</span><span class="p">():</span>
+  <span class="k">return</span> <span class="n">transform_util</span><span class="o">.</span><span class="n">MakeCarToImageTransform</span><span class="p">(</span>
+      <span class="n">pixels_per_meter</span><span class="o">=</span><span class="mf">10.</span><span class="p">,</span> <span class="n">image_ref_x</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span> <span class="n">image_ref_y</span><span class="o">=</span><span class="mi">750</span><span class="p">,</span> <span class="n">flip_axes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DrawTopDown"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.DrawTopDown">[docs]</a><span class="k">def</span> <span class="nf">DrawTopDown</span><span class="p">(</span><span class="n">lasers</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Draw the laser points in the top down car view.&quot;&quot;&quot;</span>
+  <span class="c1"># For every laser point, convert the point to a top down image.</span>
+
+  <span class="c1"># Lasers is a [r, b, s*6] tensor where b is the batch size.</span>
+  <span class="c1"># Transpose back to batch major</span>
+  <span class="n">lasers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">lasers</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+  <span class="c1"># Reshape data to get all points in the spin.</span>
+  <span class="n">lasers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">lasers</span><span class="p">,</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">lasers</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+  <span class="n">car_to_image_transform</span> <span class="o">=</span> <span class="n">_CarToImageTransform</span><span class="p">()</span>
+
+  <span class="c1"># Create an empty image of the appropriate size.</span>
+  <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">lasers</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+  <span class="n">images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+
+  <span class="c1"># TODO(vrv): Slice the lasers into [b, x, y, z] matrix</span>
+  <span class="c1"># and then do a batch_matmul on all points at once.</span>
+  <span class="n">max_npoints</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">lasers</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">6</span>
+  <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_npoints</span><span class="p">):</span>
+      <span class="n">index</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">6</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">lasers</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">lasers</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="n">z</span> <span class="o">=</span> <span class="n">lasers</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="n">index</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
+
+      <span class="c1"># TODO(vrv): Use lasers_padding to filter out invalid points.</span>
+      <span class="c1"># For now, just assume that all zeros means that the point</span>
+      <span class="c1"># shouldn&#39;t be drawn.</span>
+      <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">y</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">z</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">continue</span>
+
+      <span class="n">tx</span><span class="p">,</span> <span class="n">ty</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">transform_util</span><span class="o">.</span><span class="n">TransformPoint</span><span class="p">(</span><span class="n">car_to_image_transform</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+      <span class="c1"># Point outside image.</span>
+      <span class="k">if</span> <span class="n">tx</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">ty</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">tx</span> <span class="o">&gt;=</span> <span class="n">images</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="ow">or</span> <span class="n">ty</span> <span class="o">&gt;=</span> <span class="n">images</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">continue</span>
+
+      <span class="c1"># Fill in that point in the image</span>
+      <span class="n">images</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">ty</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">tx</span><span class="p">),</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">images</span></div>
+
+
+<div class="viewcode-block" id="MakeRectangle"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.MakeRectangle">[docs]</a><span class="k">def</span> <span class="nf">MakeRectangle</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
+  <span class="sd">&quot;&quot;&quot;Make rotated rectangle.&quot;&quot;&quot;</span>
+  <span class="n">c</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+  <span class="n">coordinates</span> <span class="o">=</span> <span class="p">[(</span><span class="n">l</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">w</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">),</span> <span class="p">(</span><span class="n">l</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="n">l</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span> <span class="o">-</span><span class="n">w</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">),</span>
+                 <span class="p">(</span><span class="o">-</span><span class="n">l</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">w</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)]</span>
+  <span class="k">return</span> <span class="p">[(</span><span class="n">c</span> <span class="o">*</span> <span class="n">x</span> <span class="o">-</span> <span class="n">s</span> <span class="o">*</span> <span class="n">y</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">s</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="n">y</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+          <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="n">coordinates</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="DrawHeadingTriangle"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.DrawHeadingTriangle">[docs]</a><span class="k">def</span> <span class="nf">DrawHeadingTriangle</span><span class="p">(</span><span class="n">draw</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">heading</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">25</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Draw a triangle indicating `heading` at `x`, `y` with `color`.&quot;&quot;&quot;</span>
+  <span class="n">ch</span> <span class="o">=</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">heading</span><span class="p">)</span>
+  <span class="n">sh</span> <span class="o">=</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">heading</span><span class="p">)</span>
+  <span class="n">lead_point</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">ch</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="n">sh</span><span class="p">)</span>
+  <span class="n">anchor_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">sh</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">ch</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="n">anchor_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">sh</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="n">ch</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="n">draw</span><span class="o">.</span><span class="n">line</span><span class="p">([</span><span class="n">anchor_1</span><span class="p">,</span> <span class="n">lead_point</span><span class="p">,</span> <span class="n">anchor_2</span><span class="p">],</span> <span class="n">fill</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DrawCircle"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.DrawCircle">[docs]</a><span class="k">def</span> <span class="nf">DrawCircle</span><span class="p">(</span><span class="n">draw</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">fill</span><span class="p">,</span> <span class="n">outline</span><span class="p">,</span> <span class="n">circle_size</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Draw a circle at `x`, `y`.&quot;&quot;&quot;</span>
+  <span class="n">draw</span><span class="o">.</span><span class="n">ellipse</span><span class="p">(</span>
+      <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">circle_size</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="n">circle_size</span><span class="p">,</span> <span class="n">x</span> <span class="o">+</span> <span class="n">circle_size</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">circle_size</span><span class="p">),</span>
+      <span class="n">fill</span><span class="o">=</span><span class="n">fill</span><span class="p">,</span>
+      <span class="n">outline</span><span class="o">=</span><span class="n">outline</span><span class="p">)</span></div>
+
+
+<span class="c1"># TODO(vrv): Support multiple display strings.</span>
+<div class="viewcode-block" id="DrawBoundingBoxOnImage"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.DrawBoundingBoxOnImage">[docs]</a><span class="k">def</span> <span class="nf">DrawBoundingBoxOnImage</span><span class="p">(</span><span class="n">image</span><span class="p">,</span>
+                           <span class="n">box</span><span class="p">,</span>
+                           <span class="n">display_str</span><span class="p">,</span>
+                           <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span>
+                           <span class="n">thickness</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+                           <span class="n">text_loc</span><span class="o">=</span><span class="s1">&#39;BOTTOM&#39;</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Draw bounding box on the input image.&quot;&quot;&quot;</span>
+  <span class="n">original_image</span> <span class="o">=</span> <span class="n">image</span>
+  <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">(</span><span class="n">original_image</span><span class="p">))</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s1">&#39;RGB&#39;</span><span class="p">)</span>
+  <span class="n">draw</span> <span class="o">=</span> <span class="n">ImageDraw</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+
+  <span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">heading</span> <span class="o">=</span> <span class="n">box</span>
+  <span class="n">box2d</span> <span class="o">=</span> <span class="n">transform_util</span><span class="o">.</span><span class="n">Box2D</span><span class="p">(</span><span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">heading</span><span class="p">)</span>
+  <span class="n">corners</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">box2d</span><span class="o">.</span><span class="n">corners</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">corners</span><span class="p">]</span>
+  <span class="n">points</span> <span class="o">+=</span> <span class="p">[</span><span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+  <span class="n">draw</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">thickness</span><span class="p">)</span>
+
+  <span class="c1"># Draw heading.</span>
+  <span class="n">max_dim</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span>
+  <span class="n">end_heading_point</span> <span class="o">=</span> <span class="p">(</span><span class="n">center_x</span> <span class="o">+</span> <span class="n">max_dim</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">heading</span><span class="p">),</span>
+                       <span class="n">center_y</span> <span class="o">+</span> <span class="n">max_dim</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">heading</span><span class="p">))</span>
+  <span class="n">start_heading_point</span> <span class="o">=</span> <span class="p">((</span><span class="n">end_heading_point</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">center_x</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">center_x</span><span class="p">,</span>
+                         <span class="p">(</span><span class="n">end_heading_point</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">center_y</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">center_y</span><span class="p">)</span>
+
+  <span class="n">heading_points</span> <span class="o">=</span> <span class="p">[</span><span class="n">start_heading_point</span><span class="p">,</span> <span class="n">end_heading_point</span><span class="p">]</span>
+  <span class="n">draw</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">heading_points</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">thickness</span><span class="p">)</span>
+
+  <span class="c1"># Compute extremes so we can anchor the labels to them.</span>
+  <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">points</span><span class="p">]</span>
+  <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">points</span><span class="p">]</span>
+  <span class="n">left</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+  <span class="n">bottom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+  <span class="n">top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+
+  <span class="k">try</span><span class="p">:</span>
+    <span class="n">font</span> <span class="o">=</span> <span class="n">ImageFont</span><span class="o">.</span><span class="n">truetype</span><span class="p">(</span><span class="s1">&#39;arial.ttf&#39;</span><span class="p">,</span> <span class="mi">24</span><span class="p">)</span>
+  <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+    <span class="n">font</span> <span class="o">=</span> <span class="n">ImageFont</span><span class="o">.</span><span class="n">load_default</span><span class="p">()</span>
+
+  <span class="n">text_width</span><span class="p">,</span> <span class="n">text_height</span> <span class="o">=</span> <span class="n">font</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">display_str</span><span class="p">)</span>
+  <span class="n">margin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="mf">0.05</span> <span class="o">*</span> <span class="n">text_height</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">text_loc</span> <span class="o">==</span> <span class="s1">&#39;TOP&#39;</span><span class="p">:</span>
+    <span class="n">text_bottom</span> <span class="o">=</span> <span class="n">top</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">text_bottom</span> <span class="o">=</span> <span class="n">bottom</span> <span class="o">+</span> <span class="n">text_height</span>
+
+  <span class="n">draw</span><span class="o">.</span><span class="n">rectangle</span><span class="p">([(</span><span class="n">left</span><span class="p">,</span> <span class="n">text_bottom</span> <span class="o">-</span> <span class="n">text_height</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">margin</span><span class="p">),</span>
+                  <span class="p">(</span><span class="n">left</span> <span class="o">+</span> <span class="n">text_width</span><span class="p">,</span> <span class="n">text_bottom</span><span class="p">)],</span>
+                 <span class="n">fill</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+  <span class="n">draw</span><span class="o">.</span><span class="n">text</span><span class="p">((</span><span class="n">left</span> <span class="o">+</span> <span class="n">margin</span><span class="p">,</span> <span class="n">text_bottom</span> <span class="o">-</span> <span class="n">text_height</span> <span class="o">-</span> <span class="n">margin</span><span class="p">),</span>
+            <span class="n">display_str</span><span class="p">,</span>
+            <span class="n">fill</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span>
+            <span class="n">font</span><span class="o">=</span><span class="n">font</span><span class="p">)</span>
+  <span class="n">np</span><span class="o">.</span><span class="n">copyto</span><span class="p">(</span><span class="n">original_image</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">image</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="VisualizeBoxes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.VisualizeBoxes">[docs]</a><span class="k">def</span> <span class="nf">VisualizeBoxes</span><span class="p">(</span><span class="n">image</span><span class="p">,</span>
+                   <span class="n">boxes</span><span class="p">,</span>
+                   <span class="n">classes</span><span class="p">,</span>
+                   <span class="n">scores</span><span class="p">,</span>
+                   <span class="n">class_id_to_name</span><span class="p">,</span>
+                   <span class="n">min_score_thresh</span><span class="o">=.</span><span class="mi">25</span><span class="p">,</span>
+                   <span class="n">line_thickness</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+                   <span class="n">groundtruth_box_visualization_color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span>
+                   <span class="n">skip_scores</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                   <span class="n">skip_labels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                   <span class="n">text_loc</span><span class="o">=</span><span class="s1">&#39;TOP&#39;</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Visualize boxes on top down image.&quot;&quot;&quot;</span>
+  <span class="n">box_to_display_str_map</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+  <span class="n">box_to_color_map</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+  <span class="n">num_boxes</span> <span class="o">=</span> <span class="n">boxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_boxes</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">scores</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">scores</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">min_score_thresh</span><span class="p">:</span>
+      <span class="k">continue</span>
+    <span class="n">box</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">boxes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">display_str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_labels</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">classes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">class_id_to_name</span><span class="p">:</span>
+        <span class="n">class_name</span> <span class="o">=</span> <span class="n">class_id_to_name</span><span class="p">[</span><span class="n">classes</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="n">display_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">class_name</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">display_str</span> <span class="o">=</span> <span class="s1">&#39;N/A&#39;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_scores</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">display_str</span><span class="p">:</span>
+        <span class="n">display_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">%&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">scores</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">display_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1">%&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">display_str</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">scores</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+    <span class="n">box_to_display_str_map</span><span class="p">[</span><span class="n">box</span><span class="p">]</span> <span class="o">=</span> <span class="n">display_str</span>
+    <span class="k">if</span> <span class="n">scores</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">box_to_color_map</span><span class="p">[</span><span class="n">box</span><span class="p">]</span> <span class="o">=</span> <span class="n">groundtruth_box_visualization_color</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">box_to_color_map</span><span class="p">[</span><span class="n">box</span><span class="p">]</span> <span class="o">=</span> <span class="n">PIL_COLOR_LIST</span><span class="p">[</span><span class="n">classes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">PIL_COLOR_LIST</span><span class="p">)]</span>
+
+  <span class="c1"># Draw all boxes onto image.</span>
+  <span class="k">for</span> <span class="n">box</span><span class="p">,</span> <span class="n">color</span> <span class="ow">in</span> <span class="n">box_to_color_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">DrawBoundingBoxOnImage</span><span class="p">(</span>
+        <span class="n">image</span><span class="p">,</span>
+        <span class="n">box</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+        <span class="n">thickness</span><span class="o">=</span><span class="n">line_thickness</span><span class="p">,</span>
+        <span class="n">display_str</span><span class="o">=</span><span class="n">box_to_display_str_map</span><span class="p">[</span><span class="n">box</span><span class="p">],</span>
+        <span class="n">text_loc</span><span class="o">=</span><span class="n">text_loc</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">image</span></div>
+
+
+<div class="viewcode-block" id="TransformBBoxesToTopDown"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.TransformBBoxesToTopDown">[docs]</a><span class="k">def</span> <span class="nf">TransformBBoxesToTopDown</span><span class="p">(</span><span class="n">bboxes</span><span class="p">,</span> <span class="n">car_to_image_transform</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Convert bounding boxes from car coordinates to top down pixel coordinates.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    bboxes: A (batch, nbboxes, 4 or 5) np.float32 tensor containing bounding box</span>
+<span class="sd">      xywhh in car coordinates (smooth adjusted by car pose).</span>
+<span class="sd">    car_to_image_transform: An optional Transform object. If None, this will be</span>
+<span class="sd">      created using _CarToImageTransform.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    transformed_boxes: np.array of shape (batch, nbboxes) containing the</span>
+<span class="sd">      bounding boxes in top down image space.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">car_to_image_transform</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">car_to_image_transform</span> <span class="o">=</span> <span class="n">_CarToImageTransform</span><span class="p">()</span>
+
+  <span class="n">batch_size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">nbboxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">transformed_boxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">bboxes</span><span class="p">)</span>
+
+  <span class="k">for</span> <span class="n">batch_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">box_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbboxes</span><span class="p">):</span>
+      <span class="c1"># TODO(vrv): When we predict heading, we should assert</span>
+      <span class="c1"># that the length of bbox_data is 5.</span>
+      <span class="n">bbox_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">bboxes</span><span class="p">[</span><span class="n">batch_id</span><span class="p">,</span> <span class="n">box_id</span><span class="p">,</span> <span class="p">:])</span>
+
+      <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="p">(</span><span class="n">bbox_data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bbox_data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">bbox_data</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                             <span class="n">bbox_data</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bbox_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="n">heading</span> <span class="o">=</span> <span class="n">bbox_data</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">heading</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+      <span class="c1"># Skip boxes that cannot be visualized.</span>
+      <span class="k">if</span> <span class="n">width</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">height</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">continue</span>
+      <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">bbox_data</span><span class="p">]):</span>
+        <span class="k">continue</span>
+
+      <span class="c1"># Bounding boxes are in car coordinates (smooth adjusted by car pose).</span>
+      <span class="c1"># Transform from car coordinates to new coordinates.</span>
+      <span class="n">bbox_car</span> <span class="o">=</span> <span class="n">transform_util</span><span class="o">.</span><span class="n">Box2D</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">heading</span><span class="p">)</span>
+      <span class="n">bbox_transformed</span> <span class="o">=</span> <span class="n">bbox_car</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">car_to_image_transform</span><span class="p">)</span>
+      <span class="n">bbox_values</span> <span class="o">=</span> <span class="n">bbox_transformed</span><span class="o">.</span><span class="n">AsNumpy</span><span class="p">()</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bbox_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">bbox_values</span> <span class="o">=</span> <span class="n">bbox_values</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">transformed_boxes</span><span class="p">[</span><span class="n">batch_id</span><span class="p">,</span> <span class="n">box_id</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">bbox_values</span>
+
+  <span class="k">return</span> <span class="n">transformed_boxes</span></div>
+
+
+<div class="viewcode-block" id="DrawBBoxesOnImages"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.DrawBBoxesOnImages">[docs]</a><span class="k">def</span> <span class="nf">DrawBBoxesOnImages</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">bboxes</span><span class="p">,</span> <span class="n">box_weights</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">class_id_to_name</span><span class="p">,</span>
+                       <span class="n">groundtruth</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Draw ground truth boxes on top down image.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    images: A 4D uint8 array (batch, height, width, depth) of images to draw on</span>
+<span class="sd">      top of.</span>
+<span class="sd">    bboxes: A (batch, nbboxes, 4 or 5) np.float32 tensor containing bounding box</span>
+<span class="sd">      xywhh to draw specified in top down pixel values.</span>
+<span class="sd">    box_weights: A (batch, nbboxes) float matrix indicating the predicted score</span>
+<span class="sd">      of the box.  If the score is 0.0, no box is drawn.</span>
+<span class="sd">    labels: A (batch, nbboxes) integer matrix indicating the true or predicted</span>
+<span class="sd">      label indices.</span>
+<span class="sd">    class_id_to_name: Dictionary mapping from class id to name.</span>
+<span class="sd">    groundtruth: Boolean indicating whether bounding boxes are ground truth.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    images: &#39;images&#39; with the bboxes drawn on top.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># Assert 4d shape.</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">images</span><span class="p">))</span> <span class="o">==</span> <span class="mi">4</span>
+
+  <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">images</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="c1"># Convert from grayscale to RGB.</span>
+    <span class="n">images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+
+  <span class="c1"># Assert channel dimension is 3 dimensional.</span>
+  <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">images</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+
+  <span class="n">batch_size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">images</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">nbboxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+  <span class="k">for</span> <span class="n">batch_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">images</span><span class="p">[</span><span class="n">batch_id</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="c1"># Draw a box for each box and label if weights is 1.</span>
+
+    <span class="n">transformed_boxes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">box_scores</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">label_ids</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">box_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbboxes</span><span class="p">):</span>
+      <span class="n">box_weight</span> <span class="o">=</span> <span class="n">box_weights</span><span class="p">[</span><span class="n">batch_id</span><span class="p">,</span> <span class="n">box_id</span><span class="p">]</span>
+      <span class="c1"># If there is no box to draw, continue.</span>
+      <span class="k">if</span> <span class="n">box_weight</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">continue</span>
+
+      <span class="c1"># TODO(vrv): When we predict heading, we should assert</span>
+      <span class="c1"># that the length of bbox_data is 5.</span>
+      <span class="n">bbox_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">bboxes</span><span class="p">[</span><span class="n">batch_id</span><span class="p">,</span> <span class="n">box_id</span><span class="p">,</span> <span class="p">:])</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bbox_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">heading</span> <span class="o">=</span> <span class="n">bbox_data</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="n">bbox_data</span>
+        <span class="n">heading</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+      <span class="c1"># Check whether we can draw the box.</span>
+      <span class="n">bbox</span> <span class="o">=</span> <span class="n">transform_util</span><span class="o">.</span><span class="n">Box2D</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">heading</span><span class="p">)</span>
+      <span class="n">ymin</span><span class="p">,</span> <span class="n">xmin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">=</span> <span class="n">bbox</span><span class="o">.</span><span class="n">Extrema</span><span class="p">()</span>
+
+      <span class="k">if</span> <span class="n">ymin</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">xmin</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">ymax</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">xmax</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">continue</span>
+
+      <span class="c1"># TODO(vrv): Support drawing boxes on the edge of the</span>
+      <span class="c1"># image.</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">xmin</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">ymin</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">xmax</span> <span class="o">&gt;=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">or</span>
+          <span class="n">ymax</span> <span class="o">&gt;=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">continue</span>
+
+      <span class="c1"># We can draw a box on the image, so fill in the score, the boxes,</span>
+      <span class="c1"># and the label.</span>
+      <span class="n">transformed_boxes</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">heading</span><span class="p">])</span>
+      <span class="n">box_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">box_weight</span><span class="p">)</span>
+      <span class="n">label_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">labels</span><span class="p">[</span><span class="n">batch_id</span><span class="p">,</span> <span class="n">box_id</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">transformed_boxes</span><span class="p">:</span>
+      <span class="n">transformed_boxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">transformed_boxes</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">scores</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">groundtruth</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">box_scores</span><span class="p">)</span>
+      <span class="n">text_loc</span> <span class="o">=</span> <span class="s1">&#39;TOP&#39;</span> <span class="k">if</span> <span class="n">groundtruth</span> <span class="k">else</span> <span class="s1">&#39;BOTTOM&#39;</span>
+      <span class="n">VisualizeBoxes</span><span class="p">(</span>
+          <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+          <span class="n">boxes</span><span class="o">=</span><span class="n">transformed_boxes</span><span class="p">,</span>
+          <span class="n">classes</span><span class="o">=</span><span class="n">label_ids</span><span class="p">,</span>
+          <span class="n">scores</span><span class="o">=</span><span class="n">scores</span><span class="p">,</span>
+          <span class="n">class_id_to_name</span><span class="o">=</span><span class="n">class_id_to_name</span><span class="p">,</span>
+          <span class="n">groundtruth_box_visualization_color</span><span class="o">=</span><span class="s1">&#39;cyan&#39;</span><span class="p">,</span>
+          <span class="n">skip_scores</span><span class="o">=</span><span class="n">groundtruth</span><span class="p">,</span>
+          <span class="n">skip_labels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">text_loc</span><span class="o">=</span><span class="n">text_loc</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">images</span></div>
+
+
+<div class="viewcode-block" id="DrawTrajectory"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.DrawTrajectory">[docs]</a><span class="k">def</span> <span class="nf">DrawTrajectory</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">bboxes</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">is_groundtruth</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Draw the trajectory of bounding boxes on &#39;image&#39;.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    image: The uint8 image array to draw on.  Assumes [1000, 500, 3] input with</span>
+<span class="sd">      RGB value ranges.</span>
+<span class="sd">    bboxes: A [num_steps, num_objects, 5] float array containing the bounding</span>
+<span class="sd">      box information over a sequence of steps.  bboxes are expected to be in</span>
+<span class="sd">      car coordinates.</span>
+<span class="sd">    masks: A [num_steps, num_objects] integer array indicating whether the</span>
+<span class="sd">      corresponding bbox entry in bboxes is present (1 = present).</span>
+<span class="sd">    labels: A [num_steps, num_objects] integer label indicating which class is</span>
+<span class="sd">      being predicted.  Used for colorizing based on labels.</span>
+<span class="sd">    is_groundtruth: True if the scene is the groundtruth vs. the predicted.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    image: The updated image array.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">(</span><span class="n">image</span><span class="p">))</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s1">&#39;RGB&#39;</span><span class="p">)</span>
+  <span class="n">draw</span> <span class="o">=</span> <span class="n">ImageDraw</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+
+  <span class="k">try</span><span class="p">:</span>
+    <span class="n">font</span> <span class="o">=</span> <span class="n">ImageFont</span><span class="o">.</span><span class="n">truetype</span><span class="p">(</span><span class="s1">&#39;arial.ttf&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+  <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+    <span class="n">font</span> <span class="o">=</span> <span class="n">ImageFont</span><span class="o">.</span><span class="n">load_default</span><span class="p">()</span>
+
+  <span class="n">pixels_per_meter</span> <span class="o">=</span> <span class="mf">10.</span>
+  <span class="n">image_ref_x</span> <span class="o">=</span> <span class="mf">250.</span>
+  <span class="n">image_ref_y</span> <span class="o">=</span> <span class="mf">750.</span>
+  <span class="n">car_to_image_transform</span> <span class="o">=</span> <span class="n">transform_util</span><span class="o">.</span><span class="n">MakeCarToImageTransform</span><span class="p">(</span>
+      <span class="n">pixels_per_meter</span><span class="o">=</span><span class="n">pixels_per_meter</span><span class="p">,</span>
+      <span class="n">image_ref_x</span><span class="o">=</span><span class="n">image_ref_x</span><span class="p">,</span>
+      <span class="n">image_ref_y</span><span class="o">=</span><span class="n">image_ref_y</span><span class="p">,</span>
+      <span class="n">flip_axes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="c1"># Iterate over each object and produce the series of visualized trajectories</span>
+  <span class="c1"># over time.</span>
+  <span class="k">for</span> <span class="n">object_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bboxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+    <span class="c1"># Annotate the box with the class type</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">object_idx</span><span class="p">]</span>
+
+    <span class="c1"># Choose a label_consistent color.</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="n">PIL_COLOR_LIST</span><span class="p">[</span><span class="n">label</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">PIL_COLOR_LIST</span><span class="p">)]</span>
+    <span class="c1"># Make predictions white.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_groundtruth</span><span class="p">:</span>
+      <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;white&#39;</span>
+
+    <span class="c1"># Convert string color name to RGB so we can manipulate it.</span>
+    <span class="n">color_rgb</span> <span class="o">=</span> <span class="n">ImageColor</span><span class="o">.</span><span class="n">getrgb</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
+
+    <span class="c1"># For each sample, extract the data, transform to image coordinates, and</span>
+    <span class="c1"># store in centroids.</span>
+    <span class="n">centroids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bboxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="k">if</span> <span class="n">masks</span><span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">object_idx</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">continue</span>
+
+      <span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">heading</span> <span class="o">=</span> <span class="n">bboxes</span><span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">object_idx</span><span class="p">,</span> <span class="p">:]</span>
+
+      <span class="c1"># Compute the new heading.</span>
+      <span class="n">heading</span> <span class="o">=</span> <span class="n">transform_util</span><span class="o">.</span><span class="n">TransformHeading</span><span class="p">(</span><span class="n">car_to_image_transform</span><span class="p">,</span> <span class="n">heading</span><span class="p">)</span>
+
+      <span class="c1"># Transform from car to image coords.</span>
+      <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">transform_util</span><span class="o">.</span><span class="n">TransformPoint</span><span class="p">(</span><span class="n">car_to_image_transform</span><span class="p">,</span> <span class="n">center_x</span><span class="p">,</span>
+                                              <span class="n">center_y</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+      <span class="c1"># Hack to scale from meters to pixels.</span>
+      <span class="n">width</span> <span class="o">*=</span> <span class="n">pixels_per_meter</span>
+      <span class="n">height</span> <span class="o">*=</span> <span class="n">pixels_per_meter</span>
+
+      <span class="c1"># Collect the centroids of all of the points.</span>
+      <span class="n">centroids</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">heading</span><span class="p">))</span>
+
+      <span class="c1"># Draw the groundtruth bounding box at the first timestep.</span>
+      <span class="k">if</span> <span class="n">is_groundtruth</span> <span class="ow">and</span> <span class="n">time</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Draw a rectangle</span>
+        <span class="n">rect</span> <span class="o">=</span> <span class="n">MakeRectangle</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">heading</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+        <span class="n">rect</span> <span class="o">+=</span> <span class="p">[</span><span class="n">rect</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="n">draw</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">rect</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="n">color_rgb</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+        <span class="n">delta</span> <span class="o">=</span> <span class="mi">20</span>
+
+        <span class="c1"># Annotate the box with the object index</span>
+        <span class="n">draw</span><span class="o">.</span><span class="n">text</span><span class="p">((</span><span class="n">x</span> <span class="o">+</span> <span class="n">delta</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">delta</span><span class="p">),</span>
+                  <span class="nb">str</span><span class="p">(</span><span class="n">object_idx</span><span class="p">),</span>
+                  <span class="n">fill</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span>
+                  <span class="n">font</span><span class="o">=</span><span class="n">font</span><span class="p">)</span>
+
+        <span class="c1"># Draw a callout</span>
+        <span class="n">draw</span><span class="o">.</span><span class="n">line</span><span class="p">([(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">delta</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">delta</span><span class="p">)],</span> <span class="n">fill</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Extract the point pairs from centroids and draw a line through them.</span>
+    <span class="n">point_pairs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">heading</span><span class="p">)</span> <span class="ow">in</span> <span class="n">centroids</span><span class="p">:</span>
+      <span class="n">point_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">point_pairs</span><span class="p">:</span>
+      <span class="n">draw</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">point_pairs</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="n">color_rgb</span><span class="p">)</span>
+
+    <span class="c1"># Draw the centroids.</span>
+    <span class="n">triangle_color_rgb</span> <span class="o">=</span> <span class="n">color_rgb</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">heading</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">centroids</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Draw the heading for the first timestep.</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="mi">25</span> <span class="k">if</span> <span class="n">is_groundtruth</span> <span class="k">else</span> <span class="mi">15</span>
+        <span class="n">DrawHeadingTriangle</span><span class="p">(</span><span class="n">draw</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">heading</span><span class="p">,</span> <span class="n">triangle_color_rgb</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Draw a circle for the centroids of other timesteps.</span>
+        <span class="n">outline_color</span> <span class="o">=</span> <span class="n">color_rgb</span>
+        <span class="n">circle_size</span> <span class="o">=</span> <span class="mi">5</span> <span class="k">if</span> <span class="n">is_groundtruth</span> <span class="k">else</span> <span class="mi">3</span>
+        <span class="n">DrawCircle</span><span class="p">(</span>
+            <span class="n">draw</span><span class="p">,</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="n">y</span><span class="p">,</span>
+            <span class="n">fill</span><span class="o">=</span><span class="n">triangle_color_rgb</span><span class="p">,</span>
+            <span class="n">outline</span><span class="o">=</span><span class="n">outline_color</span><span class="p">,</span>
+            <span class="n">circle_size</span><span class="o">=</span><span class="n">circle_size</span><span class="p">)</span>
+
+      <span class="c1"># Desaturate the color with every timestep.</span>
+      <span class="n">increment</span> <span class="o">=</span> <span class="mi">45</span>  <span class="c1"># Allow this to be modified?</span>
+      <span class="n">triangle_color_rgb</span> <span class="o">=</span> <span class="p">(</span><span class="n">triangle_color_rgb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">increment</span><span class="p">,</span>
+                            <span class="n">triangle_color_rgb</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">increment</span><span class="p">,</span>
+                            <span class="n">triangle_color_rgb</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">increment</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">image</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GetTrajectoryComparison"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.GetTrajectoryComparison">[docs]</a><span class="k">def</span> <span class="nf">GetTrajectoryComparison</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="n">gt_masks</span><span class="p">,</span> <span class="n">gt_labels</span><span class="p">,</span> <span class="n">pred_bboxes</span><span class="p">,</span>
+                            <span class="n">pred_masks</span><span class="p">,</span> <span class="n">pred_labels</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Draw a trajectory comparison of groundtruth and predicted.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    gt_bboxes: A [batch_size, num_steps, num_objects, 5] float array containing</span>
+<span class="sd">      the bounding box information over a sequence of steps.</span>
+<span class="sd">    gt_masks: A [batch_size, num_steps, num_objects] integer array indicating</span>
+<span class="sd">      whether the corresponding bbox entry in bboxes is present (1 = present).</span>
+<span class="sd">    gt_labels: A [batch_size, num_steps, num_objects] integer label indicating</span>
+<span class="sd">      which class is being predicted.  Used for colorizing based on labels.</span>
+<span class="sd">    pred_bboxes: A [batch_size, num_steps, num_objects, 5] float array</span>
+<span class="sd">      containing the bounding box information over a sequence of steps.</span>
+<span class="sd">    pred_masks: A [batch_size, num_steps, num_objects] integer array indicating</span>
+<span class="sd">      whether the corresponding bbox entry in bboxes is present (1 = present).</span>
+<span class="sd">    pred_labels: A [batch_size, num_steps, num_objects] integer label indicating</span>
+<span class="sd">      which class is being predicted.  Used for colorizing based on labels.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    images: A np.uint8 images array that can be displayed of size</span>
+<span class="sd">      [batch_size, 1000, 500, 3].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">batch_size</span> <span class="o">=</span> <span class="n">gt_bboxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+    <span class="n">images</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">DrawTrajectory</span><span class="p">(</span>
+        <span class="n">images</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">gt_bboxes</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">gt_masks</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">gt_labels</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">is_groundtruth</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">images</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">DrawTrajectory</span><span class="p">(</span>
+        <span class="n">images</span><span class="p">[</span><span class="n">b</span><span class="p">],</span>
+        <span class="n">pred_bboxes</span><span class="p">[</span><span class="n">b</span><span class="p">],</span>
+        <span class="n">pred_masks</span><span class="p">[</span><span class="n">b</span><span class="p">],</span>
+        <span class="n">pred_labels</span><span class="p">[</span><span class="n">b</span><span class="p">],</span>
+        <span class="n">is_groundtruth</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">images</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

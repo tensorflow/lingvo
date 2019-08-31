@@ -1,0 +1,426 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.pointnet &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.pointnet</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.pointnet</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;PointNet architecture.</span>
+
+<span class="sd">PointNet: Deep Learning on Point Sets for 3D Classification and Segmentation</span>
+<span class="sd">  https://arxiv.org/abs/1612.00593</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">builder_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">builder_lib</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="PointNet"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pointnet.html#lingvo.tasks.car.pointnet.PointNet">[docs]</a><span class="k">class</span> <span class="nc">PointNet</span><span class="p">(</span><span class="n">builder_lib</span><span class="o">.</span><span class="n">ModelBuilderBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Builder for PointNet layers.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PointNet._ConcatWithBranch"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pointnet.html#lingvo.tasks.car.pointnet.PointNet._ConcatWithBranch">[docs]</a>  <span class="k">def</span> <span class="nf">_ConcatWithBranch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">tile</span><span class="p">,</span> <span class="o">*</span><span class="n">subs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Concat x with subs(x).&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">Merge</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
+      <span class="n">act_self</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">act_branch</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">tile</span><span class="p">:</span>
+        <span class="n">num_pts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">act_self</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">act_branch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">act_branch</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_pts</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">act_self</span><span class="p">,</span> <span class="n">act_branch</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),)</span>
+
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">ParallelLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">sub</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;branch&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">subs</span><span class="p">)],</span>
+        <span class="n">merge</span><span class="o">=</span><span class="n">Merge</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PointNet._ConcatWithOnehot"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pointnet.html#lingvo.tasks.car.pointnet.PointNet._ConcatWithOnehot">[docs]</a>  <span class="k">def</span> <span class="nf">_ConcatWithOnehot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Make an onehot from shape category id and concat with point features.</span>
+
+<span class="sd">    See original Pointnet paper for justification.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: Name of the layer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Params for a layer that updates the NestedMap features value with</span>
+<span class="sd">      the input features + a one hot encoding of the category id.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_ConcatOnehotFn</span><span class="p">(</span><span class="n">input_data</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Concat the input features with a onehot version of the label ids.&quot;&quot;&quot;</span>
+      <span class="n">features</span> <span class="o">=</span> <span class="n">input_data</span><span class="o">.</span><span class="n">features</span>
+      <span class="n">label</span> <span class="o">=</span> <span class="n">input_data</span><span class="o">.</span><span class="n">label</span>
+      <span class="n">num_pts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">features</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">label_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">label</span><span class="p">),</span> <span class="n">depth</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+      <span class="n">label_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">label_one_hot</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_pts</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="n">input_data</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">features</span><span class="p">,</span> <span class="n">label_one_hot</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">input_data</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyFn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_ConcatOnehotFn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PointNet._TNet"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pointnet.html#lingvo.tasks.car.pointnet.PointNet._TNet">[docs]</a>  <span class="k">def</span> <span class="nf">_TNet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Matmul</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;iden&#39;</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+            <span class="s1">&#39;tran&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_MLP</span><span class="p">(</span><span class="s1">&#39;mlp0&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">idims</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">1024</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Max</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_MLP</span><span class="p">(</span><span class="s1">&#39;mlp1&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">]),</span>
+            <span class="c1"># This layer is initialized as an identity transformation.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="n">idims</span> <span class="o">*</span> <span class="n">idims</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">params_init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">idims</span> <span class="o">*</span> <span class="n">idims</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+                <span class="n">params_init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span>
+                    <span class="n">scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">idims</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">tolist</span><span class="p">())),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Reshape</span><span class="p">(</span><span class="s1">&#39;reshape&#39;</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">idims</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Fetch</span><span class="p">(</span><span class="s1">&#39;transform_matrix&#39;</span><span class="p">)</span>
+        <span class="p">))</span></div>
+
+<div class="viewcode-block" id="PointNet.Classifier"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pointnet.html#lingvo.tasks.car.pointnet.PointNet.Classifier">[docs]</a>  <span class="k">def</span> <span class="nf">Classifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;pointnet&#39;</span><span class="p">,</span>
+                 <span class="n">keep_prob</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+                 <span class="n">input_dims</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                 <span class="n">feature_dims</span><span class="o">=</span><span class="mi">256</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;PointNet architecture for classification.&quot;&quot;&quot;</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SeqOnFeatures</span><span class="p">(</span>
+            <span class="s1">&#39;point_features&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_TNet</span><span class="p">(</span><span class="s1">&#39;inp_trans&#39;</span><span class="p">,</span> <span class="n">input_dims</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Fetch</span><span class="p">(</span><span class="s1">&#39;inp_transformed&#39;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_MLP</span><span class="p">(</span><span class="s1">&#39;feat&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">input_dims</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_TNet</span><span class="p">(</span><span class="s1">&#39;feat_trans&#39;</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_MLP</span><span class="p">(</span><span class="s1">&#39;mlp1&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">1024</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Fetch</span><span class="p">(</span><span class="s1">&#39;pre_maxpool&#39;</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_PaddedMax</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+            <span class="s1">&#39;cls_features&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Fetch</span><span class="p">(</span><span class="s1">&#39;feature&#39;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;fc0&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;fc1&#39;</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="n">feature_dims</span><span class="p">)))</span>
+    <span class="c1"># pyformat: enable</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="n">feature_dims</span><span class="p">,</span> <span class="s1">&#39;Final output dimension.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="PointNet.Segmentation"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pointnet.html#lingvo.tasks.car.pointnet.PointNet.Segmentation">[docs]</a>  <span class="k">def</span> <span class="nf">Segmentation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;pointnet_segmentation&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;PointNet archetecture for segmentation.&quot;&quot;&quot;</span>
+    <span class="c1"># dropout is NOT used in the vanilla setting from the paper.</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="n">main_tower</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="s1">&#39;main_tower&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_GetValue</span><span class="p">(</span><span class="s1">&#39;get_features&#39;</span><span class="p">,</span> <span class="n">builder_lib</span><span class="o">.</span><span class="n">FEATURES_KEY</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_TNet</span><span class="p">(</span><span class="s1">&#39;inp_trans&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_MLP</span><span class="p">(</span><span class="s1">&#39;feat&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_TNet</span><span class="p">(</span><span class="s1">&#39;feat_trans&#39;</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWithBranch</span><span class="p">(</span>
+            <span class="s1">&#39;concat1&#39;</span><span class="p">,</span>
+            <span class="kc">True</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_MLP</span><span class="p">(</span><span class="s1">&#39;mlp1&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">1024</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Max</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Fetch</span><span class="p">(</span><span class="s1">&#39;feature&#39;</span><span class="p">)))</span>
+    <span class="n">segmentation_tower</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">main_tower</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Fetch</span><span class="p">(</span><span class="s1">&#39;point_feature&#39;</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_MLP</span><span class="p">(</span><span class="s1">&#39;final_mlp&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1088</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">]))</span>
+    <span class="c1"># pyformat: enable</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">segmentation_tower</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="s1">&#39;Final output dimension.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="PointNet.SegmentationShapeNet"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pointnet.html#lingvo.tasks.car.pointnet.PointNet.SegmentationShapeNet">[docs]</a>  <span class="k">def</span> <span class="nf">SegmentationShapeNet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;pointnet_shapenet&#39;</span><span class="p">,</span> <span class="n">keep_prob</span><span class="o">=</span><span class="mf">0.8</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The modified network for part segmentation in ShapeNet.&quot;&quot;&quot;</span>
+    <span class="n">main_tower</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SeqOnFeatures</span><span class="p">(</span>
+        <span class="s1">&#39;main_tower_seq&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TNet</span><span class="p">(</span><span class="s1">&#39;inp_trans&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;fc1&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWithBranch</span><span class="p">(</span>
+            <span class="s1">&#39;concat1&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;fc2&#39;</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWithBranch</span><span class="p">(</span>
+                <span class="s1">&#39;concat2&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;fc3&#39;</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWithBranch</span><span class="p">(</span>
+                    <span class="s1">&#39;concat3&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TNet</span><span class="p">(</span><span class="s1">&#39;fea_trans&#39;</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWithBranch</span><span class="p">(</span>
+                        <span class="s1">&#39;concat4&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;fc4&#39;</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWithBranch</span><span class="p">(</span><span class="s1">&#39;concat5&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;fc5&#39;</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">2048</span><span class="p">),</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">_Max</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">)))))))</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">main_tower</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWithOnehot</span><span class="p">(</span><span class="s1">&#39;concat_onehot&#39;</span><span class="p">),</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_GetValue</span><span class="p">(</span><span class="s1">&#39;get_features&#39;</span><span class="p">,</span> <span class="n">builder_lib</span><span class="o">.</span><span class="n">FEATURES_KEY</span><span class="p">),</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;final_fc1&#39;</span><span class="p">,</span> <span class="mi">3024</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout1&#39;</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">),</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;final_fc2&#39;</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout2&#39;</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">),</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;final_fc3&#39;</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">))</span>
+    <span class="c1"># pyformat: enabled</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="s1">&#39;Final output dimension.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="PointNetPP"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pointnet.html#lingvo.tasks.car.pointnet.PointNetPP">[docs]</a><span class="k">class</span> <span class="nc">PointNetPP</span><span class="p">(</span><span class="n">builder_lib</span><span class="o">.</span><span class="n">ModelBuilderBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Builder for PointNet++ Model.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PointNetPP._SetAbstractionWithMLPMax"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pointnet.html#lingvo.tasks.car.pointnet.PointNetPP._SetAbstractionWithMLPMax">[docs]</a>  <span class="k">def</span> <span class="nf">_SetAbstractionWithMLPMax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                <span class="n">name</span><span class="p">,</span>
+                                <span class="n">mlp_dims</span><span class="p">,</span>
+                                <span class="n">num_samples</span><span class="p">,</span>
+                                <span class="n">group_size</span><span class="p">,</span>
+                                <span class="n">ball_radius</span><span class="p">,</span>
+                                <span class="n">sample_neighbors_uniformly</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">feature_extraction_sub</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="s1">&#39;mlpmax&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatPointsToFeatures</span><span class="p">(</span><span class="s1">&#39;concat_feat_points&#39;</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_FeaturesMLP</span><span class="p">(</span><span class="s1">&#39;sa_MLP&#39;</span><span class="p">,</span> <span class="n">mlp_dims</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_PaddedMax</span><span class="p">(</span><span class="s1">&#39;sa_max_pool&#39;</span><span class="p">))</span>  <span class="c1"># pyformat: disable</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SetAbstraction</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">feature_extraction_sub</span><span class="o">=</span><span class="n">feature_extraction_sub</span><span class="p">,</span>
+        <span class="n">num_samples</span><span class="o">=</span><span class="n">num_samples</span><span class="p">,</span>
+        <span class="n">group_size</span><span class="o">=</span><span class="n">group_size</span><span class="p">,</span>
+        <span class="n">ball_radius</span><span class="o">=</span><span class="n">ball_radius</span><span class="p">,</span>
+        <span class="n">sample_neighbors_uniformly</span><span class="o">=</span><span class="n">sample_neighbors_uniformly</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PointNetPP._ModelNet40Featurizer"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pointnet.html#lingvo.tasks.car.pointnet.PointNetPP._ModelNet40Featurizer">[docs]</a>  <span class="k">def</span> <span class="nf">_ModelNet40Featurizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dims</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="s1">&#39;sa_featurizer&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SetAbstractionWithMLPMax</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;sa0&#39;</span><span class="p">,</span>
+            <span class="n">num_samples</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+            <span class="n">ball_radius</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+            <span class="n">group_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+            <span class="n">sample_neighbors_uniformly</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">mlp_dims</span><span class="o">=</span><span class="p">[</span><span class="n">input_dims</span> <span class="o">+</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">]),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SetAbstractionWithMLPMax</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;sa1&#39;</span><span class="p">,</span>
+            <span class="n">num_samples</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+            <span class="n">ball_radius</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
+            <span class="n">group_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+            <span class="n">sample_neighbors_uniformly</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">mlp_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">128</span> <span class="o">+</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">256</span><span class="p">]),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatPointsToFeatures</span><span class="p">(</span><span class="s1">&#39;concat_feat_points&#39;</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_FeaturesMLP</span><span class="p">(</span><span class="s1">&#39;sa_MLP&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">256</span> <span class="o">+</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">1024</span><span class="p">]),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_PaddedMax</span><span class="p">(</span><span class="s1">&#39;sa_max_pool&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="PointNetPP.Classifier"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pointnet.html#lingvo.tasks.car.pointnet.PointNetPP.Classifier">[docs]</a>  <span class="k">def</span> <span class="nf">Classifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;pointnetpp&#39;</span><span class="p">,</span>
+                 <span class="n">input_dims</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                 <span class="n">feature_dims</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+                 <span class="n">keep_prob</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+                 <span class="n">num_points</span><span class="o">=</span><span class="mi">1024</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;PointNet++ architecture for modelnet40 classification.&quot;&quot;&quot;</span>
+
+    <span class="n">featurizer_sub</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ModelNet40Featurizer</span><span class="p">(</span><span class="n">input_dims</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">featurizer_sub</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;fc0&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout0&#39;</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;fc1&#39;</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="n">feature_dims</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout1&#39;</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">))</span>  <span class="c1"># pyformat: disable</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="n">feature_dims</span><span class="p">,</span> <span class="s1">&#39;Final output dimension.&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

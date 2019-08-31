@@ -1,0 +1,367 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.input_extractor &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.input_extractor</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.input_extractor</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Input extractors.</span>
+
+<span class="sd">Input extractors are an API for parsing and processing a set of fields from</span>
+<span class="sd">serialized records.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">base_extractor</span>
+
+<span class="n">BaseExtractor</span> <span class="o">=</span> <span class="n">base_extractor</span><span class="o">.</span><span class="n">_BaseExtractor</span>  <span class="c1"># pylint:disable=protected-access</span>
+<span class="n">BUCKET_UPPER_BOUND</span> <span class="o">=</span> <span class="n">base_extractor</span><span class="o">.</span><span class="n">BUCKET_UPPER_BOUND</span>
+
+
+<span class="c1">################################################################################</span>
+<span class="c1"># Extractors for car data.</span>
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="FieldsExtractor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor">[docs]</a><span class="k">class</span> <span class="nc">FieldsExtractor</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;An API for parsing and processing a set of fields from serialized records.</span>
+
+<span class="sd">  Input generators often need to parse several fields from a serialized record.</span>
+<span class="sd">  This involves two stages: specifying the name and type of the fields to</span>
+<span class="sd">  extract from serialized records (tf.Example or tf.SequenceExample), and then</span>
+<span class="sd">  processing the raw output into a form to be consumed by higher-level callers.</span>
+
+<span class="sd">  This class attempts to modularize this processing within the Minecraft input</span>
+<span class="sd">  generators, so that users can easily create input generator pipelines that mix</span>
+<span class="sd">  and match the composition of different fields from the same dataset.</span>
+
+<span class="sd">  A descendant of this class will implement three functions:</span>
+
+<span class="sd">    1) FeatureMap(): returning a dictionary of field names</span>
+<span class="sd">       to field types, e.g., &#39;images&#39; to tf.VarLenFeature(tf.string).</span>
+
+<span class="sd">    2) _Extract(features): Given a &#39;features&#39; dictionary containing the result</span>
+<span class="sd">       from calling tf.parse_example or tf.parse_sequence_example on all</span>
+<span class="sd">       extractors&#39; features, produce a NestedMap of Tensors.</span>
+
+<span class="sd">       NOTE: The return of the overall pipeline is a NestedMap of batched</span>
+<span class="sd">       Tensors. However, the names and associations of the fields of each</span>
+<span class="sd">       extractor are lost on the boundary of the map fn.  At the moment, one</span>
+<span class="sd">       must implement _Extract() such that the names of the fields returned in</span>
+<span class="sd">       the NestedMap matches self.Shape()&#39;s keys; this is checked during the</span>
+<span class="sd">       parent&#39;s Extract() call.</span>
+
+<span class="sd">    3) Shape(): A NestedMap mapping names of outputs to their static shape,</span>
+<span class="sd">       without the batch dimension.  In InputBatch, this shape will be used to</span>
+<span class="sd">       ensure that every output has a statically known shape.</span>
+
+<span class="sd">  The caller of Extractors calls each extractor&#39;s FeatureMap() to populate the</span>
+<span class="sd">  schema passed to tf.parse_example() or tf.parse_sequence_example(). The</span>
+<span class="sd">  resulting dicationary of Tensors is then passed to each extractor&#39;s _Extract()</span>
+<span class="sd">  function (via FieldsExtractor.Extract()) to return each extractor&#39;s output.</span>
+
+<span class="sd">  It is the responsibility of the caller to maintain orders of outputs, since</span>
+<span class="sd">  NestedMaps do not have any inherent ordering during iteration.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FieldsExtractor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Defaults params.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FieldsExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="FieldsExtractor.FeatureMap"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return an dictionary from tf.Example feature names to Features.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="FieldsExtractor.Extract"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor.Extract">[docs]</a>  <span class="k">def</span> <span class="nf">Extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given &#39;feature&#39; (Sparse)Tensors, output Tensors for consumption.</span>
+
+<span class="sd">    NOTE: Implementation provided by subclasses&#39;s _Extract() method.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      features: A dictionary of (Sparse)Tensors which includes tensors from all</span>
+<span class="sd">        extractors.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      output: A NestedMap of output Tensors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Extract</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Shape</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">outputs</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">shapes</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">outputs</span><span class="o">.</span><span class="n">DebugString</span><span class="p">(),</span> <span class="n">shapes</span><span class="o">.</span><span class="n">DebugString</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">outputs</span></div>
+
+<div class="viewcode-block" id="FieldsExtractor.Filter"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor.Filter">[docs]</a>  <span class="k">def</span> <span class="nf">Filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the bucket based on the result of Extract().</span>
+
+<span class="sd">    This function should return 1 if the example should pass through without</span>
+<span class="sd">    being dropped, and BUCKET_UPPER_BOUND if the example should be dropped.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      outputs: The NestedMap returned by this extractor&#39;s _Extract() function.</span>
+<span class="sd">        This is useful to implement filtering based on the values of the</span>
+<span class="sd">        extracted example.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A scalar bucket id.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">outputs</span>
+    <span class="k">return</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="FieldsExtractor.Shape"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a NestedMap of un-batched fully-specified tf.TensorShapes.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="FieldsExtractor.DType"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor.DType">[docs]</a>  <span class="k">def</span> <span class="nf">DType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a NestedMap mapping names to tf.DType.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="FieldsExtractor._Extract"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor._Extract">[docs]</a>  <span class="k">def</span> <span class="nf">_Extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The subclass-defined implementation of Extract().</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      features: A dictionary of (Sparse)Tensors which includes tensors from all</span>
+<span class="sd">        extractors.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      output: A NestedMap of output Tensors whose key names match self.Shape()&#39;s</span>
+<span class="sd">         keys.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="LaserExtractor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.LaserExtractor">[docs]</a><span class="k">class</span> <span class="nc">LaserExtractor</span><span class="p">(</span><span class="n">FieldsExtractor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Interface for extracting laser data.</span>
+
+<span class="sd">  Must produce:</span>
+<span class="sd">    points_xyz: [max_num_points, 3] - XYZ coordinates of laser points.</span>
+
+<span class="sd">    points_feature: [max_num_points, num_features] - Features for each point in</span>
+<span class="sd">      points_xyz.</span>
+
+<span class="sd">    points_padding: [max_num_points]: Padding for points.  0 means the</span>
+<span class="sd">      corresponding point is the original, and 1 means there is no point</span>
+<span class="sd">      (xyz or feature) present.</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LaserExtractor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.LaserExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LaserExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_num_points&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The number of points per spin.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_features&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of features per laser point.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="LaserExtractor.Shape"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.LaserExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">points_xyz</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+        <span class="n">points_feature</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_features</span><span class="p">]),</span>
+        <span class="n">points_padding</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="LaserExtractor.DType"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.LaserExtractor.DType">[docs]</a>  <span class="k">def</span> <span class="nf">DType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">points_xyz</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">points_feature</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">points_padding</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

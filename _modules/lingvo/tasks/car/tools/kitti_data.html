@@ -1,0 +1,554 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.tools.kitti_data &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.tools.kitti_data</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.tools.kitti_data</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Library for parsing KITTI raw data.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="LoadVeloBinFile"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data.LoadVeloBinFile">[docs]</a><span class="k">def</span> <span class="nf">LoadVeloBinFile</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reads and parse raw KITTI velodyne binary file.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    filepath: Path to a raw KITTI velodyne binary file.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A dictionary with keys xyz and reflectance containing numpy arrays.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">scan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+  <span class="n">xyz</span> <span class="o">=</span> <span class="n">scan</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+  <span class="n">reflectance</span> <span class="o">=</span> <span class="n">scan</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:]</span>
+  <span class="k">return</span> <span class="p">{</span>
+      <span class="s1">&#39;xyz&#39;</span><span class="p">:</span> <span class="n">xyz</span><span class="p">,</span>
+      <span class="s1">&#39;reflectance&#39;</span><span class="p">:</span> <span class="n">reflectance</span><span class="p">,</span>
+  <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="LoadLabelFile"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data.LoadLabelFile">[docs]</a><span class="k">def</span> <span class="nf">LoadLabelFile</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reads and parse raw KITTI label file.</span>
+
+<span class="sd">  The ordering of the arrays for bbox, dimensions, and location follows the</span>
+<span class="sd">  order in the table below. We refer to the length (dx), width (dy), height (dz)</span>
+<span class="sd">  for clarity.</span>
+
+<span class="sd">  Each line in the label contains (per KITTI documentation):</span>
+
+<span class="sd">  +--------+------------+------------------------------------------------------+</span>
+<span class="sd">  | Values |    Name    |  Description                                         |</span>
+<span class="sd">  +--------+------------+------------------------------------------------------+</span>
+<span class="sd">  |   1    |   type     | Describes the type of object: &#39;Car&#39;, &#39;Van&#39;, &#39;Truck&#39;, |</span>
+<span class="sd">  |        |            | &#39;Pedestrian&#39;, &#39;Person_sitting&#39;, &#39;Cyclist&#39;, &#39;Tram&#39;,   |</span>
+<span class="sd">  |        |            | &#39;Misc&#39; or &#39;DontCare&#39;                                 |</span>
+<span class="sd">  +--------+------------+------------------------------------------------------+</span>
+<span class="sd">  |   1    | truncated  | Float from 0 (non-truncated) to 1 (truncated), where |</span>
+<span class="sd">  |        |            | truncated refers to the object leaving image         |</span>
+<span class="sd">  |        |            | boundaries.                                          |</span>
+<span class="sd">  +--------+------------+------------------------------------------------------+</span>
+<span class="sd">  |   1    |  occluded  | Integer (0,1,2,3) indicating occlusion state:        |</span>
+<span class="sd">  |        |            | 0 = fully visible, 1 = partly occluded               |</span>
+<span class="sd">  |        |            | 2 = largely occluded, 3 = unknown                    |</span>
+<span class="sd">  +--------+------------+------------------------------------------------------+</span>
+<span class="sd">  |   1    |   alpha    | Observation angle of object, ranging [-pi..pi]       |</span>
+<span class="sd">  +--------+------------+------------------------------------------------------+</span>
+<span class="sd">  |   4    |   bbox     | 2D bounding box of object in the image (0-based      |</span>
+<span class="sd">  |        |            | index): left, top, right, bottom pixel coordinates.  |</span>
+<span class="sd">  +--------+------------+------------------------------------------------------+</span>
+<span class="sd">  |   3    | dimensions | 3D object dimensions: height, width, length (meters) |</span>
+<span class="sd">  +--------+------------+------------------------------------------------------+</span>
+<span class="sd">  |   3    |  location  | 3D object location x,y,z in camera coordinates       |</span>
+<span class="sd">  |        |            | (in meters)                                          |</span>
+<span class="sd">  +--------+------------+------------------------------------------------------+</span>
+<span class="sd">  |   1    | rotation_y | Rotation ry around Y-axis in camera coordinates      |</span>
+<span class="sd">  |        |            | [-pi..pi]                                            |</span>
+<span class="sd">  +--------+------------+------------------------------------------------------+</span>
+<span class="sd">  |   1    |   score    | Only for results: Float, indicating confidence in    |</span>
+<span class="sd">  |        |            | detection, needed for p/r curves, higher is better.  |</span>
+<span class="sd">  +--------+-----------+-------------------------------------------------------+</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    filepath: Path to a raw KITTI label file.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A list of dictionary with keys corresponding to the name column above: type,</span>
+<span class="sd">    truncated, occluded, alpha, bbox, dimensions, location, rotation_y, score.</span>
+<span class="sd">    Note that the order of the floats in bbox, dimensions, and location</span>
+<span class="sd">    correspond to that in the doc-string above.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">objects</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>  <span class="c1"># Skip empty lines</span>
+        <span class="k">continue</span>
+      <span class="n">line_splits</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line_splits</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Found </span><span class="si">{}</span><span class="s1"> tokens in Line: &quot;</span><span class="si">{}</span><span class="s1">&quot;. Expects only 15/16 token&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">line_splits</span><span class="p">),</span> <span class="n">line</span><span class="p">))</span>
+
+      <span class="c1"># If score does not exist, we append a -1 to indicate so.</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line_splits</span><span class="p">)</span> <span class="o">==</span> <span class="mi">15</span><span class="p">:</span>
+        <span class="n">line_splits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">)</span>
+
+      <span class="p">(</span><span class="n">obj_type</span><span class="p">,</span> <span class="n">truncated</span><span class="p">,</span> <span class="n">occluded</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span>
+       <span class="n">bbox_left</span><span class="p">,</span> <span class="n">bbox_top</span><span class="p">,</span> <span class="n">bbox_right</span><span class="p">,</span> <span class="n">bbox_bottom</span><span class="p">,</span>
+       <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span>
+       <span class="n">cam_x</span><span class="p">,</span> <span class="n">cam_y</span><span class="p">,</span> <span class="n">cam_z</span><span class="p">,</span>
+       <span class="n">rotation_y</span><span class="p">,</span> <span class="n">score</span><span class="p">)</span> <span class="o">=</span> <span class="n">line_splits</span>  <span class="c1"># pyformat: disable</span>
+
+      <span class="n">obj</span> <span class="o">=</span> <span class="p">{</span>
+          <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">obj_type</span><span class="p">,</span>
+          <span class="s1">&#39;truncated&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">truncated</span><span class="p">),</span>
+          <span class="s1">&#39;occluded&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">occluded</span><span class="p">),</span>
+          <span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">),</span>
+          <span class="s1">&#39;bbox&#39;</span><span class="p">:</span> <span class="p">[</span>
+              <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">bbox_left</span><span class="p">,</span> <span class="n">bbox_top</span><span class="p">,</span> <span class="n">bbox_right</span><span class="p">,</span> <span class="n">bbox_bottom</span><span class="p">]</span>
+          <span class="p">],</span>
+          <span class="s1">&#39;dimensions&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span><span class="p">]],</span>
+          <span class="s1">&#39;location&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">cam_x</span><span class="p">,</span> <span class="n">cam_y</span><span class="p">,</span> <span class="n">cam_z</span><span class="p">]],</span>
+          <span class="s1">&#39;rotation_y&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">rotation_y</span><span class="p">),</span>
+          <span class="s1">&#39;score&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">score</span><span class="p">),</span>
+      <span class="p">}</span>
+      <span class="n">_ValidateLabeledObject</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+      <span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">objects</span></div>
+
+
+<div class="viewcode-block" id="_ValidateLabeledObject"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data._ValidateLabeledObject">[docs]</a><span class="k">def</span> <span class="nf">_ValidateLabeledObject</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Validate that obj has expected values.&quot;&quot;&quot;</span>
+
+  <span class="k">if</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
+      <span class="s1">&#39;Car&#39;</span><span class="p">,</span> <span class="s1">&#39;Van&#39;</span><span class="p">,</span> <span class="s1">&#39;Truck&#39;</span><span class="p">,</span> <span class="s1">&#39;Pedestrian&#39;</span><span class="p">,</span> <span class="s1">&#39;Person_sitting&#39;</span><span class="p">,</span> <span class="s1">&#39;Cyclist&#39;</span><span class="p">,</span> <span class="s1">&#39;Tram&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;Misc&#39;</span><span class="p">,</span> <span class="s1">&#39;DontCare&#39;</span>
+  <span class="p">]:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">])</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="p">((</span><span class="n">obj</span><span class="p">[</span><span class="s1">&#39;truncated&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">)</span> <span class="ow">or</span>
+          <span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="s1">&#39;truncated&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;truncated&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">)):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid truncated value: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;truncated&#39;</span><span class="p">])</span>
+
+  <span class="k">if</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;occluded&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid occluded value: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;occluded&#39;</span><span class="p">])</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mf">10.</span> <span class="ow">or</span>
+          <span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="ow">and</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid alpha value: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">])</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="s1">&#39;rotation_y&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mf">10.</span> <span class="ow">or</span>
+          <span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="s1">&#39;rotation_y&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="ow">and</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;rotation_y&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid rotation_y value: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;rotation_y&#39;</span><span class="p">])</span>
+
+  <span class="k">return</span> <span class="n">obj</span></div>
+
+
+<div class="viewcode-block" id="ParseCalibrationDict"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data.ParseCalibrationDict">[docs]</a><span class="k">def</span> <span class="nf">ParseCalibrationDict</span><span class="p">(</span><span class="n">raw_calib</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Parse transformation matrices in a raw KITTI calibration dictionary.</span>
+
+<span class="sd">  Per the KITTI documentation:</span>
+
+<span class="sd">  All matrices are stored row-major, i.e., the first values correspond</span>
+<span class="sd">  to the first row. R0_rect contains a 3x3 matrix which you need to extend to</span>
+<span class="sd">  a 4x4 matrix by adding a 1 as the bottom-right element and 0&#39;s elsewhere.</span>
+<span class="sd">  Tr_xxx is a 3x4 matrix (R|t), which you need to extend to a 4x4 matrix</span>
+<span class="sd">  in the same way.</span>
+
+<span class="sd">  IMPORTANT: The coordinates in the camera coordinate system can be projected in</span>
+<span class="sd">  the image by using the 3x4 projection matrix in the calib folder, where for</span>
+<span class="sd">  the left color camera for which the images are provided, P2 must be used.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    raw_calib: A dictionary of raw KITTI calibration values with keys P0, P1,</span>
+<span class="sd">      P2, P3, R0_rect, Tr_imu_to_velo, and Tr_velo_to_cam containing flattened</span>
+<span class="sd">      matrices of appropriate size.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A dictionary with keys P0, P1, P2, P3, R0_rect, Tr_imu_to_velo,</span>
+<span class="sd">    and Tr_velo_to_cam containing reshaped and extended matrices.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># The projection matrices are 3x4 matrices.</span>
+  <span class="n">calib</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="n">calib</span><span class="p">[</span><span class="s1">&#39;P0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_calib</span><span class="p">[</span><span class="s1">&#39;P0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+  <span class="n">calib</span><span class="p">[</span><span class="s1">&#39;P1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_calib</span><span class="p">[</span><span class="s1">&#39;P1&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+  <span class="n">calib</span><span class="p">[</span><span class="s1">&#39;P2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_calib</span><span class="p">[</span><span class="s1">&#39;P2&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+  <span class="n">calib</span><span class="p">[</span><span class="s1">&#39;P3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_calib</span><span class="p">[</span><span class="s1">&#39;P3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+
+  <span class="c1"># R0_rect contains a 3x3 matrix which you need to extend to a 4x4 matrix by</span>
+  <span class="c1"># adding a 1 as the bottom-right element and 0&#39;s elsewhere.</span>
+  <span class="n">extended_r0_rect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+  <span class="n">extended_r0_rect</span><span class="p">[:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_calib</span><span class="p">[</span><span class="s1">&#39;R0_rect&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="n">calib</span><span class="p">[</span><span class="s1">&#39;R0_rect&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">extended_r0_rect</span>
+
+  <span class="c1"># Tr_xxx is a 3x4 matrix (R|t), which you need to extend to a 4x4 matrix</span>
+  <span class="c1"># in the same way!</span>
+  <span class="n">extended_tr_imu_to_velo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+  <span class="n">extended_tr_imu_to_velo</span><span class="p">[:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_calib</span><span class="p">[</span><span class="s1">&#39;Tr_imu_to_velo&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+  <span class="n">calib</span><span class="p">[</span><span class="s1">&#39;Tr_imu_to_velo&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">extended_tr_imu_to_velo</span>
+
+  <span class="n">extended_tr_velo_to_cam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+  <span class="n">extended_tr_velo_to_cam</span><span class="p">[:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_calib</span><span class="p">[</span><span class="s1">&#39;Tr_velo_to_cam&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+  <span class="n">calib</span><span class="p">[</span><span class="s1">&#39;Tr_velo_to_cam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">extended_tr_velo_to_cam</span>
+
+  <span class="k">return</span> <span class="n">calib</span></div>
+
+
+<div class="viewcode-block" id="LoadCalibrationFile"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data.LoadCalibrationFile">[docs]</a><span class="k">def</span> <span class="nf">LoadCalibrationFile</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Read and parse a raw KITTI calibration file.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    filepath: Path to a raw KITTI calibration file.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A dictionary with keys P0, P1, P2, P3, R0_rect, Tr_imu_to_velo,</span>
+<span class="sd">    and Tr_velo_to_cam containing reshaped and extended transformation</span>
+<span class="sd">    matrices.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">raw_calib</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>  <span class="c1"># Skip empty lines</span>
+        <span class="k">continue</span>
+      <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">raw_calib</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">()])</span>
+  <span class="k">return</span> <span class="n">ParseCalibrationDict</span><span class="p">(</span><span class="n">raw_calib</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VeloToImagePlaneTransformation"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data.VeloToImagePlaneTransformation">[docs]</a><span class="k">def</span> <span class="nf">VeloToImagePlaneTransformation</span><span class="p">(</span><span class="n">calib</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute the transformation matrix from velo xyz to image plane xy.</span>
+
+<span class="sd">  Per the KITTI documentation, to project a point from Velodyne coordinates into</span>
+<span class="sd">  the left color image, you can use this formula:</span>
+
+<span class="sd">     x = P2 * R0_rect * Tr_velo_to_cam * y</span>
+
+<span class="sd">  After applying the transformation, you will need to divide the by the last</span>
+<span class="sd">  coordinate to recover the 2D pixel locations.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    calib: A calibration dictionary returned by LoadCalibrationFile.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A numpy 3x4 transformation matrix.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">calib</span><span class="p">[</span><span class="s1">&#39;P2&#39;</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">calib</span><span class="p">[</span><span class="s1">&#39;R0_rect&#39;</span><span class="p">],</span> <span class="n">calib</span><span class="p">[</span><span class="s1">&#39;Tr_velo_to_cam&#39;</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="VeloToCameraTransformation"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data.VeloToCameraTransformation">[docs]</a><span class="k">def</span> <span class="nf">VeloToCameraTransformation</span><span class="p">(</span><span class="n">calib</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute the transformation matrix from velo xyz to camera xyz.</span>
+
+<span class="sd">  Per the KITTI documentation, to project a point from Velodyne coordinates into</span>
+<span class="sd">  the left color image, you can use this formula:</span>
+
+<span class="sd">     x = P2 * R0_rect * Tr_velo_to_cam * y</span>
+
+<span class="sd">  NOTE: The above formula further projects the xyz point to the image plane</span>
+<span class="sd">  using P2, which we do not apply in this function since we are working with</span>
+<span class="sd">  xyz (3D coordinates).</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    calib: A calibration dictionary returned by LoadCalibrationFile.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A numpy 4x4 transformation matrix.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">calib</span><span class="p">[</span><span class="s1">&#39;R0_rect&#39;</span><span class="p">],</span> <span class="n">calib</span><span class="p">[</span><span class="s1">&#39;Tr_velo_to_cam&#39;</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="CameraToVeloTransformation"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data.CameraToVeloTransformation">[docs]</a><span class="k">def</span> <span class="nf">CameraToVeloTransformation</span><span class="p">(</span><span class="n">calib</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute the transformation matrix from camera to velo.</span>
+
+<span class="sd">  This is the inverse transformation of CameraToVeloTransformation.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    calib: A calibartion dictionary returned by LoadCalibrationFile.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A numpy 4x4 transformation matrix.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">VeloToCameraTransformation</span><span class="p">(</span><span class="n">calib</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="AnnotateKITTIObjectsWithBBox3D"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data.AnnotateKITTIObjectsWithBBox3D">[docs]</a><span class="k">def</span> <span class="nf">AnnotateKITTIObjectsWithBBox3D</span><span class="p">(</span><span class="n">objects</span><span class="p">,</span> <span class="n">calib</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Add our canonical bboxes 3d format to KITTI objects.</span>
+
+<span class="sd">  The annotated bboxes 3d are in the velodyne coordinate frame.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    objects: A list of KITTI objects returned by LoadLabelFile.</span>
+<span class="sd">    calib: A calibartion dictionary returned by LoadCalibrationFile.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The original list of KITTI objects, where each object has new keys</span>
+<span class="sd">    &#39;has_3d_info&#39; indicating if the object has valid 3D bounding box data, and</span>
+<span class="sd">    &#39;bbox3d&#39; which corresponds to our canonical bboxes 3d format.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="c1"># All objects will share the same transformation matrix, which we compute</span>
+  <span class="c1"># once here.</span>
+  <span class="n">transformation_matrix</span> <span class="o">=</span> <span class="n">CameraToVeloTransformation</span><span class="p">(</span><span class="n">calib</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">objects</span><span class="p">:</span>
+    <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;bbox3d&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_KITTIObjectToBBox3D</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">transformation_matrix</span><span class="p">)</span>
+    <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;has_3d_info&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_KITTIObjectHas3DInfo</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">objects</span></div>
+
+
+<div class="viewcode-block" id="_KITTIObjectHas3DInfo"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data._KITTIObjectHas3DInfo">[docs]</a><span class="k">def</span> <span class="nf">_KITTIObjectHas3DInfo</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Check whether KITTI object has valid 3D bounding box information.&quot;&quot;&quot;</span>
+  <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;dimensions&#39;</span><span class="p">]</span>
+  <span class="c1"># KITTI raw data has -1 for all 3 dimensions when no 3D box info is present.</span>
+  <span class="k">return</span> <span class="ow">not</span> <span class="p">(</span><span class="n">width</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">length</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">height</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_KITTIObjectToBBox3D"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data._KITTIObjectToBBox3D">[docs]</a><span class="k">def</span> <span class="nf">_KITTIObjectToBBox3D</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">cam_to_velo_transform</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Convert one object given the transformation matrix.&quot;&quot;&quot;</span>
+  <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="s1">&#39;dimensions&#39;</span><span class="p">]</span>
+
+  <span class="c1"># Avoid transforming objects with invalid boxes.</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">_KITTIObjectHas3DInfo</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="o">-</span><span class="mi">1000</span><span class="p">,</span> <span class="o">-</span><span class="mi">1000</span><span class="p">,</span> <span class="o">-</span><span class="mi">1000</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">]</span>
+
+  <span class="n">velo_xyz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">cam_to_velo_transform</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]))</span>
+  <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">velo_xyz</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[:</span><span class="mi">3</span><span class="p">]</span>
+
+  <span class="c1"># In the raw data, the z coordinate is at the bottom of the object, we need</span>
+  <span class="c1"># to reposition z so that it&#39;s at the center of the object.</span>
+  <span class="n">z</span> <span class="o">+=</span> <span class="n">height</span> <span class="o">/</span> <span class="mf">2.</span>
+
+  <span class="c1"># Our velodyne bbox rotation goes the other direction and is rotated by</span>
+  <span class="c1"># -np.pi/2. See http://www.cvlibs.net/datasets/kitti/setup.php.</span>
+  <span class="n">rot</span> <span class="o">=</span> <span class="o">-</span><span class="n">obj</span><span class="p">[</span><span class="s1">&#39;rotation_y&#39;</span><span class="p">]</span>
+  <span class="n">rot</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.</span>
+  <span class="n">bbox3d</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">length</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">rot</span><span class="p">]</span>
+
+  <span class="k">return</span> <span class="n">bbox3d</span></div>
+
+
+<div class="viewcode-block" id="BBox3DToKITTIObject"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.kitti_data.html#lingvo.tasks.car.tools.kitti_data.BBox3DToKITTIObject">[docs]</a><span class="k">def</span> <span class="nf">BBox3DToKITTIObject</span><span class="p">(</span><span class="n">bbox3d</span><span class="p">,</span> <span class="n">velo_to_cam_transform</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Convert one bbox3d into KITTI&#39;s location, dimension, and rotation_y.&quot;&quot;&quot;</span>
+  <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">rot</span> <span class="o">=</span> <span class="n">bbox3d</span>
+
+  <span class="c1"># Avoid transforming objects with invalid boxes. See _KITTIObjectHas3DInfo.</span>
+  <span class="k">if</span> <span class="n">width</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">length</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">height</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">[</span><span class="o">-</span><span class="mi">1000</span><span class="p">,</span> <span class="o">-</span><span class="mi">1000</span><span class="p">,</span> <span class="o">-</span><span class="mi">1000</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">10</span>
+
+  <span class="c1"># Convert our velodyne bbox rotation back to camera. Reverse the direction and</span>
+  <span class="c1"># rotate by np.pi/2. See http://www.cvlibs.net/datasets/kitti/setup.php.</span>
+  <span class="n">rotation_y</span> <span class="o">=</span> <span class="n">rot</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.</span>
+  <span class="n">rotation_y</span> <span class="o">=</span> <span class="o">-</span><span class="n">rotation_y</span>
+  <span class="n">rotation_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">rotation_y</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+  <span class="n">rotation_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">rotation_y</span> <span class="o">&gt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">rotation_y</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">rotation_y</span><span class="p">)</span>
+
+  <span class="c1"># Reposition z so that it is at the bottom of the object.</span>
+  <span class="k">if</span> <span class="n">height</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">z</span> <span class="o">-=</span> <span class="n">height</span> <span class="o">/</span> <span class="mf">2.</span>
+
+  <span class="n">camera_xyz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">velo_to_cam_transform</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]))</span>
+  <span class="n">location</span> <span class="o">=</span> <span class="n">camera_xyz</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[:</span><span class="mi">3</span><span class="p">]</span>
+  <span class="n">dimensions</span> <span class="o">=</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span>
+
+  <span class="k">return</span> <span class="n">location</span><span class="p">,</span> <span class="n">dimensions</span><span class="p">,</span> <span class="n">rotation_y</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

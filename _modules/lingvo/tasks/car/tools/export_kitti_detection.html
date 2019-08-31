@@ -1,0 +1,421 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.tools.export_kitti_detection &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.tools.export_kitti_detection</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.tools.export_kitti_detection</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;Read saved Decoder&#39;s outputs and convert to KITTI text format.</span>
+
+<span class="sd">First, obtain a KITTI camera calibration file.</span>
+
+<span class="sd">To export all detections from a single model:</span>
+
+<span class="sd">python export_kitti_detection.py \</span>
+<span class="sd">--decoder_path=/path/to/decoder_out_000103000 \</span>
+<span class="sd">--calib_file=/tmp/kitti_test_calibs.npz \</span>
+<span class="sd">--output_dir=/tmp/my-kitti-export-directory \</span>
+<span class="sd">--logtostderr</span>
+
+<span class="sd">--- OR ---</span>
+
+<span class="sd">Export combined detections selected from multiple models:</span>
+
+<span class="sd">python export_kitti_detection.py \</span>
+<span class="sd">--car_decoder_path=/path/to/car_decoder_out \</span>
+<span class="sd">--ped_decoder_path=/path/to/ped_decoder_out \</span>
+<span class="sd">--cyc_decoder_path=/path/to/cyc_decoder_out \</span>
+<span class="sd">--calib_file=/tmp/kitti_test_calibs.npz \</span>
+<span class="sd">--output_dir=/tmp/my-kitti-export-directory \</span>
+<span class="sd">--logtostderr</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">flags</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">record_pb2</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">kitti_metadata</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car.tools</span> <span class="k">import</span> <span class="n">kitti_data</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s2">&quot;decoder_path&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Paths to decoder file containing output &quot;</span>
+    <span class="s2">&quot;of decoder for everything. Either supply this argument or individual &quot;</span>
+    <span class="s2">&quot;decoder paths for cars, pedestrians and cyclists.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s2">&quot;car_decoder_path&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">&quot;Paths to decoder file containing output of decoder for cars.&quot;</span>
+    <span class="s2">&quot;Either supply plus cyclists and pedestrians or supply one &quot;</span>
+    <span class="s2">&quot;decoder for all labels.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s2">&quot;ped_decoder_path&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">&quot;Paths to decoder file containing output of decoder for &quot;</span>
+    <span class="s2">&quot;pedestrians. Either supply plus cyclists and cars or &quot;</span>
+    <span class="s2">&quot;supply one decoder for all labels.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s2">&quot;cyc_decoder_path&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">&quot;Paths to decoder file containing output of decoder for cyclist. &quot;</span>
+    <span class="s2">&quot;Either supply plus cars and pedestrians or supply one &quot;</span>
+    <span class="s2">&quot;decoder for all labels.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s2">&quot;calib_file&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">&quot;Path to a npz file that contains all calibration matrices.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s2">&quot;output_dir&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Place to write detections.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_float</span><span class="p">(</span><span class="s2">&quot;score_threshold&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Ignore detections with lower score.&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="LoadCalibData"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.export_kitti_detection.html#lingvo.tasks.car.tools.export_kitti_detection.LoadCalibData">[docs]</a><span class="k">def</span> <span class="nf">LoadCalibData</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Load and parse calibration data from NPZ file.&quot;&quot;&quot;</span>
+  <span class="c1"># If this throws an error, make sure the npz file was generated from</span>
+  <span class="c1"># the same version of python as this binary.</span>
+  <span class="n">npz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+  <span class="n">scene_to_calib</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">scene_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">npz</span><span class="p">[</span><span class="s2">&quot;scene_id&quot;</span><span class="p">]):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processing </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">scene_id</span><span class="p">)</span>
+    <span class="n">raw_calib</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">raw_calib</span><span class="p">[</span><span class="s2">&quot;P0&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npz</span><span class="p">[</span><span class="s2">&quot;P0&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">raw_calib</span><span class="p">[</span><span class="s2">&quot;P1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npz</span><span class="p">[</span><span class="s2">&quot;P1&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">raw_calib</span><span class="p">[</span><span class="s2">&quot;P2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npz</span><span class="p">[</span><span class="s2">&quot;P2&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">raw_calib</span><span class="p">[</span><span class="s2">&quot;P3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npz</span><span class="p">[</span><span class="s2">&quot;P3&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">raw_calib</span><span class="p">[</span><span class="s2">&quot;R0_rect&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npz</span><span class="p">[</span><span class="s2">&quot;R0_rect&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">raw_calib</span><span class="p">[</span><span class="s2">&quot;Tr_velo_to_cam&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npz</span><span class="p">[</span><span class="s2">&quot;Tr_velo_to_cam&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">raw_calib</span><span class="p">[</span><span class="s2">&quot;Tr_imu_to_velo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">npz</span><span class="p">[</span><span class="s2">&quot;Tr_imu_to_velo&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+
+    <span class="n">calib</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">ParseCalibrationDict</span><span class="p">(</span><span class="n">raw_calib</span><span class="p">)</span>
+    <span class="n">scene_to_calib</span><span class="p">[</span><span class="n">scene_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">calib</span>
+  <span class="k">return</span> <span class="n">scene_to_calib</span></div>
+
+
+<div class="viewcode-block" id="ExtractNpContent"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.export_kitti_detection.html#lingvo.tasks.car.tools.export_kitti_detection.ExtractNpContent">[docs]</a><span class="k">def</span> <span class="nf">ExtractNpContent</span><span class="p">(</span><span class="n">np_dict</span><span class="p">,</span> <span class="n">calib</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Parse saved np arrays and convert 3D bboxes to camera0 coordinates.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    np_dict: a dict of numpy arrays.</span>
+<span class="sd">    calib: a parsed calibration dictionary.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    location_camera: [N, 3]. [x, y, z] in camera0 coordinate.</span>
+<span class="sd">    dimension_camera: [N, 3]. The [height, width, length] of objects.</span>
+<span class="sd">    phi_camera: [N]. Rotation around y-axis in camera0 coodinate.</span>
+<span class="sd">    bboxes_2d: [N, 4]. The corresponding 2D bboxes in the image coordinate.</span>
+<span class="sd">    scores: [N]. Confidence scores for each box for the assigned class.</span>
+<span class="sd">    class_ids: [N]. The class id assigned to each box.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">bboxes</span> <span class="o">=</span> <span class="n">np_dict</span><span class="p">[</span><span class="s2">&quot;bboxes&quot;</span><span class="p">]</span>
+  <span class="n">scores</span> <span class="o">=</span> <span class="n">np_dict</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span>
+  <span class="n">class_ids</span> <span class="o">=</span> <span class="n">np_dict</span><span class="p">[</span><span class="s2">&quot;class_ids&quot;</span><span class="p">]</span>
+  <span class="n">bboxes_2d</span> <span class="o">=</span> <span class="n">np_dict</span><span class="p">[</span><span class="s2">&quot;bboxes_2d&quot;</span><span class="p">]</span>
+
+  <span class="c1"># Transform from velodyne coordinates to camera coordinates.</span>
+  <span class="n">velo_to_cam_transform</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">VeloToCameraTransformation</span><span class="p">(</span><span class="n">calib</span><span class="p">)</span>
+  <span class="n">location_cam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">bboxes</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+  <span class="n">dimension_cam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">bboxes</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+  <span class="n">rotation_cam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">bboxes</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+  <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">bbox</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bboxes</span><span class="p">):</span>
+    <span class="n">location_cam</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dimension_cam</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:],</span> <span class="n">rotation_cam</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">kitti_data</span><span class="o">.</span><span class="n">BBox3DToKITTIObject</span><span class="p">(</span><span class="n">bbox</span><span class="p">,</span> <span class="n">velo_to_cam_transform</span><span class="p">))</span>
+
+  <span class="k">return</span> <span class="n">location_cam</span><span class="p">,</span> <span class="n">dimension_cam</span><span class="p">,</span> <span class="n">rotation_cam</span><span class="p">,</span> <span class="n">bboxes_2d</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">class_ids</span></div>
+
+
+<span class="n">_INCLUDED_KITTI_CLASS_NAMES</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Car&quot;</span><span class="p">,</span> <span class="s2">&quot;Pedestrian&quot;</span><span class="p">,</span> <span class="s2">&quot;Cyclist&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="ExportKITTIDetection"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.export_kitti_detection.html#lingvo.tasks.car.tools.export_kitti_detection.ExportKITTIDetection">[docs]</a><span class="k">def</span> <span class="nf">ExportKITTIDetection</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">source_id</span><span class="p">,</span> <span class="n">location_cam</span><span class="p">,</span> <span class="n">dimension_cam</span><span class="p">,</span>
+                         <span class="n">rotation_cam</span><span class="p">,</span> <span class="n">bboxes_2d</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">is_first</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Write detections to a text file in KITTI format.&quot;&quot;&quot;</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Exporting </span><span class="si">%s</span><span class="s2"> for </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">class_name</span><span class="p">,</span> <span class="n">source_id</span><span class="p">))</span>
+  <span class="n">fname</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">source_id</span> <span class="o">+</span> <span class="s2">&quot;.txt&quot;</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+    <span class="c1"># Ensure we always create a file even when there&#39;s no detection.</span>
+    <span class="c1"># TODO(shlens): Test whether this is actually necessary on the KITTI</span>
+    <span class="c1"># eval server.</span>
+    <span class="k">if</span> <span class="n">is_first</span><span class="p">:</span>
+      <span class="n">fid</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">location</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">ry</span><span class="p">,</span> <span class="n">bbox_2d</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+        <span class="n">location_cam</span><span class="p">,</span> <span class="n">dimension_cam</span><span class="p">,</span> <span class="n">rotation_cam</span><span class="p">,</span> <span class="n">bboxes_2d</span><span class="p">,</span> <span class="n">scores</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">score</span> <span class="o">&lt;</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">score_threshold</span><span class="p">:</span>
+        <span class="k">continue</span>
+      <span class="c1"># class_name, truncated(ignore), alpha(ignore), bbox2D x 4</span>
+      <span class="n">part1</span> <span class="o">=</span> <span class="p">[</span><span class="n">class_name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">bbox_2d</span><span class="p">)</span>
+      <span class="c1"># dimesion x 3, location x 3, rotation_y x 1, score x 1</span>
+      <span class="n">fill</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">part1</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">dimension</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">location</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">ry</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">score</span><span class="p">])</span>
+      <span class="n">kitti_format_string</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> &quot;</span>
+                             <span class="s2">&quot;</span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2"> </span><span class="si">%lf</span><span class="s2">&quot;</span><span class="p">)</span>
+      <span class="n">kitti_line</span> <span class="o">=</span> <span class="n">kitti_format_string</span> <span class="o">%</span> <span class="n">fill</span>
+      <span class="n">fid</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">kitti_line</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.export_kitti_detection.html#lingvo.tasks.car.tools.export_kitti_detection.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">):</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">tf</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">UsageError</span><span class="p">(</span><span class="s2">&quot;Too many command-line arguments.&quot;</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_path</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">car_decoder_path</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ped_decoder_path</span> \
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cyc_decoder_path</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;Either provide decoder_path or &quot;</span>
+                                         <span class="s2">&quot;individual decoders but not both.&quot;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">car_decoder_path</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ped_decoder_path</span> <span class="ow">and</span> \
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">cyc_decoder_path</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;No decoder_path specified. Please supply all &quot;</span>
+                                 <span class="s2">&quot;individual decoder_paths for labels.&quot;</span><span class="p">)</span>
+  <span class="n">is_single_decoder_file</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+  <span class="k">if</span> <span class="n">is_single_decoder_file</span><span class="p">:</span>
+    <span class="n">list_of_decoder_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_path</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Note the correspondence between _INCLUDED_KITTI_CLASS_NAMES ordering and</span>
+    <span class="c1"># this list.</span>
+    <span class="n">list_of_decoder_paths</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">car_decoder_path</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ped_decoder_path</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cyc_decoder_path</span>
+    <span class="p">]</span>
+
+  <span class="c1"># A list of dictionaries mapping img ids to a dictionary of numpy tensors.</span>
+  <span class="n">table_data</span> <span class="o">=</span> <span class="p">[]</span>
+
+  <span class="n">img_ids</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">table_path</span> <span class="ow">in</span> <span class="n">list_of_decoder_paths</span><span class="p">:</span>
+    <span class="n">img_id_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">serialized</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">tf_record_iterator</span><span class="p">(</span><span class="n">table_path</span><span class="p">):</span>
+      <span class="n">record</span> <span class="o">=</span> <span class="n">record_pb2</span><span class="o">.</span><span class="n">Record</span><span class="p">()</span>
+      <span class="n">record</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">serialized</span><span class="p">)</span>
+      <span class="n">img_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">make_ndarray</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s2">&quot;img_id&quot;</span><span class="p">]))</span>
+      <span class="n">img_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img_id</span><span class="p">)</span>
+      <span class="n">np_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">make_ndarray</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+      <span class="n">img_id_dict</span><span class="p">[</span><span class="n">img_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">np_dict</span>
+    <span class="n">table_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img_id_dict</span><span class="p">)</span>
+  <span class="n">img_ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">img_ids</span><span class="p">))</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Exists</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MkDir</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">)</span>
+
+  <span class="n">all_kitti_class_names</span> <span class="o">=</span> <span class="n">kitti_metadata</span><span class="o">.</span><span class="n">KITTIMetadata</span><span class="p">()</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span>
+  <span class="n">calib_data</span> <span class="o">=</span> <span class="n">LoadCalibData</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">calib_file</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">))</span>
+  <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="k">for</span> <span class="n">img_id</span> <span class="ow">in</span> <span class="n">img_ids</span><span class="p">:</span>
+    <span class="c1"># Ignore padded samples where the img_ids are empty.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">img_id</span><span class="p">:</span>
+      <span class="k">continue</span>
+    <span class="k">for</span> <span class="n">table_index</span><span class="p">,</span> <span class="n">img_id_dict</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">table_data</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">img_id</span> <span class="ow">in</span> <span class="n">img_id_dict</span><span class="p">:</span>
+        <span class="n">np_dict</span> <span class="o">=</span> <span class="n">img_id_dict</span><span class="p">[</span><span class="n">img_id</span><span class="p">]</span>
+
+        <span class="p">(</span><span class="n">location_cam</span><span class="p">,</span> <span class="n">dimension_cam</span><span class="p">,</span> <span class="n">rotation_cam</span><span class="p">,</span> <span class="n">bboxes_2d</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span>
+         <span class="n">class_ids</span><span class="p">)</span> <span class="o">=</span> <span class="n">ExtractNpContent</span><span class="p">(</span><span class="n">np_dict</span><span class="p">,</span> <span class="n">calib_data</span><span class="p">[</span><span class="n">img_id</span> <span class="o">+</span> <span class="s2">&quot;.txt&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">is_single_decoder_file</span><span class="p">:</span>
+          <span class="n">valid_labels</span> <span class="o">=</span> <span class="n">_INCLUDED_KITTI_CLASS_NAMES</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">valid_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">_INCLUDED_KITTI_CLASS_NAMES</span><span class="p">[</span><span class="n">table_index</span><span class="p">]]</span>
+        <span class="n">is_first</span> <span class="o">=</span> <span class="n">table_index</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="n">valid_labels</span><span class="p">:</span>
+          <span class="n">class_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">class_ids</span> <span class="o">==</span> <span class="n">all_kitti_class_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">class_name</span><span class="p">))</span>
+          <span class="n">ExportKITTIDetection</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">img_id</span><span class="p">,</span>
+                               <span class="n">location_cam</span><span class="p">[</span><span class="n">class_mask</span><span class="p">],</span>
+                               <span class="n">dimension_cam</span><span class="p">[</span><span class="n">class_mask</span><span class="p">],</span>
+                               <span class="n">rotation_cam</span><span class="p">[</span><span class="n">class_mask</span><span class="p">],</span> <span class="n">bboxes_2d</span><span class="p">[</span><span class="n">class_mask</span><span class="p">],</span>
+                               <span class="n">scores</span><span class="p">[</span><span class="n">class_mask</span><span class="p">],</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">is_first</span><span class="p">)</span>
+    <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Total example exported: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">count</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

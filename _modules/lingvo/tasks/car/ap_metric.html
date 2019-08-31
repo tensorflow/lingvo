@@ -1,0 +1,741 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.ap_metric &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.ap_metric</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.ap_metric</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Average precision metric interface.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.metrics</span> <span class="k">import</span> <span class="n">BaseMetric</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">breakdown_metric</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="c1"># TODO(shlens): Consider making this internal data structure a list of NestedMap</span>
+<span class="c1"># to simplify the implementation.</span>
+<div class="viewcode-block" id="Boxes3D"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.Boxes3D">[docs]</a><span class="k">class</span> <span class="nc">Boxes3D</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A container for a list of 7-DOF 3D boxes.</span>
+
+<span class="sd">  Each 3D box is represented by the 7-tuple [x, y, z, dx, dy, dz, phi],</span>
+<span class="sd">  where x, y, z is the center of the box, dx, dy, dz represent the width,</span>
+<span class="sd">  length, and height of the box, and phi is the rotation of the box.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_capacity</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">imgids</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">scores</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">]),</span>
+        <span class="n">difficulties</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">distances</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">num_points</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">rotations</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">heights_in_pixels</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]))</span>
+
+<div class="viewcode-block" id="Boxes3D.Add"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.Boxes3D.Add">[docs]</a>  <span class="k">def</span> <span class="nf">Add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img_id</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rotation</span><span class="p">,</span>
+          <span class="n">height_in_pixels</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds a bbox.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      img_id: A unique image identifier.</span>
+<span class="sd">      score: The confidence score.</span>
+<span class="sd">      box: [1 x 7] numpy array.</span>
+<span class="sd">      difficulty: The difficulty of a box. On KITTI this is one of [0, 1, 2, 3].</span>
+<span class="sd">      distance: The binned distance of a box.</span>
+<span class="sd">      num_points: Number of laser points in box.</span>
+<span class="sd">      rotation: The binned rotation of a box.</span>
+<span class="sd">      height_in_pixels: The height of the 2D bbox of this object in the camera</span>
+<span class="sd">        image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_capacity</span><span class="p">:</span>
+      <span class="c1"># resize</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_capacity</span><span class="p">:</span>
+        <span class="c1"># Increase the capacity exponentially.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_capacity</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_capacity</span> <span class="o">//</span> <span class="mi">4</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_capacity</span> <span class="o">=</span> <span class="mi">100</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Resize</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">imgids</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">img_id</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">scores</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">boxes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">box</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">difficulty</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">distances</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">distance</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">num_points</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_points</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">rotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">rotation</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">height_in_pixels</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="Boxes3D._Resize"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.Boxes3D._Resize">[docs]</a>  <span class="k">def</span> <span class="nf">_Resize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arr</span><span class="p">):</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_capacity</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">)[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">arr</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">ret</span><span class="p">[:</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">arr</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">imgids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">imgids</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">scores</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">scores</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">boxes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">boxes</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">difficulties</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">distances</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">distances</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">num_points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">num_points</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">rotations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">rotations</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">heights_in_pixels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="APMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics">[docs]</a><span class="k">class</span> <span class="nc">APMetrics</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Measure an assortment of precision-recall metrics on a dataset.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="APMetrics.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">metadata</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Params builder for APMetrics.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">InstantiableParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span>
+        <span class="s1">&#39;Instance of class obeying EvaluationMetadata interface consisting of &#39;</span>
+        <span class="s1">&#39;parameters specifying the details of the evaluation.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;breakdown_metrics&#39;</span><span class="p">,</span> <span class="p">[],</span>
+        <span class="s1">&#39;List of extra breakdown metrics when computing AP.  Valid values &#39;</span>
+        <span class="s1">&#39;include: [&quot;num_points&quot;, &quot;distance&quot;, &quot;rotation&quot;].  See &#39;</span>
+        <span class="s1">&#39;breakdown_metric.py:ByName for the full list. ByDifficulty is &#39;</span>
+        <span class="s1">&#39;always used.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;metric_weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;For metrics that have multiple breakdown metrics, &#39;</span>
+        <span class="s1">&#39;a user may want the value() function to be a function &#39;</span>
+        <span class="s1">&#39;of the various breakdowns.  If provided, this specifies &#39;</span>
+        <span class="s1">&#39;the weights assigned to each class</span><span class="se">\&#39;</span><span class="s1">s metric contribution. &#39;</span>
+        <span class="s1">&#39;metric_weights should be a dictionary mapping every difficulty &#39;</span>
+        <span class="s1">&#39;level to a numpy vector of weights whose values corresponds &#39;</span>
+        <span class="s1">&#39;to the order of metadata.EvalClassIndices() weighting.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;box_type&#39;</span><span class="p">,</span> <span class="s1">&#39;3d&#39;</span><span class="p">,</span> <span class="s1">&#39;Specifies what kind of box evaluation will &#39;</span>
+        <span class="s1">&#39;be performed (only supported by waymo metric).  &#39;</span>
+        <span class="s1">&#39;One of [&quot;2d&quot;, &quot;3d&quot;]: 3d means to do 3D AP calculation, and 2d &#39;</span>
+        <span class="s1">&#39;means to do a top down Birds-Eye-View AP calculation.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initialize the metrics.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_is_eval_complete</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_groundtruth</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># keyed by class id.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_prediction</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># keyed by class id.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_str_to_imgid</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_iou_thresholds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">IoUThresholds</span><span class="p">()</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metadata</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">box_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;2d&#39;</span><span class="p">,</span> <span class="s1">&#39;3d&#39;</span><span class="p">]</span>
+
+    <span class="c1"># We must always include ByDifficulty.</span>
+    <span class="n">metrics_params</span> <span class="o">=</span> <span class="n">breakdown_metric</span><span class="o">.</span><span class="n">BreakdownMetric</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;difficulty&#39;</span><span class="p">:</span> <span class="n">breakdown_metric</span><span class="o">.</span><span class="n">ByDifficulty</span><span class="p">(</span><span class="n">metrics_params</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">breakdown_metric_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">breakdown_metrics</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="n">breakdown_metric_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">breakdown_metric</span><span class="o">.</span><span class="n">ByName</span><span class="p">(</span><span class="n">breakdown_metric_name</span><span class="p">)(</span><span class="n">metrics_params</span><span class="p">))</span>
+
+<div class="viewcode-block" id="APMetrics._GetImageId"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics._GetImageId">[docs]</a>  <span class="k">def</span> <span class="nf">_GetImageId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">str_id</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">str_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str_to_imgid</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str_to_imgid</span><span class="p">[</span><span class="n">str_id</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">imgid</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_str_to_imgid</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_str_to_imgid</span><span class="p">[</span><span class="n">str_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">imgid</span>
+      <span class="k">return</span> <span class="n">imgid</span></div>
+
+<div class="viewcode-block" id="APMetrics._AddGroundtruth"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics._AddGroundtruth">[docs]</a>  <span class="k">def</span> <span class="nf">_AddGroundtruth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">box</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Record a ground truth box.&quot;&quot;&quot;</span>
+    <span class="n">str_imgid</span><span class="p">,</span> <span class="n">classid</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rot</span> <span class="o">=</span> <span class="n">box</span>
+    <span class="n">imgid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetImageId</span><span class="p">(</span><span class="n">str_imgid</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">classid</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">classid</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumClasses</span><span class="p">(),</span> <span class="p">(</span>
+        <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">classid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumClasses</span><span class="p">()))</span>
+
+    <span class="n">boxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groundtruth</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">classid</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">boxes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">boxes</span> <span class="o">=</span> <span class="n">Boxes3D</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_groundtruth</span><span class="p">[</span><span class="n">classid</span><span class="p">]</span> <span class="o">=</span> <span class="n">boxes</span>
+    <span class="n">boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">imgid</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rot</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Invalidate the evaluation.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_is_eval_complete</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="APMetrics._LoadBoundingBoxes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics._LoadBoundingBoxes">[docs]</a>  <span class="k">def</span> <span class="nf">_LoadBoundingBoxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">box_type</span><span class="p">,</span>
+                         <span class="n">class_id</span><span class="p">,</span>
+                         <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">rotation</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Load a specified set of bounding boxes.</span>
+
+<span class="sd">    If no boxes are found, return None.</span>
+
+<span class="sd">    Note that we do *not* specify &#39;difficulty&#39; as an option due to how the KITTI</span>
+<span class="sd">    evaluates bounding boxes across difficulty levels.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      box_type: string. Either &#39;groundtruth&#39; or &#39;prediction&#39;</span>
+<span class="sd">      class_id: int32 specifying the class</span>
+<span class="sd">      distance: int32 specifying a binned Euclidean distance of the ground truth</span>
+<span class="sd">        bounding box. If None is specified, all distances are selected.</span>
+<span class="sd">      num_points: int32 specifying a binned number of laser points within the</span>
+<span class="sd">        ground truth bounding box. If None is specified, all boxes are selected.</span>
+<span class="sd">      rotation: int32 specifying a binned rotation within the ground truth</span>
+<span class="sd">        bounding box. If None is specified, all boxes are selected.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Boxes3D containing bounding boxes or None if no bounding boxes available.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">box_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;groundtruth&#39;</span><span class="p">,</span> <span class="s1">&#39;prediction&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">box_type</span> <span class="o">==</span> <span class="s1">&#39;groundtruth&#39;</span><span class="p">:</span>
+      <span class="n">boxes_by_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groundtruth</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">boxes_by_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prediction</span>
+
+    <span class="k">if</span> <span class="n">class_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">boxes_by_class</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">boxes</span> <span class="o">=</span> <span class="n">boxes_by_class</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">boxes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">distance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Filter bounding boxes based a binned (integer) distance.</span>
+      <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">boxes</span><span class="o">.</span><span class="n">imgids</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">num_points</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">rotations</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">dist</span> <span class="o">==</span> <span class="n">distance</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">filtered_boxes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="n">Boxes3D</span><span class="p">()</span>
+          <span class="n">filtered_boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+      <span class="n">boxes</span> <span class="o">=</span> <span class="n">filtered_boxes</span>
+
+    <span class="k">if</span> <span class="n">boxes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">num_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Filter bounding boxes based a binned (integer) number of points.</span>
+      <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">boxes</span><span class="o">.</span><span class="n">imgids</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">num_points</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">rotations</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="n">num_points</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">filtered_boxes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="n">Boxes3D</span><span class="p">()</span>
+          <span class="n">filtered_boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+      <span class="n">boxes</span> <span class="o">=</span> <span class="n">filtered_boxes</span>
+
+    <span class="k">if</span> <span class="n">boxes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">rotation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Filter bounding boxes based a binned (integer) rotation.</span>
+      <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">boxes</span><span class="o">.</span><span class="n">imgids</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">num_points</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">rotations</span><span class="p">,</span>
+                                           <span class="n">boxes</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">r</span> <span class="o">==</span> <span class="n">rotation</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">filtered_boxes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="n">Boxes3D</span><span class="p">()</span>
+          <span class="n">filtered_boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+      <span class="n">boxes</span> <span class="o">=</span> <span class="n">filtered_boxes</span>
+
+    <span class="k">return</span> <span class="n">boxes</span></div>
+
+<div class="viewcode-block" id="APMetrics._GetData"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics._GetData">[docs]</a>  <span class="k">def</span> <span class="nf">_GetData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">classid</span><span class="p">,</span>
+               <span class="n">difficulty</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">rotation</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns groundtruth and prediction for the classid in a NestedMap.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      classid: int32 specifying the class</span>
+<span class="sd">      difficulty: String in [easy, moderate, hard]. If None specified, all</span>
+<span class="sd">        difficulty levels are permitted.</span>
+<span class="sd">      distance: int32 specifying a binned Euclidean distance of the ground truth</span>
+<span class="sd">        bounding box. If None is specified, all distances are selected.</span>
+<span class="sd">      num_points: int32 specifying a binned number of laser points within the</span>
+<span class="sd">        ground truth bounding box. If None is specified, all boxes are selected.</span>
+<span class="sd">      rotation: int32 specifying a binned rotation within the ground truth</span>
+<span class="sd">        bounding box. If None is specified, all boxes are selected.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      NestedMap containing iou_threshold, groundtruth and predictions for</span>
+<span class="sd">      specified, classid, difficulty level and binned distance. If no bboxes</span>
+<span class="sd">      are found with these parameters, returns None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;_GetData must be implemented&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="APMetrics._BuildMetric"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics._BuildMetric">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildMetric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feed_data</span><span class="p">,</span> <span class="n">classid</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;_BuildMetric must be implemented&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="APMetrics._ComputeFinalMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics._ComputeFinalMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeFinalMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                           <span class="n">classids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">difficulty</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">rotation</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute precision-recall curves as well as average precision.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      classids: A list of N int32.</span>
+<span class="sd">      difficulty: String in [easy, moderate, hard]. If None specified, all</span>
+<span class="sd">        difficulty levels are permitted.</span>
+<span class="sd">      distance: int32 specifying a binned Euclidean distance of the ground truth</span>
+<span class="sd">        bounding box. If None is specified, all distances are selected.</span>
+<span class="sd">      num_points: int32 specifying a binned number of laser points within the</span>
+<span class="sd">        ground truth bounding box. If None is specified, all boxes are selected.</span>
+<span class="sd">      rotation: int32 specifying a binned rotation within the ground truth</span>
+<span class="sd">        bounding box. If None is specified, all boxes are selected.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      scalar_metrics: A list of C (number of clases) dicts mapping metric names</span>
+<span class="sd">        to scalar values.</span>
+<span class="sd">      curve_metrics: A list of C dicts mapping metrics names to np.float32</span>
+<span class="sd">        arrays of shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last</span>
+<span class="sd">        dimension, 0 indexes precision and 1 indexes recall.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">classids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;classids must be supplied.&#39;</span>
+    <span class="n">feed_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">scalar_fetches</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">curve_fetches</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="k">for</span> <span class="n">classid</span> <span class="ow">in</span> <span class="n">classids</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetData</span><span class="p">(</span>
+            <span class="n">classid</span><span class="p">,</span>
+            <span class="n">difficulty</span><span class="o">=</span><span class="n">difficulty</span><span class="p">,</span>
+            <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
+            <span class="n">num_points</span><span class="o">=</span><span class="n">num_points</span><span class="p">,</span>
+            <span class="n">rotation</span><span class="o">=</span><span class="n">rotation</span><span class="p">)</span>
+        <span class="n">scalars</span><span class="p">,</span> <span class="n">curves</span><span class="p">,</span> <span class="n">class_feed_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildMetric</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">classid</span><span class="p">)</span>
+        <span class="n">scalar_fetches</span> <span class="o">+=</span> <span class="p">[</span><span class="n">scalars</span><span class="p">]</span>
+        <span class="n">curve_fetches</span> <span class="o">+=</span> <span class="p">[</span><span class="n">curves</span><span class="p">]</span>
+        <span class="n">feed_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">class_feed_dict</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">g</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">results</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">scalar_fetches</span><span class="p">,</span> <span class="n">curve_fetches</span><span class="p">],</span> <span class="n">feed_dict</span><span class="o">=</span><span class="n">feed_dict</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="APMetrics.Update"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics.Update">[docs]</a>  <span class="k">def</span> <span class="nf">Update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">str_id</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update this metric with a newly evaluated image.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      str_id: A string. Unique identifier of an image.</span>
+<span class="sd">      result: A NestedMap with these fields:</span>
+<span class="sd">          groundtruth_labels - [N]. Groundtruth boxes&#39; labels.</span>
+
+<span class="sd">          groundtruth_bboxes - [N, 7]. Groundtruth boxes coordinates.</span>
+
+<span class="sd">          groundtruth_difficulties - [N]. Groundtruth boxes difficulties.</span>
+
+<span class="sd">          groundtruth_num_points - [N]. Number of laser points in bounding</span>
+<span class="sd">          boxes.</span>
+
+<span class="sd">          detection_scores - [C, M] - For each class (C classes) we have (up to)</span>
+<span class="sd">          M predicted boxes.</span>
+
+<span class="sd">          detection_boxes - [C, M, 7] - [i, j, :] are coordinates for i-th</span>
+<span class="sd">          classes j-th predicted box.</span>
+
+<span class="sd">          detection_heights_in_pixels - [C, M]. [i, j] is the height of i-th</span>
+<span class="sd">          classes j-th boxes 2D image coordinate (camera view).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_bboxes</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+
+    <span class="n">groundtruth_result</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">bboxes</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">groundtruth_bboxes</span><span class="p">,</span>
+        <span class="n">num_points</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">groundtruth_num_points</span><span class="p">,</span>
+        <span class="n">difficulties</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">groundtruth_difficulties</span><span class="p">,</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">groundtruth_labels</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+      <span class="n">m</span><span class="o">.</span><span class="n">AccumulateHistogram</span><span class="p">(</span><span class="n">groundtruth_result</span><span class="p">)</span>
+      <span class="n">m</span><span class="o">.</span><span class="n">AccumulateCumulative</span><span class="p">(</span><span class="n">groundtruth_result</span><span class="p">)</span>
+
+    <span class="c1"># TODO(vrv): The Boxes3D structure currently expects a fixed</span>
+    <span class="c1"># number of arguments corresponding to every possible</span>
+    <span class="c1"># breakdown metric, even if not requested or present, requiring</span>
+    <span class="c1"># dummy values in the latter case.  We should figure</span>
+    <span class="c1"># out how to avoid requiring these dummy values by making</span>
+    <span class="c1"># the Boxes3D object take a dynamic set of attributes.</span>
+    <span class="n">num_points</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+    <span class="n">rotations</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+    <span class="n">distances</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+    <span class="k">if</span> <span class="s1">&#39;num_points&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">:</span>
+      <span class="n">num_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="s1">&#39;num_points&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Discretize</span><span class="p">(</span>
+          <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_num_points</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;rotation&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">:</span>
+      <span class="n">rotations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="s1">&#39;rotation&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Discretize</span><span class="p">(</span>
+          <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_bboxes</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;distance&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">:</span>
+      <span class="n">distances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Discretize</span><span class="p">(</span>
+          <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_bboxes</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">bbox</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rotations</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_labels</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_bboxes</span><span class="p">,</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_difficulties</span><span class="p">,</span> <span class="n">distances</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rotations</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_AddGroundtruth</span><span class="p">((</span><span class="n">str_id</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">bbox</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span>
+                            <span class="n">num_points</span><span class="p">,</span> <span class="n">rotations</span><span class="p">))</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">detection_scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">c</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumClasses</span><span class="p">(),</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> vs. </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+        <span class="n">c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumClasses</span><span class="p">())</span>
+
+    <span class="n">str_imgid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetImageId</span><span class="p">(</span><span class="n">str_id</span><span class="p">)</span>
+
+    <span class="c1"># Iterate first by class.</span>
+    <span class="k">for</span> <span class="n">class_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+      <span class="k">assert</span> <span class="n">class_id</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">class_id</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumClasses</span><span class="p">(),</span> <span class="p">(</span>
+          <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">class_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumClasses</span><span class="p">()))</span>
+
+      <span class="c1"># Get or create the box list for the class.  This is done for speed -- we</span>
+      <span class="c1"># do it once per class to avoid dictionary lookups to fetch the field for</span>
+      <span class="c1"># every box.</span>
+      <span class="n">boxes_for_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prediction</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">boxes_for_class</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">boxes_for_class</span> <span class="o">=</span> <span class="n">Boxes3D</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prediction</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">boxes_for_class</span>
+
+      <span class="c1"># Get boxes and scores for this class.</span>
+      <span class="n">bboxes</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">detection_boxes</span><span class="p">[</span><span class="n">class_id</span><span class="p">,</span> <span class="p">:]</span>
+      <span class="n">scores</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">detection_scores</span><span class="p">[</span><span class="n">class_id</span><span class="p">,</span> <span class="p">:]</span>
+      <span class="n">heights_in_pixels</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">detection_heights_in_pixels</span><span class="p">[</span><span class="n">class_id</span><span class="p">,</span> <span class="p">:]</span>
+      <span class="c1"># Select bboxes where scores &gt; 0.</span>
+      <span class="n">non_zero_bboxes</span> <span class="o">=</span> <span class="n">bboxes</span><span class="p">[</span><span class="n">scores</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+      <span class="n">non_zero_scores</span> <span class="o">=</span> <span class="n">scores</span><span class="p">[</span><span class="n">scores</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+      <span class="n">non_zero_heights_in_pixels</span> <span class="o">=</span> <span class="n">heights_in_pixels</span><span class="p">[</span><span class="n">scores</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+
+      <span class="n">rotations</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">non_zero_bboxes</span><span class="p">)</span>
+      <span class="n">distances</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">non_zero_bboxes</span><span class="p">)</span>
+      <span class="k">if</span> <span class="s1">&#39;distance&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">:</span>
+        <span class="c1"># Compute all distances for non-zero-bboxes in one shot.</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Discretize</span><span class="p">(</span>
+            <span class="n">non_zero_bboxes</span><span class="p">)</span>
+      <span class="k">if</span> <span class="s1">&#39;rotation&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">:</span>
+        <span class="n">rotations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="s1">&#39;rotation&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Discretize</span><span class="p">(</span>
+            <span class="n">non_zero_bboxes</span><span class="p">)</span>
+
+      <span class="c1"># Add each box to the list.</span>
+      <span class="c1">#</span>
+      <span class="c1"># NOTE: The length of this loop can be large (e.g., for an early</span>
+      <span class="c1"># checkpoint), so any code inside of this for loop should be</span>
+      <span class="c1"># double-checked for efficiency.</span>
+      <span class="k">for</span> <span class="n">box_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">non_zero_bboxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">boxes_for_class</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span>
+            <span class="n">img_id</span><span class="o">=</span><span class="n">str_imgid</span><span class="p">,</span>
+            <span class="n">score</span><span class="o">=</span><span class="n">non_zero_scores</span><span class="p">[</span><span class="n">box_id</span><span class="p">],</span>
+            <span class="n">box</span><span class="o">=</span><span class="n">non_zero_bboxes</span><span class="p">[</span><span class="n">box_id</span><span class="p">],</span>
+            <span class="n">difficulty</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">distance</span><span class="o">=</span><span class="n">distances</span><span class="p">[</span><span class="n">box_id</span><span class="p">],</span>
+            <span class="n">num_points</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">rotation</span><span class="o">=</span><span class="n">rotations</span><span class="p">[</span><span class="n">box_id</span><span class="p">],</span>
+            <span class="n">height_in_pixels</span><span class="o">=</span><span class="n">non_zero_heights_in_pixels</span><span class="p">[</span><span class="n">box_id</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="APMetrics._EvaluateIfNecessary"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics._EvaluateIfNecessary">[docs]</a>  <span class="k">def</span> <span class="nf">_EvaluateIfNecessary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluate all precision recall metrics.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_eval_complete</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="n">compute_metrics_fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeFinalMetrics</span><span class="p">,</span> <span class="n">classids</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">metric_class</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+      <span class="n">metric_class</span><span class="o">.</span><span class="n">ComputeMetrics</span><span class="p">(</span><span class="n">compute_metrics_fn</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_is_eval_complete</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Choose a backwards compatible default.  The default assumes:</span>
+      <span class="c1">#</span>
+      <span class="c1"># if KITTI, metric_weights is all zeros except for car/moderate.</span>
+      <span class="c1">#</span>
+      <span class="c1"># if not KITTI, metric_weights are all equal.</span>
+      <span class="n">metric_weights</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;moderate&#39;</span> <span class="ow">in</span> <span class="n">keys</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+          <span class="c1"># The KITTI case.</span>
+          <span class="k">if</span> <span class="n">difficulty</span> <span class="o">==</span> <span class="s1">&#39;moderate&#39;</span><span class="p">:</span>
+            <span class="n">metric_weights</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">])</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">metric_weights</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="c1"># Every difficulty and every class is weighted equally.</span>
+          <span class="n">metric_weights</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+              <span class="p">[</span><span class="mf">1.</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">metric_weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric_weights</span>
+
+    <span class="c1"># Compute weighted average of AP scores across all classes and difficulties.</span>
+    <span class="n">num_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">denom_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AveragePrecisionByDifficulty</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">metric_weight</span> <span class="o">=</span> <span class="n">metric_weights</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span>
+      <span class="n">denom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">metric_weight</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">denom</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">continue</span>
+      <span class="n">num_sum</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="n">metric_weight</span><span class="p">)</span>
+      <span class="n">denom_sum</span> <span class="o">+=</span> <span class="n">denom</span>
+
+    <span class="c1"># Ensure at least some weights are specified</span>
+    <span class="k">assert</span> <span class="n">denom_sum</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;All AP metric weights were 0!&#39;</span>
+    <span class="k">return</span> <span class="n">num_sum</span> <span class="o">/</span> <span class="n">denom_sum</span>
+
+<div class="viewcode-block" id="APMetrics._AveragePrecisionByDifficulty"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics._AveragePrecisionByDifficulty">[docs]</a>  <span class="k">def</span> <span class="nf">_AveragePrecisionByDifficulty</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Special case to identify mAP versus difficulty.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_EvaluateIfNecessary</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="s1">&#39;difficulty&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_average_precisions</span>  <span class="c1"># pylint:disable=protected-access</span></div>
+
+<div class="viewcode-block" id="APMetrics.Summary"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics.Summary">[docs]</a>  <span class="k">def</span> <span class="nf">Summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="c1"># TODO(weihan): also display ha_weighted metrics for Waymo.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_EvaluateIfNecessary</span><span class="p">()</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">()</span>
+
+    <span class="c1"># Put &#39;.value&#39; first (so it shows up in logs / summaries, etc).</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/weighted_mAP&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="n">simple_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="n">average_precision_by_difficulty</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AveragePrecisionByDifficulty</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
+      <span class="n">classname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">():</span>
+        <span class="n">tag_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">/AP_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">classname</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">)</span>
+        <span class="n">ap_value</span> <span class="o">=</span> <span class="n">average_precision_by_difficulty</span><span class="p">[</span><span class="n">difficulty</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="n">tag_str</span><span class="p">,</span> <span class="n">simple_value</span><span class="o">=</span><span class="n">ap_value</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">metric_class</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+      <span class="n">image_summaries</span> <span class="o">=</span> <span class="n">metric_class</span><span class="o">.</span><span class="n">GenerateSummaries</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">image_summary</span> <span class="ow">in</span> <span class="n">image_summaries</span><span class="p">:</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">image_summary</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

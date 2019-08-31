@@ -1,0 +1,379 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.transform_util &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.transform_util</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.transform_util</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Utilities for performing 3D transformations on points.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="Box2D"><a class="viewcode-back" href="../../../../lingvo.tasks.car.transform_util.html#lingvo.tasks.car.transform_util.Box2D">[docs]</a><span class="k">class</span> <span class="nc">Box2D</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A representation of a 2D rotated bounding box.</span>
+
+<span class="sd">  Box2D is based on conventions for 3D coordinate systems where y-x are</span>
+<span class="sd">  switched.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">angle</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initialize a Box2D.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      x: center x coordinate of bounding box.</span>
+<span class="sd">      y: center y coordinate of bounding box.</span>
+<span class="sd">      width: Width of box in the x-dimension.</span>
+<span class="sd">      length: Length of box in the y-dimension.</span>
+<span class="sd">      angle: Angle in radians wrt to the direction of the longer axis.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_center</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_width</span> <span class="o">=</span> <span class="n">width</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_length</span> <span class="o">=</span> <span class="n">length</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_angle</span> <span class="o">=</span> <span class="n">angle</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_angle_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)])</span>
+
+    <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_angle_v</span> <span class="o">*</span> <span class="p">(</span><span class="n">length</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_center</span> <span class="o">-</span> <span class="n">offset</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_center</span> <span class="o">+</span> <span class="n">offset</span>
+    <span class="c1"># Compute the four corners of the rotated box.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_corners</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeCorners</span><span class="p">()</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">corners</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a [4, 2] numpy matrix containing the four corner points.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_corners</span>
+
+<div class="viewcode-block" id="Box2D._ComputeCorners"><a class="viewcode-back" href="../../../../lingvo.tasks.car.transform_util.html#lingvo.tasks.car.transform_util.Box2D._ComputeCorners">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeCorners</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute the four corners of the bounding box.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">perp_unit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_angle_v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_angle_v</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">perp_unit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">])</span>
+    <span class="n">w2</span> <span class="o">=</span> <span class="n">perp_unit</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_width</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">)</span>
+
+    <span class="n">corner_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">w2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">w2</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="n">corner_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">w2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_end</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">w2</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="n">corner_3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">w2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_end</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">w2</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="n">corner_4</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">w2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">w2</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">corner_1</span><span class="p">,</span> <span class="n">corner_2</span><span class="p">,</span> <span class="n">corner_3</span><span class="p">,</span> <span class="n">corner_4</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Box2D.Extrema"><a class="viewcode-back" href="../../../../lingvo.tasks.car.transform_util.html#lingvo.tasks.car.transform_util.Box2D.Extrema">[docs]</a>  <span class="k">def</span> <span class="nf">Extrema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the extrema of the bounding box.&quot;&quot;&quot;</span>
+    <span class="n">ymin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_corners</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">xmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_corners</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">ymax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_corners</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">xmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_corners</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">xmin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">,</span> <span class="n">xmax</span></div>
+
+<div class="viewcode-block" id="Box2D.Apply"><a class="viewcode-back" href="../../../../lingvo.tasks.car.transform_util.html#lingvo.tasks.car.transform_util.Box2D.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply `transform` to the current box and return a new box.&quot;&quot;&quot;</span>
+    <span class="c1"># Transform corner points using the transform matrix.</span>
+    <span class="n">new_corners</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># TODO(vrv): vectorize</span>
+    <span class="k">for</span> <span class="n">corner</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_corners</span><span class="p">:</span>
+      <span class="c1"># Extend to z, w.</span>
+      <span class="n">corner</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">corner</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="c1"># Apply the transform.</span>
+      <span class="n">corner_adjusted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="n">corner</span><span class="p">)</span>
+      <span class="n">new_corners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">corner_adjusted</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">])</span>
+
+    <span class="n">new_corners</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">new_corners</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Compute the new center.</span>
+    <span class="n">ymin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">new_corners</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">xmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">new_corners</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">ymax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">new_corners</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">xmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">new_corners</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">center_x</span> <span class="o">=</span> <span class="n">xmin</span> <span class="o">+</span> <span class="p">(</span><span class="n">xmax</span> <span class="o">-</span> <span class="n">xmin</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span>
+    <span class="n">center_y</span> <span class="o">=</span> <span class="n">ymin</span> <span class="o">+</span> <span class="p">(</span><span class="n">ymax</span> <span class="o">-</span> <span class="n">ymin</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span>
+
+    <span class="c1"># Compute the new width and length.</span>
+    <span class="n">scale_transform</span> <span class="o">=</span> <span class="n">CopyTransform</span><span class="p">(</span><span class="n">transform</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">w_l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_length</span><span class="p">])</span>
+    <span class="n">new_wl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">scale_transform</span><span class="p">,</span> <span class="n">w_l</span><span class="p">))</span>
+    <span class="n">new_width</span> <span class="o">=</span> <span class="n">new_wl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">new_length</span> <span class="o">=</span> <span class="n">new_wl</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Compute the transformed heading.</span>
+    <span class="n">transformed_heading</span> <span class="o">=</span> <span class="n">TransformHeading</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_angle</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Box2D</span><span class="p">(</span><span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span><span class="p">,</span> <span class="n">new_width</span><span class="p">,</span> <span class="n">new_length</span><span class="p">,</span> <span class="n">transformed_heading</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Box2D.AsNumpy"><a class="viewcode-back" href="../../../../lingvo.tasks.car.transform_util.html#lingvo.tasks.car.transform_util.Box2D.AsNumpy">[docs]</a>  <span class="k">def</span> <span class="nf">AsNumpy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the 5DOF (xywhh) representation as a numpy array.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_center</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_center</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_angle</span>
+    <span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="TransformHeading"><a class="viewcode-back" href="../../../../lingvo.tasks.car.transform_util.html#lingvo.tasks.car.transform_util.TransformHeading">[docs]</a><span class="k">def</span> <span class="nf">TransformHeading</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="n">heading</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute &#39;heading&#39; given transform.</span>
+
+<span class="sd">  The heading provided as input is assumed to be in the original coordinate</span>
+<span class="sd">  space.  When the coordinate space undergoes a transformation (e.g., with</span>
+<span class="sd">  CarToImageTransform), the heading in the new coordinate space must be</span>
+<span class="sd">  recomputed.</span>
+
+<span class="sd">  We compute this by deriving the formula for the angle of transformed unit</span>
+<span class="sd">  vector defined by &#39;heading&#39;.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    transform: 4x4 numpy matrix used to convert from car to image coordinates.</span>
+<span class="sd">    heading: Floating point scalar heading.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    new_heading: Heading in the transformed coordinate system.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">heading</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">heading</span><span class="p">)</span>
+
+  <span class="c1"># Transform the unit ray.</span>
+  <span class="n">unit_ray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+  <span class="n">transform_no_shift</span> <span class="o">=</span> <span class="n">CopyTransform</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
+  <span class="n">transform_no_shift</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">transform_no_shift</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">transformed_ray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">transform_no_shift</span><span class="p">,</span> <span class="n">unit_ray</span><span class="p">)</span>
+  <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">transformed_ray</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+
+  <span class="c1"># Use arctan2 to compute the new rotation angle; note that arctan2 takes &#39;y&#39;</span>
+  <span class="c1"># and then &#39;x&#39;.</span>
+  <span class="n">new_heading</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">y2</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">new_heading</span></div>
+
+
+<div class="viewcode-block" id="TransformPoint"><a class="viewcode-back" href="../../../../lingvo.tasks.car.transform_util.html#lingvo.tasks.car.transform_util.TransformPoint">[docs]</a><span class="k">def</span> <span class="nf">TransformPoint</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Transform an x, y, z point given the 4x4 `transform`.&quot;&quot;&quot;</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]))</span>
+  <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="CopyTransform"><a class="viewcode-back" href="../../../../lingvo.tasks.car.transform_util.html#lingvo.tasks.car.transform_util.CopyTransform">[docs]</a><span class="k">def</span> <span class="nf">CopyTransform</span><span class="p">(</span><span class="n">transform</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Return a copy of `transform`.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MakeCarToImageTransform"><a class="viewcode-back" href="../../../../lingvo.tasks.car.transform_util.html#lingvo.tasks.car.transform_util.MakeCarToImageTransform">[docs]</a><span class="k">def</span> <span class="nf">MakeCarToImageTransform</span><span class="p">(</span><span class="n">pixels_per_meter</span><span class="p">,</span> <span class="n">image_ref_x</span><span class="p">,</span> <span class="n">image_ref_y</span><span class="p">,</span>
+                            <span class="n">flip_axes</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a 4x4 numpy matrix for car to top down image coordinates.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    pixels_per_meter: Number of pixels that represent a meter in top down view.</span>
+<span class="sd">    image_ref_x: Number of pixels to shift the car in the x direction.</span>
+<span class="sd">    image_ref_y: Number of pixels to shift the car in the y direction.</span>
+<span class="sd">    flip_axes: Boolean indicating whether the x/y axes should be flipped[ during</span>
+<span class="sd">      the transform.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A 4x4 matrix transform.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">ppm1</span> <span class="o">=</span> <span class="mf">0.</span> <span class="k">if</span> <span class="n">flip_axes</span> <span class="k">else</span> <span class="n">pixels_per_meter</span>
+  <span class="n">ppm2</span> <span class="o">=</span> <span class="o">-</span><span class="n">pixels_per_meter</span> <span class="k">if</span> <span class="n">flip_axes</span> <span class="k">else</span> <span class="mf">0.</span>
+  <span class="c1"># pyformat: disable</span>
+  <span class="n">car_to_image_transform</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+      <span class="p">[</span><span class="n">ppm1</span><span class="p">,</span> <span class="n">ppm2</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">image_ref_x</span><span class="p">],</span>
+      <span class="p">[</span><span class="n">ppm2</span><span class="p">,</span> <span class="n">ppm1</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">image_ref_y</span><span class="p">],</span>
+      <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+      <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]])</span>
+  <span class="c1"># pyformat: enable</span>
+  <span class="k">return</span> <span class="n">car_to_image_transform</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

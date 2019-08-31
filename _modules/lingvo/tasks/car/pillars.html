@@ -1,0 +1,744 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.pillars &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.pillars</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.pillars</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;PointPillars implementation.</span>
+
+<span class="sd">[1] PointPillars. https://arxiv.org/abs/1812.05784</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">optimizer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">builder_lib</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">detection_3d_lib</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">point_detector</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="_SparseToDense"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars._SparseToDense">[docs]</a><span class="k">def</span> <span class="nf">_SparseToDense</span><span class="p">(</span><span class="n">grid_shape</span><span class="p">,</span> <span class="n">locations</span><span class="p">,</span> <span class="n">feats</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Converts a sparse representation back to the dense grid.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    grid_shape: (nx, ny, nz). The shape of the grid.</span>
+<span class="sd">    locations: [b, p, 3]. Locations of the pillars.</span>
+<span class="sd">    feats: [b, p, fdims]. Extracted features for pillars.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    grid_feats: [b, nx, ny, nz * fdims].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">=</span> <span class="n">grid_shape</span>
+  <span class="n">b</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">locations</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="n">feats</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">fdims</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+      <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">b</span><span class="p">)[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">locations</span><span class="p">],</span>
+      <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+  <span class="n">grid</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">scatter_nd</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">feats</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">fdims</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">*</span> <span class="n">fdims</span><span class="p">])</span></div>
+
+
+<span class="c1"># pyformat: disable</span>
+<div class="viewcode-block" id="Builder"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder">[docs]</a><span class="k">class</span> <span class="nc">Builder</span><span class="p">(</span><span class="n">builder_lib</span><span class="o">.</span><span class="n">ModelBuilderBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Builder for the Pillars model.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">Builder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">conv_init_method</span> <span class="o">=</span> <span class="n">builder_lib</span><span class="o">.</span><span class="n">KaimingUniformFanInRelu</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">linear_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">KaimingUniformFanInRelu</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">bn_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">UniformPositive</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Builder.Featurizer"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder.Featurizer">[docs]</a>  <span class="k">def</span> <span class="nf">Featurizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="s1">&#39;feat&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_MLP</span><span class="p">(</span><span class="s1">&#39;mlp&#39;</span><span class="p">,</span> <span class="n">dims</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Max</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Builder._Deconv"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder._Deconv">[docs]</a>  <span class="k">def</span> <span class="nf">_Deconv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeconvLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">filter_shape</span><span class="o">=</span><span class="n">filter_shape</span><span class="p">,</span>
+        <span class="n">filter_stride</span><span class="o">=</span><span class="p">(</span><span class="n">stride</span><span class="p">,</span> <span class="n">stride</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Builder._Block"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder._Block">[docs]</a>  <span class="k">def</span> <span class="nf">_Block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">repeats</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;[1]. Sec 2.2.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Conv</span><span class="p">(</span><span class="s1">&#39;c3x3&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span> <span class="n">stride</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Rep</span><span class="p">(</span>
+            <span class="s1">&#39;rep&#39;</span><span class="p">,</span>
+            <span class="n">repeats</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Conv</span><span class="p">(</span><span class="s1">&#39;c3x3&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">odims</span><span class="p">))),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Fetch</span><span class="p">(</span><span class="s1">&#39;final&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Builder._TopDown"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder._TopDown">[docs]</a>  <span class="k">def</span> <span class="nf">_TopDown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;[1]. Sec 2.2.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">strides</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`strides` expected to be list/tuple of len 3.&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Block</span><span class="p">(</span><span class="s1">&#39;b0&#39;</span><span class="p">,</span> <span class="n">strides</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Block</span><span class="p">(</span><span class="s1">&#39;b1&#39;</span><span class="p">,</span> <span class="n">strides</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Block</span><span class="p">(</span><span class="s1">&#39;b2&#39;</span><span class="p">,</span> <span class="n">strides</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">256</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Builder._Upsample"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder._Upsample">[docs]</a>  <span class="k">def</span> <span class="nf">_Upsample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;[1]. Sec 2.2.&quot;&quot;&quot;</span>
+    <span class="c1"># Match the kernel size to the stride in order to ensure that the output</span>
+    <span class="c1"># activation map has no holes and to minimize any checkerboard artifacts.</span>
+    <span class="c1"># TODO(shlens): Consider replacing this in the future with a bilinear</span>
+    <span class="c1"># interpolation followed by a 3x3 convolution.</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">stride</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Deconv</span><span class="p">(</span><span class="s1">&#39;deconv&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">idims</span><span class="p">),</span> <span class="n">stride</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_BN</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Relu</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Builder.Backbone"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder.Backbone">[docs]</a>  <span class="k">def</span> <span class="nf">Backbone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">down_strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;[1]. Sec 2.2.&quot;&quot;&quot;</span>
+    <span class="c1"># We assume (H, W) are multiple of 8. So that we can concat</span>
+    <span class="c1"># multiple-scale feature maps together after upsample.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="s1">&#39;backbone&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Branch</span><span class="p">(</span>
+            <span class="s1">&#39;branch&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_TopDown</span><span class="p">(</span><span class="s1">&#39;topdown&#39;</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="n">down_strides</span><span class="p">),</span>
+            <span class="p">[</span><span class="s1">&#39;b1.final&#39;</span><span class="p">,</span> <span class="s1">&#39;b0.final&#39;</span><span class="p">]),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Concat</span><span class="p">(</span>
+            <span class="s1">&#39;concat&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+                <span class="s1">&#39;b2&#39;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ArgIdx</span><span class="p">(</span><span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Upsample</span><span class="p">(</span><span class="s1">&#39;ups&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="n">odims</span><span class="p">)),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+                <span class="s1">&#39;b1&#39;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ArgIdx</span><span class="p">(</span><span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Upsample</span><span class="p">(</span><span class="s1">&#39;ups&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="n">odims</span><span class="p">)),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+                <span class="s1">&#39;b0&#39;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ArgIdx</span><span class="p">(</span><span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Upsample</span><span class="p">(</span><span class="s1">&#39;ups&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="n">odims</span><span class="p">))))</span></div>
+
+<div class="viewcode-block" id="Builder.Detector"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder.Detector">[docs]</a>  <span class="k">def</span> <span class="nf">Detector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">bias_params_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># Implemented according to VoxelNet</span>
+    <span class="c1"># https://arxiv.org/pdf/1711.06396.pdf</span>
+    <span class="c1"># May add more Conv2D layers before predictor for better performance.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ConvPlain</span><span class="p">(</span><span class="s1">&#39;predict&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;predict_bias&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">bias_params_init</span><span class="p">))</span></div></div>
+
+<span class="c1"># pyformat: enable</span>
+
+
+<div class="viewcode-block" id="LossNormType"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.LossNormType">[docs]</a><span class="k">class</span> <span class="nc">LossNormType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+  <span class="n">NO_NORM</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">NORM_BY_NUM_POSITIVES</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="ModelV1"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ModelV1">[docs]</a><span class="k">class</span> <span class="nc">ModelV1</span><span class="p">(</span><span class="n">point_detector</span><span class="o">.</span><span class="n">PointDetectorBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;PointPillars model.</span>
+
+<span class="sd">  Base class implements common Decoder functions, though they can be</span>
+<span class="sd">  overridden if desired.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">NUM_OUTPUT_CHANNELS</span> <span class="o">=</span> <span class="mi">128</span>
+
+  <span class="n">NEEDED_INPUT_BATCH_FIELDS_FOR_TRAINING</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s1">&#39;grid_num_points&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;pillar_points&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;pillar_locations&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;pillar_centers&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;anchor_bboxes&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;anchor_localization_residuals&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;assigned_gt_labels&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;assigned_cls_mask&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;assigned_reg_mask&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;assigned_gt_bbox&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;labels.bboxes_td&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;labels.bboxes_td_mask&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;labels.bboxes_3d_mask&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;labels.bboxes_3d_num_points&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;labels.bboxes_3d&#39;</span><span class="p">,</span>
+  <span class="p">}</span>
+
+<div class="viewcode-block" id="ModelV1.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ModelV1.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+             <span class="n">grid_size_z</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+             <span class="n">num_anchors</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+             <span class="n">num_classes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+             <span class="n">num_laser_features</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ModelV1</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;grid_size_z&#39;</span><span class="p">,</span> <span class="n">grid_size_z</span><span class="p">,</span> <span class="s1">&#39;The grid size along the z-axis.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_anchors&#39;</span><span class="p">,</span> <span class="n">num_anchors</span><span class="p">,</span> <span class="s1">&#39;The number of anchor boxes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_laser_features&#39;</span><span class="p">,</span> <span class="n">num_laser_features</span><span class="p">,</span>
+             <span class="s1">&#39;The number of (non-xyz) laser features of the input.&#39;</span><span class="p">)</span>
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">Builder</span><span class="p">()</span>
+
+    <span class="n">total_num_laser_features</span> <span class="o">=</span> <span class="mi">9</span> <span class="o">+</span> <span class="n">num_laser_features</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;featurizer&#39;</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">Featurizer</span><span class="p">([</span><span class="n">total_num_laser_features</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
+             <span class="s1">&#39;Point cloud feature extractor.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;backbone&#39;</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">Backbone</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">NUM_OUTPUT_CHANNELS</span><span class="p">),</span>
+             <span class="s1">&#39;Dense features pyramid.&#39;</span><span class="p">)</span>
+    <span class="c1"># Backbone() concatenates 3 different scales of features.</span>
+    <span class="n">idims</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_OUTPUT_CHANNELS</span>
+    <span class="c1"># 7: predicted (dx, dy, dz, dw, dl, dh, dt).</span>
+    <span class="n">class_odims</span> <span class="o">=</span> <span class="n">grid_size_z</span> <span class="o">*</span> <span class="n">num_anchors</span> <span class="o">*</span> <span class="n">num_classes</span>
+    <span class="n">reg_odims</span> <span class="o">=</span> <span class="n">grid_size_z</span> <span class="o">*</span> <span class="n">num_anchors</span> <span class="o">*</span> <span class="mi">7</span>
+    <span class="n">rot_odims</span> <span class="o">=</span> <span class="n">grid_size_z</span> <span class="o">*</span> <span class="n">num_anchors</span> <span class="o">*</span> <span class="mi">2</span>
+    <span class="c1"># Although theoretically a single conv layer can generate both the</span>
+    <span class="c1"># regression and classification logits, we try to implement the paper</span>
+    <span class="c1"># faithfully, which uses two different layers.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;class_detector&#39;</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">Detector</span><span class="p">(</span><span class="s1">&#39;class&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">class_odims</span><span class="p">),</span>
+             <span class="s1">&#39;Dense features to class logits.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;regression_detector&#39;</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">Detector</span><span class="p">(</span><span class="s1">&#39;reg&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">reg_odims</span><span class="p">),</span>
+             <span class="s1">&#39;Dense features to regression logits.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;direction_classifier&#39;</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">Detector</span><span class="p">(</span><span class="s1">&#39;dir&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">rot_odims</span><span class="p">),</span>
+             <span class="s1">&#39;Dense features to rotation direction classifier.&#39;</span><span class="p">)</span>
+    <span class="c1"># We disable the direction classifier by default since it has</span>
+    <span class="c1"># weird discontinous optimization objectives around the threshold</span>
+    <span class="c1"># and it doesn&#39;t improve mAP.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;direction_classifier_weight&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;If &gt; 0, adds a direction classifier to the model and adds &#39;</span>
+        <span class="s1">&#39;to the total loss with this weight.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;squash_rotation_predictions&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Apply tanh squashing to rotation predictions to ensure outputs &#39;</span>
+        <span class="s1">&#39;are between (-pi, pi).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;focal_loss_alpha&#39;</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="s1">&#39;The alpha parameter in focal loss &#39;</span>
+             <span class="s1">&#39;(see paper eq. 4).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;focal_loss_gamma&#39;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="s1">&#39;The gamma parameter in focal loss &#39;</span>
+             <span class="s1">&#39;(see paper eq. 4).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;localization_loss_weight&#39;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="s1">&#39;Localization loss weight factor between localization and &#39;</span>
+        <span class="s1">&#39;class loss contributions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;classification_loss_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;Classification loss weight factor between localization and &#39;</span>
+        <span class="s1">&#39;class loss contributions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;location_loss_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;Weight multiplier for contribution of location loss &#39;</span>
+        <span class="s1">&#39;to full localization/regression loss&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;dimension_loss_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;Weight multiplier for contribution of dimension loss &#39;</span>
+        <span class="s1">&#39;to full localization/regression loss&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;rotation_loss_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;Weight multiplier for contribution of rotation loss &#39;</span>
+        <span class="s1">&#39;to full localization/regression loss&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;loss_norm_type&#39;</span><span class="p">,</span> <span class="n">LossNormType</span><span class="o">.</span><span class="n">NORM_BY_NUM_POSITIVES</span><span class="p">,</span>
+             <span class="s1">&#39;Normalization function for class and regularization weights.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;oracle_location&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If true, the model predicts the ground truth for location.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;oracle_dimension&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If true, the model predicts the ground truth for dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;oracle_rotation&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If true, the model predicts the ground truth for rotation.&#39;</span><span class="p">)</span>
+
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">0.001</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">Momentum</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ModelV1</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span> <span class="o">=</span> <span class="n">detection_3d_lib</span><span class="o">.</span><span class="n">Utils3D</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;featurizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">featurizer</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;backbone&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">backbone</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;class_detector&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">class_detector</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;regression_detector&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">regression_detector</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">direction_classifier_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;direction_classifier&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">direction_classifier</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModelV1.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ModelV1.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes predictions for `input_batch`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: A `.NestedMap` object containing input tensors to this tower.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `.NestedMap` contains</span>
+<span class="sd">        logits - [b, nx, ny, nz, na, 7 + num_classes]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()))</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span>
+        <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;input_batch shapes: &#39;</span><span class="p">)</span>
+
+    <span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">grid_num_points</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="c1"># Process points to concatenate a set of fixed features (e.g.,</span>
+    <span class="c1"># add means, centers, normalize points to means).</span>
+    <span class="n">num_features</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_laser_features</span>
+    <span class="n">pillar_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_points</span><span class="p">,</span>
+                                      <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_features</span><span class="p">])</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">npillars</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">pillar_points</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">pillar_xyz</span> <span class="o">=</span> <span class="n">pillar_points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">pillar_means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">pillar_xyz</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keep_dims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">pillar_feats</span> <span class="o">=</span> <span class="n">pillar_points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:]</span>
+    <span class="n">pillar_centers</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_centers</span><span class="p">,</span>
+                                       <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">pillar_concat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">values</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">pillar_xyz</span> <span class="o">-</span> <span class="n">pillar_means</span><span class="p">,</span> <span class="n">pillar_feats</span><span class="p">,</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pillar_means</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pillar_centers</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="p">])</span>
+
+    <span class="c1"># Featurize pillars.</span>
+    <span class="n">pillar_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">featurizer</span><span class="p">,</span> <span class="n">pillar_concat</span><span class="p">)</span>
+
+    <span class="c1"># Convert back to the dense grid.</span>
+    <span class="n">pillar_locations</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_locations</span><span class="p">,</span>
+                                         <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">npillars</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">dense_features</span> <span class="o">=</span> <span class="n">_SparseToDense</span><span class="p">(</span>
+        <span class="n">grid_shape</span><span class="o">=</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">),</span>
+        <span class="n">locations</span><span class="o">=</span><span class="n">pillar_locations</span><span class="p">,</span>
+        <span class="n">feats</span><span class="o">=</span><span class="n">pillar_features</span><span class="p">)</span>
+
+    <span class="c1"># Backbone</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;dense_features.shape = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dense_features</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">act</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">backbone</span><span class="p">,</span> <span class="n">dense_features</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;act.shape = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">act</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="c1"># Convert the output of the backbone into class logits and regression</span>
+    <span class="c1"># residuals using two different layers.</span>
+    <span class="n">class_detection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_detector</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">class_detector</span><span class="p">,</span> <span class="n">act</span><span class="p">)</span>
+    <span class="n">reg_detection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">regression_detector</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">regression_detector</span><span class="p">,</span>
+                                                   <span class="n">act</span><span class="p">)</span>
+    <span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">class_detection</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">predicted_classification_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">class_detection</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">grid_size_z</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchors</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">])</span>
+    <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">reg_detection</span><span class="p">,</span> <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">grid_size_z</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchors</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">squash_rotation_predictions</span><span class="p">:</span>
+      <span class="n">predicted_rotations</span> <span class="o">=</span> <span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span>
+      <span class="n">predicted_rotations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">predicted_rotations</span><span class="p">)</span>
+      <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="n">predicted_rotations</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_location</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_dimension</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_rotation</span><span class="p">:</span>
+      <span class="n">gt_residuals</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+          <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_localization_residuals</span><span class="p">,</span>
+          <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">grid_size_z</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchors</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+
+      <span class="c1"># Replace the predicted components with the ground truth if needed.</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_location</span><span class="p">:</span>
+        <span class="n">location</span> <span class="o">=</span> <span class="n">gt_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">location</span> <span class="o">=</span> <span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_dimension</span><span class="p">:</span>
+        <span class="n">dimension</span> <span class="o">=</span> <span class="n">gt_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">dimension</span> <span class="o">=</span> <span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">oracle_rotation</span><span class="p">:</span>
+        <span class="n">rotation</span> <span class="o">=</span> <span class="n">gt_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">rotation</span> <span class="o">=</span> <span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span>
+      <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">location</span><span class="p">,</span> <span class="n">dimension</span><span class="p">,</span> <span class="n">rotation</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;residuals&#39;</span><span class="p">:</span> <span class="n">predicted_residuals</span><span class="p">,</span>
+        <span class="s1">&#39;classification_logits&#39;</span><span class="p">:</span> <span class="n">predicted_classification_logits</span><span class="p">,</span>
+    <span class="p">})</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">direction_classifier_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="n">predicted_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">direction_classifier</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">direction_classifier</span><span class="p">,</span> <span class="n">act</span><span class="p">)</span>
+      <span class="n">predicted_dir</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">predicted_dir</span><span class="p">,</span>
+                                 <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">grid_size_z</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchors</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">predicted_dir</span> <span class="o">=</span> <span class="n">predicted_dir</span>
+
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="ModelV1.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ModelV1.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes loss and other metrics for the given predictions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: The input batch from which we accesses the groundtruth.</span>
+<span class="sd">      predictions: The output of `ComputePredictions`, contains: logits - [b,</span>
+<span class="sd">        nx, ny, nz, na, 7 + num_classes]. na is the number of anchor</span>
+<span class="sd">        boxes per cell. [..., :7] are (dx, dy, dz, dw, dl, dh, dt).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Two dicts defined as BaseTask.ComputeLoss.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">predicted_residuals</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">residuals</span><span class="p">,</span>
+                                            <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchors</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">predicted_class_logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">predictions</span><span class="o">.</span><span class="n">classification_logits</span><span class="p">,</span>
+        <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchors</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">])</span>
+    <span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">predicted_class_logits</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+
+    <span class="c1"># Compute class and regression weights.</span>
+    <span class="n">class_weights</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_cls_mask</span>
+    <span class="n">class_weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">class_weights</span><span class="p">,</span> <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">])</span>
+    <span class="n">reg_weights</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_reg_mask</span>
+    <span class="n">reg_weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">reg_weights</span><span class="p">,</span> <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">])</span>
+    <span class="n">reg_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">reg_weights</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_norm_type</span> <span class="o">==</span> <span class="n">LossNormType</span><span class="o">.</span><span class="n">NORM_BY_NUM_POSITIVES</span><span class="p">:</span>
+      <span class="c1"># Compute number of positive anchors per example.</span>
+      <span class="n">foreground_mask</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_reg_mask</span><span class="p">,</span>
+                                          <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">])</span>
+      <span class="c1"># Sum to get the number of foreground anchors for each example.</span>
+      <span class="n">loss_normalization</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">foreground_mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">loss_normalization</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">loss_normalization</span><span class="p">,</span>
+                                      <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">loss_normalization</span><span class="p">))</span>
+      <span class="c1"># Reshape for broadcasting.</span>
+      <span class="n">loss_normalization</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">loss_normalization</span><span class="p">,</span> <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+      <span class="n">class_weights</span> <span class="o">/=</span> <span class="n">loss_normalization</span>
+      <span class="n">reg_weights</span> <span class="o">/=</span> <span class="n">loss_normalization</span>
+
+    <span class="c1"># Classification loss.</span>
+    <span class="n">assigned_gt_labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_gt_labels</span><span class="p">,</span>
+                                           <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">])</span>
+    <span class="n">class_loss</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SigmoidCrossEntropyFocalLoss</span><span class="p">(</span>
+        <span class="n">logits</span><span class="o">=</span><span class="n">predicted_class_logits</span><span class="p">,</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">assigned_gt_labels</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">),</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_alpha</span><span class="p">,</span>
+        <span class="n">gamma</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_gamma</span><span class="p">)</span>
+    <span class="n">class_loss</span> <span class="o">*=</span> <span class="n">class_weights</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">class_loss_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">class_loss</span><span class="p">)</span>
+
+    <span class="c1"># Regression loss.</span>
+    <span class="n">anchor_localization_residuals</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_localization_residuals</span><span class="p">,</span> <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+
+    <span class="c1"># Location and dimensions loss.</span>
+    <span class="n">reg_loc_and_dims_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
+        <span class="n">predictions</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">6</span><span class="p">],</span>
+                                      <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">,</span> <span class="mi">6</span><span class="p">]),</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">anchor_localization_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">6</span><span class="p">],</span>
+        <span class="n">delta</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mf">3.</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="c1"># Rotation loss with SmoothL1(sin(delta)).</span>
+    <span class="n">rot_delta</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span> <span class="o">-</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_localization_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:])</span>
+    <span class="n">reg_rot_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
+        <span class="n">predictions</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">rot_delta</span><span class="p">),</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">rot_delta</span><span class="p">),</span>
+        <span class="n">delta</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mf">3.</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="c1"># Direction loss</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">direction_classifier_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="c1"># The target rotations are in the assigned_gt_bbox tensor,</span>
+      <span class="c1"># which already has assigned a gt bounding box to every anchor.</span>
+      <span class="n">rot_target</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_gt_bbox</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">]</span>
+      <span class="c1"># If rotation is &gt; 0, the class is 1, else it is 0.</span>
+      <span class="n">rot_dir</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">rot_target</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">)</span>
+
+      <span class="c1"># Compute one-hot labels as a target.</span>
+      <span class="n">rot_dir_onehot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">rot_dir</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+      <span class="c1"># Manually handle loss reduction.</span>
+      <span class="n">dir_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">softmax_cross_entropy</span><span class="p">(</span>
+          <span class="n">onehot_labels</span><span class="o">=</span><span class="n">rot_dir_onehot</span><span class="p">,</span>
+          <span class="n">logits</span><span class="o">=</span><span class="n">predictions</span><span class="o">.</span><span class="n">predicted_dir</span><span class="p">,</span>
+          <span class="n">weights</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">reg_weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+          <span class="n">reduction</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">Reduction</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span>
+      <span class="c1"># Reduce across all dimensions (we&#39;ll divide by the batch size below).</span>
+      <span class="n">dir_loss_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">dir_loss</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">dir_loss_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Compute loss contribution from location and dimension separately.</span>
+    <span class="n">reg_loc_loss</span> <span class="o">=</span> <span class="n">reg_loc_and_dims_loss</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">reg_weights</span>
+    <span class="n">reg_loc_loss_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">reg_loc_loss</span><span class="p">)</span>
+
+    <span class="n">reg_dim_loss</span> <span class="o">=</span> <span class="n">reg_loc_and_dims_loss</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span> <span class="o">*</span> <span class="n">reg_weights</span>
+    <span class="n">reg_dim_loss_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">reg_dim_loss</span><span class="p">)</span>
+
+    <span class="c1"># Compute rotation loss contribution.</span>
+    <span class="n">reg_rot_loss</span> <span class="o">*=</span> <span class="n">reg_weights</span>
+    <span class="n">reg_rot_loss_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">reg_rot_loss</span><span class="p">)</span>
+
+    <span class="c1"># Num. predictions.</span>
+    <span class="c1"># TODO(zhifengc): Consider other normalization factors. E.g., # of bboxes.</span>
+    <span class="n">preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">class_loss_sum</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="c1"># Normalize all of the components by batch size.</span>
+    <span class="n">reg_loc_loss</span> <span class="o">=</span> <span class="n">reg_loc_loss_sum</span> <span class="o">/</span> <span class="n">preds</span>
+    <span class="n">reg_dim_loss</span> <span class="o">=</span> <span class="n">reg_dim_loss_sum</span> <span class="o">/</span> <span class="n">preds</span>
+    <span class="n">reg_rot_loss</span> <span class="o">=</span> <span class="n">reg_rot_loss_sum</span> <span class="o">/</span> <span class="n">preds</span>
+    <span class="n">class_loss</span> <span class="o">=</span> <span class="n">class_loss_sum</span> <span class="o">/</span> <span class="n">preds</span>
+    <span class="n">dir_loss</span> <span class="o">=</span> <span class="n">dir_loss_sum</span> <span class="o">/</span> <span class="n">preds</span>
+
+    <span class="c1"># Compute total localization regression loss.</span>
+    <span class="n">reg_loss</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">location_loss_weight</span> <span class="o">*</span> <span class="n">reg_loc_loss</span> <span class="o">+</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">dimension_loss_weight</span> <span class="o">*</span> <span class="n">reg_dim_loss</span> <span class="o">+</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">rotation_loss_weight</span> <span class="o">*</span> <span class="n">reg_rot_loss</span><span class="p">)</span>
+
+    <span class="c1"># Apply weights to normalized class losses.</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">class_loss</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">classification_loss_weight</span> <span class="o">+</span>
+        <span class="n">reg_loss</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">localization_loss_weight</span> <span class="o">+</span>
+        <span class="n">dir_loss</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">direction_classifier_weight</span><span class="p">)</span>
+
+    <span class="n">metrics_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">preds</span><span class="p">),</span>
+        <span class="s1">&#39;loss/class&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">class_loss</span><span class="p">,</span> <span class="n">preds</span><span class="p">),</span>
+        <span class="s1">&#39;loss/reg&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">reg_loss</span><span class="p">,</span> <span class="n">preds</span><span class="p">),</span>
+        <span class="s1">&#39;loss/reg/rot&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">reg_rot_loss</span><span class="p">,</span> <span class="n">preds</span><span class="p">),</span>
+        <span class="s1">&#39;loss/reg/loc&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">reg_loc_loss</span><span class="p">,</span> <span class="n">preds</span><span class="p">),</span>
+        <span class="s1">&#39;loss/reg/dim&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">reg_dim_loss</span><span class="p">,</span> <span class="n">preds</span><span class="p">),</span>
+        <span class="s1">&#39;loss/dir&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">dir_loss</span><span class="p">,</span> <span class="n">preds</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="n">per_example_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;residuals&#39;</span><span class="p">:</span> <span class="n">predicted_residuals</span><span class="p">,</span>
+        <span class="s1">&#39;classification_logits&#39;</span><span class="p">:</span> <span class="n">predicted_class_logits</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">metrics_dict</span><span class="p">,</span> <span class="n">per_example_dict</span></div>
+
+<div class="viewcode-block" id="ModelV1._BBoxesAndLogits"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ModelV1._BBoxesAndLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_BBoxesAndLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decode an input batch, computing predicted bboxes from residuals.&quot;&quot;&quot;</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">per_example_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+
+    <span class="c1"># Decode residuals.</span>
+    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span><span class="o">.</span><span class="n">ResidualsToBBoxes</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span> <span class="n">per_example_dict</span><span class="p">[</span><span class="s1">&#39;residuals&#39;</span><span class="p">])</span>
+
+    <span class="c1"># predicted_bboxes is a [batch, nx, ny, nz, na, 7] Tensor.</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+    <span class="n">num_boxes</span> <span class="o">=</span> <span class="n">nx</span> <span class="o">*</span> <span class="n">ny</span> <span class="o">*</span> <span class="n">nz</span> <span class="o">*</span> <span class="n">na</span>
+
+    <span class="c1"># Reshape to [batch_size, num_boxes, 7]</span>
+    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+
+    <span class="n">classification_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">per_example_dict</span><span class="p">[</span><span class="s1">&#39;classification_logits&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;predicted_bboxes&#39;</span><span class="p">:</span> <span class="n">predicted_bboxes</span><span class="p">,</span>
+        <span class="s1">&#39;classification_logits&#39;</span><span class="p">:</span> <span class="n">classification_logits</span>
+    <span class="p">})</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

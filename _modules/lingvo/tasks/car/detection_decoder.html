@@ -1,0 +1,401 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.detection_decoder &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.detection_decoder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.detection_decoder</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Functions to help with decoding detector model outputs.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">detection_3d_lib</span>
+
+
+<div class="viewcode-block" id="DecodeWithNMS"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_decoder.html#lingvo.tasks.car.detection_decoder.DecodeWithNMS">[docs]</a><span class="k">def</span> <span class="nf">DecodeWithNMS</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span>
+                  <span class="n">classification_scores</span><span class="p">,</span>
+                  <span class="n">nms_iou_threshold</span><span class="p">,</span>
+                  <span class="n">score_threshold</span><span class="p">,</span>
+                  <span class="n">max_boxes_per_class</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">use_oriented_per_class_nms</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Perform NMS on predicted bounding boxes / associated logits.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    predicted_bboxes: [batch_size, num_boxes, 7] float Tensor containing</span>
+<span class="sd">      predicted bounding box coordinates.</span>
+<span class="sd">    classification_scores: [batch_size, num_boxes, num_classes] float Tensor</span>
+<span class="sd">      containing predicted classification scores for each box.</span>
+<span class="sd">    nms_iou_threshold: IoU threshold to use when determining whether two boxes</span>
+<span class="sd">      overlap for purposes of suppression. Either a float or a list of len</span>
+<span class="sd">      num_classes.</span>
+<span class="sd">    score_threshold: The score threshold passed to NMS that allows NMS to</span>
+<span class="sd">      quickly ignore irrelevant boxes. Either a float or a list of len</span>
+<span class="sd">      num_classes.</span>
+<span class="sd">    max_boxes_per_class: The maximum number of boxes per example to emit.</span>
+<span class="sd">        If None, this value is set to num_boxes from the shape of</span>
+<span class="sd">        predicted_bboxes.</span>
+<span class="sd">    use_oriented_per_class_nms: Whether to use the oriented per class NMS</span>
+<span class="sd">      or treat everything as one class and having no orientation.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    predicted_bboxes: Filtered bboxes after NMS of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class, 7].</span>
+<span class="sd">    bbox_scores: A float32 Tensor with the score for each box of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class].</span>
+<span class="sd">    valid_mask: A float32 Tensor with 1/0 values indicating the validity of</span>
+<span class="sd">      each box. 1 indicates valid, and 0 invalid. Tensor of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">use_oriented_per_class_nms</span><span class="p">:</span>
+    <span class="n">nms_fn</span> <span class="o">=</span> <span class="n">_MultiClassOrientedDecodeWithNMS</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">nms_fn</span> <span class="o">=</span> <span class="n">_SingleClassDecodeWithNMS</span>
+
+  <span class="k">return</span> <span class="n">nms_fn</span><span class="p">(</span>
+      <span class="n">predicted_bboxes</span><span class="o">=</span><span class="n">predicted_bboxes</span><span class="p">,</span>
+      <span class="n">classification_scores</span><span class="o">=</span><span class="n">classification_scores</span><span class="p">,</span>
+      <span class="n">nms_iou_threshold</span><span class="o">=</span><span class="n">nms_iou_threshold</span><span class="p">,</span>
+      <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
+      <span class="n">max_boxes_per_class</span><span class="o">=</span><span class="n">max_boxes_per_class</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_MultiClassOrientedDecodeWithNMS"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_decoder.html#lingvo.tasks.car.detection_decoder._MultiClassOrientedDecodeWithNMS">[docs]</a><span class="k">def</span> <span class="nf">_MultiClassOrientedDecodeWithNMS</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span>
+                                     <span class="n">classification_scores</span><span class="p">,</span>
+                                     <span class="n">nms_iou_threshold</span><span class="p">,</span>
+                                     <span class="n">score_threshold</span><span class="p">,</span>
+                                     <span class="n">max_boxes_per_class</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Perform Oriented Per Class NMS on predicted bounding boxes / logits.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    predicted_bboxes: [batch_size, num_boxes, 7] float Tensor containing</span>
+<span class="sd">      predicted bounding box coordinates.</span>
+<span class="sd">    classification_scores: [batch_size, num_boxes, num_classes] float Tensor</span>
+<span class="sd">      containing predicted classification scores for each box.</span>
+<span class="sd">    nms_iou_threshold: IoU threshold to use when determining whether two boxes</span>
+<span class="sd">      overlap for purposes of suppression. Either a float or a list of len</span>
+<span class="sd">      num_classes.</span>
+<span class="sd">    score_threshold: The score threshold passed to NMS that allows NMS to</span>
+<span class="sd">      quickly ignore irrelevant boxes. Either a float or a list of len</span>
+<span class="sd">      num_classes. It is strongly recommended that the score for non-active</span>
+<span class="sd">      classes (like background) be set to 1 so they are discarded.</span>
+<span class="sd">    max_boxes_per_class: The maximum number of boxes per example to emit. If</span>
+<span class="sd">      None, this value is set to num_boxes from the shape of predicted_bboxes.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    predicted_bboxes: Filtered bboxes after NMS of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class, 7].</span>
+<span class="sd">    bbox_scores: A float32 Tensor with the score for each box of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class].</span>
+<span class="sd">    valid_mask: A float32 Tensor with 1/0 values indicating the validity of</span>
+<span class="sd">      each box. 1 indicates valid, and 0 invalid. Tensor of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">utils_3d</span> <span class="o">=</span> <span class="n">detection_3d_lib</span><span class="o">.</span><span class="n">Utils3D</span><span class="p">()</span>
+  <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+  <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_predicted_boxes</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">)</span>
+  <span class="n">classification_scores</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+      <span class="n">classification_scores</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_predicted_boxes</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">num_classes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">classification_scores</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">max_boxes_per_class</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">max_boxes_per_class</span> <span class="o">=</span> <span class="n">num_predicted_boxes</span>
+
+  <span class="c1"># Compute NMS for every sample in the batch.</span>
+  <span class="n">bbox_indices</span><span class="p">,</span> <span class="n">bbox_scores</span><span class="p">,</span> <span class="n">valid_mask</span> <span class="o">=</span> <span class="n">utils_3d</span><span class="o">.</span><span class="n">BatchedOrientedNMSIndices</span><span class="p">(</span>
+      <span class="n">predicted_bboxes</span><span class="p">,</span>
+      <span class="n">classification_scores</span><span class="p">,</span>
+      <span class="n">nms_iou_threshold</span><span class="o">=</span><span class="n">nms_iou_threshold</span><span class="p">,</span>
+      <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
+      <span class="n">max_boxes_per_class</span><span class="o">=</span><span class="n">max_boxes_per_class</span><span class="p">)</span>
+
+  <span class="c1"># TODO(bencaine): Consider optimizing away the tf.tile or make upstream</span>
+  <span class="c1"># changes to make predicted boxes include a class dimension.</span>
+  <span class="c1"># Get the original box for each index selected by NMS.</span>
+  <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:],</span>
+                             <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">bbox_indices</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">bbox_scores</span><span class="p">,</span> <span class="n">valid_mask</span></div>
+
+
+<div class="viewcode-block" id="_SingleClassDecodeWithNMS"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_decoder.html#lingvo.tasks.car.detection_decoder._SingleClassDecodeWithNMS">[docs]</a><span class="k">def</span> <span class="nf">_SingleClassDecodeWithNMS</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span>
+                              <span class="n">classification_scores</span><span class="p">,</span>
+                              <span class="n">nms_iou_threshold</span><span class="p">,</span>
+                              <span class="n">score_threshold</span><span class="p">,</span>
+                              <span class="n">max_boxes_per_class</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Perform NMS on predicted bounding boxes / associated logits.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    predicted_bboxes: [batch_size, num_boxes, 7] float Tensor containing</span>
+<span class="sd">      predicted bounding box coordinates.</span>
+<span class="sd">    classification_scores: [batch_size, num_boxes, num_classes] float Tensor</span>
+<span class="sd">      containing predicted classification scores for each box.</span>
+<span class="sd">    nms_iou_threshold: IoU threshold to use when determining whether two boxes</span>
+<span class="sd">      overlap for purposes of suppression.</span>
+<span class="sd">    score_threshold: The score threshold passed to NMS that allows NMS to</span>
+<span class="sd">      quickly ignore irrelevant boxes.</span>
+<span class="sd">    max_boxes_per_class: The maximum number of boxes per example to emit. If</span>
+<span class="sd">      None, this value is set to num_boxes from the shape of predicted_bboxes.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    predicted_bboxes: Filtered bboxes after NMS of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class, 7].</span>
+<span class="sd">    bbox_scores: A float32 Tensor with the score for each box of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class].</span>
+<span class="sd">    valid_mask: A float32 Tensor with 1/0 values indicating the validity of</span>
+<span class="sd">      each box. 1 indicates valid, and 0 invalid. Tensor of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">utils_3d</span> <span class="o">=</span> <span class="n">detection_3d_lib</span><span class="o">.</span><span class="n">Utils3D</span><span class="p">()</span>
+  <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+  <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_predicted_boxes</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">)</span>
+  <span class="n">classification_scores</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+      <span class="n">classification_scores</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_predicted_boxes</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">num_classes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">classification_scores</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nms_iou_threshold</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Single class NMS only supports a scalar &#39;</span>
+                     <span class="s1">&#39;`nms_iou_threshold`.&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">score_threshold</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Single class NMS only supports a scalar &#39;</span>
+                     <span class="s1">&#39;`score_threshold`.&#39;</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">max_boxes_per_class</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">max_boxes_per_class</span> <span class="o">=</span> <span class="n">num_predicted_boxes</span>
+
+  <span class="c1"># TODO(jngiam): Change to be per-class bboxes, and hence, per-class NMS, and</span>
+  <span class="c1"># per-class thresholding.</span>
+  <span class="c1"># [batch, num_predicted_boxes]</span>
+  <span class="n">nms_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">classification_scores</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="c1"># Compute the most likely label by computing the highest class score from</span>
+  <span class="c1"># the output of the sigmoid.</span>
+  <span class="n">likely_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">classification_scores</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="c1"># When background is the most likely class for the box, mask out the scores</span>
+  <span class="c1"># of that box from NMS scoring so the background boxes don&#39;t dominate the</span>
+  <span class="c1"># NMS.</span>
+  <span class="n">nms_scores</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">likely_labels</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+  <span class="c1"># Compute NMS for every sample in the batch.</span>
+  <span class="n">nms_indices</span><span class="p">,</span> <span class="n">valid_mask</span> <span class="o">=</span> <span class="n">utils_3d</span><span class="o">.</span><span class="n">BatchedNMSIndices</span><span class="p">(</span>
+      <span class="n">predicted_bboxes</span><span class="p">,</span>
+      <span class="n">nms_scores</span><span class="p">,</span>
+      <span class="n">nms_iou_threshold</span><span class="o">=</span><span class="n">nms_iou_threshold</span><span class="p">,</span>
+      <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
+      <span class="n">max_num_boxes</span><span class="o">=</span><span class="n">max_boxes_per_class</span><span class="p">)</span>
+
+  <span class="c1"># Reorder the box data and logits according to NMS scoring.</span>
+  <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">nms_indices</span><span class="p">)</span>
+  <span class="n">classification_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">classification_scores</span><span class="p">,</span> <span class="n">nms_indices</span><span class="p">)</span>
+
+  <span class="c1"># Now reformat the output of NMS to match the format of the</span>
+  <span class="c1"># MultiClassOrientedDecodeWithNMS, which outputs a per class NMS result.</span>
+  <span class="c1"># This takes the leading shape of</span>
+  <span class="c1"># [batch_size, num_classes, max_boxes_per_class] for all outputs, which</span>
+  <span class="c1"># means since this NMS is not class specific we need to tile the outputs</span>
+  <span class="c1"># num_classes times or reorder the data such that its [batch, num_classes].</span>
+  <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:],</span>
+                             <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="n">classification_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">classification_scores</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+  <span class="n">classification_scores</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+      <span class="n">classification_scores</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">max_boxes_per_class</span><span class="p">])</span>
+  <span class="n">valid_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">valid_mask</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">classification_scores</span><span class="p">,</span> <span class="n">valid_mask</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

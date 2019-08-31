@@ -1,0 +1,753 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.car_lib &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.car_lib</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.car_lib</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Library of functions on tensors for car layers, builders, and models.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="c1"># pylint:enable=g-direct-tensorflow-import</span>
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+
+
+<div class="viewcode-block" id="SquaredDistanceMatrix"><a class="viewcode-back" href="../../../../lingvo.tasks.car.car_lib.html#lingvo.tasks.car.car_lib.SquaredDistanceMatrix">[docs]</a><span class="k">def</span> <span class="nf">SquaredDistanceMatrix</span><span class="p">(</span><span class="n">pa</span><span class="p">,</span> <span class="n">pb</span><span class="p">,</span> <span class="n">mem_optimized</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute pair-wise squared distances.</span>
+
+<span class="sd">  Expanded version (faster but potentially numerically unstable):</span>
+<span class="sd">    distance = pa^2 - 2*pa*pb + pb^2</span>
+
+<span class="sd">  Non-expanded version (slow but numerically stable):</span>
+<span class="sd">    distance = (pa - pb)^2</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    pa: tensor of shape [N, P1, dims]</span>
+<span class="sd">    pb: tensor of shape [N, P2, dims]</span>
+<span class="sd">    mem_optimized: Whether to use the memory-optimized expanded formulation.</span>
+<span class="sd">      Defaults to False. If enabled, the expanded version is used that</span>
+<span class="sd">      may have numerical issues.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    tensor of shape [N, P1, P2]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_ExpandedSquaredDistanceMatrix</span><span class="p">(</span><span class="n">pa</span><span class="p">,</span> <span class="n">pb</span><span class="p">):</span>
+    <span class="n">squared_pa</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">pa</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">squared_pb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">pb</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">perm</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="c1"># We have observed that entries may &lt; 0. when using the expanded version.</span>
+    <span class="c1"># The max operation guards that from being possible.</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">squared_pa</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">pa</span><span class="p">,</span> <span class="n">pb</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="n">squared_pb</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_NonExpandedSquaredDistanceMatrix</span><span class="p">(</span><span class="n">pa</span><span class="p">,</span> <span class="n">pb</span><span class="p">):</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">pa</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">pb</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">squared_diff</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span>
+    <span class="n">squared_dis</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">squared_diff</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">squared_dis</span>
+
+  <span class="k">if</span> <span class="n">mem_optimized</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">_ExpandedSquaredDistanceMatrix</span><span class="p">(</span><span class="n">pa</span><span class="p">,</span> <span class="n">pb</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">_NonExpandedSquaredDistanceMatrix</span><span class="p">(</span><span class="n">pa</span><span class="p">,</span> <span class="n">pb</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NeighborSquaredDistanceMatrix"><a class="viewcode-back" href="../../../../lingvo.tasks.car.car_lib.html#lingvo.tasks.car.car_lib.NeighborSquaredDistanceMatrix">[docs]</a><span class="k">def</span> <span class="nf">NeighborSquaredDistanceMatrix</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">neighbor_points</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute the squared distance matrix between points and their neighbors.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points: A float tf.Tensor of shape [N, P1, 3] with point positions.</span>
+<span class="sd">    neighbor_points: A float tf.Tensor fo shape [N, P1, K, 3] with neighbor</span>
+<span class="sd">      positions.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Squared distance matrix between points and their K nearest neighbors</span>
+<span class="sd">    as a float tf.Tensor of shape [N, P1, K].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="n">n</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">neighbor_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">neighbor_points</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">neighbor_points</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+  <span class="n">sq_diff</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">neighbor_points</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>
+  <span class="n">sq_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">sq_diff</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">sq_dist</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="KnnIndices"><a class="viewcode-back" href="../../../../lingvo.tasks.car.car_lib.html#lingvo.tasks.car.car_lib.KnnIndices">[docs]</a><span class="k">def</span> <span class="nf">KnnIndices</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">query_points</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">valid_num</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_distance</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;k-nearest neighbors of query_points in points.</span>
+
+<span class="sd">  The caller should ensure that points[i, :valid_num[i], :] are the non-padding</span>
+<span class="sd">  points.</span>
+
+<span class="sd">  Padding is returned alongside indices. Non-padded points are guaranteed to</span>
+<span class="sd">  be unique (non-repeated) points from original non-padded points.</span>
+
+<span class="sd">  Padded points arise due to either a lack of points (k exceeds valid_num)</span>
+<span class="sd">  or points are too far away (exceeds max distance).</span>
+
+<span class="sd">  TODO(weihan,jngiam): For backwards compatibility with PointCNN, if there are</span>
+<span class="sd">  fewer than k points to select (possibly because of valid_num), the points</span>
+<span class="sd">  selected will first consist of those in the non-padded points, and</span>
+<span class="sd">  then those from the padded points. This assumes that the padded points are</span>
+<span class="sd">  duplications of the original points. PointCNN should be updated to respect</span>
+<span class="sd">  padding.</span>
+
+<span class="sd">  The auxiliary input &#39;valid_num&#39; marks the number of non-padding points in each</span>
+<span class="sd">  sample. This is needed because we randomly duplicated points to make the input</span>
+<span class="sd">  fix-sized, we want search for k-NN in non-padding points first otherwise the</span>
+<span class="sd">  result may degenerate to be k-duplications of the query point itself.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points: tensor of shape [N, P1, dims].</span>
+<span class="sd">    query_points: tensor of shape [N, P2, dims]</span>
+<span class="sd">    k: Integer.</span>
+<span class="sd">    valid_num: tensor of shape [N,]</span>
+<span class="sd">    max_distance: float representing the maximum distance that each neighbor can</span>
+<span class="sd">      be. If there are no points within the distance, then the closest point is</span>
+<span class="sd">      returned (regardless of distance). If this is set to None, then</span>
+<span class="sd">      max_distance is not used.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    indices: tensor of shape [N, P2, k].</span>
+
+<span class="sd">    padding: tensor of shape [N, P2 ,k] where 1 represents a padded point, and 0</span>
+<span class="sd">    represents an unpadded (real) point.</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">p1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">points</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">padding</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="k">if</span> <span class="n">valid_num</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+        <span class="n">valid_num</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># [N, P1], False/True padding</span>
+  <span class="k">return</span> <span class="n">NeighborhoodIndices</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">query_points</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">max_distance</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NeighborhoodIndices"><a class="viewcode-back" href="../../../../lingvo.tasks.car.car_lib.html#lingvo.tasks.car.car_lib.NeighborhoodIndices">[docs]</a><span class="k">def</span> <span class="nf">NeighborhoodIndices</span><span class="p">(</span><span class="n">points</span><span class="p">,</span>
+                        <span class="n">query_points</span><span class="p">,</span>
+                        <span class="n">k</span><span class="p">,</span>
+                        <span class="n">points_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">max_distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">sample_neighbors_uniformly</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Get indices to k-neighbors of query_points in points.</span>
+
+<span class="sd">  Padding is returned along-side indices. Non-padded points are guaranteed to</span>
+<span class="sd">  be unique (non-repeated) points from original non-padded points.</span>
+
+<span class="sd">  Padded points arise due to either a lack of points (k exceeds the number</span>
+<span class="sd">  of original non-padded points) or points are too far away (exceeds max</span>
+<span class="sd">  distance).</span>
+
+<span class="sd">  Note: Padded point indices may refer to padded points from the original, or</span>
+<span class="sd">  may be duplicates of the closest point.</span>
+
+<span class="sd">  TODO(weihan,jngiam): PointCNN implementation makes an assumption that padded</span>
+<span class="sd">  points are repeated points from the original points. This behavior is</span>
+<span class="sd">  maintained here, but we should update PointCNN to respect indices paddings.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points: tensor of shape [N, P1, dims].</span>
+<span class="sd">    query_points: tensor of shape [N, P2, dims]</span>
+<span class="sd">    k: Integer.</span>
+<span class="sd">    points_padding: optional tensor of shape [N, P1] containing True/1.0 iff the</span>
+<span class="sd">      point is a padded point. if None, then all points are considered real</span>
+<span class="sd">      points.</span>
+<span class="sd">    max_distance: float representing the maximum distance that each neighbor can</span>
+<span class="sd">      be. If there are no points within the distance, then the closest point is</span>
+<span class="sd">      returned (regardless of distance). If this is set to None, then no</span>
+<span class="sd">      filtering by distance is performed.</span>
+<span class="sd">    sample_neighbors_uniformly: boolean specifying whether to sample neighbors</span>
+<span class="sd">      uniformly if they are within max distance.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    indices: tensor of shape [N, P2, k].</span>
+
+<span class="sd">    padding: tensor of shape [N, P2, k] where 1 represents a padded point, and 0</span>
+<span class="sd">    represents an unpadded (real) point.</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">n</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">query_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_points</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">p2</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_points</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+  <span class="c1"># Compute pair-wise squared distances.</span>
+  <span class="c1"># Note that dist_mat contains the squared distance (without sqrt). Thus, when</span>
+  <span class="c1"># using max_distance, we will need to square max_distance to make sure it&#39;s</span>
+  <span class="c1"># in the same units.</span>
+  <span class="n">dist_mat</span> <span class="o">=</span> <span class="n">SquaredDistanceMatrix</span><span class="p">(</span><span class="n">query_points</span><span class="p">,</span> <span class="n">points</span><span class="p">)</span>
+  <span class="n">dist_mat</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">dist_mat</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">p1</span><span class="p">])</span>
+
+  <span class="c1"># Add a large scalar to the distances for padded points.</span>
+  <span class="c1"># dist_mat[i, j, k] will be:</span>
+  <span class="c1">#   if k &lt; valid_num[i]: distance between points[i, k] and query_points[i, j]</span>
+  <span class="c1">#   otherwise:           a large scalar added to dist_mat[i, j, k]</span>
+  <span class="k">if</span> <span class="n">points_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">points_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">points_padding</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">points_padding</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">points_padding</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p1</span><span class="p">])</span>
+    <span class="n">large_scalar</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">dist_mat</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">dist_mat</span> <span class="o">+=</span> <span class="n">points_padding</span> <span class="o">*</span> <span class="n">large_scalar</span>
+
+  <span class="c1"># To perform sampling neighbors uniformly efficiently, we set all neighbors</span>
+  <span class="c1"># that are within the distance threshold to have distances be drawn uniformly</span>
+  <span class="c1"># at random. Using top_k with this enables selecting a random set quickly</span>
+  <span class="c1"># without replacement.</span>
+  <span class="k">if</span> <span class="n">sample_neighbors_uniformly</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">max_distance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">mask_by_distance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">dist_mat</span><span class="p">,</span> <span class="n">max_distance</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+      <span class="n">dist_mat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">mask_by_distance</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">max_distance</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">dist_mat</span><span class="p">)),</span>
+          <span class="n">dist_mat</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Uniform sampling requires specifying max_distance.&#39;</span><span class="p">)</span>
+
+  <span class="n">top_k_dist</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span><span class="o">-</span><span class="n">dist_mat</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># N x P2 x K</span>
+
+  <span class="c1"># Set padding using top_k_dist; padded points will have distance exceeding</span>
+  <span class="c1"># the large_scalar.</span>
+  <span class="k">if</span> <span class="n">points_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="o">-</span><span class="n">top_k_dist</span><span class="p">,</span> <span class="n">large_scalar</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">top_k_dist</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+
+  <span class="c1"># Filter by max_distances by setting all indices that exceed the max_distance</span>
+  <span class="c1"># to the closest point.</span>
+  <span class="k">if</span> <span class="n">max_distance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># Mask is true for points that are further than max_distance.</span>
+    <span class="n">mask_by_distance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="o">-</span><span class="n">top_k_dist</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">max_distance</span><span class="p">))</span>
+    <span class="n">closest_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">indices</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask_by_distance</span><span class="p">,</span> <span class="n">closest_idx</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
+    <span class="n">paddings</span> <span class="o">|=</span> <span class="n">mask_by_distance</span>
+
+  <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span>
+  <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">paddings</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">indices</span><span class="p">,</span> <span class="n">paddings</span></div>
+
+
+<div class="viewcode-block" id="MatmulGather"><a class="viewcode-back" href="../../../../lingvo.tasks.car.car_lib.html#lingvo.tasks.car.car_lib.MatmulGather">[docs]</a><span class="k">def</span> <span class="nf">MatmulGather</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">indices</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Drop in replacement for tf.gather_nd() optimized for speed on TPU.</span>
+
+<span class="sd">  TODO(weihan): tf.gather_nd() is supposed to be implemented in the same way</span>
+<span class="sd">  on TPU. Investigate why it&#39;s much slower.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    source: tensor of shape [N, P1, C]</span>
+<span class="sd">    indices: tensor of shape [N, P2, K]</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    target: tensor of shape [N, P2, K, C]</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">source</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="n">n</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+  <span class="n">indices</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+
+  <span class="n">onehot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="n">p1</span><span class="p">)</span>  <span class="c1"># N x P2 x K x P1</span>
+  <span class="n">reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">onehot</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p1</span><span class="p">])</span>  <span class="c1"># N x (P2 x K) x P1</span>
+  <span class="n">target</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">reshaped</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>  <span class="c1"># N x (P2 x K) x C</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="FarthestPointSampler"><a class="viewcode-back" href="../../../../lingvo.tasks.car.car_lib.html#lingvo.tasks.car.car_lib.FarthestPointSampler">[docs]</a><span class="k">def</span> <span class="nf">FarthestPointSampler</span><span class="p">(</span><span class="n">points</span><span class="p">,</span>
+                         <span class="n">padding</span><span class="p">,</span>
+                         <span class="n">num_sampled_points</span><span class="p">,</span>
+                         <span class="n">precomputed_squared_distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Samples num_sampled_points from points using farthest point sampling.</span>
+
+<span class="sd">  Algorithm:</span>
+<span class="sd">  1. Start by selecting a random point and adding to a selected set.</span>
+<span class="sd">  2. For all remaining points, find the furthest point from those selected.</span>
+<span class="sd">  3. Add furthest point to selected.</span>
+<span class="sd">  4. Repeat 2-3 until num_sampled_points are selected.</span>
+
+<span class="sd">  More details at https://en.wikipedia.org/wiki/Farthest-first_traversal</span>
+
+<span class="sd">  This output of this function can be used with tf.batch_gather to extract the</span>
+<span class="sd">  desired points, for example: tf.batch_gather(points, sampled_idx)</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points: floating point tf.Tensor of shape [N, P1, dims]</span>
+<span class="sd">    padding: A floating point tf.Tensor of shape [N, P1] with 0 if the point is</span>
+<span class="sd">      real, and 1 otherwise.</span>
+<span class="sd">    num_sampled_points: integer number of points to sample.</span>
+<span class="sd">    precomputed_squared_distance: optional tf.Tensor of shape [N, P1, P1] of</span>
+<span class="sd">      distances between each point. if None, distances will be computed on the</span>
+<span class="sd">      fly.</span>
+<span class="sd">    random_seed: optional integer random seed to use with all the random ops.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple of tf.Tensors (sampled_idx, closest_idx) of types</span>
+<span class="sd">    (tf.int32, tf.int32).</span>
+
+<span class="sd">    sampled_idx is of shape [N, num_sampled_points] representing the indices</span>
+<span class="sd">    selected using the sampler. This will have range of [0, P1].</span>
+
+<span class="sd">    closest_idx is of shape [N, P1] representing the indices of the closest</span>
+<span class="sd">    sampled points for each input point. closest_idx is used in PCNN as part of</span>
+<span class="sd">    the pooling operation: each point is assigned to the closest sampled point</span>
+<span class="sd">    and a max is taken over them. This will have a range of [0, P2] with the</span>
+<span class="sd">    index of the closest sampled point that remains.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">dims</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+  <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
+      <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">num_points</span><span class="p">,</span> <span class="n">num_sampled_points</span><span class="p">)],</span> <span class="n">points</span><span class="p">)</span>
+
+  <span class="c1"># Add a tiny bit of noise to the distance matrix or points so all</span>
+  <span class="c1"># points are unique. This will also ensure true repeated points</span>
+  <span class="c1"># like padded points are only selected after all valid points are selected.</span>
+  <span class="k">if</span> <span class="n">precomputed_squared_distance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">precomputed_squared_distance</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">precomputed_squared_distance</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">num_points</span><span class="p">])</span>
+    <span class="n">precomputed_squared_distance</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">minval</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+        <span class="n">maxval</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">points</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">dims</span><span class="p">),</span>
+                                <span class="n">minval</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+                                <span class="n">maxval</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+                                <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                                <span class="n">seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">)</span>
+
+  <span class="c1"># TensorArray to store the sampled indices in the loop.</span>
+  <span class="n">sampled_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorArray</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">num_sampled_points</span><span class="p">)</span>
+
+  <span class="c1"># Initialize distance_to_selected to inf for all points.</span>
+  <span class="n">distance_to_selected</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">))</span>
+
+  <span class="c1"># For tracking the index to the closest selected point.</span>
+  <span class="n">closest_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+  <span class="c1"># Current loop index counter.</span>
+  <span class="n">curr_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+  <span class="c1"># Get number of valid points (1 is padded, so num_points - num_padded).</span>
+  <span class="n">num_valid_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">num_points</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+      <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_BodyFn</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="n">distance_to_selected</span><span class="p">,</span> <span class="n">sampled_idx</span><span class="p">,</span> <span class="n">closest_idx</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Loop body for farthest point sampler.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_GetRandomRealPoint</span><span class="p">():</span>
+      <span class="sd">&quot;&quot;&quot;Select the first point.</span>
+
+<span class="sd">      For the first point, we want any random real (non padded) point, so we</span>
+<span class="sd">      create a random values per point, and then set all padded ones to</span>
+<span class="sd">      some large value (more than the maxval). We then take the min per batch</span>
+<span class="sd">      element to get the first points.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="n">random_values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">),</span>
+                                        <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                        <span class="n">maxval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                                        <span class="n">seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">)</span>
+      <span class="n">random_values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">random_values</span><span class="p">,</span> <span class="n">padding</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">random_values</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_GetFurthestPoint</span><span class="p">():</span>
+      <span class="sd">&quot;&quot;&quot;Get point that is furthest from those already selected.</span>
+
+<span class="sd">      We also bias the sampling towards real points by setting the distance</span>
+<span class="sd">      to padded points negative until we are out of real points.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="c1"># Set padded points distance to negative so they aren&#39;t selected.</span>
+      <span class="n">padding_masked_distance_to_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">distance_to_selected</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+              <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+      <span class="c1"># But only do this when we still have valid points left.</span>
+      <span class="n">padding_masked_distance_to_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="n">num_valid_points</span><span class="p">),</span>
+          <span class="n">padding_masked_distance_to_selected</span><span class="p">,</span> <span class="n">distance_to_selected</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span>
+          <span class="n">padding_masked_distance_to_selected</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># Select indices for this loop iteration.</span>
+    <span class="n">new_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">_GetRandomRealPoint</span><span class="p">,</span> <span class="n">_GetFurthestPoint</span><span class="p">)</span>
+
+    <span class="n">sampled_idx</span> <span class="o">=</span> <span class="n">sampled_idx</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="n">new_selected</span><span class="p">)</span>
+
+    <span class="c1"># Extract the distance to the latest point selected to update</span>
+    <span class="c1"># distance_to_selected.</span>
+    <span class="n">new_selected_gather_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">),</span> <span class="n">new_selected</span><span class="p">],</span>
+                                       <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">precomputed_squared_distance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">new_distance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">precomputed_squared_distance</span><span class="p">,</span>
+                                  <span class="n">new_selected_gather_idx</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">new_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">new_selected_gather_idx</span><span class="p">),</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="p">])</span>
+      <span class="n">new_distance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">SquaredDistanceMatrix</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">new_points</span><span class="p">),</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">])</span>
+
+    <span class="n">is_newly_closest</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">new_distance</span><span class="p">,</span> <span class="n">distance_to_selected</span><span class="p">)</span>
+    <span class="n">distance_to_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">distance_to_selected</span><span class="p">,</span> <span class="n">new_distance</span><span class="p">)</span>
+
+    <span class="c1"># Track the index to the closest selected point.</span>
+    <span class="n">new_selected_tiled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">([[</span><span class="n">curr_idx</span><span class="p">]],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">])</span>
+    <span class="n">closest_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="c1"># At the first loop iteration, the init points are the closest.</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="n">new_selected_tiled</span><span class="p">,</span>
+        <span class="c1"># Otherwise, update with the new points based on the distances.</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_newly_closest</span><span class="p">,</span> <span class="n">new_selected_tiled</span><span class="p">,</span> <span class="n">closest_idx</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">curr_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">distance_to_selected</span><span class="p">,</span> <span class="n">sampled_idx</span><span class="p">,</span> <span class="n">closest_idx</span>
+
+  <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">sampled_idx</span><span class="p">,</span> <span class="n">closest_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
+      <span class="k">lambda</span> <span class="n">curr_idx</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="n">num_sampled_points</span><span class="p">),</span>
+      <span class="n">_BodyFn</span><span class="p">,</span>
+      <span class="n">loop_vars</span><span class="o">=</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="n">distance_to_selected</span><span class="p">,</span> <span class="n">sampled_idx</span><span class="p">,</span> <span class="n">closest_idx</span><span class="p">),</span>
+      <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+      <span class="n">maximum_iterations</span><span class="o">=</span><span class="n">num_sampled_points</span><span class="p">)</span>
+
+  <span class="n">sampled_idx</span> <span class="o">=</span> <span class="n">sampled_idx</span><span class="o">.</span><span class="n">stack</span><span class="p">()</span>  <span class="c1"># num_sampled_points x n</span>
+  <span class="n">sampled_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">sampled_idx</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num_sampled_points</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="n">sampled_idx</span><span class="o">.</span><span class="n">set_shape</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_sampled_points</span><span class="p">))</span>
+
+  <span class="k">return</span> <span class="n">sampled_idx</span><span class="p">,</span> <span class="n">closest_idx</span></div>
+
+
+<span class="c1"># TODO(bencaine): This was moved so that we can make this more generic in the</span>
+<span class="c1"># future and provide min/avg/max pooling with one function.</span>
+<div class="viewcode-block" id="MaxPool3D"><a class="viewcode-back" href="../../../../lingvo.tasks.car.car_lib.html#lingvo.tasks.car.car_lib.MaxPool3D">[docs]</a><span class="k">def</span> <span class="nf">MaxPool3D</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">point_features</span><span class="p">,</span> <span class="n">pooling_idx</span><span class="p">,</span> <span class="n">closest_idx</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Apply max pooling to a point cloud with computed sampling indices.</span>
+
+<span class="sd">  sampled_idx and closest_idx are the outputs of a sampler such as</span>
+<span class="sd">  FurthestPointSampler.</span>
+
+<span class="sd">  The pooling operation results in a point cloud with fewer points, where the</span>
+<span class="sd">  pooled points are specified by pooling_idx. Each element of pooling_idx</span>
+<span class="sd">  contains an integer in the range [0, P1) containing the index of the point in</span>
+<span class="sd">  points/points_features.</span>
+
+<span class="sd">  Max pooling is performed by assigning each point to its closest pooled point,</span>
+<span class="sd">  and then taking a max over the features of points assigned. We assume that</span>
+<span class="sd">  this mapping is provided by closest_idx, where each element should contain</span>
+<span class="sd">  an integer in the range [0, P2) containing the index of the pooled point that</span>
+<span class="sd">  each point is assigned to.</span>
+
+<span class="sd">  Note: This logic for pooling assumes that there will be at least</span>
+<span class="sd">  one value &gt; 0 per sampled region for each feature, otherwise it will return 0.</span>
+<span class="sd">  Additionally, it does a reduce over a masked version of the features, so</span>
+<span class="sd">  mean and min would not work without a change in the logic.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points: a floating point tf.Tensor with shape [N, P1, 3]</span>
+<span class="sd">    point_features: a floating point tf.Tensor with shape [N, P1, C]</span>
+<span class="sd">    pooling_idx: A tf.int32 tf.Tensor of shape [N, P2] with the index of which</span>
+<span class="sd">      points we want to keep. Each value should be in the range [0, P1].</span>
+<span class="sd">    closest_idx: A tf.int32 tf.Tensor of shape [N, P1] representing which</span>
+<span class="sd">      sampled point is closest to each original point. Each value should be in</span>
+<span class="sd">      the range of [0, P2].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple of tf.Tensors (pooled_points, pooled_features).</span>
+
+<span class="sd">    pooled_points has shape [N, P2, 3] representing the locations of each</span>
+<span class="sd">    selected point. P2 corresponds to num_pooled_points.</span>
+
+<span class="sd">    pooled_features has shape [N, P2, C] representing the pooled features at</span>
+<span class="sd">    each point.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">point_features</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">point_features</span><span class="p">,</span>
+                                     <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">pooling_idx</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">pooling_idx</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">num_output_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">pooling_idx</span><span class="p">)</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">feature_dims</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">point_features</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+  <span class="c1"># Gather new point locations.</span>
+  <span class="n">pooled_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">pooling_idx</span><span class="p">)</span>
+
+  <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">closest_idx</span><span class="p">,</span> <span class="n">num_output_points</span><span class="p">)</span>  <span class="c1"># [N, P1, P2]</span>
+  <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>  <span class="c1"># [P2, N, P1]</span>
+
+  <span class="k">def</span> <span class="nf">_PartialPoolFeaturesFn</span><span class="p">(</span><span class="n">partial_mask</span><span class="p">):</span>
+    <span class="n">partial_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">partial_mask</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">feature_dims</span><span class="p">])</span>
+    <span class="c1"># Note: This method of pooling assumes there will be a value &gt; 0</span>
+    <span class="c1"># And will only work with max under this condition.</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">partial_mask</span> <span class="o">*</span> <span class="n">point_features</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="c1"># Performing a map_fn over the pooled points is more memory efficient.</span>
+  <span class="n">pooled_point_features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span><span class="n">_PartialPoolFeaturesFn</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>  <span class="c1"># [P2, N, P1]</span>
+  <span class="n">pooled_point_features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">pooled_point_features</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+  <span class="k">return</span> <span class="n">pooled_points</span><span class="p">,</span> <span class="n">pooled_point_features</span></div>
+
+
+<div class="viewcode-block" id="SegmentPool3D"><a class="viewcode-back" href="../../../../lingvo.tasks.car.car_lib.html#lingvo.tasks.car.car_lib.SegmentPool3D">[docs]</a><span class="k">def</span> <span class="nf">SegmentPool3D</span><span class="p">(</span><span class="n">points</span><span class="p">,</span>
+                  <span class="n">point_features</span><span class="p">,</span>
+                  <span class="n">pooling_idx</span><span class="p">,</span>
+                  <span class="n">closest_idx</span><span class="p">,</span>
+                  <span class="n">pooling_method</span><span class="o">=</span><span class="s1">&#39;max&#39;</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Performs {min/max/average} pooling over a pointcloud given indices.</span>
+
+<span class="sd">  This should be functionally identical when using max to the above</span>
+<span class="sd">  MaxPool3D function, except it turns out to be much more memory efficient</span>
+<span class="sd">  on a TPU, and supports min/max/mean.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points: A float tf.Tensor of shape [N, P1, 3] with point locations.</span>
+<span class="sd">    point_features: A float tf.Tensor of shape [N, P1, C] with point features.</span>
+<span class="sd">    pooling_idx: A tf.int32 tf.Tensor of shape [N, P2] with the index of which</span>
+<span class="sd">      points we want to keep. Each value should be in the range [0, P1].</span>
+<span class="sd">    closest_idx: A tf.int32 tf.Tensor of shape [N, P1] representing which</span>
+<span class="sd">      sampled point is closest to each original point. Each value should be in</span>
+<span class="sd">      the range of [0, P2].</span>
+<span class="sd">    pooling_method: A string for which pooling function to use. Should be one of</span>
+<span class="sd">      {&#39;min&#39;, &#39;max&#39;, &#39;mean&#39;}.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    pooled_points: A float tf.Tensor of shape [N, P2, 3] with the pooled</span>
+<span class="sd">      point locations.</span>
+<span class="sd">    pooled_features: A float tf.Tensor of shape [N, P2, C] with the pooled</span>
+<span class="sd">      features.</span>
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: If pooling_method is not one of {min/max/mean}.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">segment_pooling_functions</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s1">&#39;min&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">unsorted_segment_min</span><span class="p">,</span>
+      <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">unsorted_segment_max</span><span class="p">,</span>
+      <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">unsorted_segment_mean</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span> <span class="n">pooling_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">segment_pooling_functions</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`pooling_method` must be one of </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">segment_pooling_functions</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+  <span class="n">segment_fn</span> <span class="o">=</span> <span class="n">segment_pooling_functions</span><span class="p">[</span><span class="n">pooling_method</span><span class="p">]</span>
+
+  <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="n">n</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">point_features</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">point_features</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">point_features</span><span class="p">)</span>
+  <span class="n">pooling_idx</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">pooling_idx</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">p2</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">pooling_idx</span><span class="p">)</span>
+  <span class="n">closest_idx</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">closest_idx</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">p1</span><span class="p">])</span>
+
+  <span class="c1"># Subselect our output points</span>
+  <span class="n">pooled_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">pooling_idx</span><span class="p">)</span>
+
+  <span class="c1"># Loop over batch dimension of our features/indices, as unsorted_segment_X</span>
+  <span class="c1"># does not currently support a batch dimension.</span>
+  <span class="k">def</span> <span class="nf">_LoopFn</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">example_features</span><span class="p">,</span> <span class="n">example_closest_idx</span> <span class="o">=</span> <span class="n">args</span>
+    <span class="k">return</span> <span class="n">segment_fn</span><span class="p">(</span><span class="n">example_features</span><span class="p">,</span> <span class="n">example_closest_idx</span><span class="p">,</span> <span class="n">num_segments</span><span class="o">=</span><span class="n">p2</span><span class="p">)</span>
+
+  <span class="n">pooled_features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span>
+      <span class="n">fn</span><span class="o">=</span><span class="n">_LoopFn</span><span class="p">,</span> <span class="n">elems</span><span class="o">=</span><span class="p">(</span><span class="n">point_features</span><span class="p">,</span> <span class="n">closest_idx</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">pooled_points</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">pooled_features</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">c</span><span class="p">]))</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
