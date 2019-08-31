@@ -1,0 +1,83 @@
+# Lint as: python2, python3
+# Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+"""Tests for lingvo.tasks.car.ops.car_metrics_ops."""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from lingvo import compat as tf
+from lingvo.core import test_utils
+from lingvo.tasks.car import ops
+import numpy as np
+
+
+class ImageMetricsOpsTest(test_utils.TestCase):
+
+  def _GenerateRandomBBoxes(self, num_images, num_bboxes):
+    xyz = np.random.uniform(low=-1.0, high=1.0, size=(num_bboxes, 3))
+    dimension = np.random.uniform(low=0.1, high=1.0, size=(num_bboxes, 3))
+    rotation = np.random.uniform(low=-np.pi, high=np.pi, size=(num_bboxes, 1))
+    bboxes = np.concatenate([xyz, dimension, rotation], axis=-1)
+    imageid = np.random.randint(0, num_images, size=[num_bboxes])
+    scores = np.random.uniform(size=[num_bboxes])
+    return bboxes, imageid, scores
+
+  def _GetAP(self, gt_bbox, gt_imgid, pd_bbox, pd_imgid, pd_score):
+    g = tf.Graph()
+    with g.as_default():
+      iou, pr = ops.average_precision3d(
+          iou_threshold=0.5,
+          groundtruth_bbox=gt_bbox,
+          groundtruth_imageid=gt_imgid,
+          groundtruth_ignore=tf.zeros_like(gt_imgid, dtype=tf.int32),
+          prediction_bbox=pd_bbox,
+          prediction_imageid=pd_imgid,
+          prediction_score=pd_score,
+          prediction_ignore=tf.zeros_like(pd_imgid, dtype=tf.int32),
+          num_recall_points=41,
+          algorithm='KITTI')
+    with self.session(graph=g) as sess:
+      val = sess.run([iou, pr])
+    return val
+
+  def testAPBasic(self):
+    k, n, m = 10, 100, 20
+    gt_bbox, gt_imgid, _ = self._GenerateRandomBBoxes(k, n)
+    pd_bbox, pd_imgid, pd_score = self._GenerateRandomBBoxes(k, m)
+    # IoU between two set of random boxes;
+    iou, _ = self._GetAP(gt_bbox, gt_imgid, pd_bbox, pd_imgid, pd_score)
+    self.assertTrue(0 <= iou and iou <= 1.0)
+    # IoU of perfect detection
+    iou, _ = self._GetAP(gt_bbox, gt_imgid, gt_bbox, gt_imgid, np.ones(n))
+    self.assertEqual(1, iou)
+    # IoU of empty detection
+    iou, _ = self._GetAP(gt_bbox, gt_imgid, pd_bbox, pd_imgid + n, pd_score)
+    self.assertEqual(0, iou)
+
+  def testAllZeroValue(self):
+    k, n, m = 10, 100, 20
+    gt_bbox, gt_imgid, _ = self._GenerateRandomBBoxes(k, n)
+    pd_bbox, pd_imgid, pd_score = self._GenerateRandomBBoxes(k, m)
+    # IoU between two set of random boxes;
+    iou, pr = self._GetAP(gt_bbox * 0, gt_imgid * 0, pd_bbox * 0, pd_imgid * 0,
+                          pd_score * 0)
+    self.assertEqual(0, iou)
+    self.assertAllEqual(pr.shape, (41, 2))
+    self.assertAllEqual(np.zeros(41), pr[:, 0])
+
+
+if __name__ == '__main__':
+  tf.test.main()
