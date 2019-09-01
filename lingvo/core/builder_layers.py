@@ -18,6 +18,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import re
 from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import computation_cost
@@ -26,7 +27,6 @@ from lingvo.core import recurrent
 from lingvo.core import summary_utils
 from lingvo.core import symbolic
 from lingvo.core import tshape
-
 from six.moves import range
 from six.moves import zip
 
@@ -516,7 +516,6 @@ class GraphLayer(base_layer.BaseLayer):
     p.Define('output_endpoints', [], 'Names of the output tensors.')
     # TODO(yonghui): Define a NamedTuple for this pair.
     p.Define('sub', [], 'A list of (signature, layer params) pairs.')
-    p.Define('dict_type', py_utils.NestedMap, 'Type of nested dicts.')
     return p
 
   @base_layer.initializer
@@ -543,7 +542,7 @@ class GraphLayer(base_layer.BaseLayer):
     while len(names) > 1:
       n = names.pop(0)
       if n not in named_tensors:
-        named_tensors[n] = (p.dict_type)()
+        named_tensors[n] = py_utils.NestedMap()
       named_tensors = named_tensors[n]
     n = names.pop(0)
     assert n not in named_tensors
@@ -554,7 +553,7 @@ class GraphLayer(base_layer.BaseLayer):
     """Returns the tensor at 'path' in 'named_tensors'."""
     names = path.strip().split('.')
     while names:
-      assert isinstance(named_tensors, p.dict_type), named_tensors
+      assert isinstance(named_tensors, py_utils.NestedMap), named_tensors
       n = names.pop(0)
       assert n in named_tensors, '%s not found in %s' % (n, named_tensors)
       named_tensors = named_tensors[n]
@@ -569,16 +568,17 @@ class GraphLayer(base_layer.BaseLayer):
     o_tensors = [x.strip() for x in o.split(',')]
     assert i_tensors
     assert o_tensors
+    id_regex = re.compile(r'[_a-zA-Z][_a-zA-Z0-9]*(\.[_a-zA-Z][_a-zA-Z0-9]*)*$')
     for x in i_tensors:
-      assert x
+      assert id_regex.match(x), x
     for x in o_tensors:
-      assert x
+      assert id_regex.match(x), x
     return i_tensors, o_tensors
 
   def FProp(self, theta, *args):
     p = self.params
 
-    named_tensors = (p.dict_type)()
+    named_tensors = py_utils.NestedMap()
     with tf.name_scope(p.name):
       assert len(p.input_endpoints) == len(args)
       for n, t in zip(p.input_endpoints, args):
@@ -617,7 +617,7 @@ class GraphLayer(base_layer.BaseLayer):
   def FPropMeta(cls, p, *args):
     py_utils.CheckShapes(args)
     total = 0
-    named_tensors = (p.dict_type)()
+    named_tensors = py_utils.NestedMap()
 
     assert len(p.input_endpoints) == len(args)
     for n, t in zip(p.input_endpoints, args):
