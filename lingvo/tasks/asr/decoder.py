@@ -255,6 +255,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         'to inject context into the decoder. The default NullContextualizer '
         'does not add parameters to the model nor changes the '
         'computation.')
+    p.Define('focal_loss_alpha', None, 'The weighting factor alpha.')
+    p.Define('focal_loss_gamma', None, 'Tunable focusing parameter.')
 
     # Set some reasonable default values.
     # Default config for the embedding layer.
@@ -615,12 +617,13 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
           correct_next_preds / target_weights_sum_eps,
           name='fraction_of_correct_next_step_preds')
     # Pad zeros so that we can stack them.
-    if target_probs is not None:
-      per_example_loss = tf.nn.softmax_cross_entropy_with_logits(
-          labels=target_probs, logits=logits)
-    else:
-      per_example_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-          labels=target_labels, logits=logits)
+    per_example_loss = py_utils.SoftmaxCrossEntropyFocalLoss(
+        logits=logits,
+        label_ids=target_labels,
+        label_probs=target_probs,
+        alpha=p.focal_loss_alpha,
+        gamma=p.focal_loss_gamma)
+
     per_sequence_loss = tf.reduce_sum(per_example_loss * target_weights, 1)
     per_token_avg_loss = (
         tf.reduce_sum(per_sequence_loss) / target_weights_sum_eps)
