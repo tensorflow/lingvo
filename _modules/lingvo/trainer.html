@@ -556,6 +556,8 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">task</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
+                       <span class="s1">&#39;trainer_params.txt&#39;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
                            <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
@@ -805,6 +807,10 @@
     <span class="c1"># Saves the graph def.</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
                          <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Saves the trainer params.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
+                     <span class="s1">&#39;trainer_params.txt&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TrainerTpu._GetSession"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._GetSession">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSession</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">TrainerTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span>
