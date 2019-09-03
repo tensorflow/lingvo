@@ -2638,9 +2638,22 @@
         <span class="s1">&#39;filter_max_points&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Maximum number of points each database object must have &#39;</span>
         <span class="s1">&#39;to be included in an example.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;difficulty_sampling_probability&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Probability for sampling ground truth example whose difficulty &#39;</span>
+        <span class="s1">&#39;equals {0, 1, 2, 3, ...}. Example: [1.0, 1.0, 1.0, 1.0] for &#39;</span>
+        <span class="s1">&#39;uniform sampling 4 different difficulties. Default value is &#39;</span>
+        <span class="s1">&#39;None = uniform sampling for all difficulties.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;class_sampling_probability&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Probability for sampling ground truth example based on its class index&#39;</span>
+        <span class="s1">&#39; Example: For KITTI classes are [Background, Car, Van, Truck, &#39;</span>
+        <span class="s1">&#39;Pedestrian, Person_sitting, Cyclist, Tram, Misc, DontCare], using &#39;</span>
+        <span class="s1">&#39;probability vector [0., 1.0, 1.0, 0., 0., 0., 0.,0., 0., 0.], we &#39;</span>
+        <span class="s1">&#39;uniformly sampling Car and Van. Default value is None: Uses &#39;</span>
+        <span class="s1">&#39;label_filter flag and does not sample based on class.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;filter_min_difficulty&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
              <span class="s1">&#39;Filter ground truth boxes whose difficulty is &lt; this value.&#39;</span><span class="p">)</span>
-
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_augmented_bboxes&#39;</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span>
              <span class="s1">&#39;Maximum number of augmented bounding boxes per scene.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -2736,13 +2749,50 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_max_points</span><span class="p">:</span>
       <span class="n">example_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">example_filter</span><span class="p">,</span>
                                       <span class="n">points_per_object</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_max_points</span><span class="p">)</span>
-    <span class="n">example_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">example_filter</span><span class="p">,</span>
-                                    <span class="n">db_difficulty</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_min_difficulty</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">difficulty_sampling_probability</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Sample db based on difficulity of each example.</span>
+      <span class="n">sampling_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">difficulty_sampling_probability</span>
+      <span class="n">db_difficulty_probability</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">db_difficulty</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">difficulty_idx</span><span class="p">,</span> <span class="n">difficulty_prob</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sampling_prob</span><span class="p">):</span>
+        <span class="n">db_difficulty_probability</span> <span class="o">+=</span> <span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">db_difficulty</span><span class="p">,</span> <span class="n">difficulty_idx</span><span class="p">))</span> <span class="o">*</span>
+            <span class="n">difficulty_prob</span><span class="p">)</span>
+
+      <span class="n">sampled_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">example_filter</span><span class="p">),</span>
+          <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+          <span class="n">maxval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+          <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+      <span class="n">sampled_filter</span> <span class="o">=</span> <span class="n">sampled_filter</span> <span class="o">&lt;</span> <span class="n">db_difficulty_probability</span>
+      <span class="n">example_filter</span> <span class="o">&amp;=</span> <span class="n">sampled_filter</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Filter out db examples below min difficulty</span>
+      <span class="n">example_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">example_filter</span><span class="p">,</span>
+                                      <span class="n">db_difficulty</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_min_difficulty</span><span class="p">)</span>
+
     <span class="n">example_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">example_filter</span><span class="p">,</span> <span class="p">[</span><span class="n">num_objects_in_database</span><span class="p">])</span>
     <span class="n">db_label</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">db_label</span><span class="p">,</span> <span class="p">[</span><span class="n">num_objects_in_database</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">class_sampling_probability</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Sample example based on its class probability.</span>
+      <span class="n">sampling_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">class_sampling_probability</span>
+      <span class="n">db_class_probability</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">db_label</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
-    <span class="c1"># Filter based on labels.</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">label_filter</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">class_idx</span><span class="p">,</span> <span class="n">class_prob</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sampling_prob</span><span class="p">):</span>
+        <span class="n">db_class_probability</span> <span class="o">+=</span> <span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">db_label</span><span class="p">,</span> <span class="n">class_idx</span><span class="p">))</span> <span class="o">*</span> <span class="n">class_prob</span><span class="p">)</span>
+
+      <span class="n">sampled_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">example_filter</span><span class="p">),</span>
+          <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+          <span class="n">maxval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+          <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+      <span class="n">sampled_filter</span> <span class="o">=</span> <span class="n">sampled_filter</span> <span class="o">&lt;</span> <span class="n">db_class_probability</span>
+      <span class="n">example_filter</span> <span class="o">&amp;=</span> <span class="n">sampled_filter</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">label_filter</span><span class="p">:</span>
+      <span class="c1"># Filter based on labels.</span>
       <span class="c1"># Create a label filter where all is false</span>
       <span class="n">valid_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">label_filter</span><span class="p">)</span>
       <span class="n">label_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span>
