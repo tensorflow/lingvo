@@ -2493,9 +2493,22 @@ class GroundTruthAugmentor(Preprocessor):
         'filter_max_points', None,
         'Maximum number of points each database object must have '
         'to be included in an example.')
+    p.Define(
+        'difficulty_sampling_probability', None,
+        'Probability for sampling ground truth example whose difficulty '
+        'equals {0, 1, 2, 3, ...}. Example: [1.0, 1.0, 1.0, 1.0] for '
+        'uniform sampling 4 different difficulties. Default value is '
+        'None = uniform sampling for all difficulties.')
+    p.Define(
+        'class_sampling_probability', None,
+        'Probability for sampling ground truth example based on its class index'
+        ' Example: For KITTI classes are [Background, Car, Van, Truck, '
+        'Pedestrian, Person_sitting, Cyclist, Tram, Misc, DontCare], using '
+        'probability vector [0., 1.0, 1.0, 0., 0., 0., 0.,0., 0., 0.], we '
+        'uniformly sampling Car and Van. Default value is None: Uses '
+        'label_filter flag and does not sample based on class.')
     p.Define('filter_min_difficulty', 0,
              'Filter ground truth boxes whose difficulty is < this value.')
-
     p.Define('max_augmented_bboxes', 15,
              'Maximum number of augmented bounding boxes per scene.')
     p.Define(
@@ -2591,13 +2604,50 @@ class GroundTruthAugmentor(Preprocessor):
     if p.filter_max_points:
       example_filter = tf.logical_and(example_filter,
                                       points_per_object <= p.filter_max_points)
-    example_filter = tf.logical_and(example_filter,
-                                    db_difficulty >= p.filter_min_difficulty)
+
+    if p.difficulty_sampling_probability is not None:
+      # Sample db based on difficulity of each example.
+      sampling_prob = p.difficulty_sampling_probability
+      db_difficulty_probability = tf.zeros_like(db_difficulty, dtype=tf.float32)
+      for difficulty_idx, difficulty_prob in enumerate(sampling_prob):
+        db_difficulty_probability += (
+            tf.to_float(tf.equal(db_difficulty, difficulty_idx)) *
+            difficulty_prob)
+
+      sampled_filter = tf.random_uniform(
+          tf.shape(example_filter),
+          minval=0,
+          maxval=1,
+          dtype=tf.float32,
+          seed=p.random_seed)
+      sampled_filter = sampled_filter < db_difficulty_probability
+      example_filter &= sampled_filter
+    else:
+      # Filter out db examples below min difficulty
+      example_filter = tf.logical_and(example_filter,
+                                      db_difficulty >= p.filter_min_difficulty)
+
     example_filter = tf.reshape(example_filter, [num_objects_in_database])
     db_label = tf.reshape(db_label, [num_objects_in_database])
+    if p.class_sampling_probability is not None:
+      # Sample example based on its class probability.
+      sampling_prob = p.class_sampling_probability
+      db_class_probability = tf.zeros_like(db_label, dtype=tf.float32)
 
-    # Filter based on labels.
-    if p.label_filter:
+      for class_idx, class_prob in enumerate(sampling_prob):
+        db_class_probability += (
+            tf.to_float(tf.equal(db_label, class_idx)) * class_prob)
+
+      sampled_filter = tf.random_uniform(
+          tf.shape(example_filter),
+          minval=0,
+          maxval=1,
+          dtype=tf.float32,
+          seed=p.random_seed)
+      sampled_filter = sampled_filter < db_class_probability
+      example_filter &= sampled_filter
+    elif p.label_filter:
+      # Filter based on labels.
       # Create a label filter where all is false
       valid_labels = tf.constant(p.label_filter)
       label_mask = tf.reduce_any(
