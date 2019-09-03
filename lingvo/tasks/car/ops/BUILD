@@ -11,6 +11,7 @@ load(
     "gen_op_cclib",
     "gen_op_pylib",
     "lingvo_cc_library",
+    "lingvo_cc_test",
 )
 
 lingvo_cc_library(
@@ -61,6 +62,15 @@ cc_library(
         ":nms_3d_op",
         ":pairwise_iou_op",
         ":point_grid_op",
+    ],
+)
+
+lingvo_cc_library(
+    name = "ps_utils",
+    srcs = ["ps_utils.cc"],
+    hdrs = ["ps_utils.h"],
+    deps = [
+        "//lingvo/core/ops:mutex",
     ],
 )
 
@@ -130,5 +140,13 @@ py_test(
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
+    ],
+)
+
+lingvo_cc_test(
+    name = "ps_utils_test",
+    srcs = ["ps_utils_test.cc"],
+    deps = [
+        ":ps_utils",
     ],
 )
