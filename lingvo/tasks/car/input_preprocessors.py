@@ -2868,7 +2868,7 @@ class FrustumDropout(Preprocessor):
     if p.distance < 0:
       raise ValueError('distance must be >= 0, distance={}'.format(p.distance))
     if p.keep_prob < 0 or p.keep_prob > 1:
-      raise ValueError('keep_prob must be >= 0 and <=1 , keep_prob={}'.format(
+      raise ValueError('keep_prob must be >= 0 and <=1, keep_prob={}'.format(
           p.keep_prob))
     if p.drop_type not in ['union', 'intersection']:
       raise ValueError('drop_type must be union or intersection ,'
@@ -2964,4 +2964,57 @@ class FrustumDropout(Preprocessor):
     return shapes
 
   def TransformDTypes(self, dtypes):
+    return dtypes
+
+
+class RepeatPreprocessor(Preprocessor):
+  """Repeat a preprocessor multiple times.
+
+  This preprocessor takes a preprocessor as a subprocessor and apply the
+  subprocessor to features multiple times (repeat_count).
+
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(RepeatPreprocessor, cls).Params()
+    p.Define('repeat_count', 1, 'Number of times the subprocessor is applied to'
+             ' features.')
+    p.Define('subprocessor', None, 'One of the input preprocessors.')
+
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(RepeatPreprocessor, self).__init__(params)
+    p = self.params
+    if p.subprocessor is None:
+      raise ValueError('No subprocessor was specified for RepeatPreprocessor.')
+    if p.repeat_count < 0 or not isinstance(p.repeat_count, int):
+      raise ValueError(
+          'repeat_count must be >= 0 and int, repeat_count={}'.format(
+              p.repeat_count))
+
+    with tf.variable_scope(p.name):
+      self.CreateChild('subprocessor', p.subprocessor)
+
+  def TransformFeatures(self, features):
+    p = self.params
+    for _ in range(p.repeat_count):
+      features = self.subprocessor.FPropDefaultTheta(features)
+
+    return features
+
+  def TransformShapes(self, shapes):
+    p = self.params
+    for _ in range(p.repeat_count):
+      shapes = self.subprocessor.TransformShapes(shapes)
+
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    p = self.params
+    for _ in range(p.repeat_count):
+      dtypes = self.subprocessor.TransformDTypes(dtypes)
+
     return dtypes
