@@ -400,6 +400,8 @@
         <span class="s1">&#39;to inject context into the decoder. The default NullContextualizer &#39;</span>
         <span class="s1">&#39;does not add parameters to the model nor changes the &#39;</span>
         <span class="s1">&#39;computation.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;focal_loss_alpha&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The weighting factor alpha.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;focal_loss_gamma&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Tunable focusing parameter.&#39;</span><span class="p">)</span>
 
     <span class="c1"># Set some reasonable default values.</span>
     <span class="c1"># Default config for the embedding layer.</span>
@@ -760,12 +762,13 @@
           <span class="n">correct_next_preds</span> <span class="o">/</span> <span class="n">target_weights_sum_eps</span><span class="p">,</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">)</span>
     <span class="c1"># Pad zeros so that we can stack them.</span>
-    <span class="k">if</span> <span class="n">target_probs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">per_example_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
-          <span class="n">labels</span><span class="o">=</span><span class="n">target_probs</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">per_example_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sparse_softmax_cross_entropy_with_logits</span><span class="p">(</span>
-          <span class="n">labels</span><span class="o">=</span><span class="n">target_labels</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
+    <span class="n">per_example_loss</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SoftmaxCrossEntropyFocalLoss</span><span class="p">(</span>
+        <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span>
+        <span class="n">label_ids</span><span class="o">=</span><span class="n">target_labels</span><span class="p">,</span>
+        <span class="n">label_probs</span><span class="o">=</span><span class="n">target_probs</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_alpha</span><span class="p">,</span>
+        <span class="n">gamma</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_gamma</span><span class="p">)</span>
+
     <span class="n">per_sequence_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_example_loss</span> <span class="o">*</span> <span class="n">target_weights</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">per_token_avg_loss</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_sequence_loss</span><span class="p">)</span> <span class="o">/</span> <span class="n">target_weights_sum_eps</span><span class="p">)</span>
