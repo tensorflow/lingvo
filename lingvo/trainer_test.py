@@ -253,6 +253,8 @@ class TrainerWithTrialTest(TrainerTest):
     self.assertEqual(trial.ReportEvalMeasure.call_count, 0)
 
     train_files = tf.gfile.Glob(logdir + '/train/*')
+    self.assertTrue(self._HasFile(train_files, 'params.txt'))
+    self.assertTrue(self._HasFile(train_files, 'trainer_params.txt'))
     self.assertTrue(self._HasFile(train_files, 'ckpt'))
     self.assertTrue(self._HasFile(train_files, 'tfevents'))
     control_files = tf.gfile.Glob(logdir + '/control/*')

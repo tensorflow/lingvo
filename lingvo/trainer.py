@@ -411,6 +411,8 @@ class Trainer(base_runner.BaseRunner):
     if self.params.cluster.task > 0:
       self._summary_writer = None
     else:
+      self._WriteToLog(self.params.ToText(), self._train_dir,
+                       'trainer_params.txt')
       self._summary_writer = self._CreateSummaryWriter(self._train_dir)
       tf.train.write_graph(self._graph.as_graph_def(), self._train_dir,
                            'train.pbtxt')
@@ -660,6 +662,10 @@ class TrainerTpu(base_runner.BaseRunner):
     # Saves the graph def.
     tf.train.write_graph(self._graph.as_graph_def(), self._train_dir,
                          'train.pbtxt')
+
+    # Saves the trainer params.
+    self._WriteToLog(self.params.ToText(), self._train_dir,
+                     'trainer_params.txt')
 
   def _GetSession(self, **kwargs):
     return super(TrainerTpu, self)._GetSession(
