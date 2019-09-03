@@ -3013,7 +3013,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">distance</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;distance must be &gt;= 0, distance=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">distance</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;keep_prob must be &gt;= 0 and &lt;=1 , keep_prob=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;keep_prob must be &gt;= 0 and &lt;=1, keep_prob=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
           <span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">drop_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;union&#39;</span><span class="p">,</span> <span class="s1">&#39;intersection&#39;</span><span class="p">]:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;drop_type must be union or intersection ,&#39;</span>
@@ -3109,6 +3109,59 @@
     <span class="k">return</span> <span class="n">shapes</span></div>
 
 <div class="viewcode-block" id="FrustumDropout.TransformDTypes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.FrustumDropout.TransformDTypes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformDTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">dtypes</span></div></div>
+
+
+<div class="viewcode-block" id="RepeatPreprocessor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RepeatPreprocessor">[docs]</a><span class="k">class</span> <span class="nc">RepeatPreprocessor</span><span class="p">(</span><span class="n">Preprocessor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Repeat a preprocessor multiple times.</span>
+
+<span class="sd">  This preprocessor takes a preprocessor as a subprocessor and apply the</span>
+<span class="sd">  subprocessor to features multiple times (repeat_count).</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RepeatPreprocessor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RepeatPreprocessor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RepeatPreprocessor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;repeat_count&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of times the subprocessor is applied to&#39;</span>
+             <span class="s1">&#39; features.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;subprocessor&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;One of the input preprocessors.&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">RepeatPreprocessor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No subprocessor was specified for RepeatPreprocessor.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat_count</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat_count</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;repeat_count must be &gt;= 0 and int, repeat_count=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">repeat_count</span><span class="p">))</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;subprocessor&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessor</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RepeatPreprocessor.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RepeatPreprocessor.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat_count</span><span class="p">):</span>
+      <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocessor</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">features</span></div>
+
+<div class="viewcode-block" id="RepeatPreprocessor.TransformShapes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RepeatPreprocessor.TransformShapes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat_count</span><span class="p">):</span>
+      <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocessor</span><span class="o">.</span><span class="n">TransformShapes</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">shapes</span></div>
+
+<div class="viewcode-block" id="RepeatPreprocessor.TransformDTypes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RepeatPreprocessor.TransformDTypes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformDTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat_count</span><span class="p">):</span>
+      <span class="n">dtypes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocessor</span><span class="o">.</span><span class="n">TransformDTypes</span><span class="p">(</span><span class="n">dtypes</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">dtypes</span></div></div>
 </pre></div>
 
