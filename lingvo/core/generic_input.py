@@ -54,7 +54,8 @@ def GenericInput(processor, *args, **kwargs):
       tuple (output, bucketing_key). `output` must be a NestedMap or a list of
       tensors representing one example. The `bucketing_key` must be a scalar
       convertible to a tf.int32 tensor that represents the bucketing key (e.g.,
-      sequence length for sequence inputs).
+      sequence length for sequence inputs). If `bucketing_key` is a negative
+      number, the record is dropped.
     *args: additional args for x_ops.generic_input.
     **kwargs: additional keyword args for x_ops.generic_input.
 

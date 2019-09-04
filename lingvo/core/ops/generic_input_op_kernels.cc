@@ -15,6 +15,7 @@ limitations under the License.
 
 #include <functional>
 
+#include "tensorflow/core/lib/strings/strcat.h"
 #include "lingvo/core/ops/input_common.h"
 #include "tensorflow/core/common_runtime/function.h"
 #include "tensorflow/core/framework/function.h"
@@ -142,6 +143,10 @@ class GenericInputProcessor : public RecordProcessor {
                  << DataTypeString(bucket_key_tensor.dtype());
     }
     *bucket_key = bucket_key_tensor.scalar<int32>()();
+    if (*bucket_key < 0) {
+      return tensorflow::errors::Cancelled(
+          strings::StrCat("Batch has negative bucket key: ", *bucket_key));
+    }
     sample->pop_back();
     return Status::OK();
   }
