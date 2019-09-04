@@ -3414,6 +3414,54 @@
   <span class="c1"># regexp ensures that a match implies there are two groups:</span>
   <span class="c1"># the record format and then the file pattern.</span>
   <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span></div>
+
+
+<span class="c1"># Partially borrowed from</span>
+<span class="c1"># https://github.com/tensorflow/tensor2tensor/blob/32929305e1a4ec926eff24123758b794df35492b/tensor2tensor/layers/common_layers.py#L349</span>
+<div class="viewcode-block" id="CumSum"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CumSum">[docs]</a><span class="k">def</span> <span class="nf">CumSum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A TPU efficient implementation of tf.cumsum().</span>
+
+<span class="sd">  This is equivalent to tf.cumsum and is faster on TPU as of 08/2019 unless</span>
+<span class="sd">  the axis dimension is very large. The current Tensorflow implementation is</span>
+<span class="sd">  based on scanning and reducing which is not efficient on TPU.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: An input Tensor.</span>
+<span class="sd">    axis: An int for the axis.</span>
+<span class="sd">    exclusive: A bool for performing exclusive cumsum.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A Tensor of the same shape as x.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: if the input axis is invalid.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">use_tpu</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="n">exclusive</span><span class="p">)</span>
+
+  <span class="n">rank</span> <span class="o">=</span> <span class="n">GetRank</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+  <span class="c1"># Needs to know the rank for the final transpose if axis is not the last</span>
+  <span class="c1"># dimension. Otherwise, falls back to tf.cumsum.</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">axis</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="n">exclusive</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">axis</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">axis</span> <span class="o">+</span> <span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unexpected axis: </span><span class="si">%d</span><span class="s1"> (rank = </span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">rank</span><span class="p">))</span>
+    <span class="n">axis</span> <span class="o">+=</span> <span class="n">rank</span>
+
+  <span class="n">length</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="n">axis</span><span class="p">]</span>
+  <span class="n">my_range</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+  <span class="n">comparator</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">less</span> <span class="k">if</span> <span class="n">exclusive</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">less_equal</span>
+  <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+      <span class="n">comparator</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">my_range</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">my_range</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[[</span><span class="n">axis</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+  <span class="k">if</span> <span class="n">axis</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">axis</span> <span class="o">!=</span> <span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+        <span class="n">result</span><span class="p">,</span>
+        <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">axis</span><span class="p">))</span> <span class="o">+</span> <span class="p">[</span><span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+  <span class="k">return</span> <span class="n">result</span></div>
 </pre></div>
 
            </div>

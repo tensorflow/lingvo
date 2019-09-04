@@ -1930,6 +1930,30 @@ file_pattern: The file pattern without any prefixes.</p>
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.py_utils.CumSum">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">CumSum</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">axis=0</em>, <em class="sig-param">exclusive=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CumSum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CumSum" title="Permalink to this definition">¶</a></dt>
+<dd><p>A TPU efficient implementation of tf.cumsum().</p>
+<p>This is equivalent to tf.cumsum and is faster on TPU as of 08/2019 unless
+the axis dimension is very large. The current Tensorflow implementation is
+based on scanning and reducing which is not efficient on TPU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – An input Tensor.</p></li>
+<li><p><strong>axis</strong> – An int for the axis.</p></li>
+<li><p><strong>exclusive</strong> – A bool for performing exclusive cumsum.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of the same shape as x.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – if the input axis is invalid.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 
