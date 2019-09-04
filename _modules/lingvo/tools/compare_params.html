@@ -206,10 +206,21 @@
   <span class="n">cfg1_not_cfg2</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">cfg1_keys</span> <span class="o">-</span> <span class="n">cfg2_keys</span><span class="p">))</span>
   <span class="n">cfg2_not_cfg1</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">cfg2_keys</span> <span class="o">-</span> <span class="n">cfg1_keys</span><span class="p">))</span>
 
+  <span class="k">def</span> <span class="nf">get_class_name</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">idx</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">rindex</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">v</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">v</span>
+
   <span class="n">cfg1_and_cfg2_diff</span> <span class="o">=</span> <span class="p">{}</span>
   <span class="k">for</span> <span class="n">k_intersection</span> <span class="ow">in</span> <span class="n">cfg1_keys</span> <span class="o">&amp;</span> <span class="n">cfg2_keys</span><span class="p">:</span>
     <span class="n">c1v</span> <span class="o">=</span> <span class="n">cfg1_dict</span><span class="p">[</span><span class="n">k_intersection</span><span class="p">]</span>
     <span class="n">c2v</span> <span class="o">=</span> <span class="n">cfg2_dict</span><span class="p">[</span><span class="n">k_intersection</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">k_intersection</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.cls&quot;</span><span class="p">):</span>
+      <span class="n">c1v</span> <span class="o">=</span> <span class="n">get_class_name</span><span class="p">(</span><span class="n">c1v</span><span class="p">)</span>
+      <span class="n">c2v</span> <span class="o">=</span> <span class="n">get_class_name</span><span class="p">(</span><span class="n">c2v</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">c1v</span> <span class="o">!=</span> <span class="n">c2v</span><span class="p">:</span>
       <span class="n">cfg1_and_cfg2_diff</span><span class="p">[</span><span class="n">k_intersection</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">c1v</span><span class="p">,</span> <span class="n">c2v</span><span class="p">)</span>
 
