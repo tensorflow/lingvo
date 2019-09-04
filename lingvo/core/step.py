@@ -61,7 +61,7 @@ class Step(base_layer.BaseLayer):
     """
     raise NotImplementedError(type(self))
 
-  def FProp(self, theta, external_inputs, step_inputs, state0):
+  def FProp(self, theta, external_inputs, step_inputs, padding, state0):
     """Forward function.
 
     step_inputs, state0, step_outputs, and state1 should each be a `.NestedMap`
@@ -74,6 +74,8 @@ class Step(base_layer.BaseLayer):
         its children layers.
       external_inputs: External inputs returned by PrepareExternalInputs().
       step_inputs: The inputs for this time step.
+      padding: A 0/1 float tensor of shape [batch_size]; 1.0 means that this
+        batch element is empty in this step.
       state0: The previous recurrent state.
 
     Returns:
