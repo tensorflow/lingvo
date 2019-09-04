@@ -2477,12 +2477,6 @@ class GmmMonotonicAttention(BaseAttentionLayer):
         'the attention weights (i.e. probabilities) may not add up to '
         '1.0.')
 
-    # TODO(oday): Remove this after all experiments had been migrated.
-    p.Define(
-        'use_atten_v2', True,
-        'Whether to use AttenV2 inner function. This flag should be False '
-        'in old checkpoints because the loss calculation may be affected.')
-
     # TODO(ngyuzh): find a good initialize for both TTS and ASR. Consider split
     # the layer if it's very sensitive to the initialization
     p.params_init = py_utils.WeightInit.Xavier(0.1)
@@ -2506,11 +2500,11 @@ class GmmMonotonicAttention(BaseAttentionLayer):
           params_init=p.params_init.Copy())
       self.CreateChild('GMM', ff_params)
 
-      def ComputeProbsV2(encoder_positions, priors, means, variances):
+      def ComputeProbs(encoder_positions, priors, means, variances):
         """Computes the location GMM probabilities at all encoder positions.
 
-        Unlike `ComputeProbs(V1)`, this function assumes that the first 2
-        dimensions of `priors`, `means`, `variances`, and the return value:
+        This function assumes that the first 2 dimensions of `priors`, `means`,
+        `variances`, and the return value:
         `multiplier (target_batch / source_batch)` and `source_batch` are
         transposed, and `encoder_positions` has only non-one dimensions.
 
@@ -2540,24 +2534,9 @@ class GmmMonotonicAttention(BaseAttentionLayer):
         # [multiplier, source_batch, source_length]
         return tf.reduce_sum(probs, axis=3)
 
-      # TODO(oday): Remove this after all experiments had been migrated.
-      # TODO(ngyuzh): change variance to scale to make it simpler.
-      def ComputeProbs(encoder_positions, priors, means, variances):
-        """Computes the location GMM probabilities at all encoder positions."""
-        # encoder_positions: [batch, 1, timesteps, 1]
-        # [batch, tb / sb, 1, num_mixtures]
-        priors = tf.expand_dims(priors, 2)
-        means = tf.expand_dims(means, 2)
-        variances = tf.expand_dims(variances, 2)
-        # [batch, tb / sb, timesteps, num_mixtures]
-        probs = priors * tf.rsqrt(2 * np.pi * variances + 1e-8) * tf.exp(
-            -(encoder_positions - means)**2 / (2 * variances + 1e-8))
-        # probs sized [batch, tb / sb, timesteps].
-        return tf.reduce_sum(probs, axis=3)
-
-      def AttenV2(source_padding, concated_source_vecs,
-                  concated_source_contexts, query_vec, priors, means, variances,
-                  encoder_positions, per_step_source_padding):
+      def Atten(source_padding, concated_source_vecs, concated_source_contexts,
+                query_vec, priors, means, variances, encoder_positions,
+                per_step_source_padding):
         """Computes the attention context vector.
 
         Args:
@@ -2576,7 +2555,6 @@ class GmmMonotonicAttention(BaseAttentionLayer):
             context vector: [target_batch, context_dim]
             attention probabilities: [target_batch, source_length]
         """
-
         # Note: shape [target_batch] can be converted to
         # [multiplier, source_batch], not [source_batch, multiplier].
         p = self.params
@@ -2591,7 +2569,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
                                [multiplier, source_batch, p.num_mixtures])
 
         # [multiplier, source_batch, source_length]
-        probs = ComputeProbsV2(encoder_positions, priors, means, variances)
+        probs = ComputeProbs(encoder_positions, priors, means, variances)
 
         # [source_batch, source_length]
         source_padding = tf.transpose(source_padding)
@@ -2629,54 +2607,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
         return (tf.reshape(context_vector, [target_batch, -1]),
                 tf.reshape(probs, [target_batch, -1]))
 
-      # TODO(oday): Remove this after all experiments had been migrated.
-      # TODO(ngyuzh): remove unnecessary transpose.
-      def Atten(source_padding, concated_source_vecs, concated_source_contexts,
-                query_vec, priors, means, variances, encoder_positions,
-                per_step_source_padding):
-        """Computes the attention context vector."""
-        # tb: target batch size
-        # sb: source batch size
-        # concated_source_vecs is of shape [sl, sb, context_dim]
-        # query_vec is of shape [tb, dims]
-        p = self.params
-        sb = tf.shape(concated_source_vecs)[1]
-        tb = tf.shape(query_vec)[0]
-        multiplier = tb // sb
-        # [sb, tb / sb, num_mixtures]
-        priors = tf.reshape(priors, [-1, multiplier, p.num_mixtures])
-        means = tf.reshape(means, [-1, multiplier, p.num_mixtures])
-        variances = tf.reshape(variances, [-1, multiplier, p.num_mixtures])
-
-        probs = ComputeProbs(encoder_positions, priors, means, variances)
-        # [sl, tb / sb, sb]
-        probs = tf.reshape(tf.transpose(probs, [2, 0, 1]), [-1, multiplier, sb])
-
-        source_padding = tf.expand_dims(source_padding, 1)
-        per_step_source_padding = tf.reshape(
-            tf.transpose(per_step_source_padding), [-1, multiplier, sb])
-        source_padding += per_step_source_padding
-        source_padding = tf.minimum(source_padding, 1.0)
-
-        probs *= (1.0 - source_padding)
-        if p.normalize_probs:
-          probs /= tf.maximum(
-              tf.reduce_sum(probs, axis=0, keepdims=True), 1e-12)
-        summary_utils.histogram('gmm_probs_norm', tf.reduce_sum(probs, axis=0))
-
-        probs = py_utils.AddDebugTensor(probs, name='atten_probs')
-        probs = tf.transpose(tf.reshape(probs, [-1, tb]))
-        # [tb/sb, sb, sl]
-        probs_reshaped = tf.reshape(probs, [multiplier, sb, -1])
-        # [sb, tb/sb, sl]
-        probs_reshaped = tf.transpose(probs_reshaped, [1, 0, 2])
-        # Batched matmul
-        # [sb, tb/sb, sl] * [sb, sl, context_dim] = [sb, tb/sb, context_dim]
-        context_vector = tf.matmul(probs_reshaped, concated_source_contexts)
-        context_vector = tf.transpose(context_vector, [1, 0, 2])
-        return tf.reshape(context_vector, [tb, -1]), probs
-
-      self._ctx_vec = AttenV2 if p.use_atten_v2 else Atten
+      self._ctx_vec = Atten
 
       def EncodeSource(vecs, ctxs):
         # TODO(ngyuzh): combine with content-base attention.
@@ -2809,13 +2740,6 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     encoder_positions = tf.expand_dims(
         tf.cast(tf.range(source_length), tf.float32), 0)
     encoder_positions = tf.tile(encoder_positions, [source_batch, 1])
-
-    # TODO(oday): Remove this after all experiments had been migrated.
-    if not p.use_atten_v2:
-      # Reshape encoder_positions to [source_batch, 1, source_length, 1] to
-      # maintain backward compatibility.
-      encoder_positions = tf.expand_dims(encoder_positions, 1)
-      encoder_positions = tf.expand_dims(encoder_positions, 3)
 
     # [target_batch, context_dim], [target_batch, source_length]
     ctx_vec, prob = self._ctx_vec(source_padding, concated_source_vecs,

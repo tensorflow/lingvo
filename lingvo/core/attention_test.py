@@ -1717,8 +1717,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
     with self.assertRaises(NotImplementedError):
       p.Instantiate()
 
-  @parameterized.parameters({'use_atten_v2': False}, {'use_atten_v2': True})
-  def testGmmMonotonicAttention(self, use_atten_v2):
+  def testGmmMonotonicAttention(self):
     with self.session(use_gpu=True) as sess:
       np.random.seed(12345)
       source_vecs = tf.stack([
@@ -1742,8 +1741,6 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       params.num_mixtures = 2
       params.vn.global_vn = False
       params.vn.per_step_vn = False
-
-      params.use_atten_v2 = use_atten_v2
 
       atten = params.Instantiate()
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
