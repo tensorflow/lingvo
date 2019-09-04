@@ -61,10 +61,21 @@ def hyperparams_text_diff(cfg1_text, cfg2_text):
   cfg1_not_cfg2 = sorted(list(cfg1_keys - cfg2_keys))
   cfg2_not_cfg1 = sorted(list(cfg2_keys - cfg1_keys))
 
+  def get_class_name(v):
+    try:
+      idx = v.rindex("/")
+      return v[idx + 1:]
+    except ValueError:
+      return v
+
   cfg1_and_cfg2_diff = {}
   for k_intersection in cfg1_keys & cfg2_keys:
     c1v = cfg1_dict[k_intersection]
     c2v = cfg2_dict[k_intersection]
+    if k_intersection.endswith(".cls"):
+      c1v = get_class_name(c1v)
+      c2v = get_class_name(c2v)
+
     if c1v != c2v:
       cfg1_and_cfg2_diff[k_intersection] = (c1v, c2v)
 
