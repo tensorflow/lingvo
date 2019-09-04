@@ -3269,3 +3269,51 @@ def RecordFormatFromFilePattern(file_pattern):
   # regexp ensures that a match implies there are two groups:
   # the record format and then the file pattern.
   return result.groups()
+
+
+# Partially borrowed from
+# https://github.com/tensorflow/tensor2tensor/blob/32929305e1a4ec926eff24123758b794df35492b/tensor2tensor/layers/common_layers.py#L349
+def CumSum(x, axis=0, exclusive=False):
+  """A TPU efficient implementation of tf.cumsum().
+
+  This is equivalent to tf.cumsum and is faster on TPU as of 08/2019 unless
+  the axis dimension is very large. The current Tensorflow implementation is
+  based on scanning and reducing which is not efficient on TPU.
+
+  Args:
+    x: An input Tensor.
+    axis: An int for the axis.
+    exclusive: A bool for performing exclusive cumsum.
+
+  Returns:
+    A Tensor of the same shape as x.
+
+  Raises:
+    ValueError: if the input axis is invalid.
+  """
+  if not use_tpu():
+    return tf.cumsum(x, axis=axis, exclusive=exclusive)
+
+  rank = GetRank(x)
+  # Needs to know the rank for the final transpose if axis is not the last
+  # dimension. Otherwise, falls back to tf.cumsum.
+  if not isinstance(rank, int) and axis != -1:
+    return tf.cumsum(x, axis=axis, exclusive=exclusive)
+
+  if axis < -1:
+    if axis + rank < 0:
+      raise ValueError('Unexpected axis: %d (rank = %d)' % (axis, rank))
+    axis += rank
+
+  length = GetShape(x)[axis]
+  my_range = tf.range(length)
+  comparator = tf.less if exclusive else tf.less_equal
+  mask = tf.cast(
+      comparator(tf.expand_dims(my_range, 1), tf.expand_dims(my_range, 0)),
+      x.dtype)
+  result = tf.tensordot(x, mask, axes=[[axis], [0]])
+  if axis != -1 and axis != rank - 1:
+    result = tf.transpose(
+        result,
+        list(range(axis)) + [rank - 1] + list(range(axis, rank - 1)))
+  return result

@@ -91,7 +91,7 @@ def SafeCumprod(x, *args, **kwargs):
     x = tf.convert_to_tensor(x, name='x')
     tiny = np.finfo(x.dtype.as_numpy_dtype).tiny
     return tf.exp(
-        tf.cumsum(tf.log(tf.clip_by_value(x, tiny, 1)), *args, **kwargs))
+        py_utils.CumSum(tf.log(tf.clip_by_value(x, tiny, 1)), *args, **kwargs))
 
 
 # pyformat: disable
@@ -167,7 +167,7 @@ def MonotonicAttentionProb(p_choose_i, previous_attention, mode):
     # SafeCumprod computes cumprod in logspace with numeric checks
     cumprod_1mp_choose_i = SafeCumprod(1 - p_choose_i, axis=1, exclusive=True)
     # Compute recurrence relation solution
-    attention = p_choose_i * cumprod_1mp_choose_i * tf.cumsum(
+    attention = p_choose_i * cumprod_1mp_choose_i * py_utils.CumSum(
         previous_attention /
         # Clip cumprod_1mp to avoid divide-by-zero
         tf.clip_by_value(cumprod_1mp_choose_i, 1e-10, 1.),

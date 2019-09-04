@@ -31,6 +31,8 @@ from lingvo.core import recurrent
 from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.tasks.image.params import mnist  # pylint: disable=unused-import
+
+import mock
 import numpy as np
 import six
 from six.moves import range
@@ -846,6 +848,32 @@ class PyUtilsTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       self.assertAllEqual(stacked.x, tf.constant([[1, 2], [3, 4]]))
       self.assertAllEqual(stacked.z.a, tf.constant([[1, 2], [10, 20]]))
+
+  def testCumSum(self):
+    with self.session(use_gpu=False), mock.patch(
+        'lingvo.core.py_utils.use_tpu', return_value=True):
+      np.random.seed(12345)
+      x = tf.constant(np.random.rand(2, 4, 8), dtype=tf.float32)
+
+      # If rank is non-static, py_utils.CumSum falls back to tf.cumsum. Make
+      # sure it's not the case.
+      rank = py_utils.GetRank(x)
+      self.assertIsInstance(rank, int)
+
+      self.assertAllClose(py_utils.CumSum(x, 0).eval(), tf.cumsum(x, 0).eval())
+      self.assertAllClose(py_utils.CumSum(x, 1).eval(), tf.cumsum(x, 1).eval())
+      self.assertAllClose(py_utils.CumSum(x, 2).eval(), tf.cumsum(x, 2).eval())
+      self.assertAllClose(
+          py_utils.CumSum(x, -1).eval(),
+          tf.cumsum(x, -1).eval())
+      self.assertAllClose(
+          py_utils.CumSum(x, -2).eval(),
+          tf.cumsum(x, -2).eval())
+      self.assertAllClose(
+          py_utils.CumSum(x, -3).eval(),
+          tf.cumsum(x, -3).eval())
+      with self.assertRaises(ValueError):
+        py_utils.CumSum(x, -4).eval()
 
 
 class DeterministicDropoutTest(test_utils.TestCase):
