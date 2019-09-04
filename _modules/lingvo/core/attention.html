@@ -2622,12 +2622,6 @@
         <span class="s1">&#39;the attention weights (i.e. probabilities) may not add up to &#39;</span>
         <span class="s1">&#39;1.0.&#39;</span><span class="p">)</span>
 
-    <span class="c1"># TODO(oday): Remove this after all experiments had been migrated.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;use_atten_v2&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s1">&#39;Whether to use AttenV2 inner function. This flag should be False &#39;</span>
-        <span class="s1">&#39;in old checkpoints because the loss calculation may be affected.&#39;</span><span class="p">)</span>
-
     <span class="c1"># TODO(ngyuzh): find a good initialize for both TTS and ASR. Consider split</span>
     <span class="c1"># the layer if it&#39;s very sensitive to the initialization</span>
     <span class="n">p</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
@@ -2651,11 +2645,11 @@
           <span class="n">params_init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="o">.</span><span class="n">Copy</span><span class="p">())</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;GMM&#39;</span><span class="p">,</span> <span class="n">ff_params</span><span class="p">)</span>
 
-      <span class="k">def</span> <span class="nf">ComputeProbsV2</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">):</span>
+      <span class="k">def</span> <span class="nf">ComputeProbs</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Computes the location GMM probabilities at all encoder positions.</span>
 
-<span class="sd">        Unlike `ComputeProbs(V1)`, this function assumes that the first 2</span>
-<span class="sd">        dimensions of `priors`, `means`, `variances`, and the return value:</span>
+<span class="sd">        This function assumes that the first 2 dimensions of `priors`, `means`,</span>
+<span class="sd">        `variances`, and the return value:</span>
 <span class="sd">        `multiplier (target_batch / source_batch)` and `source_batch` are</span>
 <span class="sd">        transposed, and `encoder_positions` has only non-one dimensions.</span>
 
@@ -2685,24 +2679,9 @@
         <span class="c1"># [multiplier, source_batch, source_length]</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
-      <span class="c1"># TODO(oday): Remove this after all experiments had been migrated.</span>
-      <span class="c1"># TODO(ngyuzh): change variance to scale to make it simpler.</span>
-      <span class="k">def</span> <span class="nf">ComputeProbs</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Computes the location GMM probabilities at all encoder positions.&quot;&quot;&quot;</span>
-        <span class="c1"># encoder_positions: [batch, 1, timesteps, 1]</span>
-        <span class="c1"># [batch, tb / sb, 1, num_mixtures]</span>
-        <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="c1"># [batch, tb / sb, timesteps, num_mixtures]</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">priors</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">variances</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
-            <span class="o">-</span><span class="p">(</span><span class="n">encoder_positions</span> <span class="o">-</span> <span class="n">means</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">variances</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">))</span>
-        <span class="c1"># probs sized [batch, tb / sb, timesteps].</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-
-      <span class="k">def</span> <span class="nf">AttenV2</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span>
-                  <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span>
-                  <span class="n">encoder_positions</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">):</span>
+      <span class="k">def</span> <span class="nf">Atten</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">,</span>
+                <span class="n">query_vec</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">encoder_positions</span><span class="p">,</span>
+                <span class="n">per_step_source_padding</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Computes the attention context vector.</span>
 
 <span class="sd">        Args:</span>
@@ -2721,7 +2700,6 @@
 <span class="sd">            context vector: [target_batch, context_dim]</span>
 <span class="sd">            attention probabilities: [target_batch, source_length]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
         <span class="c1"># Note: shape [target_batch] can be converted to</span>
         <span class="c1"># [multiplier, source_batch], not [source_batch, multiplier].</span>
         <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -2736,7 +2714,7 @@
                                <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
 
         <span class="c1"># [multiplier, source_batch, source_length]</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">ComputeProbsV2</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">)</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">ComputeProbs</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">)</span>
 
         <span class="c1"># [source_batch, source_length]</span>
         <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)</span>
@@ -2774,54 +2752,7 @@
         <span class="k">return</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
                 <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
 
-      <span class="c1"># TODO(oday): Remove this after all experiments had been migrated.</span>
-      <span class="c1"># TODO(ngyuzh): remove unnecessary transpose.</span>
-      <span class="k">def</span> <span class="nf">Atten</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">,</span>
-                <span class="n">query_vec</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">encoder_positions</span><span class="p">,</span>
-                <span class="n">per_step_source_padding</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Computes the attention context vector.&quot;&quot;&quot;</span>
-        <span class="c1"># tb: target batch size</span>
-        <span class="c1"># sb: source batch size</span>
-        <span class="c1"># concated_source_vecs is of shape [sl, sb, context_dim]</span>
-        <span class="c1"># query_vec is of shape [tb, dims]</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-        <span class="n">sb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">tb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">multiplier</span> <span class="o">=</span> <span class="n">tb</span> <span class="o">//</span> <span class="n">sb</span>
-        <span class="c1"># [sb, tb / sb, num_mixtures]</span>
-        <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
-        <span class="n">means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
-        <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
-
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">ComputeProbs</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">)</span>
-        <span class="c1"># [sl, tb / sb, sb]</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">sb</span><span class="p">])</span>
-
-        <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">sb</span><span class="p">])</span>
-        <span class="n">source_padding</span> <span class="o">+=</span> <span class="n">per_step_source_padding</span>
-        <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-
-        <span class="n">probs</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">source_padding</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">normalize_probs</span><span class="p">:</span>
-          <span class="n">probs</span> <span class="o">/=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="mf">1e-12</span><span class="p">)</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;gmm_probs_norm&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddDebugTensor</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;atten_probs&#39;</span><span class="p">)</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tb</span><span class="p">]))</span>
-        <span class="c1"># [tb/sb, sb, sl]</span>
-        <span class="n">probs_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">sb</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="c1"># [sb, tb/sb, sl]</span>
-        <span class="n">probs_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs_reshaped</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
-        <span class="c1"># Batched matmul</span>
-        <span class="c1"># [sb, tb/sb, sl] * [sb, sl, context_dim] = [sb, tb/sb, context_dim]</span>
-        <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">probs_reshaped</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">)</span>
-        <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="n">tb</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">probs</span>
-
-      <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span> <span class="o">=</span> <span class="n">AttenV2</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_atten_v2</span> <span class="k">else</span> <span class="n">Atten</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span> <span class="o">=</span> <span class="n">Atten</span>
 
       <span class="k">def</span> <span class="nf">EncodeSource</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="n">ctxs</span><span class="p">):</span>
         <span class="c1"># TODO(ngyuzh): combine with content-base attention.</span>
@@ -2954,13 +2885,6 @@
     <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">source_length</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="p">[</span><span class="n">source_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-
-    <span class="c1"># TODO(oday): Remove this after all experiments had been migrated.</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_atten_v2</span><span class="p">:</span>
-      <span class="c1"># Reshape encoder_positions to [source_batch, 1, source_length, 1] to</span>
-      <span class="c1"># maintain backward compatibility.</span>
-      <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-      <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 
     <span class="c1"># [target_batch, context_dim], [target_batch, source_length]</span>
     <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span>
