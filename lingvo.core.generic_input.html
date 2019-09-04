@@ -196,7 +196,8 @@
 tuple (output, bucketing_key). <code class="xref py py-obj docutils literal notranslate"><span class="pre">output</span></code> must be a NestedMap or a list of
 tensors representing one example. The <code class="xref py py-obj docutils literal notranslate"><span class="pre">bucketing_key</span></code> must be a scalar
 convertible to a tf.int32 tensor that represents the bucketing key (e.g.,
-sequence length for sequence inputs).</p></li>
+sequence length for sequence inputs). If <code class="xref py py-obj docutils literal notranslate"><span class="pre">bucketing_key</span></code> is a negative
+number, the record is dropped.</p></li>
 <li><p><strong>*args</strong> – additional args for x_ops.generic_input.</p></li>
 <li><p><strong>**kwargs</strong> – additional keyword args for x_ops.generic_input.</p></li>
 </ul>

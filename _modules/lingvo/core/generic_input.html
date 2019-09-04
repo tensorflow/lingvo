@@ -199,7 +199,8 @@
 <span class="sd">      tuple (output, bucketing_key). `output` must be a NestedMap or a list of</span>
 <span class="sd">      tensors representing one example. The `bucketing_key` must be a scalar</span>
 <span class="sd">      convertible to a tf.int32 tensor that represents the bucketing key (e.g.,</span>
-<span class="sd">      sequence length for sequence inputs).</span>
+<span class="sd">      sequence length for sequence inputs). If `bucketing_key` is a negative</span>
+<span class="sd">      number, the record is dropped.</span>
 <span class="sd">    *args: additional args for x_ops.generic_input.</span>
 <span class="sd">    **kwargs: additional keyword args for x_ops.generic_input.</span>
 

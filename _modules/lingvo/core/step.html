@@ -206,7 +206,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="Step.FProp"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.Step.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+<div class="viewcode-block" id="Step.FProp"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.Step.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Forward function.</span>
 
 <span class="sd">    step_inputs, state0, step_outputs, and state1 should each be a `.NestedMap`</span>
@@ -219,6 +219,8 @@
 <span class="sd">        its children layers.</span>
 <span class="sd">      external_inputs: External inputs returned by PrepareExternalInputs().</span>
 <span class="sd">      step_inputs: The inputs for this time step.</span>
+<span class="sd">      padding: A 0/1 float tensor of shape [batch_size]; 1.0 means that this</span>
+<span class="sd">        batch element is empty in this step.</span>
 <span class="sd">      state0: The previous recurrent state.</span>
 
 <span class="sd">    Returns:</span>
