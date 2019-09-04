@@ -41,3 +41,4 @@ pairwise_iou3d = gen_car_ops.pairwise_iou3d
 point_to_grid = gen_car_ops.point_to_grid
 non_max_suppression_3d = gen_car_ops.non_max_suppression3d
 average_precision3d = gen_car_ops.average_precision3d
+sample_points = gen_car_ops.sample_points

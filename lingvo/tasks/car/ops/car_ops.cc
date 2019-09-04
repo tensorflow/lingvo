@@ -177,5 +177,56 @@ algorithm: string. One of ["KITTI", "VOC"]. See this paper "Supervised
   the differences between KITTI AP and VOC AP.
 )doc");
 
+// TODO(vrv): Convert some of the attrs to inputs.
+REGISTER_OP("SamplePoints")
+    .Input("points: float")
+    .Output("center_padding: float")
+    .Output("center: int32")
+    .Output("indices: int32")
+    .Output("padding: float")
+    .Attr("center_selector: string")
+    .Attr("neighbor_sampler: string")
+    .Attr("num_centers: int")
+    .Attr("center_z_min: float")
+    .Attr("center_z_max: float")
+    .Attr("num_neighbors: int")
+    .Attr("max_distance: float")
+    .Attr("random_seed: int = -1")
+    .SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+      int num_centers, num_neighbors;
+      TF_RETURN_IF_ERROR(c->GetAttr("num_centers", &num_centers));
+      TF_RETURN_IF_ERROR(c->GetAttr("num_neighbors", &num_neighbors));
+      c->set_output(0, c->MakeShape({num_centers}));
+      c->set_output(1, c->MakeShape({num_centers}));
+      c->set_output(2, c->MakeShape({num_centers, num_neighbors}));
+      c->set_output(3, c->MakeShape({num_centers, num_neighbors}));
+      return ::tensorflow::Status::OK();
+    })
+    .Doc(R"doc(
+Sample points among 'points'.
+
+center_padding: [M]. If center_padding[i] is 0., center[i], indices[i, :] and
+padding[i, :] are valid sampled center. Otherwise, center_padding[i] is 1.0,
+and center[i] and indices[i, :] are all zeros while padding[i, :] are all 1.0.
+
+points: [N, K]. N - the number of points; K - the number of dimensions
+  of each point.
+center_padding: [M].
+center: [M]. the indices of selected centers.
+indices: [M, P]. the indices of selected points.
+padding: [M, P]. 0/1 padding of indices.
+center_selector: Valid options - 'farthest', 'uniform'.
+neighbor_sampler: Valid options - 'uniform', 'closest'.
+num_centers: The number of centers to sample (M).
+center_z_min: Points with z less than center_z_min are not considered for
+ center selection.
+center_z_max: Points with z greater than center_z_max are not considered
+ for center selection.
+num_neighbors: Sample these many points within the neighorhood (P).
+max_distance: Points with L2 distances from a center larger than this
+  threshold are not considered to be in the neighborhood.
+random_seed: The random seed.
+)doc");
+
 }  // namespace
 }  // namespace tensorflow

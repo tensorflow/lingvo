@@ -62,6 +62,26 @@ cc_library(
         ":nms_3d_op",
         ":pairwise_iou_op",
         ":point_grid_op",
+        ":sampling_ops",
+    ],
+)
+
+custom_kernel_library(
+    name = "sampling_ops",
+    srcs = ["sampling_ops.cc"],
+    op_def_lib = [":car_ops"],
+    deps = [
+        ":ps_utils",
+    ],
+)
+
+py_test(
+    name = "sampling_ops_test",
+    srcs = ["sampling_ops_test.py"],
+    deps = [
+        ":ops",
+        "//lingvo:compat",
+        "//lingvo/core:test_utils",
     ],
 )
 
