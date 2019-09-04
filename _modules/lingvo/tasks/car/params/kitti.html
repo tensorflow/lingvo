@@ -179,33 +179,33 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 
-<span class="c1"># Set this to the base path of where all the KITTI files can be found.</span>
+<span class="c1"># Set $KITTI_DIR to the base path of where all the KITTI files can be found.</span>
 <span class="c1">#</span>
-<span class="c1"># E.g., &#39;tfrecord:gs://your-bucket/kitti/3d&#39;</span>
-<span class="n">_KITTI_BASE</span> <span class="o">=</span> <span class="s1">&#39;FILL ME IN&#39;</span>
+<span class="c1"># E.g., &#39;gs://your-bucket/kitti/3d&#39;</span>
+<span class="n">_KITTI_BASE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;KITTI_DIR&#39;</span><span class="p">,</span> <span class="s1">&#39;FILL-ME-IN&#39;</span><span class="p">)</span>
 
 
 <span class="c1"># Specifications for the different dataset splits.</span>
 <div class="viewcode-block" id="KITTITrainSpec"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.KITTITrainSpec">[docs]</a><span class="k">def</span> <span class="nf">KITTITrainSpec</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_KITTI_BASE</span><span class="p">,</span>
-                                <span class="s1">&#39;kitti_object_3dop_train.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;tfrecord:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+      <span class="n">_KITTI_BASE</span><span class="p">,</span> <span class="s1">&#39;kitti_object_3dop_train.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
   <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">3712</span>
   <span class="k">return</span> <span class="n">p</span></div>
 
 
 <div class="viewcode-block" id="KITTIValSpec"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.KITTIValSpec">[docs]</a><span class="k">def</span> <span class="nf">KITTIValSpec</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_KITTI_BASE</span><span class="p">,</span>
-                                <span class="s1">&#39;kitti_object_3dop_val.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;tfrecord:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+      <span class="n">_KITTI_BASE</span><span class="p">,</span> <span class="s1">&#39;kitti_object_3dop_val.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
   <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">3769</span>
   <span class="k">return</span> <span class="n">p</span></div>
 
 
 <div class="viewcode-block" id="KITTITestSpec"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.KITTITestSpec">[docs]</a><span class="k">def</span> <span class="nf">KITTITestSpec</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_KITTI_BASE</span><span class="p">,</span>
-                                <span class="s1">&#39;kitti_object_test.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;tfrecord:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+      <span class="n">_KITTI_BASE</span><span class="p">,</span> <span class="s1">&#39;kitti_object_test.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
   <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">7518</span>
   <span class="k">return</span> <span class="n">p</span></div>
 
@@ -456,6 +456,12 @@
         <span class="p">))</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bbox_aug&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span>
 
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">frustum_dropout</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">FrustumDropout</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">theta_width</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">phi_width</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;gather_features&#39;</span><span class="p">),</span> <span class="s1">&#39;frustum_dropout&#39;</span><span class="p">)</span>
+
     <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">64</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">64</span></div>
@@ -587,11 +593,6 @@
 <div class="viewcode-block" id="StarNetCarModel0701._configure_trainer_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarModel0701._configure_trainer_input">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_configure_trainer_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">StarNetCarModel0701</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_trainer_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">frustum_dropout</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">FrustumDropout</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">theta_width</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">phi_width</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;gather_features&#39;</span><span class="p">),</span> <span class="s1">&#39;frustum_dropout&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">global_loc_noise</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">GlobalTranslateNoise</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
@@ -641,6 +642,147 @@
     <span class="n">p</span><span class="o">.</span><span class="n">nms_score_threshold</span><span class="p">[</span><span class="n">class_name_to_idx</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;Car&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.321310</span>
     <span class="n">p</span><span class="o">.</span><span class="n">output_decoder</span><span class="o">.</span><span class="n">truncation_threshold</span> <span class="o">=</span> <span class="mf">0.65</span>
     <span class="n">p</span><span class="o">.</span><span class="n">output_decoder</span><span class="o">.</span><span class="n">filter_predictions_outside_frustum</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="StarNetPedCycModel0704"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">StarNetPedCycModel0704</span><span class="p">(</span><span class="n">StarNetCarsBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;StarNet Ped/Cyc model trained on KITTI.&quot;&quot;&quot;</span>
+
+  <span class="n">INCLUDED_CLASSES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Pedestrian&#39;</span><span class="p">,</span> <span class="s1">&#39;Cyclist&#39;</span><span class="p">]</span>
+
+  <span class="n">FOREGROUND_ASSIGNMENT_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.48</span>
+  <span class="c1"># Any value &gt; FOREGROUND is equivalent.</span>
+  <span class="n">BACKGROUND_ASSIGNMENT_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.80</span>
+
+  <span class="n">NUM_ANCHOR_BBOX_OFFSETS</span> <span class="o">=</span> <span class="mi">9</span>
+  <span class="n">NUM_ANCHOR_BBOX_ROTATIONS</span> <span class="o">=</span> <span class="mi">4</span>
+  <span class="n">NUM_ANCHOR_BBOX_DIMENSIONS</span> <span class="o">=</span> <span class="mi">3</span>
+
+<div class="viewcode-block" id="StarNetPedCycModel0704.AnchorBoxSettings"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704.AnchorBoxSettings">[docs]</a>  <span class="k">class</span> <span class="nc">AnchorBoxSettings</span><span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">SparseCarV1AnchorBoxSettings</span><span class="p">):</span>
+    <span class="c1"># PointPillars priors for pedestrian/cyclists.</span>
+    <span class="n">DIMENSION_PRIORS</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">1.7</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">1.76</span><span class="p">,</span> <span class="mf">1.73</span><span class="p">)]</span>
+    <span class="n">ROTATIONS</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">3.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">]</span>
+    <span class="n">CENTER_X_OFFSETS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">0.31</span><span class="p">,</span> <span class="mf">0.31</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">CENTER_Y_OFFSETS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">0.31</span><span class="p">,</span> <span class="mf">0.31</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">CENTER_Z_OFFSETS</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.6</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="StarNetPedCycModel0704._configure_generic_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_generic_input">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_configure_generic_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_generic_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="c1"># For selecting centers, drop points out of frustum and do approximate</span>
+    <span class="c1"># ground removal.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">select_centers</span><span class="o">.</span><span class="n">features_preparation_layers</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">KITTIDropPointsOutOfFrustum</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">DropLaserPointsOutOfRange</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">keep_z_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)),</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Remove frustum dropping from original preprocessors.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;remove_out_of_frustum&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Keep all points in front of the car for featurizing, do not remove ground.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">keep_xyz_range</span><span class="o">.</span><span class="n">keep_x_range</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">48.0</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">keep_xyz_range</span><span class="o">.</span><span class="n">keep_y_range</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">20.</span><span class="p">,</span> <span class="mf">20.</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">keep_xyz_range</span><span class="o">.</span><span class="n">keep_z_range</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">pad_lasers</span><span class="o">.</span><span class="n">max_num_points</span> <span class="o">=</span> <span class="mi">72000</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">select_centers</span><span class="o">.</span><span class="n">sampling_method</span> <span class="o">=</span> <span class="s1">&#39;farthest_point&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">select_centers</span><span class="o">.</span><span class="n">num_cell_centers</span> <span class="o">=</span> <span class="mi">512</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">select_centers</span><span class="o">.</span><span class="n">features_preparation_layers</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">KITTIDropPointsOutOfFrustum</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">DropLaserPointsOutOfRange</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">keep_z_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.4</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)),</span>
+    <span class="p">]</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">gather_features</span><span class="o">.</span><span class="n">max_distance</span> <span class="o">=</span> <span class="mf">2.55</span></div>
+
+<div class="viewcode-block" id="StarNetPedCycModel0704._configure_trainer_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_trainer_input">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_configure_trainer_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_trainer_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="n">allowed_label_ids</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">KITTI_CLASS_NAMES</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
+            <span class="n">class_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">INCLUDED_CLASSES</span>
+    <span class="p">]</span>
+    <span class="n">groundtruth_db</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_KITTI_BASE</span><span class="p">,</span>
+                                  <span class="s1">&#39;kitti_train_object_cls.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">bbox_aug</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">GroundTruthAugmentor</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">groundtruth_database</span><span class="o">=</span><span class="n">groundtruth_db</span><span class="p">,</span>
+            <span class="n">num_db_objects</span><span class="o">=</span><span class="mi">19700</span><span class="p">,</span>
+            <span class="n">filter_min_difficulty</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">filter_min_points</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+            <span class="n">max_augmented_bboxes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">max_num_points_per_bbox</span><span class="o">=</span><span class="mi">1558</span><span class="p">,</span>
+            <span class="n">label_filter</span><span class="o">=</span><span class="n">allowed_label_ids</span><span class="p">,</span>
+        <span class="p">))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">2</span></div>
+
+<div class="viewcode-block" id="StarNetPedCycModel0704._configure_decoder_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_decoder_input">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_configure_decoder_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update input_config `p` for jobs running decoding.&quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_decoder_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4</span></div>
+
+<div class="viewcode-block" id="StarNetPedCycModel0704._configure_evaler_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_evaler_input">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_configure_evaler_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update input_config `p` for jobs running evaluation.&quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_evaler_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4</span></div>
+
+<div class="viewcode-block" id="StarNetPedCycModel0704.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704.Task">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">7e-4</span>
+
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">starnet</span><span class="o">.</span><span class="n">Builder</span><span class="p">()</span>
+    <span class="n">builder</span><span class="o">.</span><span class="n">linear_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">KaimingUniformFanInRelu</span><span class="p">()</span>
+    <span class="n">gin_layer_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">]</span>
+    <span class="n">num_laser_features</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">gin_layers</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="c1"># Each layer should expect as input - 2 * dims of the last layer&#39;s</span>
+        <span class="c1"># output. We assume a middle layer that&#39;s the size of 2 * dim_out.</span>
+        <span class="p">[</span><span class="n">dim_in</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim_out</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim_out</span><span class="p">]</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">dim_in</span><span class="p">,</span> <span class="n">dim_out</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">gin_layer_sizes</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">gin_layer_sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">cell_feature_dims</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">gin_layer_sizes</span><span class="p">)</span>
+    <span class="c1"># Disable BN on first layer</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">cell_featurizer</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">GINFeaturizerV2</span><span class="p">(</span>
+        <span class="s1">&#39;feat&#39;</span><span class="p">,</span>
+        <span class="n">gin_layer_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">gin_layers</span><span class="p">,</span>
+        <span class="n">num_laser_features</span><span class="p">,</span>
+        <span class="n">fc_use_bn</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">anchor_projected_feature_dims</span> <span class="o">=</span> <span class="mi">512</span>
+
+    <span class="n">class_name_to_idx</span> <span class="o">=</span> <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">KITTI_CLASS_NAMES</span>
+    <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">class_name_to_idx</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">per_class_loss_weight</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_classes</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">per_class_loss_weight</span><span class="p">[</span><span class="n">class_name_to_idx</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;Pedestrian&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">3.5</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">per_class_loss_weight</span><span class="p">[</span><span class="n">class_name_to_idx</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;Cyclist&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">3.25</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">focal_loss_alpha</span> <span class="o">=</span> <span class="mf">0.9</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">focal_loss_gamma</span> <span class="o">=</span> <span class="mf">1.25</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">use_oriented_per_class_nms</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">max_nms_boxes</span> <span class="o">=</span> <span class="mi">1024</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">nms_iou_threshold</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_classes</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">nms_iou_threshold</span><span class="p">[</span><span class="n">class_name_to_idx</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;Cyclist&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.49</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">nms_iou_threshold</span><span class="p">[</span><span class="n">class_name_to_idx</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;Pedestrian&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.32</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">nms_score_threshold</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_classes</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">nms_score_threshold</span><span class="p">[</span><span class="n">class_name_to_idx</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;Cyclist&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.11</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">nms_score_threshold</span><span class="p">[</span><span class="n">class_name_to_idx</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;Pedestrian&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.23</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">output_decoder</span><span class="o">.</span><span class="n">filter_predictions_outside_frustum</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">output_decoder</span><span class="o">.</span><span class="n">truncation_threshold</span> <span class="o">=</span> <span class="mf">0.65</span>
+    <span class="c1"># Equally weight pedestrian and cyclist moderate classes.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">output_decoder</span><span class="o">.</span><span class="n">ap_metric</span><span class="o">.</span><span class="n">metric_weights</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;easy&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]),</span>
+        <span class="s1">&#39;moderate&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span>
+        <span class="s1">&#39;hard&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+    <span class="p">}</span>
+
     <span class="k">return</span> <span class="n">p</span></div></div>
 </pre></div>
 
