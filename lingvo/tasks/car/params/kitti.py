@@ -34,33 +34,33 @@ from lingvo.tasks.car import starnet
 import numpy as np
 
 
-# Set this to the base path of where all the KITTI files can be found.
+# Set $KITTI_DIR to the base path of where all the KITTI files can be found.
 #
-# E.g., 'tfrecord:gs://your-bucket/kitti/3d'
-_KITTI_BASE = 'FILL ME IN'
+# E.g., 'gs://your-bucket/kitti/3d'
+_KITTI_BASE = os.environ.get('KITTI_DIR', 'FILL-ME-IN')
 
 
 # Specifications for the different dataset splits.
 def KITTITrainSpec(params):
   p = params.Copy()
-  p.file_pattern = os.path.join(_KITTI_BASE,
-                                'kitti_object_3dop_train.tfrecord-*-of-00100')
+  p.file_pattern = 'tfrecord:' + os.path.join(
+      _KITTI_BASE, 'kitti_object_3dop_train.tfrecord-*-of-00100')
   p.num_samples = 3712
   return p
 
 
 def KITTIValSpec(params):
   p = params.Copy()
-  p.file_pattern = os.path.join(_KITTI_BASE,
-                                'kitti_object_3dop_val.tfrecord-*-of-00100')
+  p.file_pattern = 'tfrecord:' + os.path.join(
+      _KITTI_BASE, 'kitti_object_3dop_val.tfrecord-*-of-00100')
   p.num_samples = 3769
   return p
 
 
 def KITTITestSpec(params):
   p = params.Copy()
-  p.file_pattern = os.path.join(_KITTI_BASE,
-                                'kitti_object_test.tfrecord-*-of-00100')
+  p.file_pattern = 'tfrecord:' + os.path.join(
+      _KITTI_BASE, 'kitti_object_test.tfrecord-*-of-00100')
   p.num_samples = 7518
   return p
 
@@ -311,6 +311,12 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
         ))
     p.preprocessors_order = ['bbox_aug'] + p.preprocessors_order
 
+    p.preprocessors.frustum_dropout = (
+        input_preprocessors.FrustumDropout.Params().Set(
+            theta_width=0.03, phi_width=0.0))
+    p.preprocessors_order.insert(
+        p.preprocessors_order.index('gather_features'), 'frustum_dropout')
+
     p.batch_size = 2
     p.file_parallelism = 64
     p.num_batcher_threads = 64
@@ -442,11 +448,6 @@ class StarNetCarModel0701(StarNetCarsBase):
   @classmethod
   def _configure_trainer_input(cls, p):
     super(StarNetCarModel0701, cls)._configure_trainer_input(p)
-    p.preprocessors.frustum_dropout = (
-        input_preprocessors.FrustumDropout.Params().Set(
-            theta_width=0.03, phi_width=0.0))
-    p.preprocessors_order.insert(
-        p.preprocessors_order.index('gather_features'), 'frustum_dropout')
 
     p.preprocessors.global_loc_noise = (
         input_preprocessors.GlobalTranslateNoise.Params().Set(
@@ -496,4 +497,145 @@ class StarNetCarModel0701(StarNetCarsBase):
     p.nms_score_threshold[class_name_to_idx.index('Car')] = 0.321310
     p.output_decoder.truncation_threshold = 0.65
     p.output_decoder.filter_predictions_outside_frustum = True
+    return p
+
+
+@model_registry.RegisterSingleTaskModel
+class StarNetPedCycModel0704(StarNetCarsBase):
+  """StarNet Ped/Cyc model trained on KITTI."""
+
+  INCLUDED_CLASSES = ['Pedestrian', 'Cyclist']
+
+  FOREGROUND_ASSIGNMENT_THRESHOLD = 0.48
+  # Any value > FOREGROUND is equivalent.
+  BACKGROUND_ASSIGNMENT_THRESHOLD = 0.80
+
+  NUM_ANCHOR_BBOX_OFFSETS = 9
+  NUM_ANCHOR_BBOX_ROTATIONS = 4
+  NUM_ANCHOR_BBOX_DIMENSIONS = 3
+
+  class AnchorBoxSettings(input_preprocessors.SparseCarV1AnchorBoxSettings):
+    # PointPillars priors for pedestrian/cyclists.
+    DIMENSION_PRIORS = [(0.6, 0.8, 1.7), (0.6, 0.6, 1.2), (0.6, 1.76, 1.73)]
+    ROTATIONS = [0, np.pi / 2, 3. * np.pi / 4, np.pi / 4]
+    CENTER_X_OFFSETS = np.linspace(-0.31, 0.31, 3)
+    CENTER_Y_OFFSETS = np.linspace(-0.31, 0.31, 3)
+    CENTER_Z_OFFSETS = [-0.6]
+
+  @classmethod
+  def _configure_generic_input(cls, p):
+    super(StarNetPedCycModel0704, cls)._configure_generic_input(p)
+    # For selecting centers, drop points out of frustum and do approximate
+    # ground removal.
+    p.preprocessors.select_centers.features_preparation_layers = [
+        input_preprocessors.KITTIDropPointsOutOfFrustum.Params(),
+        input_preprocessors.DropLaserPointsOutOfRange.Params().Set(
+            keep_z_range=(-1., np.inf)),
+    ]
+
+    # Remove frustum dropping from original preprocessors.
+    p.preprocessors_order.remove('remove_out_of_frustum')
+
+    # Keep all points in front of the car for featurizing, do not remove ground.
+    p.preprocessors.keep_xyz_range.keep_x_range = (0., 48.0)
+    p.preprocessors.keep_xyz_range.keep_y_range = (-20., 20.)
+    p.preprocessors.keep_xyz_range.keep_z_range = (-np.inf, np.inf)
+    p.preprocessors.pad_lasers.max_num_points = 72000
+    p.preprocessors.select_centers.sampling_method = 'farthest_point'
+    p.preprocessors.select_centers.num_cell_centers = 512
+    p.preprocessors.select_centers.features_preparation_layers = [
+        input_preprocessors.KITTIDropPointsOutOfFrustum.Params(),
+        input_preprocessors.DropLaserPointsOutOfRange.Params().Set(
+            keep_z_range=(-1.4, np.inf)),
+    ]
+
+    p.preprocessors.gather_features.max_distance = 2.55
+
+  @classmethod
+  def _configure_trainer_input(cls, p):
+    super(StarNetPedCycModel0704, cls)._configure_trainer_input(p)
+
+    allowed_label_ids = [
+        kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES.index(
+            class_name) for class_name in cls.INCLUDED_CLASSES
+    ]
+    groundtruth_db = os.path.join(_KITTI_BASE,
+                                  'kitti_train_object_cls.tfrecord-*-of-00100')
+    p.preprocessors.bbox_aug = (
+        input_preprocessors.GroundTruthAugmentor.Params().Set(
+            groundtruth_database=groundtruth_db,
+            num_db_objects=19700,
+            filter_min_difficulty=2,
+            filter_min_points=7,
+            max_augmented_bboxes=2,
+            max_num_points_per_bbox=1558,
+            label_filter=allowed_label_ids,
+        ))
+    p.batch_size = 2
+
+  @classmethod
+  def _configure_decoder_input(cls, p):
+    """Update input_config `p` for jobs running decoding."""
+    super(StarNetPedCycModel0704, cls)._configure_decoder_input(p)
+    p.batch_size = 4
+
+  @classmethod
+  def _configure_evaler_input(cls, p):
+    """Update input_config `p` for jobs running evaluation."""
+    super(StarNetPedCycModel0704, cls)._configure_evaler_input(p)
+    p.batch_size = 4
+
+  @classmethod
+  def Task(cls):
+    p = super(StarNetPedCycModel0704, cls).Task()
+    p.train.learning_rate = 7e-4
+
+    builder = starnet.Builder()
+    builder.linear_params_init = py_utils.WeightInit.KaimingUniformFanInRelu()
+    gin_layer_sizes = [32, 256, 512, 256, 256, 128]
+    num_laser_features = 1
+    gin_layers = [
+        # Each layer should expect as input - 2 * dims of the last layer's
+        # output. We assume a middle layer that's the size of 2 * dim_out.
+        [dim_in * 2, dim_out * 2, dim_out]
+        for (dim_in, dim_out) in zip(gin_layer_sizes[:-1], gin_layer_sizes[1:])
+    ]
+    p.cell_feature_dims = sum(gin_layer_sizes)
+    # Disable BN on first layer
+    p.cell_featurizer = builder.GINFeaturizerV2(
+        'feat',
+        gin_layer_sizes[0],
+        gin_layers,
+        num_laser_features,
+        fc_use_bn=False)
+    p.anchor_projected_feature_dims = 512
+
+    class_name_to_idx = kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES
+    num_classes = len(class_name_to_idx)
+    p.per_class_loss_weight = [0.] * num_classes
+    p.per_class_loss_weight[class_name_to_idx.index('Pedestrian')] = 3.5
+    p.per_class_loss_weight[class_name_to_idx.index('Cyclist')] = 3.25
+
+    p.focal_loss_alpha = 0.9
+    p.focal_loss_gamma = 1.25
+
+    p.use_oriented_per_class_nms = True
+    p.max_nms_boxes = 1024
+    p.nms_iou_threshold = [0.0] * num_classes
+    p.nms_iou_threshold[class_name_to_idx.index('Cyclist')] = 0.49
+    p.nms_iou_threshold[class_name_to_idx.index('Pedestrian')] = 0.32
+
+    p.nms_score_threshold = [1.0] * num_classes
+    p.nms_score_threshold[class_name_to_idx.index('Cyclist')] = 0.11
+    p.nms_score_threshold[class_name_to_idx.index('Pedestrian')] = 0.23
+
+    p.output_decoder.filter_predictions_outside_frustum = True
+    p.output_decoder.truncation_threshold = 0.65
+    # Equally weight pedestrian and cyclist moderate classes.
+    p.output_decoder.ap_metric.metric_weights = {
+        'easy': np.array([0.0, 0.0, 0.0]),
+        'moderate': np.array([0.0, 1.0, 1.0]),
+        'hard': np.array([0.0, 0.0, 0.0])
+    }
+
     return p
