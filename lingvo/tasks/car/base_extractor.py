@@ -59,7 +59,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     """Defaults params.
 
     Args:
-      extractors: An NestedMap of extractor names to Extractors.  A few
+      extractors: An hyperparams.Params of extractor names to Extractors. A few
         extractor types are *required*:
         'labels': A LabelExtractor.Params().
 
@@ -67,7 +67,8 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
       A base_layer Params object.
     """
     p = super(_BaseExtractor, cls).Params()
-    p.Define('extractors', extractors, 'A NestedMap of FieldsExtractors.')
+    p.Define('extractors', extractors,
+             'A hyperparams.Params() of FieldsExtractors.')
     p.Define('preprocessors', hyperparams.Params(),
              'A Params() of Preprocessors.')
     p.Define(
@@ -89,12 +90,11 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     p = self.params
 
     # Instantiate every extractor as a child layer.
-    self._extractors = []
-    for (name, eparam) in p.extractors.FlattenItems():
+    self._extractors = py_utils.NestedMap()
+    for (name, eparam) in p.extractors.IterParams():
       name = name.replace('.', '_')
       self.CreateChild(name, eparam)
-      self._extractors += [self.children[name]]
-    self._extractors = p.extractors.Pack(self._extractors)
+      self._extractors[name] = self.children[name]
 
     # Instantiate preprocessors based on their ordering.
     flattened_processors = dict(p.preprocessors.IterParams())

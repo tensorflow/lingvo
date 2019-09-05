@@ -20,7 +20,6 @@ from __future__ import division
 from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import hyperparams
-from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.tasks.car import input_extractor
 from lingvo.tasks.car import input_preprocessors
@@ -29,7 +28,7 @@ from lingvo.tasks.car import input_preprocessors
 class InputExtractorTest(test_utils.TestCase):
 
   def testBaseExtractorRaisesErrorWithMissingPreprocessorKeys(self):
-    extractors = py_utils.NestedMap()
+    extractors = hyperparams.Params()
     preprocessors = hyperparams.Params()
     preprocessors.Define(
         'count_points',

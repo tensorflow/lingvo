@@ -503,11 +503,10 @@ class KITTILaser(KITTIBase):
   @classmethod
   def Params(cls):
     """Defaults params."""
-    extractors = py_utils.NestedMap(
-        images=KITTIImageExtractor.Params(),
-        labels=KITTILabelExtractor.Params(),
-        lasers=KITTILaserExtractor.Params(),
-    )
+    extractors = hyperparams.Params()
+    extractors.Define('labels', KITTILabelExtractor.Params(), '')
+    extractors.Define('lasers', KITTILaserExtractor.Params(), '')
+    extractors.Define('images', KITTIImageExtractor.Params(), '')
     preprocessors = py_utils.NestedMap(
         count_points=input_preprocessors.CountNumberOfPointsInBoxes3D.Params(),
         viz_copy=input_preprocessors.CreateDecoderCopy.Params(),
@@ -551,11 +550,10 @@ class KITTISparseLaser(KITTIBase):
   @classmethod
   def Params(cls):
     """Defaults params."""
-    extractors = py_utils.NestedMap(
-        images=KITTIImageExtractor.Params(),
-        labels=KITTILabelExtractor.Params(),
-        lasers=KITTILaserExtractor.Params(),
-    )
+    extractors = hyperparams.Params()
+    extractors.Define('labels', KITTILabelExtractor.Params(), '')
+    extractors.Define('lasers', KITTILaserExtractor.Params(), '')
+    extractors.Define('images', KITTIImageExtractor.Params(), '')
     preprocessors = py_utils.NestedMap(
         count_points=input_preprocessors.CountNumberOfPointsInBoxes3D.Params(),
         viz_copy=input_preprocessors.CreateDecoderCopy.Params(),
@@ -610,10 +608,9 @@ class KITTIGrid(KITTIBase):
   @classmethod
   def Params(cls):
     """Defaults params."""
-    extractors = py_utils.NestedMap(
-        labels=KITTILabelExtractor.Params(),
-        lasers=KITTILaserExtractor.Params(),
-    )
+    extractors = hyperparams.Params()
+    extractors.Define('labels', KITTILabelExtractor.Params(), '')
+    extractors.Define('lasers', KITTILaserExtractor.Params(), '')
     preprocessors = py_utils.NestedMap(
         count_points=input_preprocessors.CountNumberOfPointsInBoxes3D.Params(),
         viz_copy=input_preprocessors.CreateDecoderCopy.Params(),
