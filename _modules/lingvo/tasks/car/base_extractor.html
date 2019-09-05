@@ -204,7 +204,7 @@
     <span class="sd">&quot;&quot;&quot;Defaults params.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      extractors: An NestedMap of extractor names to Extractors.  A few</span>
+<span class="sd">      extractors: An hyperparams.Params of extractor names to Extractors. A few</span>
 <span class="sd">        extractor types are *required*:</span>
 <span class="sd">        &#39;labels&#39;: A LabelExtractor.Params().</span>
 
@@ -212,7 +212,8 @@
 <span class="sd">      A base_layer Params object.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">_BaseExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;extractors&#39;</span><span class="p">,</span> <span class="n">extractors</span><span class="p">,</span> <span class="s1">&#39;A NestedMap of FieldsExtractors.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;extractors&#39;</span><span class="p">,</span> <span class="n">extractors</span><span class="p">,</span>
+             <span class="s1">&#39;A hyperparams.Params() of FieldsExtractors.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;preprocessors&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;A Params() of Preprocessors.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -234,12 +235,11 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="c1"># Instantiate every extractor as a child layer.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">eparam</span><span class="p">)</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">eparam</span><span class="p">)</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
       <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">eparam</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
     <span class="c1"># Instantiate preprocessors based on their ordering.</span>
     <span class="n">flattened_processors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span>

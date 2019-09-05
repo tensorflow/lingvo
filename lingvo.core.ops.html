@@ -822,10 +822,129 @@ The value when the key is not found.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="function">
 <dt id="lingvo.core.ops.v">
-<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.ops.BeamSearchStep</span></code></p>
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">scores</em>, <em class="sig-param">atten_probs</em>, <em class="sig-param">best_scores</em>, <em class="sig-param">cumulative_scores</em>, <em class="sig-param">in_scores</em>, <em class="sig-param">in_hyps</em>, <em class="sig-param">in_prev_hyps</em>, <em class="sig-param">in_done_hyps</em>, <em class="sig-param">in_atten_probs</em>, <em class="sig-param">is_last_chunk</em>, <em class="sig-param">cur_step</em>, <em class="sig-param">eos_id</em>, <em class="sig-param">beam_size</em>, <em class="sig-param">num_hyps_per_beam</em>, <em class="sig-param">eoc_id=-1</em>, <em class="sig-param">valid_eos_max_logit_delta=5</em>, <em class="sig-param">local_eos_threshold=-100</em>, <em class="sig-param">merge_paths=False</em>, <em class="sig-param">allow_empty_terminated_hyp=True</em>, <em class="sig-param">ensure_full_beam=False</em>, <em class="sig-param">force_eos_in_last_step=False</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Move forward one step in beam search.</p>
+<p>Let “b” be the number of beams, “k” be the number hyps in each beam, “t” be the
+maximum decoding steps.</p>
+<p>The following data structures are allocated before the first decoding step and
+are passed along from cur step to the next step:</p>
+<dl class="simple">
+<dt>in_scores</dt><dd><p>A tensor of shape [t, b * k]. in_scores[i, j] is the local
+score of the j-th hyp at the i-th decoding step.</p>
+</dd>
+<dt>in_hyps</dt><dd><p>A tensor of shape [t, b * k]. in_hyps[i, j] is the token id of the
+j-th hyp at the i-th decoding step.</p>
+</dd>
+<dt>in_prev_hyps</dt><dd><p>A tensor of shape [t, b * k]. in_prev_hyps[i, j] stores a
+pointer of the j-th hyp at time step i to the hyp at previous timestep
+(i - 1). 0 &lt;= in_prev_hyps[i, j] &lt; b * k.</p>
+</dd>
+<dt>in_done_hyps</dt><dd><p>A tensor of shape [t, b * k]. in_done_hyps[i, j] can be either an
+empty string, or a serialized Hypothesis proto. Terminated hyps are removed
+from the beam and are moved to the corresponding in_done_hyps slot.</p>
+</dd>
+<dt>in_atten_probs</dt><dd><p>A tensor of shape [t, b * k, s_len]. in_atten_probs[i, j, …]
+is the attention probs over the source words for the j-th hyp at the i-th
+timestep.</p>
+</dd>
+</dl>
+<p>Those tensors are modified (with content for the cur_step timestep being filled
+in) within this op invocation and are passed to the corresponding output
+tensors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A matrix of shape [b * k, vocab_size], where b is the number of
+active beams, and k is the number of hyps in each beam. Local scores for the
+current timestep.</p></li>
+<li><p><strong>atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A matrix of shape [b * k, source_len]. Attention probabilities
+for the current timestep.</p></li>
+<li><p><strong>best_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A vector of size [b], best scores of terminated hyps so far in
+each of the beams.</p></li>
+<li><p><strong>cumulative_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A vector of size [b * k]. The cumulative score of each
+active hyp before the current step.</p></li>
+<li><p><strong>in_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. As explained above.</p></li>
+<li><p><strong>in_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. As explained above.</p></li>
+<li><p><strong>in_prev_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. As explained above.</p></li>
+<li><p><strong>in_done_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. As explained above.</p></li>
+<li><p><strong>in_atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. As explained above.</p></li>
+<li><p><strong>is_last_chunk</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.
+A tensor of shape [b * k]. Used by neural transducer, determine
+whether the current hypothesis reaches the last chunk and should treat the
+next end-of-chunk symbol as end-of-sentence.</p></li>
+<li><p><strong>cur_step</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. Current step id.</p></li>
+<li><p><strong>eos_id</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Token id of the special end of sequence token.</p></li>
+<li><p><strong>beam_size</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
+Search terminates if the delta between the scores of the active hyps
+in a beam and the best scores exceeds this threashold.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Number of hyps in a beam.</p></li>
+<li><p><strong>eoc_id</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.
+Token id of the special end of chunk token.</p></li>
+<li><p><strong>valid_eos_max_logit_delta</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">5</span></code>.
+We allow &lt;/s&gt; to terminate a hyp only if its logit
+is no more than <code class="xref py py-obj docutils literal notranslate"><span class="pre">valid_eos_max_logit_delta</span></code> away from the logit of the best
+candidate.</p></li>
+<li><p><strong>local_eos_threshold</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-100</span></code>.
+We allow &lt;/s&gt; to terminate a hyp if the local score for
+&lt;/s&gt; is greater than local_eos_threshold.</p></li>
+<li><p><strong>merge_paths</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#False" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+If true, hyps which are identical when epsilons are removed will
+be combined into a single hyp.  The probability for that combined hyp will
+be the sum of the probabilities of the component hyps.  This can only be
+applied for epsilon-emitting models (RNN-T and NT).</p></li>
+<li><p><strong>allow_empty_terminated_hyp</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#True" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+Whether it is okay to consider a hyp that consists
+only of epsilons as terminated.  By default this is true, as an
+utterance may consist of silence.  It should be set to false when EMBR
+training epsilon-emitting models (e.g., RNN-T), which are prone to emit
+all-epsilon hyps even in the absence of silence.  Note that a hyp that
+terminates in EOS is not considered empty, so this flag has no effect for
+non-epsilon-emitting models.</p></li>
+<li><p><strong>ensure_full_beam</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#False" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+If True, we will not set the all_done output to True until we
+have found ‘num_hyps_per_beam’ terminated hyps AND no active hyps have a
+score within ‘beam_size’ of the best terminated hyp.  If False, only the
+second condition must be satisfied.  Generally this should be False unless
+beam search is being run as part of minimum word error rate training.</p></li>
+<li><p><strong>force_eos_in_last_step</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#False" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+If true, then if decode does not terminate even after
+(max - 1) steps, eos symbol is injected into the result and partial
+hypotheses (with a valid eos symbol in the end) are returned. all_done
+is set to true for these partials. If false, which is the default behavior,
+empty hypothesis are returned and all_done is set to false at termination.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (out_best_scores, out_cumulative_scores, out_scores, out_hyps, out_prev_hyps, out_done_hyps, out_atten_probs, all_done).</p>
+<dl class="simple">
+<dt>out_best_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>Updated best scores for each of the beams.</p>
+</dd>
+<dt>out_cumulative_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>A vector of size [b * k]. The cumulative score of the new hyps after the
+current decoding step.</p>
+</dd>
+<dt>out_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>As explained above.</p>
+</dd>
+<dt>out_hyps: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>As explained above.</p>
+</dd>
+<dt>out_prev_hyps: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>As explained above.</p>
+</dd>
+<dt>out_done_hyps: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.</dt><dd><p>As explained above.</p>
+</dd>
+<dt>out_atten_probs: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>As explained above.</p>
+</dd>
+<dt>all_done: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.</dt><dd><p>A scalar, whether decoding should terminate for all beams.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
 <div class="section" id="submodules">

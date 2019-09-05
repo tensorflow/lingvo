@@ -648,11 +648,10 @@
 <div class="viewcode-block" id="KITTILaser.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILaser.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Defaults params.&quot;&quot;&quot;</span>
-    <span class="n">extractors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">images</span><span class="o">=</span><span class="n">KITTIImageExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-        <span class="n">labels</span><span class="o">=</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-        <span class="n">lasers</span><span class="o">=</span><span class="n">KITTILaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-    <span class="p">)</span>
+    <span class="n">extractors</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lasers&#39;</span><span class="p">,</span> <span class="n">KITTILaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;images&#39;</span><span class="p">,</span> <span class="n">KITTIImageExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
     <span class="n">preprocessors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">count_points</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CountNumberOfPointsInBoxes3D</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="n">viz_copy</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CreateDecoderCopy</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -696,11 +695,10 @@
 <div class="viewcode-block" id="KITTISparseLaser.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTISparseLaser.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Defaults params.&quot;&quot;&quot;</span>
-    <span class="n">extractors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">images</span><span class="o">=</span><span class="n">KITTIImageExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-        <span class="n">labels</span><span class="o">=</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-        <span class="n">lasers</span><span class="o">=</span><span class="n">KITTILaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-    <span class="p">)</span>
+    <span class="n">extractors</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lasers&#39;</span><span class="p">,</span> <span class="n">KITTILaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;images&#39;</span><span class="p">,</span> <span class="n">KITTIImageExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
     <span class="n">preprocessors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">count_points</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CountNumberOfPointsInBoxes3D</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="n">viz_copy</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CreateDecoderCopy</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -755,10 +753,9 @@
 <div class="viewcode-block" id="KITTIGrid.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIGrid.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Defaults params.&quot;&quot;&quot;</span>
-    <span class="n">extractors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">labels</span><span class="o">=</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-        <span class="n">lasers</span><span class="o">=</span><span class="n">KITTILaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-    <span class="p">)</span>
+    <span class="n">extractors</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lasers&#39;</span><span class="p">,</span> <span class="n">KITTILaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
     <span class="n">preprocessors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">count_points</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CountNumberOfPointsInBoxes3D</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="n">viz_copy</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CreateDecoderCopy</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
