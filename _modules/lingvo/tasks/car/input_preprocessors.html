@@ -2361,6 +2361,15 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;noise_std&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
              <span class="s1">&#39;Standard deviation of translation noise per axis.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;max_scaling&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;When max_scaling is not none, delta parameters s_x, s_y, s_z are &#39;</span>
+        <span class="s1">&#39;drawn from [-max_scaling[i], max_scaling[i]] where i is in [0, 3].&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;max_shearing&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;When max_shearing is not none, shearing parameters sh_x^y, sh_x^z, &#39;</span>
+        <span class="s1">&#39;sh_y^x, sh_y^z, sh_z^x, sh_z^y are drawn from &#39;</span>
+        <span class="s1">&#39;[-max_shearing[i], max_shearing[i]], where i is in [0, 5].&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;max_num_points_per_bbox&#39;</span><span class="p">,</span> <span class="mi">16384</span><span class="p">,</span>
         <span class="s1">&#39;The maximum number of points that fall within a bounding box. &#39;</span>
         <span class="s1">&#39;Bounding boxes with more points than this value will &#39;</span>
@@ -2373,6 +2382,16 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_rotation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;max_rotation needs to be specified, instead of None.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;max_scaling needs to be specified as either None or &#39;</span>
+                         <span class="s1">&#39;list of 3 floating point numbers, instead of </span><span class="si">{}</span><span class="s1">.&#39;</span>
+                         <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;max_shearing needs to be specified as either None or &#39;</span>
+                         <span class="s1">&#39;list of 6 floating point numbers, instead of </span><span class="si">{}</span><span class="s1">.&#39;</span>
+                         <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">))</span>
 
 <div class="viewcode-block" id="RandomBBoxTransform._Foreground"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomBBoxTransform._Foreground">[docs]</a>  <span class="k">def</span> <span class="nf">_Foreground</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="n">points_xyz</span><span class="p">,</span> <span class="n">points_feature</span><span class="p">,</span> <span class="n">real_bboxes_3d</span><span class="p">,</span>
                   <span class="n">points_in_bbox_mask</span><span class="p">,</span> <span class="n">rotation</span><span class="p">,</span> <span class="n">translate_pose</span><span class="p">,</span> <span class="n">transform_fn</span><span class="p">):</span>
@@ -2469,8 +2488,77 @@
       <span class="n">rotation_vec</span> <span class="o">=</span> <span class="p">[</span><span class="n">rotation</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]</span>
       <span class="n">pose</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="o">-</span><span class="n">translation_vec</span><span class="p">,</span> <span class="n">rotation_vec</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
       <span class="n">points_xyz_adj</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">CoordinateTransform</span><span class="p">(</span><span class="n">points_xyz_masked</span><span class="p">,</span> <span class="n">pose</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Translate the points in the bounding box by moving dz/2 so that the</span>
+        <span class="c1"># bottom of the bounding box is at Z = 0 when any of the two</span>
+        <span class="c1"># (max_scaling or max_shearing) is not None</span>
+        <span class="n">translation_scale_or_shear</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">bboxes_3d</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span><span class="p">],</span>
+                                              <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">pose1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">translation_scale_or_shear</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">points_xyz_adj</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">CoordinateTransform</span><span class="p">(</span><span class="n">points_xyz_adj</span><span class="p">,</span> <span class="n">pose1</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">translation_scale_or_shear</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Perform scaling to the point cloud</span>
+        <span class="c1"># Scaling matrix</span>
+        <span class="c1"># [[s_x+1    0      0]</span>
+        <span class="c1">#  [ 0      s_y+1   0]</span>
+        <span class="c1">#  [ 0       0     s_z+1]]</span>
+        <span class="n">sx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+                               <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                               <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                               <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">sy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+                               <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                               <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                               <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">sz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+                               <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                               <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                               <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">scaling_matrix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[[</span><span class="n">sx</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="n">sy</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">sz</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">points_xyz_adj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,kj-&gt;ki&#39;</span><span class="p">,</span> <span class="n">scaling_matrix</span><span class="p">,</span> <span class="n">points_xyz_adj</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Perform shearing to the point cloud</span>
+        <span class="c1"># Shearing matrix</span>
+        <span class="c1"># [[1       sh_x^y  sh_x^z]</span>
+        <span class="c1">#  [sh_y^x     1    sh_y^z]</span>
+        <span class="c1">#  [sh_z^x  sh_z^y     1  ]]</span>
+        <span class="n">sxy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+                                <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">sxz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+                                <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">syx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+                                <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                                <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                                <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">syz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+                                <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                                <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                                <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">szx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+                                <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                                <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                                <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">szy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+                                <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                                <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                                <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">shearing_matrix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mf">1.</span><span class="p">,</span> <span class="n">sxy</span><span class="p">,</span> <span class="n">sxz</span><span class="p">],</span> <span class="p">[</span><span class="n">syx</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">syz</span><span class="p">],</span> <span class="p">[</span><span class="n">szx</span><span class="p">,</span> <span class="n">szy</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">points_xyz_adj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,kj-&gt;ki&#39;</span><span class="p">,</span> <span class="n">shearing_matrix</span><span class="p">,</span> <span class="n">points_xyz_adj</span><span class="p">)</span>
+
       <span class="c1"># Translate the points back, adding noise if needed.</span>
-      <span class="n">translation_with_noise</span> <span class="o">=</span> <span class="n">translation_vec</span> <span class="o">+</span> <span class="n">translate_pose</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">translation_with_noise</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">translation_vec</span> <span class="o">-</span> <span class="n">translation_scale_or_shear</span> <span class="o">+</span> <span class="n">translate_pose</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
       <span class="n">pose2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">translation_with_noise</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
       <span class="n">final_points_xyz</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">CoordinateTransform</span><span class="p">(</span><span class="n">points_xyz_adj</span><span class="p">,</span> <span class="n">pose2</span><span class="p">)</span>
 
