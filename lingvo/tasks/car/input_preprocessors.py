@@ -2216,6 +2216,15 @@ class RandomBBoxTransform(Preprocessor):
     p.Define('noise_std', [0.0, 0.0, 0.0],
              'Standard deviation of translation noise per axis.')
     p.Define(
+        'max_scaling', None,
+        'When max_scaling is not none, delta parameters s_x, s_y, s_z are '
+        'drawn from [-max_scaling[i], max_scaling[i]] where i is in [0, 3].')
+    p.Define(
+        'max_shearing', None,
+        'When max_shearing is not none, shearing parameters sh_x^y, sh_x^z, '
+        'sh_y^x, sh_y^z, sh_z^x, sh_z^y are drawn from '
+        '[-max_shearing[i], max_shearing[i]], where i is in [0, 5].')
+    p.Define(
         'max_num_points_per_bbox', 16384,
         'The maximum number of points that fall within a bounding box. '
         'Bounding boxes with more points than this value will '
@@ -2228,6 +2237,16 @@ class RandomBBoxTransform(Preprocessor):
     p = self.params
     if p.max_rotation is None:
       raise ValueError('max_rotation needs to be specified, instead of None.')
+    if p.max_scaling is not None:
+      if len(p.max_scaling) != 3:
+        raise ValueError('max_scaling needs to be specified as either None or '
+                         'list of 3 floating point numbers, instead of {}.'
+                         ''.format(p.max_scaling))
+    if p.max_shearing is not None:
+      if len(p.max_shearing) != 6:
+        raise ValueError('max_shearing needs to be specified as either None or '
+                         'list of 6 floating point numbers, instead of {}.'
+                         ''.format(p.max_shearing))
 
   def _Foreground(self, features, points_xyz, points_feature, real_bboxes_3d,
                   points_in_bbox_mask, rotation, translate_pose, transform_fn):
@@ -2324,8 +2343,77 @@ class RandomBBoxTransform(Preprocessor):
       rotation_vec = [rotation[i], 0., 0.]
       pose = tf.concat([-translation_vec, rotation_vec], axis=0)
       points_xyz_adj = geometry.CoordinateTransform(points_xyz_masked, pose)
+      if p.max_scaling is not None or p.max_shearing is not None:
+        # Translate the points in the bounding box by moving dz/2 so that the
+        # bottom of the bounding box is at Z = 0 when any of the two
+        # (max_scaling or max_shearing) is not None
+        translation_scale_or_shear = tf.stack([0., 0., bboxes_3d[i, 5] / 2],
+                                              axis=0)
+        pose1 = tf.concat([translation_scale_or_shear, [0., 0., 0.]], axis=0)
+        points_xyz_adj = geometry.CoordinateTransform(points_xyz_adj, pose1)
+      else:
+        translation_scale_or_shear = tf.stack([0., 0., 0.], axis=0)
+
+      if p.max_scaling is not None:
+        # Perform scaling to the point cloud
+        # Scaling matrix
+        # [[s_x+1    0      0]
+        #  [ 0      s_y+1   0]
+        #  [ 0       0     s_z+1]]
+        sx = tf.random_uniform([],
+                               minval=-p.max_scaling[0],
+                               maxval=p.max_scaling[0],
+                               seed=p.random_seed)
+        sy = tf.random_uniform([],
+                               minval=-p.max_scaling[1],
+                               maxval=p.max_scaling[1],
+                               seed=p.random_seed)
+        sz = tf.random_uniform([],
+                               minval=-p.max_scaling[2],
+                               maxval=p.max_scaling[2],
+                               seed=p.random_seed)
+        scaling_matrix = tf.stack(
+            [[sx + 1., 0., 0.], [0., sy + 1., 0.], [0., 0., sz + 1.]], axis=0)
+
+        points_xyz_adj = tf.einsum('ij,kj->ki', scaling_matrix, points_xyz_adj)
+
+      if p.max_shearing is not None:
+        # Perform shearing to the point cloud
+        # Shearing matrix
+        # [[1       sh_x^y  sh_x^z]
+        #  [sh_y^x     1    sh_y^z]
+        #  [sh_z^x  sh_z^y     1  ]]
+        sxy = tf.random_uniform([],
+                                minval=-p.max_shearing[0],
+                                maxval=p.max_shearing[0],
+                                seed=p.random_seed)
+        sxz = tf.random_uniform([],
+                                minval=-p.max_shearing[1],
+                                maxval=p.max_shearing[1],
+                                seed=p.random_seed)
+        syx = tf.random_uniform([],
+                                minval=-p.max_shearing[2],
+                                maxval=p.max_shearing[2],
+                                seed=p.random_seed)
+        syz = tf.random_uniform([],
+                                minval=-p.max_shearing[3],
+                                maxval=p.max_shearing[3],
+                                seed=p.random_seed)
+        szx = tf.random_uniform([],
+                                minval=-p.max_shearing[4],
+                                maxval=p.max_shearing[4],
+                                seed=p.random_seed)
+        szy = tf.random_uniform([],
+                                minval=-p.max_shearing[5],
+                                maxval=p.max_shearing[5],
+                                seed=p.random_seed)
+        shearing_matrix = tf.stack(
+            [[1., sxy, sxz], [syx, 1., syz], [szx, szy, 1.]], axis=0)
+        points_xyz_adj = tf.einsum('ij,kj->ki', shearing_matrix, points_xyz_adj)
+
       # Translate the points back, adding noise if needed.
-      translation_with_noise = translation_vec + translate_pose[i]
+      translation_with_noise = (
+          translation_vec - translation_scale_or_shear + translate_pose[i])
       pose2 = tf.concat([translation_with_noise, [0., 0., 0.]], axis=0)
       final_points_xyz = geometry.CoordinateTransform(points_xyz_adj, pose2)
 
