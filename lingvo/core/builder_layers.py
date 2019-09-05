@@ -481,6 +481,292 @@ class UnarySequentialLayer(base_layer.BaseLayer):
     return py_utils.NestedMap(flops=total, out_shapes=x)
 
 
+class GraphTensors(object):
+  """A collection of named tensors (or NestedMaps of tensors)."""
+
+  def __init__(self):
+    self._named_tensors = py_utils.NestedMap()
+
+  def StoreTensor(self, path, tensor):
+    """Add tensor 't' to 'named_tensors' at 'path'.
+
+    A path may be a name or a path into a NestedMap. For instance,
+    StoreTensor('a.b.c', [1]), is equivalent to this:
+    {'a', {'b': {'c': [1]}}.
+
+    NestedMaps will be created if they do not already exist, or modified if they
+    do exist. However, tensors cannot be overwritten.
+
+    Args:
+      path: A path input a NestedMap.
+      tensor: The item to store (may be a NestedMap or a tensor).
+    """
+    names = path.strip().split('.')
+    named_tensors = self._named_tensors
+    while len(names) > 1:
+      n = names.pop(0)
+      assert isinstance(named_tensors, py_utils.NestedMap), named_tensors
+      if n not in named_tensors:
+        named_tensors[n] = py_utils.NestedMap()
+      named_tensors = named_tensors[n]
+    n = names.pop(0)
+    if n in named_tensors:
+      raise ValueError('A tensor named "%s" (%s) already exists.' % (n, path))
+    named_tensors[n] = tensor
+
+  def GetTensor(self, path):
+    """Returns the tensor at 'path' in 'named_tensors'.
+
+    Path may be a NestedMap key or a path through a series of NestedMaps.
+    For instance, a path of 'a.b.c' could be used to retrieve [1] from
+    this structure:
+    {'a': {'b': {'c': [1]}}}
+
+    Args:
+      path: A path through a series of NestedMaps.
+    """
+    names = path.strip().split('.')
+    named_tensors = self._named_tensors
+    while names:
+      assert isinstance(named_tensors, py_utils.NestedMap), named_tensors
+      n = names.pop(0)
+      assert n in named_tensors, '%s not found in %s' % (n, named_tensors)
+      named_tensors = named_tensors[n]
+    return named_tensors
+
+
+class GraphSignature(object):
+  """Represents the input/output signature of a GraphLayer.
+
+  A signature is of the form:
+    input->output
+  or, optionally just an input:
+    input
+
+  The output part may be:
+    out1      (a tensor name)
+    out1.a.b  (a path into a NestedMap)
+    out1,myvar,out2.x  (or a sequence of these things)
+
+  The input part may be:
+    in1           (a tensor name)
+    in1.b         (a path into a NestedMap)
+    [in1,myvar.c] (a list)
+    (a=in1,b=in2) (a NestedMap, using the syntax of the NestedMap constructor)
+    in1,[a,b]     (or a sequence of these things)
+
+  In BNF::
+
+    key := [A-Za-z_][A-Za-z0-9_]*
+    path := key | path '.' key
+    path_seq := <empty> | path | path_seq ',' path
+    item := path | list | map
+    list := '[' item_seq ']'
+    item_seq := <empty> | item | item_seq ',' item
+    map := '(' map_pair_seq ')'
+    map_pair := key '=' item
+    map_pair_seq := <empty> | map_pair | map_pair_seq ',' map_pair
+    input := item_seq
+    output := path_seq
+  """
+
+  def __init__(self, signature):
+    self.signature = signature
+    self.symbols = set(['[', ']', '=', '(', ')', ','])
+    parts = self.signature.split('->')
+    self._input_signature = parts[0]
+    self._output_signature = None
+    if len(parts) > 1:
+      self._output_signature = parts[1]
+
+    self._tokens = self._TokenizeInputs(self._input_signature)
+    self._outputs = self._ParseOutputs(self._output_signature)
+    self._inputs = self._ParseInputs()
+
+  def __str__(self):
+    return '(%s->%s)' % (self._inputs, self.outputs)
+
+  @property
+  def inputs(self):
+    return self._inputs
+
+  @property
+  def outputs(self):
+    return self._outputs
+
+  def _ParseOutputs(self, outputs):
+    """Splits the output spec into comma-delimited parts.
+
+    Args:
+      outputs: A string containing the output specification, like, 'a,b'.
+
+    Returns:
+      The parsed representation, e.g. ['a', 'b']
+    """
+    if outputs is None:
+      return []
+    o_tensors = [x.strip() for x in outputs.split(',')]
+    for x in o_tensors:
+      assert x
+    return o_tensors
+
+  def _TokenizeInputs(self, inputs):
+    """Splits the input signature into tokens (not data structures).
+
+    Args:
+      inputs: A string containing the input speficiation, like "[a,b],c"
+
+    Returns:
+      The tokenized representation, like ['[', 'a', ',', 'b', ']', ',', 'c']
+    """
+    start = -1
+    tokens = []
+    for j in range(len(inputs)):
+      # Each letter can either be a symbol or part of a variable/path.
+      if inputs[j] in self.symbols:
+        if start >= 0:
+          # Output the last variable/path.
+          tokens.append(inputs[start:j].strip())
+          start = -1
+        tokens.append(inputs[j])
+      elif start < 0:
+        start = j
+    if start >= 0:
+      tokens.append(inputs[start:].strip())
+    id_regex = re.compile(r'[_a-zA-Z][_a-zA-Z0-9]*(\.[_a-zA-Z][_a-zA-Z0-9]*)*$')
+    for token in tokens:
+      assert token in self.symbols or id_regex.match(token), token
+    # Wrapping the tokens in list brackets allows us to parse this using
+    # _ConsumeList.
+    return ['['] + tokens + [']']
+
+  def _ConsumePath(self):
+    """Return the path found at the current token position and increment.
+
+    Returns:
+      The path at the current token position.
+    """
+    if self._i >= len(self._tokens):
+      raise ValueError('Ran out of tokens while looking for a path/key')
+    if self._tokens[self._i] in self.symbols:
+      raise ValueError('Found a symbol %s while looking for a path/key' %
+                       (self._tokens[self._i]))
+    self._i += 1
+    return self._tokens[self._i - 1]
+
+  def _ConsumeKey(self):
+    """Return the key found at the current token position and increment.
+
+    Returns:
+      The key at the current token position.
+    """
+    token = self._ConsumePath()
+    assert '.' not in token, token
+    return token
+
+  def _ConsumeSymbol(self, symbol):
+    """Verify that the current token is this symbol, and increment.
+
+    Args:
+      symbol: The symbol that we expect at the current token position.
+    """
+    assert symbol in self.symbols
+    if self._i >= len(self._tokens):
+      raise ValueError('Ran out of tokens while looking for a %s' % (symbol))
+    if not self._MaybeConsumeSymbol(symbol):
+      raise ValueError('Found a symbol %s while looking for %s' %
+                       (self._tokens[self._i], symbol))
+
+  def _MaybeConsumeSymbol(self, symbol):
+    """Attempt to consume the given symbol.
+
+    The symbol must be a member of the symbol set: []()=,
+
+    Args:
+      symbol: The symbol that we expect at the current token position.
+
+    Returns:
+      True if the symbol was consumed, False otherwise.
+    """
+    assert symbol in self.symbols
+    if self._i < len(self._tokens) and self._tokens[self._i] == symbol:
+      self._i += 1
+      return True
+    return False
+
+  def _ConsumeItem(self):
+    """Return whatever is at the current token position and increment.
+
+    Returns:
+      A list, NestedMap, or path/key.
+    """
+    if self._i >= len(self._tokens):
+      raise ValueError(
+          'Ran out of tokens while looking for a variable, list or NestedMap.')
+    if self._tokens[self._i] == '(':
+      return self._ConsumeMap()
+    if self._tokens[self._i] == '[':
+      return self._ConsumeList()
+    return self._ConsumePath()
+
+  def _ConsumeMap(self):
+    """Return the NestedMap that starts at the current position, and increment.
+
+    Returns:
+      The NestedMap that starts at the current token position.
+    """
+    if self._i >= len(self._tokens):
+      raise ValueError('Ran out of tokens while looking for a NestedMap.')
+    if self._tokens[self._i] != '(':
+      raise ValueError('Expected ( at token position %d' % (self._i))
+    self._i += 1
+    if self._MaybeConsumeSymbol(')'):
+      # Empty NestedMaps are allowed.
+      return py_utils.NestedMap()
+    result = py_utils.NestedMap()
+    while self._i < len(self._tokens):
+      name = self._ConsumeKey()
+      self._ConsumeSymbol('=')
+      result[name] = self._ConsumeItem()
+      if self._MaybeConsumeSymbol(')'):
+        return result
+      self._ConsumeSymbol(',')
+    raise ValueError('Ran out of tokens while looking for end of NestedMap.')
+
+  def _ConsumeList(self):
+    """Return the list that starts at the current position, and increment.
+
+    Returns:
+      The list that starts at the current token position.
+    """
+    if self._i >= len(self._tokens):
+      raise ValueError('Ran out of tokens while looking for a list.')
+    if self._tokens[self._i] != '[':
+      raise ValueError('Expected [ at token position %d' % (self._i))
+    self._i += 1
+    if self._MaybeConsumeSymbol(']'):
+      # Empty lists are allowed.
+      return []
+    result = []
+    while self._i < len(self._tokens):
+      result.append(self._ConsumeItem())
+      if self._MaybeConsumeSymbol(']'):
+        return result
+      self._ConsumeSymbol(',')
+    raise ValueError('Ran out of tokens while looking for end of list.')
+
+  def _ParseInputs(self):
+    """Parse the inputs signature string.
+
+    Returns:
+      The parsed inputs structure, like {'a': ['b', 'c']}.
+    """
+    self._i = 0
+    # The tokenization process adds fake '[' and ']' tokens so we can
+    # parse them as a list.
+    return self._ConsumeList()
+
+
 class GraphLayer(base_layer.BaseLayer):
   r"""A layer that connects a few layers in a simple data flow graph.
 
@@ -494,12 +780,8 @@ class GraphLayer(base_layer.BaseLayer):
   previous layer. The output of a layer must be uniquely named, i.e. they can't
   reuse names assigned previous layer output or the input to this GraphLayer.
 
-  The exact BNF form of a signature is as follows:
-
-    signature ::= [names] -> [names]
-    names     ::= [name](,[name])*
-    name      ::= [sub](.[sub])*
-    sub       ::= [A-Za-z][A-Za-z0-9\_]\*
+  The full grammar of the signature is described in the GraphSignature class
+  definition above.
 
   Example
     input: ['a', 'b']
@@ -528,57 +810,19 @@ class GraphLayer(base_layer.BaseLayer):
       self._seq = []
       for i, (signature, sub) in enumerate(p.sub):
         assert signature
+        sig = GraphSignature(signature)
+        assert sig.outputs
         name = sub.name
         if not name:
-          name = '%s_%02d' % (signature.split('->')[1].split(',')[0], i)
+          name = '%s_%02d' % (sig.outputs[0], i)
           sub.name = name
         self.CreateChild(name, sub)
-        self._seq.append((name, self.children[name]))
-
-  @staticmethod
-  def AddNamedTensor(p, path, t, named_tensors):
-    """Add tensor 't' to 'named_tensors' at 'path'."""
-    names = path.strip().split('.')
-    while len(names) > 1:
-      n = names.pop(0)
-      if n not in named_tensors:
-        named_tensors[n] = py_utils.NestedMap()
-      named_tensors = named_tensors[n]
-    n = names.pop(0)
-    assert n not in named_tensors
-    named_tensors[n] = t
-
-  @staticmethod
-  def GetNamedTensor(p, named_tensors, path):
-    """Returns the tensor at 'path' in 'named_tensors'."""
-    names = path.strip().split('.')
-    while names:
-      assert isinstance(named_tensors, py_utils.NestedMap), named_tensors
-      n = names.pop(0)
-      assert n in named_tensors, '%s not found in %s' % (n, named_tensors)
-      named_tensors = named_tensors[n]
-    return named_tensors
-
-  @staticmethod
-  def ParseSignature(s):
-    """Parse signature into input tensors and output tensors."""
-    assert len(s.split('->')) == 2
-    i, o = s.split('->')
-    i_tensors = [x.strip() for x in i.split(',')]
-    o_tensors = [x.strip() for x in o.split(',')]
-    assert i_tensors
-    assert o_tensors
-    id_regex = re.compile(r'[_a-zA-Z][_a-zA-Z0-9]*(\.[_a-zA-Z][_a-zA-Z0-9]*)*$')
-    for x in i_tensors:
-      assert id_regex.match(x), x
-    for x in o_tensors:
-      assert id_regex.match(x), x
-    return i_tensors, o_tensors
+        self._seq.append((name, sig, self.children[name]))
 
   def FProp(self, theta, *args):
     p = self.params
 
-    named_tensors = py_utils.NestedMap()
+    graph_tensors = GraphTensors()
     with tf.name_scope(p.name):
       assert len(p.input_endpoints) == len(args)
       for n, t in zip(p.input_endpoints, args):
@@ -586,28 +830,25 @@ class GraphLayer(base_layer.BaseLayer):
           assert all(isinstance(x, tf.Tensor) for x in t.Flatten()), t
         else:
           assert isinstance(t, tf.Tensor)
-        GraphLayer.AddNamedTensor(p, n, t, named_tensors)
+        graph_tensors.StoreTensor(n, t)
 
       ch_out = None
-      for i, (name, ch) in enumerate(self._seq):
+      for i, (name, sig, ch) in enumerate(self._seq):
         th = theta[name]
-        i_tensors, o_tensors = GraphLayer.ParseSignature(p.sub[i][0])
-        input_args = [
-            GraphLayer.GetNamedTensor(p, named_tensors, x) for x in i_tensors
-        ]
+        template = py_utils.NestedMap(inputs=sig.inputs)
+        packed = template.Transform(graph_tensors.GetTensor)
+        input_args = packed.inputs
         tf.logging.vlog(1, 'signature: %s', p.sub[i][0])
         tf.logging.vlog(1, 'GraphLayer: call %s %s %d %s', ch.params.name, ch,
                         len(input_args), str(input_args))
         ch_out = ch.FProp(th, *input_args)
-        if len(o_tensors) == 1:
+        if len(sig.outputs) == 1:
           ch_out = (ch_out,)
-        assert len(ch_out) == len(o_tensors)
-        for n, t in zip(o_tensors, ch_out):
-          GraphLayer.AddNamedTensor(p, n, t, named_tensors)
+        assert len(sig.outputs) == len(ch_out)
+        for n, t in zip(sig.outputs, ch_out):
+          graph_tensors.StoreTensor(n, t)
 
-      layer_out = tuple(
-          GraphLayer.GetNamedTensor(p, named_tensors, x)
-          for x in p.output_endpoints)
+      layer_out = tuple(graph_tensors.GetTensor(x) for x in p.output_endpoints)
       if len(layer_out) == 1:
         layer_out = layer_out[0]
 
@@ -617,29 +858,27 @@ class GraphLayer(base_layer.BaseLayer):
   def FPropMeta(cls, p, *args):
     py_utils.CheckShapes(args)
     total = 0
-    named_tensors = py_utils.NestedMap()
 
+    graph_tensors = GraphTensors()
     assert len(p.input_endpoints) == len(args)
     for n, t in zip(p.input_endpoints, args):
-      GraphLayer.AddNamedTensor(p, n, t, named_tensors)
+      graph_tensors.StoreTensor(n, t)
 
     ch_out = None
     for signature, sub in p.sub:
-      i_tensors, o_tensors = GraphLayer.ParseSignature(signature)
-      input_args = [
-          GraphLayer.GetNamedTensor(p, named_tensors, x) for x in i_tensors
-      ]
+      sig = GraphSignature(signature)
+      template = py_utils.NestedMap(inputs=sig.inputs)
+      packed = template.Transform(graph_tensors.GetTensor)
+      input_args = packed.inputs
 
       meta = sub.cls.FPropMeta(sub, *input_args)
       total += meta.flops
       ch_out = meta.out_shapes
-      assert len(ch_out) == len(o_tensors)
-      for n, t in zip(o_tensors, ch_out):
-        GraphLayer.AddNamedTensor(p, n, t, named_tensors)
+      assert len(ch_out) == len(sig.outputs)
+      for n, t in zip(sig.outputs, ch_out):
+        graph_tensors.StoreTensor(n, t)
 
-    layer_out = tuple(
-        GraphLayer.GetNamedTensor(p, named_tensors, x)
-        for x in p.output_endpoints)
+    layer_out = tuple(graph_tensors.GetTensor(x) for x in p.output_endpoints)
     return py_utils.NestedMap(flops=total, out_shapes=layer_out)
 
 

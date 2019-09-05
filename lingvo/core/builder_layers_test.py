@@ -322,6 +322,39 @@ class BuilderLayerTest(test_utils.TestCase):
     self.assertEqual(w_val.b.shape, (10,))
     self.assertAllClose(x_val + w_val.b, y_val)
 
+  def testGraphTensors(self):
+    graph_tensors = layers.GraphTensors()
+    graph_tensors.StoreTensor('t',
+                              py_utils.NestedMap(a=py_utils.NestedMap(b='c')))
+    self.assertEqual('c', graph_tensors.GetTensor('t.a.b'))
+
+  def testSignatureParsing(self):
+    sig = layers.GraphSignature('a,b->c')
+    self.assertEqual(['a', 'b'], sig.inputs)
+    self.assertEqual(['c'], sig.outputs)
+
+    sig = layers.GraphSignature('[a,b],d->c')
+    self.assertEqual([['a', 'b'], 'd'], sig.inputs)
+    self.assertEqual(['c'], sig.outputs)
+
+    # also test nested structures, like nested lists and dicts.
+    sig = layers.GraphSignature('(x=a,y=b)->c')
+    self.assertEqual([{'x': 'a', 'y': 'b'}], sig.inputs)
+    self.assertEqual(['c'], sig.outputs)
+
+    # Make sure that empty lists and dicts work.
+    sig = layers.GraphSignature('(x=[]),()->d')
+    self.assertEqual([{'x': []}, {}], sig.inputs)
+
+    sig = layers.GraphSignature('(x=a,y=[f,(z=g.h)]),[d,e]->j')
+    self.assertEqual([{
+        'x': 'a',
+        'y': ['f', {
+            'z': 'g.h'
+        }]
+    }, ['d', 'e']], sig.inputs)
+    self.assertEqual(['j'], sig.outputs)
+
   def testGraphLayer(self):
     g = tf.Graph()
     with g.as_default():
