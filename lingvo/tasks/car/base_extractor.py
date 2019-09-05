@@ -22,6 +22,7 @@ from lingvo import compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import generic_input
+from lingvo.core import hyperparams
 from lingvo.core import py_utils
 
 
@@ -67,12 +68,12 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     """
     p = super(_BaseExtractor, cls).Params()
     p.Define('extractors', extractors, 'A NestedMap of FieldsExtractors.')
-    p.Define('preprocessors', py_utils.NestedMap(),
-             'A NestedMap of Preprocessors.')
+    p.Define('preprocessors', hyperparams.Params(),
+             'A Params() of Preprocessors.')
     p.Define(
         'preprocessors_order', [],
         'A list corresponding to flattened keys in preprocessors '
-        'NestedMap. This specifies the execution order of the '
+        'Params(). This specifies the execution order of the '
         'preprocessors.')
     p.Define('record_type', 'EXAMPLE',
              'Raw record format, default to tf.Example.')
@@ -96,7 +97,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     self._extractors = p.extractors.Pack(self._extractors)
 
     # Instantiate preprocessors based on their ordering.
-    flattened_processors = dict(p.preprocessors.FlattenItems())
+    flattened_processors = dict(p.preprocessors.IterParams())
 
     # Validate that all keys in preprocessors_order appear are valid.
     if not set(p.preprocessors_order).issubset(flattened_processors.keys()):

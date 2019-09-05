@@ -224,8 +224,9 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
   def _configure_generic_input(cls, p):
     """Update input_config `p` for all jobs."""
     # Perform frustum dropping before ground removal (keep_xyz_range).
-    p.preprocessors.remove_out_of_frustum = (
-        input_preprocessors.KITTIDropPointsOutOfFrustum.Params())
+    p.preprocessors.Define(
+        'remove_out_of_frustum',
+        (input_preprocessors.KITTIDropPointsOutOfFrustum.Params()), '')
     p.preprocessors_order.insert(
         p.preprocessors_order.index('keep_xyz_range'), 'remove_out_of_frustum')
 
@@ -274,15 +275,19 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
     p.extractors.images.decode_image = False
     _MaybeRemove(p.preprocessors_order, 'count_points')
     _MaybeRemove(p.preprocessors_order, 'viz_copy')
-    p.preprocessors.rot_box = (
-        input_preprocessors.RandomBBoxTransform.Params().Set(
-            max_rotation=np.pi / 20.))
-    p.preprocessors.random_flip = input_preprocessors.RandomFlipY.Params()
-    p.preprocessors.global_rot = (
-        input_preprocessors.RandomWorldRotationAboutZAxis.Params().Set(
-            max_rotation=np.pi / 4.))
-    p.preprocessors.world_scaling = (
-        input_preprocessors.WorldScaling.Params().Set(scaling=[0.95, 1.05]))
+    p.preprocessors.Define(
+        'rot_box', (input_preprocessors.RandomBBoxTransform.Params().Set(
+            max_rotation=np.pi / 20.)), '')
+    p.preprocessors.Define('random_flip',
+                           input_preprocessors.RandomFlipY.Params(), '')
+    p.preprocessors.Define(
+        'global_rot',
+        (input_preprocessors.RandomWorldRotationAboutZAxis.Params().Set(
+            max_rotation=np.pi / 4.)), '')
+    p.preprocessors.Define(
+        'world_scaling',
+        (input_preprocessors.WorldScaling.Params().Set(scaling=[0.95, 1.05])),
+        '')
 
     # Do per object transforms, then random flip, then global rotation, then
     # global scaling.
@@ -301,19 +306,19 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
     ]
     groundtruth_db = os.path.join(_KITTI_BASE,
                                   'kitti_train_object_cls.tfrecord-*-of-00100')
-    p.preprocessors.bbox_aug = (
-        input_preprocessors.GroundTruthAugmentor.Params().Set(
+    p.preprocessors.Define(
+        'bbox_aug', (input_preprocessors.GroundTruthAugmentor.Params().Set(
             groundtruth_database=groundtruth_db,
             num_db_objects=19700,
             filter_min_points=5,
             max_augmented_bboxes=15,
             label_filter=allowed_label_ids,
-        ))
+        )), '')
     p.preprocessors_order = ['bbox_aug'] + p.preprocessors_order
 
-    p.preprocessors.frustum_dropout = (
-        input_preprocessors.FrustumDropout.Params().Set(
-            theta_width=0.03, phi_width=0.0))
+    p.preprocessors.Define('frustum_dropout',
+                           (input_preprocessors.FrustumDropout.Params().Set(
+                               theta_width=0.03, phi_width=0.0)), '')
     p.preprocessors_order.insert(
         p.preprocessors_order.index('gather_features'), 'frustum_dropout')
 
@@ -449,9 +454,10 @@ class StarNetCarModel0701(StarNetCarsBase):
   def _configure_trainer_input(cls, p):
     super(StarNetCarModel0701, cls)._configure_trainer_input(p)
 
-    p.preprocessors.global_loc_noise = (
-        input_preprocessors.GlobalTranslateNoise.Params().Set(
-            noise_std=[0., 0., 0.35]))
+    p.preprocessors.Define(
+        'global_loc_noise',
+        (input_preprocessors.GlobalTranslateNoise.Params().Set(
+            noise_std=[0., 0., 0.35])), '')
     p.preprocessors_order.insert(
         p.preprocessors_order.index('world_scaling') + 1, 'global_loc_noise')
 

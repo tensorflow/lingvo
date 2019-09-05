@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from lingvo import compat as tf
+from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.tasks.car import input_extractor
@@ -29,9 +30,12 @@ class InputExtractorTest(test_utils.TestCase):
 
   def testBaseExtractorRaisesErrorWithMissingPreprocessorKeys(self):
     extractors = py_utils.NestedMap()
-    preprocessors = py_utils.NestedMap(
-        count_points=input_preprocessors.CountNumberOfPointsInBoxes3D.Params(),
-        viz_copy=input_preprocessors.CreateDecoderCopy.Params())
+    preprocessors = hyperparams.Params()
+    preprocessors.Define(
+        'count_points',
+        input_preprocessors.CountNumberOfPointsInBoxes3D.Params(), '')
+    preprocessors.Define('viz_copy',
+                         input_preprocessors.CreateDecoderCopy.Params(), '')
     p = input_extractor.BaseExtractor.Params(extractors).Set(
         preprocessors=preprocessors,
         preprocessors_order=['count_points', 'missing_key', 'viz_copy'])

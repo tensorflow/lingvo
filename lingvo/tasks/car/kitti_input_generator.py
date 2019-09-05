@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from lingvo import compat as tf
+from lingvo.core import hyperparams
 from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.tasks.car import geometry
@@ -33,6 +34,13 @@ def _Dense(sparse, default_value=0):
       output_shape=sparse.dense_shape,
       sparse_values=sparse.values,
       default_value=default_value)
+
+
+def _NestedMapToParams(nmap):
+  p = hyperparams.Params()
+  for k, v in nmap.FlattenItems():
+    p.Define(k, v, '')
+  return p
 
 
 def ComputeKITTIDifficulties(box_image_height, occlusion, truncation):
@@ -505,8 +513,9 @@ class KITTILaser(KITTIBase):
         viz_copy=input_preprocessors.CreateDecoderCopy.Params(),
         pad_lasers=input_preprocessors.PadLaserFeatures.Params().Set(
             max_num_points=128500))
+
     p = super(KITTILaser, cls).Params(extractors).Set(
-        preprocessors=preprocessors,
+        preprocessors=_NestedMapToParams(preprocessors),
         preprocessors_order=['viz_copy', 'count_points', 'pad_lasers'])
     return p
 
@@ -559,7 +568,7 @@ class KITTISparseLaser(KITTIBase):
     )
 
     p = super(KITTISparseLaser, cls).Params(extractors).Set(
-        preprocessors=preprocessors,
+        preprocessors=_NestedMapToParams(preprocessors),
         preprocessors_order=[
             'viz_copy',
             'keep_xyz_range',
@@ -617,7 +626,7 @@ class KITTIGrid(KITTIBase):
             max_num_points=128500),
     )
     p = super(KITTIGrid, cls).Params(extractors).Set(
-        preprocessors=preprocessors,
+        preprocessors=_NestedMapToParams(preprocessors),
         preprocessors_order=[
             'viz_copy',
             'count_points',
