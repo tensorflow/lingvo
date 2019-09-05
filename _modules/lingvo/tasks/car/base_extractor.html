@@ -167,6 +167,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">generic_input</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 
 
@@ -212,12 +213,12 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">_BaseExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;extractors&#39;</span><span class="p">,</span> <span class="n">extractors</span><span class="p">,</span> <span class="s1">&#39;A NestedMap of FieldsExtractors.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;preprocessors&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(),</span>
-             <span class="s1">&#39;A NestedMap of Preprocessors.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;preprocessors&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;A Params() of Preprocessors.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;preprocessors_order&#39;</span><span class="p">,</span> <span class="p">[],</span>
         <span class="s1">&#39;A list corresponding to flattened keys in preprocessors &#39;</span>
-        <span class="s1">&#39;NestedMap. This specifies the execution order of the &#39;</span>
+        <span class="s1">&#39;Params(). This specifies the execution order of the &#39;</span>
         <span class="s1">&#39;preprocessors.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;record_type&#39;</span><span class="p">,</span> <span class="s1">&#39;EXAMPLE&#39;</span><span class="p">,</span>
              <span class="s1">&#39;Raw record format, default to tf.Example.&#39;</span><span class="p">)</span>
@@ -241,7 +242,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="p">)</span>
 
     <span class="c1"># Instantiate preprocessors based on their ordering.</span>
-    <span class="n">flattened_processors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">())</span>
+    <span class="n">flattened_processors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span>
 
     <span class="c1"># Validate that all keys in preprocessors_order appear are valid.</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">flattened_processors</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>

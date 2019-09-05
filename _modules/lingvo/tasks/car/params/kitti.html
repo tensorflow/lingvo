@@ -369,8 +369,9 @@
   <span class="k">def</span> <span class="nf">_configure_generic_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update input_config `p` for all jobs.&quot;&quot;&quot;</span>
     <span class="c1"># Perform frustum dropping before ground removal (keep_xyz_range).</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">remove_out_of_frustum</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">KITTIDropPointsOutOfFrustum</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;remove_out_of_frustum&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">KITTIDropPointsOutOfFrustum</span><span class="o">.</span><span class="n">Params</span><span class="p">()),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span>
         <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;keep_xyz_range&#39;</span><span class="p">),</span> <span class="s1">&#39;remove_out_of_frustum&#39;</span><span class="p">)</span>
 
@@ -419,15 +420,19 @@
     <span class="n">p</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">decode_image</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">_MaybeRemove</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="p">,</span> <span class="s1">&#39;count_points&#39;</span><span class="p">)</span>
     <span class="n">_MaybeRemove</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="p">,</span> <span class="s1">&#39;viz_copy&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">rot_box</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">RandomBBoxTransform</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">max_rotation</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">20.</span><span class="p">))</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">random_flip</span> <span class="o">=</span> <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">RandomFlipY</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">global_rot</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">RandomWorldRotationAboutZAxis</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">max_rotation</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">4.</span><span class="p">))</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">world_scaling</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">WorldScaling</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">scaling</span><span class="o">=</span><span class="p">[</span><span class="mf">0.95</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">]))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;rot_box&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">RandomBBoxTransform</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">max_rotation</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">20.</span><span class="p">)),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;random_flip&#39;</span><span class="p">,</span>
+                           <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">RandomFlipY</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;global_rot&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">RandomWorldRotationAboutZAxis</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">max_rotation</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">4.</span><span class="p">)),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;world_scaling&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">WorldScaling</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">scaling</span><span class="o">=</span><span class="p">[</span><span class="mf">0.95</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">])),</span>
+        <span class="s1">&#39;&#39;</span><span class="p">)</span>
 
     <span class="c1"># Do per object transforms, then random flip, then global rotation, then</span>
     <span class="c1"># global scaling.</span>
@@ -446,19 +451,19 @@
     <span class="p">]</span>
     <span class="n">groundtruth_db</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_KITTI_BASE</span><span class="p">,</span>
                                   <span class="s1">&#39;kitti_train_object_cls.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">bbox_aug</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">GroundTruthAugmentor</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bbox_aug&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">GroundTruthAugmentor</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">groundtruth_database</span><span class="o">=</span><span class="n">groundtruth_db</span><span class="p">,</span>
             <span class="n">num_db_objects</span><span class="o">=</span><span class="mi">19700</span><span class="p">,</span>
             <span class="n">filter_min_points</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
             <span class="n">max_augmented_bboxes</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
             <span class="n">label_filter</span><span class="o">=</span><span class="n">allowed_label_ids</span><span class="p">,</span>
-        <span class="p">))</span>
+        <span class="p">)),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bbox_aug&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span>
 
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">frustum_dropout</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">FrustumDropout</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">theta_width</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">phi_width</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;frustum_dropout&#39;</span><span class="p">,</span>
+                           <span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">FrustumDropout</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+                               <span class="n">theta_width</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">phi_width</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span>
         <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;gather_features&#39;</span><span class="p">),</span> <span class="s1">&#39;frustum_dropout&#39;</span><span class="p">)</span>
 
@@ -594,9 +599,10 @@
   <span class="k">def</span> <span class="nf">_configure_trainer_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">StarNetCarModel0701</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_trainer_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">global_loc_noise</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">GlobalTranslateNoise</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">noise_std</span><span class="o">=</span><span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.35</span><span class="p">]))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;global_loc_noise&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">GlobalTranslateNoise</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">noise_std</span><span class="o">=</span><span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.35</span><span class="p">])),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span>
         <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;world_scaling&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;global_loc_noise&#39;</span><span class="p">)</span></div>
 
