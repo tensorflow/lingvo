@@ -626,6 +626,292 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">x</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="GraphTensors"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphTensors">[docs]</a><span class="k">class</span> <span class="nc">GraphTensors</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A collection of named tensors (or NestedMaps of tensors).&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_named_tensors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GraphTensors.StoreTensor"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphTensors.StoreTensor">[docs]</a>  <span class="k">def</span> <span class="nf">StoreTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">tensor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add tensor &#39;t&#39; to &#39;named_tensors&#39; at &#39;path&#39;.</span>
+
+<span class="sd">    A path may be a name or a path into a NestedMap. For instance,</span>
+<span class="sd">    StoreTensor(&#39;a.b.c&#39;, [1]), is equivalent to this:</span>
+<span class="sd">    {&#39;a&#39;, {&#39;b&#39;: {&#39;c&#39;: [1]}}.</span>
+
+<span class="sd">    NestedMaps will be created if they do not already exist, or modified if they</span>
+<span class="sd">    do exist. However, tensors cannot be overwritten.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      path: A path input a NestedMap.</span>
+<span class="sd">      tensor: The item to store (may be a NestedMap or a tensor).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="n">named_tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_named_tensors</span>
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">n</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">named_tensors</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">),</span> <span class="n">named_tensors</span>
+      <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">named_tensors</span><span class="p">:</span>
+        <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">named_tensors</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A tensor named &quot;</span><span class="si">%s</span><span class="s1">&quot; (</span><span class="si">%s</span><span class="s1">) already exists.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">path</span><span class="p">))</span>
+    <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">tensor</span></div>
+
+<div class="viewcode-block" id="GraphTensors.GetTensor"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphTensors.GetTensor">[docs]</a>  <span class="k">def</span> <span class="nf">GetTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the tensor at &#39;path&#39; in &#39;named_tensors&#39;.</span>
+
+<span class="sd">    Path may be a NestedMap key or a path through a series of NestedMaps.</span>
+<span class="sd">    For instance, a path of &#39;a.b.c&#39; could be used to retrieve [1] from</span>
+<span class="sd">    this structure:</span>
+<span class="sd">    {&#39;a&#39;: {&#39;b&#39;: {&#39;c&#39;: [1]}}}</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      path: A path through a series of NestedMaps.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="n">named_tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_named_tensors</span>
+    <span class="k">while</span> <span class="n">names</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">named_tensors</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">),</span> <span class="n">named_tensors</span>
+      <span class="n">n</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> not found in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+      <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">named_tensors</span></div></div>
+
+
+<div class="viewcode-block" id="GraphSignature"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphSignature">[docs]</a><span class="k">class</span> <span class="nc">GraphSignature</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Represents the input/output signature of a GraphLayer.</span>
+
+<span class="sd">  A signature is of the form:</span>
+<span class="sd">    input-&gt;output</span>
+<span class="sd">  or, optionally just an input:</span>
+<span class="sd">    input</span>
+
+<span class="sd">  The output part may be:</span>
+<span class="sd">    out1      (a tensor name)</span>
+<span class="sd">    out1.a.b  (a path into a NestedMap)</span>
+<span class="sd">    out1,myvar,out2.x  (or a sequence of these things)</span>
+
+<span class="sd">  The input part may be:</span>
+<span class="sd">    in1           (a tensor name)</span>
+<span class="sd">    in1.b         (a path into a NestedMap)</span>
+<span class="sd">    [in1,myvar.c] (a list)</span>
+<span class="sd">    (a=in1,b=in2) (a NestedMap, using the syntax of the NestedMap constructor)</span>
+<span class="sd">    in1,[a,b]     (or a sequence of these things)</span>
+
+<span class="sd">  In BNF::</span>
+
+<span class="sd">    key := [A-Za-z_][A-Za-z0-9_]*</span>
+<span class="sd">    path := key | path &#39;.&#39; key</span>
+<span class="sd">    path_seq := &lt;empty&gt; | path | path_seq &#39;,&#39; path</span>
+<span class="sd">    item := path | list | map</span>
+<span class="sd">    list := &#39;[&#39; item_seq &#39;]&#39;</span>
+<span class="sd">    item_seq := &lt;empty&gt; | item | item_seq &#39;,&#39; item</span>
+<span class="sd">    map := &#39;(&#39; map_pair_seq &#39;)&#39;</span>
+<span class="sd">    map_pair := key &#39;=&#39; item</span>
+<span class="sd">    map_pair_seq := &lt;empty&gt; | map_pair | map_pair_seq &#39;,&#39; map_pair</span>
+<span class="sd">    input := item_seq</span>
+<span class="sd">    output := path_seq</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signature</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">signature</span> <span class="o">=</span> <span class="n">signature</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;[&#39;</span><span class="p">,</span> <span class="s1">&#39;]&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="p">])</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_signature</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_output_signature</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_output_signature</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TokenizeInputs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_signature</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ParseOutputs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_signature</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ParseInputs</span><span class="p">()</span>
+
+  <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s1">&#39;(</span><span class="si">%s</span><span class="s1">-&gt;</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outputs</span>
+
+<div class="viewcode-block" id="GraphSignature._ParseOutputs"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphSignature._ParseOutputs">[docs]</a>  <span class="k">def</span> <span class="nf">_ParseOutputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Splits the output spec into comma-delimited parts.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      outputs: A string containing the output specification, like, &#39;a,b&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The parsed representation, e.g. [&#39;a&#39;, &#39;b&#39;]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">outputs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">[]</span>
+    <span class="n">o_tensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">outputs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">o_tensors</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">o_tensors</span></div>
+
+<div class="viewcode-block" id="GraphSignature._TokenizeInputs"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphSignature._TokenizeInputs">[docs]</a>  <span class="k">def</span> <span class="nf">_TokenizeInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Splits the input signature into tokens (not data structures).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      inputs: A string containing the input speficiation, like &quot;[a,b],c&quot;</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The tokenized representation, like [&#39;[&#39;, &#39;a&#39;, &#39;,&#39;, &#39;b&#39;, &#39;]&#39;, &#39;,&#39;, &#39;c&#39;]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)):</span>
+      <span class="c1"># Each letter can either be a symbol or part of a variable/path.</span>
+      <span class="k">if</span> <span class="n">inputs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="c1"># Output the last variable/path.</span>
+          <span class="n">tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+          <span class="n">start</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+      <span class="k">elif</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">j</span>
+    <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">start</span><span class="p">:]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="n">id_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[_a-zA-Z][_a-zA-Z0-9]*(\.[_a-zA-Z][_a-zA-Z0-9]*)*$&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">token</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span> <span class="ow">or</span> <span class="n">id_regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">token</span><span class="p">),</span> <span class="n">token</span>
+    <span class="c1"># Wrapping the tokens in list brackets allows us to parse this using</span>
+    <span class="c1"># _ConsumeList.</span>
+    <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;[&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">tokens</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;]&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="GraphSignature._ConsumePath"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphSignature._ConsumePath">[docs]</a>  <span class="k">def</span> <span class="nf">_ConsumePath</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the path found at the current token position and increment.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The path at the current token position.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Ran out of tokens while looking for a path/key&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_i</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Found a symbol </span><span class="si">%s</span><span class="s1"> while looking for a path/key&#39;</span> <span class="o">%</span>
+                       <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_i</span><span class="p">]))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="GraphSignature._ConsumeKey"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphSignature._ConsumeKey">[docs]</a>  <span class="k">def</span> <span class="nf">_ConsumeKey</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the key found at the current token position and increment.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The key at the current token position.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConsumePath</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="s1">&#39;.&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">token</span><span class="p">,</span> <span class="n">token</span>
+    <span class="k">return</span> <span class="n">token</span></div>
+
+<div class="viewcode-block" id="GraphSignature._ConsumeSymbol"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphSignature._ConsumeSymbol">[docs]</a>  <span class="k">def</span> <span class="nf">_ConsumeSymbol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Verify that the current token is this symbol, and increment.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      symbol: The symbol that we expect at the current token position.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Ran out of tokens while looking for a </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">symbol</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeConsumeSymbol</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Found a symbol </span><span class="si">%s</span><span class="s1"> while looking for </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                       <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_i</span><span class="p">],</span> <span class="n">symbol</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="GraphSignature._MaybeConsumeSymbol"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphSignature._MaybeConsumeSymbol">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeConsumeSymbol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Attempt to consume the given symbol.</span>
+
+<span class="sd">    The symbol must be a member of the symbol set: []()=,</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      symbol: The symbol that we expect at the current token position.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      True if the symbol was consumed, False otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_i</span><span class="p">]</span> <span class="o">==</span> <span class="n">symbol</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="GraphSignature._ConsumeItem"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphSignature._ConsumeItem">[docs]</a>  <span class="k">def</span> <span class="nf">_ConsumeItem</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return whatever is at the current token position and increment.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A list, NestedMap, or path/key.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Ran out of tokens while looking for a variable, list or NestedMap.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_i</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;(&#39;</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConsumeMap</span><span class="p">()</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_i</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;[&#39;</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConsumeList</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConsumePath</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GraphSignature._ConsumeMap"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphSignature._ConsumeMap">[docs]</a>  <span class="k">def</span> <span class="nf">_ConsumeMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the NestedMap that starts at the current position, and increment.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The NestedMap that starts at the current token position.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Ran out of tokens while looking for a NestedMap.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_i</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;(&#39;</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected ( at token position </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_i</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeConsumeSymbol</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">):</span>
+      <span class="c1"># Empty NestedMaps are allowed.</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">):</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConsumeKey</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ConsumeSymbol</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConsumeItem</span><span class="p">()</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeConsumeSymbol</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">result</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ConsumeSymbol</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Ran out of tokens while looking for end of NestedMap.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphSignature._ConsumeList"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphSignature._ConsumeList">[docs]</a>  <span class="k">def</span> <span class="nf">_ConsumeList</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the list that starts at the current position, and increment.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The list that starts at the current token position.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Ran out of tokens while looking for a list.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_i</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;[&#39;</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected [ at token position </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_i</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeConsumeSymbol</span><span class="p">(</span><span class="s1">&#39;]&#39;</span><span class="p">):</span>
+      <span class="c1"># Empty lists are allowed.</span>
+      <span class="k">return</span> <span class="p">[]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokens</span><span class="p">):</span>
+      <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ConsumeItem</span><span class="p">())</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeConsumeSymbol</span><span class="p">(</span><span class="s1">&#39;]&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">result</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ConsumeSymbol</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Ran out of tokens while looking for end of list.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphSignature._ParseInputs"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphSignature._ParseInputs">[docs]</a>  <span class="k">def</span> <span class="nf">_ParseInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse the inputs signature string.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The parsed inputs structure, like {&#39;a&#39;: [&#39;b&#39;, &#39;c&#39;]}.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># The tokenization process adds fake &#39;[&#39; and &#39;]&#39; tokens so we can</span>
+    <span class="c1"># parse them as a list.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConsumeList</span><span class="p">()</span></div></div>
+
+
 <div class="viewcode-block" id="GraphLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer">[docs]</a><span class="k">class</span> <span class="nc">GraphLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A layer that connects a few layers in a simple data flow graph.</span>
 
@@ -639,12 +925,8 @@
 <span class="sd">  previous layer. The output of a layer must be uniquely named, i.e. they can&#39;t</span>
 <span class="sd">  reuse names assigned previous layer output or the input to this GraphLayer.</span>
 
-<span class="sd">  The exact BNF form of a signature is as follows:</span>
-
-<span class="sd">    signature ::= [names] -&gt; [names]</span>
-<span class="sd">    names     ::= [name](,[name])*</span>
-<span class="sd">    name      ::= [sub](.[sub])*</span>
-<span class="sd">    sub       ::= [A-Za-z][A-Za-z0-9\_]\*</span>
+<span class="sd">  The full grammar of the signature is described in the GraphSignature class</span>
+<span class="sd">  definition above.</span>
 
 <span class="sd">  Example</span>
 <span class="sd">    input: [&#39;a&#39;, &#39;b&#39;]</span>
@@ -673,57 +955,19 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">signature</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">):</span>
         <span class="k">assert</span> <span class="n">signature</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">GraphSignature</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">sig</span><span class="o">.</span><span class="n">outputs</span>
         <span class="n">name</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
-          <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%02d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">signature</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
+          <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%02d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
           <span class="n">sub</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
-
-<div class="viewcode-block" id="GraphLayer.AddNamedTensor"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.AddNamedTensor">[docs]</a>  <span class="nd">@staticmethod</span>
-  <span class="k">def</span> <span class="nf">AddNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Add tensor &#39;t&#39; to &#39;named_tensors&#39; at &#39;path&#39;.&quot;&quot;&quot;</span>
-    <span class="n">names</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
-    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="n">n</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">named_tensors</span><span class="p">:</span>
-        <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-      <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">named_tensors</span>
-    <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span></div>
-
-<div class="viewcode-block" id="GraphLayer.GetNamedTensor"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.GetNamedTensor">[docs]</a>  <span class="nd">@staticmethod</span>
-  <span class="k">def</span> <span class="nf">GetNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns the tensor at &#39;path&#39; in &#39;named_tensors&#39;.&quot;&quot;&quot;</span>
-    <span class="n">names</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
-    <span class="k">while</span> <span class="n">names</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">named_tensors</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">),</span> <span class="n">named_tensors</span>
-      <span class="n">n</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-      <span class="k">assert</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> not found in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
-      <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">named_tensors</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">named_tensors</span></div>
-
-<div class="viewcode-block" id="GraphLayer.ParseSignature"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.ParseSignature">[docs]</a>  <span class="nd">@staticmethod</span>
-  <span class="k">def</span> <span class="nf">ParseSignature</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Parse signature into input tensors and output tensors.&quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">))</span> <span class="o">==</span> <span class="mi">2</span>
-    <span class="n">i</span><span class="p">,</span> <span class="n">o</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">)</span>
-    <span class="n">i_tensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
-    <span class="n">o_tensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">o</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
-    <span class="k">assert</span> <span class="n">i_tensors</span>
-    <span class="k">assert</span> <span class="n">o_tensors</span>
-    <span class="n">id_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[_a-zA-Z][_a-zA-Z0-9]*(\.[_a-zA-Z][_a-zA-Z0-9]*)*$&#39;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i_tensors</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">id_regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">x</span>
-    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">o_tensors</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">id_regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">x</span>
-    <span class="k">return</span> <span class="n">i_tensors</span><span class="p">,</span> <span class="n">o_tensors</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
 
 <div class="viewcode-block" id="GraphLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">graph_tensors</span> <span class="o">=</span> <span class="n">GraphTensors</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
@@ -731,28 +975,25 @@
           <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()),</span> <span class="n">t</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
-        <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+        <span class="n">graph_tensors</span><span class="o">.</span><span class="n">StoreTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 
       <span class="n">ch_out</span> <span class="o">=</span> <span class="kc">None</span>
-      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">ch</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="p">):</span>
         <span class="n">th</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
-        <span class="n">i_tensors</span><span class="p">,</span> <span class="n">o_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">ParseSignature</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">input_args</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">GraphLayer</span><span class="o">.</span><span class="n">GetNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i_tensors</span>
-        <span class="p">]</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">sig</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">packed</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">graph_tensors</span><span class="o">.</span><span class="n">GetTensor</span><span class="p">)</span>
+        <span class="n">input_args</span> <span class="o">=</span> <span class="n">packed</span><span class="o">.</span><span class="n">inputs</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;signature: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;GraphLayer: call </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ch</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span>
                         <span class="nb">len</span><span class="p">(</span><span class="n">input_args</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_args</span><span class="p">))</span>
         <span class="n">ch_out</span> <span class="o">=</span> <span class="n">ch</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">th</span><span class="p">,</span> <span class="o">*</span><span class="n">input_args</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
           <span class="n">ch_out</span> <span class="o">=</span> <span class="p">(</span><span class="n">ch_out</span><span class="p">,)</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch_out</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">,</span> <span class="n">ch_out</span><span class="p">):</span>
-          <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch_out</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="n">ch_out</span><span class="p">):</span>
+          <span class="n">graph_tensors</span><span class="o">.</span><span class="n">StoreTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 
-      <span class="n">layer_out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-          <span class="n">GraphLayer</span><span class="o">.</span><span class="n">GetNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-          <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
+      <span class="n">layer_out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">graph_tensors</span><span class="o">.</span><span class="n">GetTensor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
       <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_out</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">layer_out</span> <span class="o">=</span> <span class="n">layer_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -762,29 +1003,27 @@
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
     <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">named_tensors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
+    <span class="n">graph_tensors</span> <span class="o">=</span> <span class="n">GraphTensors</span><span class="p">()</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-      <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+      <span class="n">graph_tensors</span><span class="o">.</span><span class="n">StoreTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 
     <span class="n">ch_out</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">for</span> <span class="n">signature</span><span class="p">,</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
-      <span class="n">i_tensors</span><span class="p">,</span> <span class="n">o_tensors</span> <span class="o">=</span> <span class="n">GraphLayer</span><span class="o">.</span><span class="n">ParseSignature</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
-      <span class="n">input_args</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="n">GraphLayer</span><span class="o">.</span><span class="n">GetNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i_tensors</span>
-      <span class="p">]</span>
+      <span class="n">sig</span> <span class="o">=</span> <span class="n">GraphSignature</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
+      <span class="n">template</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">sig</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="n">packed</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">graph_tensors</span><span class="o">.</span><span class="n">GetTensor</span><span class="p">)</span>
+      <span class="n">input_args</span> <span class="o">=</span> <span class="n">packed</span><span class="o">.</span><span class="n">inputs</span>
 
       <span class="n">meta</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="o">*</span><span class="n">input_args</span><span class="p">)</span>
       <span class="n">total</span> <span class="o">+=</span> <span class="n">meta</span><span class="o">.</span><span class="n">flops</span>
       <span class="n">ch_out</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch_out</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">)</span>
-      <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">o_tensors</span><span class="p">,</span> <span class="n">ch_out</span><span class="p">):</span>
-        <span class="n">GraphLayer</span><span class="o">.</span><span class="n">AddNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch_out</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="n">ch_out</span><span class="p">):</span>
+        <span class="n">graph_tensors</span><span class="o">.</span><span class="n">StoreTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 
-    <span class="n">layer_out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-        <span class="n">GraphLayer</span><span class="o">.</span><span class="n">GetNamedTensor</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">named_tensors</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
+    <span class="n">layer_out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">graph_tensors</span><span class="o">.</span><span class="n">GetTensor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">layer_out</span><span class="p">)</span></div></div>
 
 

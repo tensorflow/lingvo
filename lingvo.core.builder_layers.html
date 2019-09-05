@@ -637,6 +637,217 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="class">
+<dt id="lingvo.core.builder_layers.GraphTensors">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.builder_layers.</code><code class="sig-name descname">GraphTensors</code><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphTensors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A collection of named tensors (or NestedMaps of tensors).</p>
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphTensors.StoreTensor">
+<code class="sig-name descname">StoreTensor</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">tensor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphTensors.StoreTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphTensors.StoreTensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add tensor ‘t’ to ‘named_tensors’ at ‘path’.</p>
+<p>A path may be a name or a path into a NestedMap. For instance,
+StoreTensor(‘a.b.c’, [1]), is equivalent to this:
+{‘a’, {‘b’: {‘c’: [1]}}.</p>
+<p>NestedMaps will be created if they do not already exist, or modified if they
+do exist. However, tensors cannot be overwritten.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – A path input a NestedMap.</p></li>
+<li><p><strong>tensor</strong> – The item to store (may be a NestedMap or a tensor).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphTensors.GetTensor">
+<code class="sig-name descname">GetTensor</code><span class="sig-paren">(</span><em class="sig-param">path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphTensors.GetTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphTensors.GetTensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the tensor at ‘path’ in ‘named_tensors’.</p>
+<p>Path may be a NestedMap key or a path through a series of NestedMaps.
+For instance, a path of ‘a.b.c’ could be used to retrieve [1] from
+this structure:
+{‘a’: {‘b’: {‘c’: [1]}}}</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> – A path through a series of NestedMaps.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.builder_layers.GraphSignature">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.builder_layers.</code><code class="sig-name descname">GraphSignature</code><span class="sig-paren">(</span><em class="sig-param">signature</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphSignature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents the input/output signature of a GraphLayer.</p>
+<dl class="simple">
+<dt>A signature is of the form:</dt><dd><p>input-&gt;output</p>
+</dd>
+<dt>or, optionally just an input:</dt><dd><p>input</p>
+</dd>
+<dt>The output part may be:</dt><dd><p>out1      (a tensor name)
+out1.a.b  (a path into a NestedMap)
+out1,myvar,out2.x  (or a sequence of these things)</p>
+</dd>
+<dt>The input part may be:</dt><dd><p>in1           (a tensor name)
+in1.b         (a path into a NestedMap)
+[in1,myvar.c] (a list)
+(a=in1,b=in2) (a NestedMap, using the syntax of the NestedMap constructor)
+in1,[a,b]     (or a sequence of these things)</p>
+</dd>
+</dl>
+<p>In BNF:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">key</span> <span class="p">:</span><span class="o">=</span> <span class="p">[</span><span class="n">A</span><span class="o">-</span><span class="n">Za</span><span class="o">-</span><span class="n">z_</span><span class="p">][</span><span class="n">A</span><span class="o">-</span><span class="n">Za</span><span class="o">-</span><span class="n">z0</span><span class="o">-</span><span class="mi">9</span><span class="n">_</span><span class="p">]</span><span class="o">*</span>
+<span class="n">path</span> <span class="p">:</span><span class="o">=</span> <span class="n">key</span> <span class="o">|</span> <span class="n">path</span> <span class="s1">&#39;.&#39;</span> <span class="n">key</span>
+<span class="n">path_seq</span> <span class="p">:</span><span class="o">=</span> <span class="o">&lt;</span><span class="n">empty</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">path</span> <span class="o">|</span> <span class="n">path_seq</span> <span class="s1">&#39;,&#39;</span> <span class="n">path</span>
+<span class="n">item</span> <span class="p">:</span><span class="o">=</span> <span class="n">path</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">|</span> <span class="nb">map</span>
+<span class="nb">list</span> <span class="p">:</span><span class="o">=</span> <span class="s1">&#39;[&#39;</span> <span class="n">item_seq</span> <span class="s1">&#39;]&#39;</span>
+<span class="n">item_seq</span> <span class="p">:</span><span class="o">=</span> <span class="o">&lt;</span><span class="n">empty</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">item</span> <span class="o">|</span> <span class="n">item_seq</span> <span class="s1">&#39;,&#39;</span> <span class="n">item</span>
+<span class="nb">map</span> <span class="p">:</span><span class="o">=</span> <span class="s1">&#39;(&#39;</span> <span class="n">map_pair_seq</span> <span class="s1">&#39;)&#39;</span>
+<span class="n">map_pair</span> <span class="p">:</span><span class="o">=</span> <span class="n">key</span> <span class="s1">&#39;=&#39;</span> <span class="n">item</span>
+<span class="n">map_pair_seq</span> <span class="p">:</span><span class="o">=</span> <span class="o">&lt;</span><span class="n">empty</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">map_pair</span> <span class="o">|</span> <span class="n">map_pair_seq</span> <span class="s1">&#39;,&#39;</span> <span class="n">map_pair</span>
+<span class="nb">input</span> <span class="p">:</span><span class="o">=</span> <span class="n">item_seq</span>
+<span class="n">output</span> <span class="p">:</span><span class="o">=</span> <span class="n">path_seq</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature.inputs">
+<em class="property">property </em><code class="sig-name descname">inputs</code><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature.inputs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature.outputs">
+<em class="property">property </em><code class="sig-name descname">outputs</code><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature.outputs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature._ParseOutputs">
+<code class="sig-name descname">_ParseOutputs</code><span class="sig-paren">(</span><em class="sig-param">outputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphSignature._ParseOutputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature._ParseOutputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Splits the output spec into comma-delimited parts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>outputs</strong> – A string containing the output specification, like, ‘a,b’.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The parsed representation, e.g. [‘a’, ‘b’]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature._TokenizeInputs">
+<code class="sig-name descname">_TokenizeInputs</code><span class="sig-paren">(</span><em class="sig-param">inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphSignature._TokenizeInputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature._TokenizeInputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Splits the input signature into tokens (not data structures).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>inputs</strong> – A string containing the input speficiation, like “[a,b],c”</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The tokenized representation, like [‘[‘, ‘a’, ‘,’, ‘b’, ‘]’, ‘,’, ‘c’]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature._ConsumePath">
+<code class="sig-name descname">_ConsumePath</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphSignature._ConsumePath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature._ConsumePath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the path found at the current token position and increment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The path at the current token position.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature._ConsumeKey">
+<code class="sig-name descname">_ConsumeKey</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphSignature._ConsumeKey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature._ConsumeKey" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the key found at the current token position and increment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The key at the current token position.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature._ConsumeSymbol">
+<code class="sig-name descname">_ConsumeSymbol</code><span class="sig-paren">(</span><em class="sig-param">symbol</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphSignature._ConsumeSymbol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature._ConsumeSymbol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify that the current token is this symbol, and increment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>symbol</strong> – The symbol that we expect at the current token position.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature._MaybeConsumeSymbol">
+<code class="sig-name descname">_MaybeConsumeSymbol</code><span class="sig-paren">(</span><em class="sig-param">symbol</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphSignature._MaybeConsumeSymbol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature._MaybeConsumeSymbol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempt to consume the given symbol.</p>
+<p>The symbol must be a member of the symbol set: []()=,</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>symbol</strong> – The symbol that we expect at the current token position.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if the symbol was consumed, False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature._ConsumeItem">
+<code class="sig-name descname">_ConsumeItem</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphSignature._ConsumeItem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature._ConsumeItem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whatever is at the current token position and increment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list, NestedMap, or path/key.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature._ConsumeMap">
+<code class="sig-name descname">_ConsumeMap</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphSignature._ConsumeMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature._ConsumeMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the NestedMap that starts at the current position, and increment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The NestedMap that starts at the current token position.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature._ConsumeList">
+<code class="sig-name descname">_ConsumeList</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphSignature._ConsumeList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature._ConsumeList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the list that starts at the current position, and increment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The list that starts at the current token position.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.builder_layers.GraphSignature._ParseInputs">
+<code class="sig-name descname">_ParseInputs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphSignature._ParseInputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphSignature._ParseInputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the inputs signature string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>[‘b’, ‘c’]}.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>The parsed inputs structure, like {‘a’</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.core.builder_layers.GraphLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.builder_layers.</code><code class="sig-name descname">GraphLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
@@ -650,13 +861,8 @@ specifies the output from the layer.  Note, the input to a layer has to be
 produced before, either as input to the GraphLayer or as produced by some
 previous layer. The output of a layer must be uniquely named, i.e. they can’t
 reuse names assigned previous layer output or the input to this GraphLayer.</p>
-<p>The exact BNF form of a signature is as follows:</p>
-<blockquote>
-<div><p>signature ::= [names] -&gt; [names]
-names     ::= [name](,[name])*
-name      ::= [sub](.[sub])*
-sub       ::= [A-Za-z][A-Za-z0-9_]*</p>
-</div></blockquote>
+<p>The full grammar of the signature is described in the GraphSignature class
+definition above.</p>
 <dl class="simple">
 <dt>Example</dt><dd><p>input: [‘a’, ‘b’]
 ‘a-&gt;c’, Fn(lambda x : tf.nn.relu(x))
@@ -668,24 +874,6 @@ sub       ::= [A-Za-z][A-Za-z0-9_]*</p>
 <dt id="lingvo.core.builder_layers.GraphLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.builder_layers.GraphLayer.AddNamedTensor">
-<em class="property">static </em><code class="sig-name descname">AddNamedTensor</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">path</em>, <em class="sig-param">t</em>, <em class="sig-param">named_tensors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.AddNamedTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.AddNamedTensor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add tensor ‘t’ to ‘named_tensors’ at ‘path’.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.builder_layers.GraphLayer.GetNamedTensor">
-<em class="property">static </em><code class="sig-name descname">GetNamedTensor</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">named_tensors</em>, <em class="sig-param">path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.GetNamedTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.GetNamedTensor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the tensor at ‘path’ in ‘named_tensors’.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.builder_layers.GraphLayer.ParseSignature">
-<em class="property">static </em><code class="sig-name descname">ParseSignature</code><span class="sig-paren">(</span><em class="sig-param">s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#GraphLayer.ParseSignature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.GraphLayer.ParseSignature" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse signature into input tensors and output tensors.</p>
 </dd></dl>
 
 <dl class="method">
