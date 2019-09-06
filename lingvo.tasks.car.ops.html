@@ -351,10 +351,23 @@ padding: A <code class="xref py py-obj docutils literal notranslate"><span class
 </dl>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="function">
 <dt id="lingvo.tasks.car.ops.v">
-<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">v</code><a class="headerlink" href="#lingvo.tasks.car.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.ops.AveragePrecision3D</span></code></p>
+<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">boxes_a</em>, <em class="sig-param">boxes_b</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate pairwise IoUs between two set of 3D bboxes. Every bbox is represented</p>
+<p>as [center_x, center_y, center_z, dim_x, dim_y, dim_z, heading].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>boxes_a</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. A tensor of shape [num_boxes_a, 7]</p></li>
+<li><p><strong>boxes_b</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. A tensor of shape [num_boxes_b, 7]</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
