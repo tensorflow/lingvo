@@ -1,0 +1,453 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.car.waymo.export_to_submission_format module" href="lingvo.tasks.car.waymo.export_to_submission_format.html" />
+    <link rel="prev" title="lingvo.tasks.car.waymo.tools.generate_waymo_tf module" href="lingvo.tasks.car.waymo.tools.generate_waymo_tf.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.html">lingvo.tasks.car package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.waymo.html">lingvo.tasks.car.waymo namespace</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.waymo.tools.html">lingvo.tasks.car.waymo.tools namespace</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe">
+<span id="lingvo-tasks-car-waymo-tools-waymo-proto-to-tfe-module"></span><h1>lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe module<a class="headerlink" href="#module-lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe" title="Permalink to this headline">¶</a></h1>
+<p>Library to convert Waymo Open Dataset to tf.Examples.</p>
+<p>Generates a tf.Example proto for every dataset_pb2.Frame containing
+the following keys and their values:</p>
+<ul class="simple">
+<li><p>Frame-level metadata</p></li>
+</ul>
+<p>run_segment: string - The identifier of the driving sequence in the dataset.</p>
+<p>run_segment_offset: int64 - The start offset within the run_segment sequence.</p>
+<p>time_of_day: string - Categorical description of time of day, e.g., “Day”.</p>
+<p>location: string - Categorical description of geographical location, e.g.,
+“location_sf”.</p>
+<p>weather: string - Categorical description of weather of scene, e.g., “sunny”.</p>
+<p>pose: float: 4x4 transformation matrix for converting from “world” coordinates
+to SDC coordinates.</p>
+<ul class="simple">
+<li><p>Lasers</p></li>
+</ul>
+<p>There are 5 LIDAR sensors: “TOP”, “SIDE_LEFT”, “SIDE_RIGHT”, “FRONT”, “REAR”.
+Each LIDAR currently provides two returns, “ri1” and “ri2” for the first and
+second returns of each shot.</p>
+<p>For every $LASER and $RI, we embed the raw range image:</p>
+<p>$LASER_$RI: float - flattened range image data of shape [H, W, C] from the
+original proto.</p>
+<p>$LASER_$RI_shape: int64 - shape of the range image.</p>
+<p>For every lidar $LASER, we extract the calibrations:</p>
+<p>$LASER_beam_inclinations: float - List of beam angle inclinations for TOP
+LIDAR (non-uniform).</p>
+<p>$LASER_beam_inclination_min: float - Minimum beam inclination for uniform
+LIDARs.</p>
+<p>$LASER_beam_inclination_max: float - Maximum beam inclination for uniform
+LIDARs.</p>
+<p>$LASER_extrinsics: float - 4x4 transformation matrix for converting from
+SDC coordinates to LIDAR coordinates.</p>
+<p>The TOP LIDAR currently has a per-pixel range image pose to accommodate for
+rolling shutter effects when projecting to 3D cartesian coordinates.  We
+embed this range image pose as TOP_pose.</p>
+<p>To allow for easier use, we also project all $LASERs to a stacked 3D cartesian
+coordinate point cloud as:</p>
+<p>laser_$LASER_$RI - float: An [N, 6] matrix where there are N total points,
+the first three dimensions are the x, y, z caresian coordinates, and the last
+three dimensions are the intensity, elongation, and “is_in_no_label_zone”
+bit for each point.</p>
+<ul class="simple">
+<li><p>Camera images</p></li>
+</ul>
+<p>There are 5 cameras in the dataset: “FRONT”, “FRONT_LEFT”, “FRONT_RIGHT”,
+“SIDE_LEFT”, and “SIDE_RIGHT”.</p>
+<p>For each $CAM, we store:</p>
+<p>image_$CAM: string - Scalar Png format camera image.</p>
+<p>image_$CAM_shape: int64 - [3] - Vector containing the shape of the camera
+image as [height, width, channels].</p>
+<p>image_$CAM_pose: float - [4, 4] Matrix transformation for converting from
+world coordinates to camera center.</p>
+<p>image_$CAM_pose: float - Scalar timestamp offset of when image was taken.</p>
+<p>image_$CAM_shutter: float - Scalar shutter value.</p>
+<p>image_$CAM_velocity: float - [6] Vector describing velocity of camera for
+rolling shutter adjustment.  See original proto for details.</p>
+<p>image_%CAM_camera_trigger_time: Scalar float for when camera was triggered.</p>
+<p>image_$CAM_camera_readout_done_time: Scalar float for when camera image finished
+reading out data.</p>
+<p>camera_$CAM_extrinsics: float - 4x4 pose transformation for converting from
+camera center coordinates to 2d projected view.</p>
+<p>camera_$CAM_intrinsics: float - [9] intrinsics transformation for converting
+from camera center coordinates to 2d projected view.</p>
+<p>camera_$CAM_width: int64 - Scalar width of image.</p>
+<p>camera_$CAM_height: int64 - Scalar height of image.</p>
+<p>camera_$CAM_rolling_shutter_direction: int64 - Scalar value indicating the
+direction of the rolling shutter adjustment.</p>
+<ul class="simple">
+<li><p>Labels</p></li>
+</ul>
+<p>For each frame, we store the following label information for the M bounding
+boxes in the frame.</p>
+<p>labels: int64 - [M] - The integer label class for every 3D bounding box
+corresponding to the enumeration defined in the proto.</p>
+<p>label_ids: string - [M] - The unique label string identifying each labeled
+object. This can be used for associating the same object across frames of the
+same run segment.</p>
+<p>bboxes_3d: float - A flattened [M, 7] matrix where there are M boxes in the
+frame, and each box is defined by a 7-DOF format - [center_x ,center_y,
+center_z, length, width, height heading].</p>
+<p>label_metadata: floating point - A flattened [M, 4] matrix where there are
+M boxes in the frame, and each md entry is the [speed_x, speed_y, accel_x,
+accel_y] of the object.</p>
+<p>bboxes_3d_num_points: int64 - [M] - The number of points that fall into each
+3D bounding box: can be used for computing the difficulty of each bounding
+box.</p>
+<p>detection_difficulties: int64 - Indicates whether the labelers have determined
+that the object is of LEVEL_2 difficulty.  Should be used jointly with
+num_points above to set the difficulty level.</p>
+<p>tracking_difficulties: int64 - Indicates whether the labelers have determined
+that the tracked object is of LEVEL_2 difficulty.</p>
+<p>nlz_proto_strs: string - Vector of NoLabelZone polygon protos.  Currently
+unused.</p>
+<dl class="class">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.</code><code class="sig-name descname">WaymoOpenDatasetConverter</code><span class="sig-paren">(</span><em class="sig-param">emitter_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">apache_beam.transforms.core.DoFn</span></code></p>
+<p>Converts WaymoOpenDataset into tf.Examples.  See file docstring.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.process">
+<code class="sig-name descname">process</code><span class="sig-paren">(</span><em class="sig-param">item</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert ‘item’ into tf.Example format.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter._get_range_image_pose">
+<code class="sig-name descname">_get_range_image_pose</code><span class="sig-paren">(</span><em class="sig-param">lasers</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter._get_range_image_pose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter._get_range_image_pose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetches the per-pixel pose information for the range image.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter._parse_range_image">
+<code class="sig-name descname">_parse_range_image</code><span class="sig-paren">(</span><em class="sig-param">range_image</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter._parse_range_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter._parse_range_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse range_image proto and convert to MatrixFloat form.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.extract_camera_images">
+<code class="sig-name descname">extract_camera_images</code><span class="sig-paren">(</span><em class="sig-param">feature</em>, <em class="sig-param">camera_images</em>, <em class="sig-param">camera_calibrations_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter.extract_camera_images"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.extract_camera_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the images into the tf.Example feature map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>feature</strong> – A tf.Example feature map.</p></li>
+<li><p><strong>camera_images</strong> – A repeated car.open_dataset.CameraImage proto.</p></li>
+<li><p><strong>camera_calibrations_dict</strong> – A dictionary maps camera name to
+car.open_dataset.CameraCalibration proto.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.extract_camera_calibrations">
+<code class="sig-name descname">extract_camera_calibrations</code><span class="sig-paren">(</span><em class="sig-param">feature</em>, <em class="sig-param">camera_calibrations</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter.extract_camera_calibrations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.extract_camera_calibrations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the camera calibrations into the tf.Example feature map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>feature</strong> – A tf.Example feature map.</p></li>
+<li><p><strong>camera_calibrations</strong> – A CameraCalibration proto from the Waymo Dataset.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.extract_lasers">
+<code class="sig-name descname">extract_lasers</code><span class="sig-paren">(</span><em class="sig-param">feature</em>, <em class="sig-param">lasers</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter.extract_lasers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.extract_lasers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the lasers from range_images into the tf.Example feature map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>feature</strong> – A tf.Example feature map.</p></li>
+<li><p><strong>lasers</strong> – A repeated car.open_dataset.Laser proto.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.extract_laser_calibrations">
+<code class="sig-name descname">extract_laser_calibrations</code><span class="sig-paren">(</span><em class="sig-param">feature</em>, <em class="sig-param">laser_calibrations</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter.extract_laser_calibrations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.extract_laser_calibrations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the laser calibrations into the tf.Example feature map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>feature</strong> – A tf.Example feature map.</p></li>
+<li><p><strong>laser_calibrations</strong> – A LaserCalibrations proto from the Waymo Dataset.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.add_point_cloud">
+<code class="sig-name descname">add_point_cloud</code><span class="sig-paren">(</span><em class="sig-param">feature</em>, <em class="sig-param">laser_names</em>, <em class="sig-param">range_image_pose</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter.add_point_cloud"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.add_point_cloud" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert the range images in <code class="xref py py-obj docutils literal notranslate"><span class="pre">feature</span></code> to 3D point clouds.</p>
+<p>Adds the point cloud data to the tf.Example feature map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>feature</strong> – A tf.Example feature map.</p></li>
+<li><p><strong>laser_names</strong> – A list of laser names (e.g., ‘TOP’, ‘REAR’, ‘SIDE_LEFT’).</p></li>
+<li><p><strong>range_image_pose</strong> – A range image pose Tensor for the GBR.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter._get_merged_pointcloud">
+<code class="sig-name descname">_get_merged_pointcloud</code><span class="sig-paren">(</span><em class="sig-param">feature</em>, <em class="sig-param">laser_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter._get_merged_pointcloud"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter._get_merged_pointcloud" title="Permalink to this definition">¶</a></dt>
+<dd><p>From the feature list, get a merged pointcloud of all laser sources.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.add_labels">
+<code class="sig-name descname">add_labels</code><span class="sig-paren">(</span><em class="sig-param">feature</em>, <em class="sig-param">labels</em>, <em class="sig-param">points_xyz</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter.add_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.add_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add 3d bounding box labels into the output feature map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>feature</strong> – A tf.Example feature map.</p></li>
+<li><p><strong>labels</strong> – A repeated car.open_dataset.Label proto.</p></li>
+<li><p><strong>points_xyz</strong> – A numpy array of shape [-1, 3] with the pointcloud. This is
+used to calculate the number of points in each 3D bounding box.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.add_no_label_zones">
+<code class="sig-name descname">add_no_label_zones</code><span class="sig-paren">(</span><em class="sig-param">feature</em>, <em class="sig-param">no_label_zones</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter.add_no_label_zones"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.add_no_label_zones" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add no label zones into the output feature map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>feature</strong> – A tf.Example feature map.</p></li>
+<li><p><strong>no_label_zones</strong> – A repeated car.open_dataset.Polygon2dProto proto.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.tasks.car.waymo.export_to_submission_format.html" class="btn btn-neutral float-right" title="lingvo.tasks.car.waymo.export_to_submission_format module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.tasks.car.waymo.tools.generate_waymo_tf.html" class="btn btn-neutral float-left" title="lingvo.tasks.car.waymo.tools.generate_waymo_tf module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

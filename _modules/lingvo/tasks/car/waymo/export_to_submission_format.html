@@ -1,0 +1,330 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.waymo.export_to_submission_format &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.waymo.export_to_submission_format</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.waymo.export_to_submission_format</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;Read Waymo Decoder&#39;s outputs and convert to submission format.</span>
+
+<span class="sd">Example:</span>
+
+<span class="sd">python export_to_submission_format.py \</span>
+<span class="sd">  --decoder_path=/tmp/decoder_out_000060600 \</span>
+<span class="sd">  --output_dir=/tmp/test_decoder_output</span>
+
+<span class="sd">preds.bin and gts.bin will be found in /tmp/test_decoder_output/ dir.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">flags</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">record_pb2</span>
+<span class="kn">from</span> <span class="nn">waymo_open_dataset.protos</span> <span class="k">import</span> <span class="n">metrics_pb2</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s2">&quot;decoder_path&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s2">&quot;Path to the decoder output tf.Record file.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s2">&quot;output_dir&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Place to write detections.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_float</span><span class="p">(</span><span class="s2">&quot;score_threshold&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Ignore detections with lower score.&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="convert_detections"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.export_to_submission_format.html#lingvo.tasks.car.waymo.export_to_submission_format.convert_detections">[docs]</a><span class="k">def</span> <span class="nf">convert_detections</span><span class="p">(</span><span class="n">table_path</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Convert detections in `table_path` to metric format.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    table_path: Path to TFRecord file of decoder outputs.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    preds: A metric_pb2.Objects() of all predictions.</span>
+<span class="sd">    gts: A metric_pb2.Objects() of all groundtruths.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">img_ids</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">img_id_dict</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">for</span> <span class="n">serialized</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">tf_record_iterator</span><span class="p">(</span><span class="n">table_path</span><span class="p">):</span>
+    <span class="n">record</span> <span class="o">=</span> <span class="n">record_pb2</span><span class="o">.</span><span class="n">Record</span><span class="p">()</span>
+    <span class="n">record</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">serialized</span><span class="p">)</span>
+    <span class="n">img_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">make_ndarray</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s2">&quot;frame_id&quot;</span><span class="p">]))</span>
+    <span class="n">img_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img_id</span><span class="p">)</span>
+    <span class="n">np_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">make_ndarray</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="n">img_id_dict</span><span class="p">[</span><span class="n">img_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">np_dict</span>
+
+  <span class="n">preds</span> <span class="o">=</span> <span class="n">metrics_pb2</span><span class="o">.</span><span class="n">Objects</span><span class="p">()</span>
+  <span class="n">gts</span> <span class="o">=</span> <span class="n">metrics_pb2</span><span class="o">.</span><span class="n">Objects</span><span class="p">()</span>
+  <span class="k">for</span> <span class="n">img_id</span> <span class="ow">in</span> <span class="n">img_ids</span><span class="p">:</span>
+    <span class="c1"># Extract the underlying context string and timestamp</span>
+    <span class="c1"># from the image id.</span>
+    <span class="c1">#</span>
+    <span class="c1"># TODO(vrv): Consider embedding these values into the decoder output</span>
+    <span class="c1"># individually.</span>
+    <span class="n">context_name</span> <span class="o">=</span> <span class="n">img_id</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="n">img_id</span><span class="o">.</span><span class="n">rindex</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)]</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">img_id</span><span class="p">[</span><span class="n">img_id</span><span class="o">.</span><span class="n">rindex</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">np_dict</span> <span class="o">=</span> <span class="n">img_id_dict</span><span class="p">[</span><span class="n">img_id</span><span class="p">]</span>
+    <span class="n">pred_bboxes</span> <span class="o">=</span> <span class="n">np_dict</span><span class="p">[</span><span class="s2">&quot;bboxes&quot;</span><span class="p">]</span>  <span class="c1"># [max boxes, 7]</span>
+    <span class="n">pred_scores</span> <span class="o">=</span> <span class="n">np_dict</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span>  <span class="c1"># [max_boxes]</span>
+    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">np_dict</span><span class="p">[</span><span class="s2">&quot;gt_bboxes&quot;</span><span class="p">]</span>  <span class="c1"># [num_gt_boxes, 7]</span>
+    <span class="n">gt_labels</span> <span class="o">=</span> <span class="n">np_dict</span><span class="p">[</span><span class="s2">&quot;gt_labels&quot;</span><span class="p">]</span>  <span class="c1"># [num_gt_boxes]</span>
+    <span class="n">class_ids</span> <span class="o">=</span> <span class="n">np_dict</span><span class="p">[</span><span class="s2">&quot;class_ids&quot;</span><span class="p">]</span>  <span class="c1"># [max_boxes]</span>
+
+    <span class="k">def</span> <span class="nf">_add_box</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">box_vec</span><span class="p">):</span>
+      <span class="n">label</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">center_x</span> <span class="o">=</span> <span class="n">box_vec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">label</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">center_y</span> <span class="o">=</span> <span class="n">box_vec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">label</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">center_z</span> <span class="o">=</span> <span class="n">box_vec</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+      <span class="n">label</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">box_vec</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+      <span class="n">label</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">box_vec</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+      <span class="n">label</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">box_vec</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+      <span class="n">label</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">heading</span> <span class="o">=</span> <span class="n">box_vec</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+
+    <span class="n">num_gts</span> <span class="o">=</span> <span class="n">gt_bboxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">gt_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_gts</span><span class="p">):</span>
+      <span class="n">gt_object</span> <span class="o">=</span> <span class="n">metrics_pb2</span><span class="o">.</span><span class="n">Object</span><span class="p">()</span>
+      <span class="n">gt_object</span><span class="o">.</span><span class="n">context_name</span> <span class="o">=</span> <span class="n">context_name</span>
+      <span class="n">gt_object</span><span class="o">.</span><span class="n">frame_timestamp_micros</span> <span class="o">=</span> <span class="n">timestamp</span>
+      <span class="n">label</span> <span class="o">=</span> <span class="n">gt_object</span><span class="o">.</span><span class="n">object</span>
+      <span class="n">_add_box</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">gt_bboxes</span><span class="p">[</span><span class="n">gt_idx</span><span class="p">])</span>
+      <span class="n">label</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">gt_labels</span><span class="p">[</span><span class="n">gt_idx</span><span class="p">]</span>
+      <span class="c1"># We should fill in the difficulty level once we want to measure the</span>
+      <span class="c1"># breakdown by LEVEL.</span>
+      <span class="n">label</span><span class="o">.</span><span class="n">detection_difficulty_level</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">gts</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gt_object</span><span class="p">)</span>
+
+    <span class="n">num_pds</span> <span class="o">=</span> <span class="n">pred_bboxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">pd_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pds</span><span class="p">):</span>
+      <span class="n">score</span> <span class="o">=</span> <span class="n">pred_scores</span><span class="p">[</span><span class="n">pd_idx</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">score</span> <span class="o">&lt;</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">score_threshold</span><span class="p">:</span>
+        <span class="k">continue</span>
+      <span class="n">pd_object</span> <span class="o">=</span> <span class="n">metrics_pb2</span><span class="o">.</span><span class="n">Object</span><span class="p">()</span>
+      <span class="n">pd_object</span><span class="o">.</span><span class="n">context_name</span> <span class="o">=</span> <span class="n">context_name</span>
+      <span class="n">pd_object</span><span class="o">.</span><span class="n">frame_timestamp_micros</span> <span class="o">=</span> <span class="n">timestamp</span>
+      <span class="n">pd_object</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="n">score</span>
+      <span class="n">label</span> <span class="o">=</span> <span class="n">pd_object</span><span class="o">.</span><span class="n">object</span>
+      <span class="n">_add_box</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">pred_bboxes</span><span class="p">[</span><span class="n">pd_idx</span><span class="p">])</span>
+      <span class="n">label</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">class_ids</span><span class="p">[</span><span class="n">pd_idx</span><span class="p">]</span>
+      <span class="n">preds</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pd_object</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">preds</span><span class="p">,</span> <span class="n">gts</span></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.export_to_submission_format.html#lingvo.tasks.car.waymo.export_to_submission_format.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">):</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">tf</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">UsageError</span><span class="p">(</span><span class="s2">&quot;Too many command-line arguments.&quot;</span><span class="p">)</span>
+
+  <span class="n">preds</span><span class="p">,</span> <span class="n">gts</span> <span class="o">=</span> <span class="n">convert_detections</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_path</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Exists</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MkDir</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">)</span>
+
+  <span class="c1"># Write the predictions and gts into individual files.</span>
+  <span class="c1">#</span>
+  <span class="c1"># The outputs can then be passed to the official metrics implementations and</span>
+  <span class="c1"># server.</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;preds.bin&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">preds</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">())</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;gts.bin&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">gts</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">())</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

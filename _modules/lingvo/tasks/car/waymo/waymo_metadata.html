@@ -1,0 +1,279 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.waymo.waymo_metadata &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.waymo.waymo_metadata</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.waymo.waymo_metadata</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Metadata for Waymo dataset employed in evaluation.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">evaluation_metadata</span>
+
+
+<div class="viewcode-block" id="WaymoMetadata"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata">[docs]</a><span class="k">class</span> <span class="nc">WaymoMetadata</span><span class="p">(</span><span class="n">evaluation_metadata</span><span class="o">.</span><span class="n">EvaluationMetadata</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Metadata describing the Waymo dataset used for evaluation.</span>
+
+<span class="sd">  Some of these entries need to be revisited and set correctly for</span>
+<span class="sd">  the final version of the Waymo dataset (e.g., MaximumDistance)</span>
+<span class="sd">  based off an analysis of the dataset.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">WaymoMetadata</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s1">&#39;waymo&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="WaymoMetadata.ClassNames"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.ClassNames">[docs]</a>  <span class="k">def</span> <span class="nf">ClassNames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a list of human-interpretable strings.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;Unknown&#39;</span><span class="p">,</span> <span class="s1">&#39;Vehicle&#39;</span><span class="p">,</span> <span class="s1">&#39;Pedestrian&#39;</span><span class="p">,</span> <span class="s1">&#39;Sign&#39;</span><span class="p">,</span> <span class="s1">&#39;Cyclist&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="WaymoMetadata.DifficultyLevels"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.DifficultyLevels">[docs]</a>  <span class="k">def</span> <span class="nf">DifficultyLevels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Dictionary of difficulty level strings to int32 indices.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="WaymoMetadata.IoUThresholds"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.IoUThresholds">[docs]</a>  <span class="k">def</span> <span class="nf">IoUThresholds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;Vehicle&#39;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span>
+        <span class="s1">&#39;Pedestrian&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="s1">&#39;Cyclist&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="p">}</span></div>
+
+<div class="viewcode-block" id="WaymoMetadata.EvalClassIndices"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.EvalClassIndices">[docs]</a>  <span class="k">def</span> <span class="nf">EvalClassIndices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;List of int32 indices for the classes that should be evaled.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Vehicle&#39;</span><span class="p">,</span> <span class="s1">&#39;Pedestrian&#39;</span><span class="p">,</span> <span class="s1">&#39;Cyclist&#39;</span><span class="p">]</span>
+    <span class="p">]</span></div>
+
+<div class="viewcode-block" id="WaymoMetadata.IgnoreClassIndices"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.IgnoreClassIndices">[docs]</a>  <span class="k">def</span> <span class="nf">IgnoreClassIndices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Dictionary of int32 indices for the classes that should be ignored.&quot;&quot;&quot;</span>
+    <span class="c1"># A detection that matches with a groundtruth bbox of any neighbor class</span>
+    <span class="c1"># will not be considered as false positive in eval.</span>
+    <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="WaymoMetadata.NumberOfPrecisionRecallPoints"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.NumberOfPrecisionRecallPoints">[docs]</a>  <span class="k">def</span> <span class="nf">NumberOfPrecisionRecallPoints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Number of points on the precision-recall curve.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mi">101</span></div>
+
+<div class="viewcode-block" id="WaymoMetadata.MaximumDistance"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.MaximumDistance">[docs]</a>  <span class="k">def</span> <span class="nf">MaximumDistance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Maximum empirically observed Euclidean distance in world coordinates.&quot;&quot;&quot;</span>
+    <span class="c1"># TODO(vrv): Compute the actual value.</span>
+    <span class="k">return</span> <span class="mf">80.0</span></div>
+
+<div class="viewcode-block" id="WaymoMetadata.DistanceBinWidth"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.DistanceBinWidth">[docs]</a>  <span class="k">def</span> <span class="nf">DistanceBinWidth</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The width of each bin for Euclidean distance in world coordinates.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mf">10.0</span></div>
+
+<div class="viewcode-block" id="WaymoMetadata.MaximumNumberOfPoints"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.MaximumNumberOfPoints">[docs]</a>  <span class="k">def</span> <span class="nf">MaximumNumberOfPoints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Maximum empirically observed number of points in bounding box.&quot;&quot;&quot;</span>
+    <span class="c1"># TODO(vrv): Compute the actual value.</span>
+    <span class="k">return</span> <span class="mf">30000.0</span></div>
+
+<div class="viewcode-block" id="WaymoMetadata.NumberOfPointsBins"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.NumberOfPointsBins">[docs]</a>  <span class="k">def</span> <span class="nf">NumberOfPointsBins</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Number of logarithmically space bins for examining points.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mi">20</span></div>
+
+<div class="viewcode-block" id="WaymoMetadata.NumberOfRotationBins"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.NumberOfRotationBins">[docs]</a>  <span class="k">def</span> <span class="nf">NumberOfRotationBins</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Number of linear spaced rotations to bin.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mi">10</span></div>
+
+<div class="viewcode-block" id="WaymoMetadata.MinHeight2D"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_metadata.html#lingvo.tasks.car.waymo.waymo_metadata.WaymoMetadata.MinHeight2D">[docs]</a>  <span class="k">def</span> <span class="nf">MinHeight2D</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Minimum height of detections to be evaluated.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

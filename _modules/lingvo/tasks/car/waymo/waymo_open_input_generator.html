@@ -1,0 +1,1053 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.waymo.waymo_open_input_generator &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.waymo.waymo_open_input_generator</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.waymo.waymo_open_input_generator</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Input generator for waymo open dataset (WaymoOD).&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">input_extractor</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">input_preprocessors</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="_Dense"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator._Dense">[docs]</a><span class="k">def</span> <span class="nf">_Dense</span><span class="p">(</span><span class="n">sparse</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse_to_dense</span><span class="p">(</span>
+      <span class="n">sparse_indices</span><span class="o">=</span><span class="n">sparse</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span>
+      <span class="n">output_shape</span><span class="o">=</span><span class="n">sparse</span><span class="o">.</span><span class="n">dense_shape</span><span class="p">,</span>
+      <span class="n">sparse_values</span><span class="o">=</span><span class="n">sparse</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+      <span class="n">default_value</span><span class="o">=</span><span class="n">default_value</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_NestedMapToParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator._NestedMapToParams">[docs]</a><span class="k">def</span> <span class="nf">_NestedMapToParams</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">nmap</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">p</span></div>
+
+
+<div class="viewcode-block" id="WaymoFrameMetadataExtractor"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoFrameMetadataExtractor">[docs]</a><span class="k">class</span> <span class="nc">WaymoFrameMetadataExtractor</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">FieldsExtractor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts per frame metadata from a WaymoOD tf.Example.</span>
+
+<span class="sd">  Emits:</span>
+<span class="sd">    pose: [4, 4] - A float Tensor with the 4x4 transformation matrix for</span>
+<span class="sd">    converting from &quot;world&quot; coordinates SDC coordinates.</span>
+
+<span class="sd">    run_segment: string scalar - The run segment identifier.</span>
+
+<span class="sd">    run_start_offset: int64 scalar - Offset of this scene from the start of the</span>
+<span class="sd">    run segment (in microseconds).</span>
+
+<span class="sd">    time_of_day: string scalar - Categorical description of time of day,</span>
+<span class="sd">    e.g., &quot;Day&quot;.</span>
+
+<span class="sd">    location: string scalar - Categorical description of geographical location,</span>
+<span class="sd">    e.g., &quot;location_sf&quot;.</span>
+
+<span class="sd">    weather: string scalar - Categorical description of weather of scene,</span>
+<span class="sd">    e.g., &quot;sunny&quot;.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="WaymoFrameMetadataExtractor.FeatureMap"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoFrameMetadataExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a dictionary from tf.Example feature names to Features.&quot;&quot;&quot;</span>
+    <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;pose&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;run_segment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;run_start_offset&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;time_of_day&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;weather&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">feature_map</span></div>
+
+<div class="viewcode-block" id="WaymoFrameMetadataExtractor._Extract"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoFrameMetadataExtractor._Extract">[docs]</a>  <span class="k">def</span> <span class="nf">_Extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extract data into Tensor format.&quot;&quot;&quot;</span>
+    <span class="n">vehicle_pose</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;pose&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+    <span class="n">run_segment</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;run_segment&#39;</span><span class="p">]</span>
+    <span class="n">run_start_offset</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;run_start_offset&#39;</span><span class="p">]</span>
+    <span class="n">time_of_day</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;time_of_day&#39;</span><span class="p">]</span>
+    <span class="n">location</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;location&#39;</span><span class="p">]</span>
+    <span class="n">weather</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;weather&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">pose</span><span class="o">=</span><span class="n">vehicle_pose</span><span class="p">,</span>
+        <span class="n">run_segment</span><span class="o">=</span><span class="n">run_segment</span><span class="p">,</span>
+        <span class="n">run_start_offset</span><span class="o">=</span><span class="n">run_start_offset</span><span class="p">,</span>
+        <span class="n">time_of_day</span><span class="o">=</span><span class="n">time_of_day</span><span class="p">,</span>
+        <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span>
+        <span class="n">weather</span><span class="o">=</span><span class="n">weather</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WaymoFrameMetadataExtractor.Shape"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoFrameMetadataExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The expected shape of each field.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">pose</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]),</span>
+        <span class="n">run_segment</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([]),</span>
+        <span class="n">run_start_offset</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([]),</span>
+        <span class="n">time_of_day</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([]),</span>
+        <span class="n">location</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([]),</span>
+        <span class="n">weather</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([]))</span></div>
+
+<div class="viewcode-block" id="WaymoFrameMetadataExtractor.DType"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoFrameMetadataExtractor.DType">[docs]</a>  <span class="k">def</span> <span class="nf">DType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The Dtype of each field.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">pose</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">run_segment</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span>
+        <span class="n">run_start_offset</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+        <span class="n">time_of_day</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span>
+        <span class="n">location</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span>
+        <span class="n">weather</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="WaymoImageExtractor"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoImageExtractor">[docs]</a><span class="k">class</span> <span class="nc">WaymoImageExtractor</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">FieldsExtractor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts the camera image data from a WaymoOD tf.Example.</span>
+
+<span class="sd">   Emits:</span>
+<span class="sd">    images: [height, width, 3] - Images from the corresponding cameras.</span>
+<span class="sd">    The cameras are [FRONT, FRONT_LEFT, FRONT_RIGHT, SIDE_LEFT, SIDE_RIGHT].</span>
+
+<span class="sd">    intrinsics: [9] - Instrinsics of the camera.</span>
+
+<span class="sd">    extrinsics: [4, 4] - Extrinsics of the camera</span>
+
+<span class="sd">    pose: [4, 4] - Pose of the camera when the corresponding image is taken.</span>
+
+<span class="sd">    velocity: [6] - Velocity of the camera when the corresponding image is</span>
+<span class="sd">    taken. The first three numbers (vx, vy, vz) are velocities in world frame,</span>
+<span class="sd">    in m/s. The last three numbers (roll, pitch, yaw) are the rotation rates</span>
+<span class="sd">    in vehicle frame, in rad/s.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="WaymoImageExtractor.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoImageExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoImageExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;camera_names&#39;</span><span class="p">,</span>
+             <span class="p">[</span><span class="s1">&#39;FRONT&#39;</span><span class="p">,</span> <span class="s1">&#39;FRONT_LEFT&#39;</span><span class="p">,</span> <span class="s1">&#39;FRONT_RIGHT&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_LEFT&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_RIGHT&#39;</span><span class="p">],</span>
+             <span class="s1">&#39;The names of the cameras from which images will be extracted.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;image_shape&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1280</span><span class="p">,</span> <span class="mi">1920</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+             <span class="s1">&#39;The shape that images are cropped to.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="WaymoImageExtractor.FeatureMap"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoImageExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a dictionary from tf.Example feature names to Features.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">features</span><span class="p">[</span><span class="s1">&#39;pose&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">camera_name</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">camera_names</span><span class="p">:</span>
+      <span class="n">features</span><span class="p">[</span><span class="s1">&#39;image_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+      <span class="n">features</span><span class="p">[</span><span class="s1">&#39;image_</span><span class="si">%s</span><span class="s1">_shape&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
+      <span class="n">features</span><span class="p">[</span><span class="s1">&#39;camera_</span><span class="si">%s</span><span class="s1">_intrinsics&#39;</span> <span class="o">%</span>
+               <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">features</span><span class="p">[</span><span class="s1">&#39;camera_</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span>
+               <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+      <span class="n">features</span><span class="p">[</span><span class="s1">&#39;camera_</span><span class="si">%s</span><span class="s1">_rolling_shutter_direction&#39;</span> <span class="o">%</span>
+               <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">(</span>
+                   <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">())</span>
+      <span class="n">features</span><span class="p">[</span><span class="s1">&#39;image_</span><span class="si">%s</span><span class="s1">_pose&#39;</span> <span class="o">%</span>
+               <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">features</span><span class="p">[</span><span class="s1">&#39;image_</span><span class="si">%s</span><span class="s1">_velocity&#39;</span> <span class="o">%</span>
+               <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+      <span class="k">for</span> <span class="n">feat</span> <span class="ow">in</span> <span class="p">[</span>
+          <span class="s1">&#39;pose_timestamp&#39;</span><span class="p">,</span> <span class="s1">&#39;shutter&#39;</span><span class="p">,</span> <span class="s1">&#39;camera_trigger_time&#39;</span><span class="p">,</span>
+          <span class="s1">&#39;camera_readout_done_time&#39;</span>
+      <span class="p">]:</span>
+        <span class="n">features</span><span class="p">[</span><span class="s1">&#39;image_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">camera_name</span><span class="p">,</span> <span class="n">feat</span><span class="p">)]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">(</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">features</span></div>
+
+<div class="viewcode-block" id="WaymoImageExtractor._Extract"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoImageExtractor._Extract">[docs]</a>  <span class="k">def</span> <span class="nf">_Extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the image Tensor.&quot;&quot;&quot;</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;frame_pose&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;pose&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">camera_name</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">camera_names</span><span class="p">:</span>
+      <span class="n">image_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;image_</span><span class="si">%s</span><span class="s1">_shape&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">decode_png</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">reduce_join</span><span class="p">(</span>
+              <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;image_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">],</span> <span class="n">default_value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)))</span>
+      <span class="n">image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">image_shape</span><span class="p">)</span>
+      <span class="n">image</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">image_shape</span><span class="p">)</span>
+      <span class="n">intrinsics</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;camera_</span><span class="si">%s</span><span class="s1">_intrinsics&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]),</span> <span class="p">[</span><span class="mi">9</span><span class="p">])</span>
+      <span class="n">extrinsics</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;camera_</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]),</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">pose</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;image_</span><span class="si">%s</span><span class="s1">_pose&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]),</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">velocity</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;image_</span><span class="si">%s</span><span class="s1">_velocity&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]),</span> <span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+      <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+      <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_intrinsics&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">intrinsics</span>
+      <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">extrinsics</span>
+      <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_pose&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pose</span>
+      <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_velocity&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">velocity</span>
+
+      <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_rolling_shutter_direction&#39;</span> <span class="o">%</span>
+              <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;camera_</span><span class="si">%s</span><span class="s1">_rolling_shutter_direction&#39;</span> <span class="o">%</span>
+                                      <span class="n">camera_name</span><span class="p">]</span>
+
+      <span class="k">for</span> <span class="n">feat</span> <span class="ow">in</span> <span class="p">[</span>
+          <span class="s1">&#39;shutter&#39;</span><span class="p">,</span> <span class="s1">&#39;camera_trigger_time&#39;</span><span class="p">,</span> <span class="s1">&#39;camera_readout_done_time&#39;</span><span class="p">,</span>
+          <span class="s1">&#39;pose_timestamp&#39;</span>
+      <span class="p">]:</span>
+        <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">camera_name</span><span class="p">,</span> <span class="n">feat</span><span class="p">)]</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;image_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                                                          <span class="p">(</span><span class="n">camera_name</span><span class="p">,</span> <span class="n">feat</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WaymoImageExtractor.Shape"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoImageExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Shape of images.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;frame_pose&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])}</span>
+
+    <span class="k">for</span> <span class="n">camera_name</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">camera_names</span><span class="p">:</span>
+      <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">image_shape</span><span class="p">)</span>
+      <span class="c1"># 1d Array of [f_u, f_v, c_u, c_v, k{1, 2}, p{1, 2}, k{3}].</span>
+      <span class="c1"># Note that this intrinsic corresponds to the images after scaling.</span>
+      <span class="c1"># Camera model: pinhole camera.</span>
+      <span class="c1"># Lens distortion:</span>
+      <span class="c1"># Radial distortion coefficients: k1, k2, k3.</span>
+      <span class="c1"># Tangential distortion coefficients: p1, p2.</span>
+      <span class="c1"># k_{1, 2, 3}, p_{1, 2} follows the same definition as OpenCV.</span>
+      <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_intrinsics&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">9</span><span class="p">])</span>
+      <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_pose&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_velocity&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">6</span><span class="p">])</span>
+      <span class="k">for</span> <span class="n">feat</span> <span class="ow">in</span> <span class="p">[</span>
+          <span class="s1">&#39;pose_timestamp&#39;</span><span class="p">,</span> <span class="s1">&#39;shutter&#39;</span><span class="p">,</span> <span class="s1">&#39;camera_trigger_time&#39;</span><span class="p">,</span>
+          <span class="s1">&#39;camera_readout_done_time&#39;</span>
+      <span class="p">]:</span>
+        <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">camera_name</span><span class="p">,</span> <span class="n">feat</span><span class="p">)]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([])</span>
+      <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_rolling_shutter_direction&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([])</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WaymoImageExtractor.DType"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoImageExtractor.DType">[docs]</a>  <span class="k">def</span> <span class="nf">DType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Dtypes of images.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;frame_pose&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">camera_name</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">camera_names</span><span class="p">:</span>
+      <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">uint8</span>
+      <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_intrinsics&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+      <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+      <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_pose&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+      <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_velocity&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+      <span class="k">for</span> <span class="n">feat</span> <span class="ow">in</span> <span class="p">[</span>
+          <span class="s1">&#39;pose_timestamp&#39;</span><span class="p">,</span> <span class="s1">&#39;shutter&#39;</span><span class="p">,</span> <span class="s1">&#39;camera_trigger_time&#39;</span><span class="p">,</span>
+          <span class="s1">&#39;camera_readout_done_time&#39;</span>
+      <span class="p">]:</span>
+        <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">camera_name</span><span class="p">,</span> <span class="n">feat</span><span class="p">)]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+      <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_rolling_shutter_direction&#39;</span> <span class="o">%</span> <span class="n">camera_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">dtypes</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="WaymoLaserExtractor"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLaserExtractor">[docs]</a><span class="k">class</span> <span class="nc">WaymoLaserExtractor</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">LaserExtractor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts the raw laser data from a WaymoOD tf.Example.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="WaymoLaserExtractor.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLaserExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoLaserExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">max_num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_features</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lidar_names&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;TOP&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_LEFT&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_RIGHT&#39;</span><span class="p">,</span> <span class="s1">&#39;FRONT&#39;</span><span class="p">,</span> <span class="s1">&#39;REAR&#39;</span><span class="p">],</span>
+             <span class="s1">&#39;The names of the lidars from which lasers will be extracted.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="WaymoLaserExtractor.FeatureMap"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLaserExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a dictionary from tf.Example feature names to Features.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">lidar</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">lidar_names</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">ri</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ri1&#39;</span><span class="p">,</span> <span class="s1">&#39;ri2&#39;</span><span class="p">]:</span>
+        <span class="n">features</span><span class="p">[</span><span class="s1">&#39;laser_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                 <span class="p">(</span><span class="n">lidar</span><span class="p">,</span> <span class="n">ri</span><span class="p">)]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">features</span></div>
+
+<div class="viewcode-block" id="WaymoLaserExtractor._Extract"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLaserExtractor._Extract">[docs]</a>  <span class="k">def</span> <span class="nf">_Extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the laser Tensor.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">all_xyzs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">all_laser_features</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">feature_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">FeatureMap</span><span class="p">():</span>
+      <span class="n">laser_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="n">feature_name</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_features</span><span class="p">])</span>
+      <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">laser_data</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+      <span class="n">points_feature</span> <span class="o">=</span> <span class="n">laser_data</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:]</span>
+
+      <span class="n">all_xyzs</span> <span class="o">+=</span> <span class="p">[</span><span class="n">points_xyz</span><span class="p">]</span>
+      <span class="n">all_laser_features</span> <span class="o">+=</span> <span class="p">[</span><span class="n">points_feature</span><span class="p">]</span>
+
+    <span class="c1"># Stack all of the points along the major dimension</span>
+    <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_xyzs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">points_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_laser_features</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">npoints</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+      <span class="n">points_feature</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">points_feature</span><span class="p">,</span>
+                                            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_features</span><span class="p">])</span>
+      <span class="n">points_padding</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">npoints</span><span class="p">]),</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">points_padding</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">points_xyz</span><span class="o">=</span><span class="n">points_xyz</span><span class="p">,</span>
+        <span class="n">points_feature</span><span class="o">=</span><span class="n">points_feature</span><span class="p">,</span>
+        <span class="n">points_padding</span><span class="o">=</span><span class="n">points_padding</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="WaymoLabelExtractor"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLabelExtractor">[docs]</a><span class="k">class</span> <span class="nc">WaymoLabelExtractor</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">FieldsExtractor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts the bounding box and label info from a WaymoOD tf.Example.</span>
+
+<span class="sd">  Emits:</span>
+<span class="sd">    labels: [p.max_num_objects] - Integer label for each bounding box object</span>
+<span class="sd">    corresponding to the index in car.open_dataset.Label.Type (shifted by 1 to</span>
+<span class="sd">    have 0 represent the background class).</span>
+
+<span class="sd">    label_ids: [p.max_num_objects] - String unique identifier for each labeled</span>
+<span class="sd">    object on a per run_segment basis. This can be used for associating</span>
+<span class="sd">    objects across frames (over time).</span>
+
+<span class="sd">    detection_difficulties: [p.max_num_objects] - The per-box difficulty level</span>
+<span class="sd">    for detection task as defined in car.open_dataset.Label.DifficultyLevel.</span>
+
+<span class="sd">    tracking_difficulties: [p.max_num_objects] - The per-box difficulty level</span>
+<span class="sd">    for tracking task as defined in car.open_dataset.Label.DifficultyLevel.</span>
+
+<span class="sd">    bboxes_3d: [p.max_num_objects, 7] - 3D bounding box data in [x, y, z, l, w,</span>
+<span class="sd">    h, heading] format. x, y, z are the object center in world coordinates;</span>
+<span class="sd">    l, w, h are the dimensions of the box, and heading is the rotation angle</span>
+<span class="sd">    around the z-axis. See car.open_dataset.Label.Box for definitions.</span>
+
+<span class="sd">    bboxes_3d_mask: [p.max_num_objects] - Mask for all the above tensors (mask</span>
+<span class="sd">    is the inversion of padding).</span>
+
+<span class="sd">    bboxes_3d_num_points: [p.max_num_objects] - Integer for each box indicating</span>
+<span class="sd">    how many points are in that ground truth box.</span>
+
+<span class="sd">    unfiltered_bboxes_3d_mask: [p.max_num_objects] - The mask before filtering</span>
+<span class="sd">    out bboxes whose labels are not in p.filter_labels.</span>
+
+<span class="sd">    speed: [p.max_num_objects, 2] - The object speed in x, y.</span>
+
+<span class="sd">    acceleration: [p.max_num_objects, 2] - The object acceleration in x, y.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="WaymoLabelExtractor.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLabelExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoLabelExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_num_objects&#39;</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span>
+             <span class="s1">&#39;Each frame may contain up to these many bbox.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;filter_labels&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Specifies a list of label &#39;</span>
+        <span class="s1">&#39;indices to keep.  If empty, no filtering is done.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="WaymoLabelExtractor.FeatureMap"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLabelExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a dictionary from tf.Example feature names to Features.&quot;&quot;&quot;</span>
+    <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;label_ids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;detection_difficulties&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;tracking_difficulties&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;bboxes_3d&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;bboxes_3d_num_points&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;label_metadata&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">feature_map</span></div>
+
+<div class="viewcode-block" id="WaymoLabelExtractor._Extract"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLabelExtractor._Extract">[docs]</a>  <span class="k">def</span> <span class="nf">_Extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Label values match the proto enum car.open_dataset.Label.Type. The value</span>
+    <span class="c1"># range is [1..4] for non-background labels.</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">]))</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+    <span class="n">label_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;label_ids&#39;</span><span class="p">],</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">label_ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">label_ids</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">],</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;bboxes_3d&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">bboxes_3d_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+    <span class="n">bboxes_3d_num_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;bboxes_3d_num_points&#39;</span><span class="p">]))</span>
+    <span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">bboxes_3d_mask</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">bboxes_3d_mask</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+    <span class="n">bboxes_3d_num_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">bboxes_3d_num_points</span><span class="p">,</span>
+                                                <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+    <span class="n">label_metadata</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;label_metadata&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+    <span class="n">label_metadata</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">label_metadata</span><span class="p">,</span>
+                                          <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+
+    <span class="n">detection_difficulties</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;detection_difficulties&#39;</span><span class="p">])),</span>
+        <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+    <span class="n">tracking_difficulties</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;tracking_difficulties&#39;</span><span class="p">])),</span>
+        <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">])</span>
+    <span class="n">unfiltered_bboxes_3d_mask</span> <span class="o">=</span> <span class="n">bboxes_3d_mask</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_labels</span><span class="p">:</span>
+      <span class="n">valid_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">filter_labels</span><span class="p">])</span>
+      <span class="n">bbox_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">valid_labels</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">bboxes_3d_mask</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">bbox_mask</span><span class="p">)</span>
+
+    <span class="n">outputs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span>
+        <span class="s1">&#39;label_ids&#39;</span><span class="p">:</span> <span class="n">label_ids</span><span class="p">,</span>
+        <span class="s1">&#39;detection_difficulties&#39;</span><span class="p">:</span> <span class="n">detection_difficulties</span><span class="p">,</span>
+        <span class="s1">&#39;tracking_difficulties&#39;</span><span class="p">:</span> <span class="n">tracking_difficulties</span><span class="p">,</span>
+        <span class="s1">&#39;bboxes_3d&#39;</span><span class="p">:</span> <span class="n">bboxes_3d</span><span class="p">,</span>
+        <span class="s1">&#39;bboxes_3d_mask&#39;</span><span class="p">:</span> <span class="n">bboxes_3d_mask</span><span class="p">,</span>
+        <span class="s1">&#39;bboxes_3d_num_points&#39;</span><span class="p">:</span> <span class="n">bboxes_3d_num_points</span><span class="p">,</span>
+        <span class="s1">&#39;unfiltered_bboxes_3d_mask&#39;</span><span class="p">:</span> <span class="n">unfiltered_bboxes_3d_mask</span><span class="p">,</span>
+        <span class="s1">&#39;speed&#39;</span><span class="p">:</span> <span class="n">label_metadata</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span>
+        <span class="s1">&#39;acceleration&#39;</span><span class="p">:</span> <span class="n">label_metadata</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:],</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WaymoLabelExtractor.Shape"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLabelExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Shape of BBoxes.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="s1">&#39;label_ids&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="s1">&#39;detection_difficulties&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="s1">&#39;tracking_difficulties&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="s1">&#39;bboxes_3d&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">7</span><span class="p">]),</span>
+        <span class="s1">&#39;bboxes_3d_mask&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="s1">&#39;bboxes_3d_num_points&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="s1">&#39;unfiltered_bboxes_3d_mask&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">]),</span>
+        <span class="s1">&#39;speed&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+        <span class="s1">&#39;acceleration&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_objects</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WaymoLabelExtractor.DType"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLabelExtractor.DType">[docs]</a>  <span class="k">def</span> <span class="nf">DType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Dtypes of BBoxes.&quot;&quot;&quot;</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">dtypes</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">dtypes</span><span class="o">.</span><span class="n">label_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span>
+    <span class="n">dtypes</span><span class="o">.</span><span class="n">detection_difficulties</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">dtypes</span><span class="o">.</span><span class="n">tracking_difficulties</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">dtypes</span><span class="o">.</span><span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="n">dtypes</span><span class="o">.</span><span class="n">bboxes_3d_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="n">dtypes</span><span class="o">.</span><span class="n">bboxes_3d_num_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">dtypes</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="n">dtypes</span><span class="o">.</span><span class="n">speed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="n">dtypes</span><span class="o">.</span><span class="n">acceleration</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="k">return</span> <span class="n">dtypes</span></div></div>
+
+
+<div class="viewcode-block" id="RangeImageExtractor"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.RangeImageExtractor">[docs]</a><span class="k">class</span> <span class="nc">RangeImageExtractor</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">FieldsExtractor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts the range images from a Waymo OD tf.Example.</span>
+
+<span class="sd">  The outputs contain the following:</span>
+
+<span class="sd">  Let ri_shape = [H, W] of the corresponding range image.</span>
+
+<span class="sd">  - For every short range laser (params.cbr_laser_names):</span>
+<span class="sd">      For every return (params.returns):</span>
+<span class="sd">        $LASERNAME_RETURN:</span>
+<span class="sd">          .xyz - tf.float32 of ri_shape + [3]</span>
+
+<span class="sd">          .features - tf.float32 of ri_shape + [4]</span>
+
+<span class="sd">          .mask - tf.float32 of ri_shape indicating whether the laser</span>
+<span class="sd">          xyz and feature at each coordinate is real or padded. A coordinate</span>
+<span class="sd">          has a real point iff the mask is set to 1.</span>
+
+<span class="sd">      $LASERNAME_beam_inclinations: tf.float32 [2] listing the</span>
+<span class="sd">      min and max beam inclinations.</span>
+
+<span class="sd">      $LASERNAME_extrinsics: tf.float32 [4, 4] extrinsics matrix.</span>
+
+<span class="sd">  - For every longer range laser (params.gbr_laser_names):</span>
+<span class="sd">      For every return (params.returns):</span>
+<span class="sd">          .xyz: tf.float32 of ri_shape + [3]</span>
+<span class="sd">          .features: tf.float32 of ri_shape + [4]</span>
+<span class="sd">          .mask: tf.float32 of ri_shape</span>
+
+<span class="sd">      $LASERNAME_beam_inclinations: tf.float32 [64] listing the</span>
+<span class="sd">      non-uniform beam inclinations for the longer range laser.</span>
+
+<span class="sd">      $LASERNAME_extrinsics: tf.float32 [4, 4] extrinsics matrix</span>
+
+<span class="sd">  On laser returns:</span>
+<span class="sd">    ri1 and ri2 are the first and second returns of the sensors.</span>
+
+<span class="sd">  On laser sensors:</span>
+<span class="sd">    If there are 5 total sensors, there will be 5 * len(returns)</span>
+<span class="sd">    outputs.</span>
+
+<span class="sd">  The last dimension of range image is 4, indicating the following</span>
+<span class="sd">  features:</span>
+
+<span class="sd">    range: (if entry is -1, it means there is no laser value there).</span>
+
+<span class="sd">    intensity</span>
+
+<span class="sd">    elongation</span>
+
+<span class="sd">    1. if laser point entry in &#39;no label zone&#39;, 0. otherwise.</span>
+
+<span class="sd">  The xyz range image output is a [H, W, 3] Tensor indicating the cartesian</span>
+<span class="sd">  coordinates corresponding to each range image pixel in the range image.  One</span>
+<span class="sd">  should use the mask computed from the &#39;range&#39; channel of the range image to</span>
+<span class="sd">  select only the points that exist.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RangeImageExtractor.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.RangeImageExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RangeImageExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;cbr_laser_names&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;SIDE_LEFT&#39;</span><span class="p">,</span> <span class="s1">&#39;FRONT&#39;</span><span class="p">,</span> <span class="s1">&#39;REAR&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_RIGHT&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;The names of the CBR sensors from which range images &#39;</span>
+        <span class="s1">&#39;will be extracted.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cbr_ri_shape&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">600</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="s1">&#39;Shape of each CBR range image.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;gbr_laser_names&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;TOP&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;The names of the GBR sensors from which range images &#39;</span>
+        <span class="s1">&#39;will be extracted.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;returns&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;ri1&#39;</span><span class="p">,</span> <span class="s1">&#39;ri2&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;The names of the laser returns to export.  E.g., ri1 is &#39;</span>
+        <span class="s1">&#39;the first return, ri2 is the second return.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gbr_ri_shape&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">2650</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="s1">&#39;Shape of each GBR range image.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="RangeImageExtractor.FeatureMap"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.RangeImageExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a dictionary from tf.Example feature names to Features.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">cbr_laser_names</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_laser_names</span><span class="p">:</span>
+      <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclinations&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+      <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclination_min&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+      <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclination_max&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+      <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_laser_names</span><span class="p">:</span>
+        <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_pose&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+      <span class="k">for</span> <span class="n">returns</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">returns</span><span class="p">:</span>
+        <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                    <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">_shape&#39;</span> <span class="o">%</span>
+                    <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">feature_map</span><span class="p">[</span><span class="s1">&#39;pose&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">feature_map</span></div>
+
+<div class="viewcode-block" id="RangeImageExtractor._Extract"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.RangeImageExtractor._Extract">[docs]</a>  <span class="k">def</span> <span class="nf">_Extract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">ri_outputs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">frame_pose</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;pose&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">cbr_laser_names</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_laser_names</span><span class="p">:</span>
+      <span class="c1"># Extract range images.</span>
+      <span class="k">for</span> <span class="n">returns</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">returns</span><span class="p">:</span>
+        <span class="n">ri_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">_shape&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">range_image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]),</span> <span class="n">ri_shape</span><span class="p">)</span>
+
+        <span class="n">shape_to_check</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">cbr_ri_shape</span> <span class="k">if</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">cbr_laser_names</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_ri_shape</span><span class="p">)</span>
+        <span class="n">range_image</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">range_image</span><span class="p">,</span> <span class="n">shape_to_check</span><span class="p">)</span>
+
+        <span class="n">ri_outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]</span> <span class="o">=</span> <span class="n">range_image</span>
+
+      <span class="c1"># Extract beam inclinations and extrinsics</span>
+      <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]),</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+
+    <span class="c1"># CBRs have uniform inclination</span>
+    <span class="k">for</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">cbr_laser_names</span><span class="p">:</span>
+      <span class="n">beam_inclination_min</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclination_min&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]),</span> <span class="p">[])</span>
+      <span class="n">beam_inclination_max</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclination_max&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]),</span> <span class="p">[])</span>
+      <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclinations&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">beam_inclination_min</span><span class="p">,</span> <span class="n">beam_inclination_max</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># GBRs have non-uniform inclinations defined by 64 floats.</span>
+    <span class="k">for</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_laser_names</span><span class="p">:</span>
+      <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclinations&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclinations&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]),</span> <span class="p">[</span><span class="mi">64</span><span class="p">])</span>
+
+    <span class="c1"># Embed xyz onto each range image pixel.</span>
+    <span class="k">for</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">cbr_laser_names</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_laser_names</span><span class="p">:</span>
+      <span class="n">extrinsics</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span>
+      <span class="n">inclinations</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclinations&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">cbr_laser_names</span><span class="p">:</span>
+        <span class="n">ri_shape</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cbr_ri_shape</span>
+
+        <span class="c1"># Convert from 2-tuple range inclination to the full range</span>
+        <span class="c1"># via linear interpolation.</span>
+        <span class="c1">#</span>
+        <span class="c1"># CBR lasers currently are always uniform inclinations specified by a</span>
+        <span class="c1"># length 2 vector.</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="n">ri_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">min_inclination</span> <span class="o">=</span> <span class="n">inclinations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">max_inclination</span> <span class="o">=</span> <span class="n">inclinations</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">max_inclination</span> <span class="o">-</span> <span class="n">min_inclination</span>
+        <span class="n">ratio</span> <span class="o">=</span> <span class="p">(</span><span class="o">.</span><span class="mi">5</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">height</span><span class="p">)))</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">height</span><span class="p">)</span>
+        <span class="c1"># interpolate from min to max inclination.</span>
+        <span class="n">inclinations</span> <span class="o">=</span> <span class="p">(</span><span class="n">ratio</span> <span class="o">*</span> <span class="n">diff</span><span class="p">)</span> <span class="o">+</span> <span class="n">min_inclination</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">ri_shape</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_ri_shape</span>
+
+      <span class="n">pixel_pose</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_laser_names</span><span class="p">:</span>
+        <span class="n">pixel_pose</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_pose&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]),</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">gbr_ri_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+
+      <span class="k">for</span> <span class="n">returns</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">returns</span><span class="p">:</span>
+        <span class="n">range_image</span> <span class="o">=</span> <span class="n">ri_outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]</span>
+        <span class="n">range_image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">range_image</span><span class="p">,</span> <span class="n">ri_shape</span><span class="p">)</span>
+        <span class="n">range_image_mask</span> <span class="o">=</span> <span class="n">range_image</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="n">ri_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_XYZFromRangeImage</span><span class="p">(</span><span class="n">range_image</span><span class="p">,</span> <span class="n">range_image_mask</span><span class="p">,</span> <span class="n">extrinsics</span><span class="p">,</span>
+                                    <span class="n">inclinations</span><span class="p">,</span> <span class="n">pixel_pose</span><span class="p">,</span> <span class="n">frame_pose</span><span class="p">))</span>
+
+        <span class="c1"># Produce the NestedMap of xyz, features, mask.</span>
+        <span class="n">ri_result</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+            <span class="s1">&#39;xyz&#39;</span><span class="p">:</span> <span class="n">ri_xyz</span><span class="p">,</span>
+            <span class="s1">&#39;features&#39;</span><span class="p">:</span> <span class="n">range_image</span><span class="p">,</span>
+            <span class="s1">&#39;mask&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">range_image_mask</span><span class="p">),</span>
+        <span class="p">})</span>
+
+        <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]</span> <span class="o">=</span> <span class="n">ri_result</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RangeImageExtractor._XYZFromRangeImage"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.RangeImageExtractor._XYZFromRangeImage">[docs]</a>  <span class="k">def</span> <span class="nf">_XYZFromRangeImage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">lidar_image</span><span class="p">,</span>
+                         <span class="n">lidar_image_mask</span><span class="p">,</span>
+                         <span class="n">extrinsics</span><span class="p">,</span>
+                         <span class="n">inclinations</span><span class="p">,</span>
+                         <span class="n">pixel_pose</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">frame_pose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extract the cartesian coordinates from the range image.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">       lidar_image: [H, W, C] range image Tensor.</span>
+<span class="sd">       lidar_image_mask: [H, W] boolean indicating which 2d coordinates in the</span>
+<span class="sd">         lidar image are present.</span>
+<span class="sd">       extrinsics: [4, 4] float matrix representing transformation matrix to</span>
+<span class="sd">         world coordinates.</span>
+<span class="sd">       inclinations: [V] beam inclinations vector.</span>
+<span class="sd">       pixel_pose: [64, 2650, 4, 4] tensor representing per pixel pose of GBR.</span>
+<span class="sd">       frame_pose: [4, 4] matrix representing vehicle to world transformation.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      lidar_image_xyz: [H, W, 3] range image cartesian coordinates.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">channels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">lidar_image</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">conversion_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="n">lidar_image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">lidar_image</span><span class="p">,</span> <span class="n">conversion_dtype</span><span class="p">)</span>
+    <span class="n">extrinsics</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">extrinsics</span><span class="p">,</span> <span class="n">conversion_dtype</span><span class="p">)</span>
+    <span class="n">inclinations</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inclinations</span><span class="p">,</span> <span class="n">conversion_dtype</span><span class="p">)</span>
+    <span class="n">inclinations</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">inclinations</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">az_correction</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">extrinsics</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">extrinsics</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span> <span class="p">[])</span>
+    <span class="n">ratios</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">conversion_dtype</span><span class="p">)</span> <span class="o">-</span>
+              <span class="o">.</span><span class="mi">5</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">conversion_dtype</span><span class="p">)</span>
+    <span class="n">ratios</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">ratios</span><span class="p">,</span> <span class="p">[</span><span class="n">width</span><span class="p">])</span>
+
+    <span class="n">azimuth</span> <span class="o">=</span> <span class="p">(</span><span class="n">ratios</span> <span class="o">*</span> <span class="mf">2.</span> <span class="o">-</span> <span class="mf">1.</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">az_correction</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">azimuth</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">azimuth</span><span class="p">,</span> <span class="p">[</span><span class="n">width</span><span class="p">])</span>
+
+    <span class="n">lidar_image_mask</span> <span class="o">=</span> <span class="n">lidar_image_mask</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">lidar_image_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">lidar_image_mask</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">channels</span><span class="p">])</span>
+    <span class="n">lidar_image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">lidar_image_mask</span><span class="p">,</span> <span class="n">lidar_image</span><span class="p">,</span>
+                           <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">lidar_image</span><span class="p">))</span>
+    <span class="n">lidar_image_range</span> <span class="o">=</span> <span class="n">lidar_image</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">azimuth</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">azimuth</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">])</span>
+    <span class="n">inclinations</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">inclinations</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="p">[</span><span class="n">height</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">cos_azimuth</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">azimuth</span><span class="p">)</span>
+    <span class="n">sin_azimuth</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">azimuth</span><span class="p">)</span>
+    <span class="n">cos_incl</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">inclinations</span><span class="p">)</span>
+    <span class="n">sin_incl</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">inclinations</span><span class="p">)</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">cos_azimuth</span> <span class="o">*</span> <span class="n">cos_incl</span> <span class="o">*</span> <span class="n">lidar_image_range</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">sin_azimuth</span> <span class="o">*</span> <span class="n">cos_incl</span> <span class="o">*</span> <span class="n">lidar_image_range</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">sin_incl</span> <span class="o">*</span> <span class="n">lidar_image_range</span>
+
+    <span class="n">lidar_image_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">lidar_image_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">lidar_image_points</span><span class="p">,</span>
+                                           <span class="p">[</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">rotation</span> <span class="o">=</span> <span class="n">extrinsics</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">translation</span> <span class="o">=</span> <span class="n">extrinsics</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">][</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+    <span class="c1"># Transform the image points in cartesian coordinates to</span>
+    <span class="c1"># the world coordinate system using the extrinsics matrix.</span>
+    <span class="c1">#</span>
+    <span class="c1"># We first flatten the points, apply rotation, then</span>
+    <span class="c1"># reshape to restore the original input and then apply</span>
+    <span class="c1"># translation.</span>
+    <span class="n">lidar_image_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">lidar_image_points</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span> <span class="n">rotation</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">lidar_image_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">lidar_image_points</span><span class="p">,</span> <span class="p">[</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">lidar_image_points</span> <span class="o">+=</span> <span class="n">translation</span>
+
+    <span class="n">lidar_image_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">lidar_image_points</span><span class="p">,</span>
+                                           <span class="p">[</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="c1"># GBR uses per pixel pose.</span>
+    <span class="k">if</span> <span class="n">pixel_pose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">pixel_pose_rotation</span> <span class="o">=</span> <span class="n">pixel_pose</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+      <span class="n">pixel_pose_translation</span> <span class="o">=</span> <span class="n">pixel_pose</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+      <span class="n">lidar_image_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+          <span class="s1">&#39;hwij,hwj-&gt;hwi&#39;</span><span class="p">,</span> <span class="n">pixel_pose_rotation</span><span class="p">,</span>
+          <span class="n">lidar_image_points</span><span class="p">)</span> <span class="o">+</span> <span class="n">pixel_pose_translation</span>
+      <span class="k">if</span> <span class="n">frame_pose</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;frame_pose must be set when pixel_pose is set.&#39;</span><span class="p">)</span>
+      <span class="c1"># To vehicle frame corresponding to the given frame_pose</span>
+      <span class="c1"># [4, 4]</span>
+      <span class="n">world_to_vehicle</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matrix_inverse</span><span class="p">(</span><span class="n">frame_pose</span><span class="p">)</span>
+      <span class="n">world_to_vehicle_rotation</span> <span class="o">=</span> <span class="n">world_to_vehicle</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+      <span class="n">world_to_vehicle_translation</span> <span class="o">=</span> <span class="n">world_to_vehicle</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+      <span class="c1"># [H, W, 3]</span>
+      <span class="n">lidar_image_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+          <span class="s1">&#39;ij,hwj-&gt;hwi&#39;</span><span class="p">,</span> <span class="n">world_to_vehicle_rotation</span><span class="p">,</span>
+          <span class="n">lidar_image_points</span><span class="p">)</span> <span class="o">+</span> <span class="n">world_to_vehicle_translation</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span>
+                                                             <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="k">return</span> <span class="n">lidar_image_points</span></div>
+
+<div class="viewcode-block" id="RangeImageExtractor.Shape"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.RangeImageExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Shape of BBoxes.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">cbr_laser_names</span><span class="p">:</span>
+      <span class="n">cbr_shape</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cbr_ri_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">returns</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">returns</span><span class="p">:</span>
+        <span class="n">shape_dict</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+            <span class="s1">&#39;xyz&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">cbr_shape</span> <span class="o">+</span> <span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+            <span class="s1">&#39;features&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">cbr_shape</span> <span class="o">+</span> <span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
+            <span class="s1">&#39;mask&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">cbr_shape</span><span class="p">),</span>
+        <span class="p">})</span>
+        <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]</span> <span class="o">=</span> <span class="n">shape_dict</span>
+
+      <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclinations&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">2</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_laser_names</span><span class="p">:</span>
+      <span class="n">gbr_shape</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_ri_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">returns</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">returns</span><span class="p">:</span>
+        <span class="n">shape_dict</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+            <span class="s1">&#39;xyz&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">gbr_shape</span> <span class="o">+</span> <span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+            <span class="s1">&#39;features&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">gbr_shape</span> <span class="o">+</span> <span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
+            <span class="s1">&#39;mask&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">gbr_shape</span><span class="p">),</span>
+        <span class="p">})</span>
+        <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]</span> <span class="o">=</span> <span class="n">shape_dict</span>
+      <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclinations&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">64</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RangeImageExtractor.DType"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.RangeImageExtractor.DType">[docs]</a>  <span class="k">def</span> <span class="nf">DType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Dtypes of BBoxes.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">cbr_laser_names</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_laser_names</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">returns</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">returns</span><span class="p">:</span>
+        <span class="n">dtype_dict</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+            <span class="s1">&#39;xyz&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="s1">&#39;features&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="s1">&#39;mask&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="p">})</span>
+        <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]</span> <span class="o">=</span> <span class="n">dtype_dict</span>
+      <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+      <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclinations&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">dtypes</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="FilterNLZPoints"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.FilterNLZPoints">[docs]</a><span class="k">class</span> <span class="nc">FilterNLZPoints</span><span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">Preprocessor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Filters points that are in no-label-zones.</span>
+
+<span class="sd">  This preprocessor expects features to contain the following keys:</span>
+<span class="sd">  - lasers.points_xyz of shape [P, 3]</span>
+<span class="sd">  - lasers.points_feature of shape [P, F]</span>
+
+<span class="sd">  Modifies the following features:</span>
+<span class="sd">  - lasers.points_xyz of shape [P2, 3]</span>
+<span class="sd">  - lasers.points_feature of shape [P2, F]</span>
+
+<span class="sd">  where P - P2 are the number of points dropped because the corresponding</span>
+<span class="sd">    point was in a no-label-zone.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FilterNLZPoints.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.FilterNLZPoints.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FilterNLZPoints</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="FilterNLZPoints.TransformFeatures"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.FilterNLZPoints.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="c1"># We assume that the lasers are not padded, and all points are real.</span>
+    <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;points_padding&#39;</span> <span class="ow">in</span> <span class="n">features</span><span class="o">.</span><span class="n">lasers</span> <span class="ow">and</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;FilterNLZPoints preprocessor does not support &#39;</span>
+                       <span class="s1">&#39;padded lasers.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># The last feature in the laser is 1.0 for points in a no-label-zone</span>
+    <span class="c1"># and -1. for normal points.</span>
+    <span class="n">is_not_nlz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_xyz</span><span class="p">,</span>
+                                                 <span class="n">is_not_nlz</span><span class="p">)</span>
+    <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span><span class="p">,</span> <span class="n">is_not_nlz</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">features</span></div>
+
+<div class="viewcode-block" id="FilterNLZPoints.TransformShapes"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.FilterNLZPoints.TransformShapes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">shapes</span></div>
+
+<div class="viewcode-block" id="FilterNLZPoints.TransformDTypes"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.FilterNLZPoints.TransformDTypes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformDTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">dtypes</span></div></div>
+
+
+<div class="viewcode-block" id="WaymoSparseLaser"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser">[docs]</a><span class="k">class</span> <span class="nc">WaymoSparseLaser</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">BaseExtractor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Sparse laser input extractor for Waymo dataset.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="WaymoSparseLaser.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Defaults params.&quot;&quot;&quot;</span>
+    <span class="n">extractors</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lasers&#39;</span><span class="p">,</span> <span class="n">WaymoLaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="n">WaymoLabelExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="n">WaymoFrameMetadataExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="n">preprocessors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">count_points</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CountNumberOfPointsInBoxes3D</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">viz_copy</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">CreateDecoderCopy</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">keep_xyz_range</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">DropLaserPointsOutOfRange</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">filter_nlz_points</span><span class="o">=</span><span class="n">FilterNLZPoints</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">select_centers</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">SparseCenterSelector</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">gather_features</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">SparseCellGatherFeatures</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">tile_anchors</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">TileAnchorBBoxes</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">assign_anchors</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">AnchorAssignment</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">pad_lasers</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">PadLaserFeatures</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoSparseLaser</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">preprocessors</span><span class="o">=</span><span class="n">_NestedMapToParams</span><span class="p">(</span><span class="n">preprocessors</span><span class="p">),</span>
+        <span class="n">preprocessors_order</span><span class="o">=</span><span class="p">[</span>
+            <span class="s1">&#39;viz_copy&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;keep_xyz_range&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;filter_nlz_points&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;count_points&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;select_centers&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;gather_features&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;tile_anchors&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;assign_anchors&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;pad_lasers&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -177,7 +177,7 @@
   <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="GetPipelineRoot"><a class="viewcode-back" href="../../../lingvo.tools.beam_utils.html#lingvo.tools.beam_utils.GetPipelineRoot">[docs]</a><span class="k">def</span> <span class="nf">GetPipelineRoot</span><span class="p">():</span>
+<div class="viewcode-block" id="GetPipelineRoot"><a class="viewcode-back" href="../../../lingvo.tools.beam_utils.html#lingvo.tools.beam_utils.GetPipelineRoot">[docs]</a><span class="k">def</span> <span class="nf">GetPipelineRoot</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Return the root of the beam pipeline.</span>
 
 <span class="sd">  Typical usage looks like:</span>
@@ -189,10 +189,13 @@
 <span class="sd">  exited, though one can manually run the pipeline built from the root object as</span>
 <span class="sd">  well.</span>
 
+<span class="sd">  Args:</span>
+<span class="sd">    options: A beam.options.pipeline_options.PipelineOptions object.</span>
+
 <span class="sd">  Returns:</span>
 <span class="sd">    A beam.Pipeline root object.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">beam</span><span class="o">.</span><span class="n">Pipeline</span><span class="p">()</span></div>
+  <span class="k">return</span> <span class="n">beam</span><span class="o">.</span><span class="n">Pipeline</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GetReader"><a class="viewcode-back" href="../../../lingvo.tools.beam_utils.html#lingvo.tools.beam_utils.GetReader">[docs]</a><span class="k">def</span> <span class="nf">GetReader</span><span class="p">(</span><span class="n">record_format</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="n">value_coder</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>

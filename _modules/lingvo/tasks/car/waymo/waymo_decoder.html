@@ -1,0 +1,435 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.waymo.waymo_decoder &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.waymo.waymo_decoder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.waymo.waymo_decoder</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Base models for point-cloud based detection.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">metrics</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">base_decoder</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">detection_3d_metrics</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">kitti_ap_metric</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">transform_util</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car.waymo</span> <span class="k">import</span> <span class="n">waymo_ap_metric</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car.waymo</span> <span class="k">import</span> <span class="n">waymo_metadata</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="WaymoOpenDatasetDecoder"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_decoder.html#lingvo.tasks.car.waymo.waymo_decoder.WaymoOpenDatasetDecoder">[docs]</a><span class="k">class</span> <span class="nc">WaymoOpenDatasetDecoder</span><span class="p">(</span><span class="n">base_decoder</span><span class="o">.</span><span class="n">BaseDecoder</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A decoder to use for decoding a detector model on Waymo.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="WaymoOpenDatasetDecoder.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_decoder.html#lingvo.tasks.car.waymo.waymo_decoder.WaymoOpenDatasetDecoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoOpenDatasetDecoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;draw_visualizations&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Boolean for whether to draw &#39;</span>
+        <span class="s1">&#39;visualizations. This is independent of laser_sampling_rate.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ap_metric</span> <span class="o">=</span> <span class="n">waymo_ap_metric</span><span class="o">.</span><span class="n">WaymoAPMetrics</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+        <span class="n">waymo_metadata</span><span class="o">.</span><span class="n">WaymoMetadata</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="WaymoOpenDatasetDecoder.CreateDecoderMetrics"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_decoder.html#lingvo.tasks.car.waymo.waymo_decoder.WaymoOpenDatasetDecoder.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decoder metrics for WaymoOpenDataset.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">kitti_metric_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ap_metric</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="bp">cls</span><span class="o">=</span><span class="n">kitti_ap_metric</span><span class="o">.</span><span class="n">KITTIAPMetrics</span><span class="p">)</span>
+    <span class="n">kitti_metrics</span> <span class="o">=</span> <span class="n">kitti_metric_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+    <span class="n">waymo_metric_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ap_metric</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="bp">cls</span><span class="o">=</span><span class="n">waymo_ap_metric</span><span class="o">.</span><span class="n">WaymoAPMetrics</span><span class="p">)</span>
+    <span class="n">waymo_metrics</span> <span class="o">=</span> <span class="n">waymo_metric_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+    <span class="n">class_names</span> <span class="o">=</span> <span class="n">waymo_metrics</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span>
+
+    <span class="n">waymo_metric_bev_p</span> <span class="o">=</span> <span class="n">waymo_metric_p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">waymo_metric_bev_p</span><span class="o">.</span><span class="n">box_type</span> <span class="o">=</span> <span class="s1">&#39;2d&#39;</span>
+    <span class="n">waymo_metrics_bev</span> <span class="o">=</span> <span class="n">waymo_metric_bev_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+    <span class="c1"># Convert the list of class names to a dictionary mapping class_id -&gt; name.</span>
+    <span class="n">class_id_to_name</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">class_names</span><span class="p">))</span>
+
+    <span class="c1"># TODO(vrv): This uses the same top down transform as for KITTI;</span>
+    <span class="c1"># re-visit these settings since detections can happen all around</span>
+    <span class="c1"># the car.</span>
+    <span class="n">top_down_transform</span> <span class="o">=</span> <span class="n">transform_util</span><span class="o">.</span><span class="n">MakeCarToImageTransform</span><span class="p">(</span>
+        <span class="n">pixels_per_meter</span><span class="o">=</span><span class="mf">32.</span><span class="p">,</span>
+        <span class="n">image_ref_x</span><span class="o">=</span><span class="mf">512.</span><span class="p">,</span>
+        <span class="n">image_ref_y</span><span class="o">=</span><span class="mf">1408.</span><span class="p">,</span>
+        <span class="n">flip_axes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">decoder_metrics</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;top_down_visualization&#39;</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">detection_3d_metrics</span><span class="o">.</span><span class="n">TopDownVisualizationMetric</span><span class="p">(</span>
+                <span class="n">top_down_transform</span><span class="p">,</span>
+                <span class="n">image_height</span><span class="o">=</span><span class="mi">1536</span><span class="p">,</span>
+                <span class="n">image_width</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+                <span class="n">class_id_to_name</span><span class="o">=</span><span class="n">class_id_to_name</span><span class="p">)),</span>
+        <span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
+        <span class="s1">&#39;waymo_metrics&#39;</span><span class="p">:</span> <span class="n">waymo_metrics</span><span class="p">,</span>
+        <span class="s1">&#39;waymo_metrics_bev&#39;</span><span class="p">:</span> <span class="n">waymo_metrics_bev</span><span class="p">,</span>
+        <span class="s1">&#39;kitti_metrics&#39;</span><span class="p">:</span> <span class="n">kitti_metrics</span><span class="p">,</span>
+    <span class="p">})</span>
+
+    <span class="n">decoder_metrics</span><span class="o">.</span><span class="n">mesh</span> <span class="o">=</span> <span class="n">detection_3d_metrics</span><span class="o">.</span><span class="n">WorldViewer</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">decoder_metrics</span></div>
+
+<div class="viewcode-block" id="WaymoOpenDatasetDecoder.ProcessOutputs"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_decoder.html#lingvo.tasks.car.waymo.waymo_decoder.WaymoOpenDatasetDecoder.ProcessOutputs">[docs]</a>  <span class="k">def</span> <span class="nf">ProcessOutputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">model_outputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Produce additional decoder outputs for WaymoOpenDataset.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      input_batch: A .NestedMap of the inputs to the model.</span>
+<span class="sd">      model_outputs: A .NestedMap of the outputs of the model, including::</span>
+<span class="sd">        - per_class_predicted_bboxes: [batch, num_classes, num_boxes, 7] float</span>
+<span class="sd">          Tensor with per class 3D (7 DOF) bounding boxes.</span>
+<span class="sd">        - per_class_predicted_bbox_scores: [batch, num_classes, num_boxes] float</span>
+<span class="sd">          Tensor with per class, per box scores.</span>
+<span class="sd">        - per_class_valid_mask: [batch, num_classes, num_boxes] masking Tensor</span>
+<span class="sd">          indicating which boxes were still kept after NMS for each class.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap of additional decoder outputs needed for</span>
+<span class="sd">      PostProcessDecodeOut.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">model_outputs</span>
+    <span class="n">input_labels</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">decoder_copy</span><span class="o">.</span><span class="n">labels</span>
+    <span class="n">input_lasers</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">decoder_copy</span><span class="o">.</span><span class="n">lasers</span>
+    <span class="n">input_metadata</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">metadata</span>
+    <span class="n">source_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">string_join</span><span class="p">([</span>
+        <span class="n">input_metadata</span><span class="o">.</span><span class="n">run_segment</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">as_string</span><span class="p">(</span><span class="n">input_metadata</span><span class="o">.</span><span class="n">run_start_offset</span><span class="p">)</span>
+    <span class="p">],</span>
+                                <span class="n">separator</span><span class="o">=</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;num_points_in_bboxes&#39;</span><span class="p">:</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_num_points</span><span class="p">,</span>
+        <span class="c1"># Ground truth.</span>
+        <span class="s1">&#39;bboxes_3d&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">,</span>
+        <span class="s1">&#39;bboxes_3d_mask&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">bboxes_3d_mask</span><span class="p">,</span>
+        <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+        <span class="s1">&#39;label_ids&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">label_ids</span><span class="p">,</span>
+        <span class="c1"># Fill the following in.</span>
+        <span class="s1">&#39;source_ids&#39;</span><span class="p">:</span> <span class="n">source_ids</span><span class="p">,</span>
+        <span class="s1">&#39;difficulties&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">detection_difficulties</span><span class="p">,</span>
+        <span class="s1">&#39;unfiltered_bboxes_3d_mask&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span><span class="p">,</span>
+        <span class="s1">&#39;run_segment&#39;</span><span class="p">:</span> <span class="n">input_metadata</span><span class="o">.</span><span class="n">run_segment</span><span class="p">,</span>
+        <span class="s1">&#39;run_start_offset&#39;</span><span class="p">:</span> <span class="n">input_metadata</span><span class="o">.</span><span class="n">run_start_offset</span><span class="p">,</span>
+        <span class="s1">&#39;pose&#39;</span><span class="p">:</span> <span class="n">input_metadata</span><span class="o">.</span><span class="n">pose</span><span class="p">,</span>
+    <span class="p">})</span>
+    <span class="n">laser_sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SampleLaserForVisualization</span><span class="p">(</span>
+        <span class="n">input_lasers</span><span class="o">.</span><span class="n">points_xyz</span><span class="p">,</span> <span class="n">input_lasers</span><span class="o">.</span><span class="n">points_padding</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">laser_sample</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="WaymoOpenDatasetDecoder.PostProcessDecodeOut"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_decoder.html#lingvo.tasks.car.waymo.waymo_decoder.WaymoOpenDatasetDecoder.PostProcessDecodeOut">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out_dict</span><span class="p">,</span> <span class="n">dec_metrics_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Post-processes the decoder outputs.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Update num_samples_in_batch.</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_predicted_bboxes</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">num_samples_in_batch</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+
+    <span class="c1"># Update decoder output by removing z-coordinate, thus reshaping the bboxes</span>
+    <span class="c1"># to [batch, num_bboxes, 5] to be compatible with</span>
+    <span class="c1"># TopDownVisualizationMetric.</span>
+
+    <span class="c1"># Indices corresponding to the 2D bbox parameters (x, y, dx, dy, phi).</span>
+    <span class="n">bbox_2d_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+    <span class="n">bboxes_2d</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">bbox_2d_idx</span><span class="p">]</span>
+    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_predicted_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">bbox_2d_idx</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">draw_visualizations</span> <span class="ow">and</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">points_sampled</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Updating sample for top down visualization&#39;</span><span class="p">)</span>
+      <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">mesh</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+              <span class="s1">&#39;points_xyz&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">points_xyz</span><span class="p">,</span>
+              <span class="s1">&#39;points_padding&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">points_padding</span><span class="p">,</span>
+          <span class="p">}))</span>
+
+      <span class="c1"># Flatten our predictions/scores to match the API of the visualization</span>
+      <span class="c1"># The last dimension of flattened_bboxes is 5 due to the mask</span>
+      <span class="c1"># above using bbox_2d_idx.</span>
+      <span class="n">flattened_bboxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span>
+                                    <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span> <span class="o">*</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+      <span class="n">flattened_visualization_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">visualization_weights</span><span class="p">,</span>
+          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span> <span class="o">*</span> <span class="n">num_boxes</span><span class="p">])</span>
+
+      <span class="c1"># Create a label id mask for now to maintain compatibility.</span>
+      <span class="c1"># TODO(bencaine): Refactor visualizations to reflect new structure.</span>
+      <span class="n">flattened_visualization_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+          <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
+          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">])</span>
+      <span class="n">flattened_visualization_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">flattened_visualization_labels</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span> <span class="o">*</span> <span class="n">num_boxes</span><span class="p">])</span>
+      <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">top_down_visualization</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+              <span class="s1">&#39;visualization_labels&#39;</span><span class="p">:</span> <span class="n">flattened_visualization_labels</span><span class="p">,</span>
+              <span class="s1">&#39;predicted_bboxes&#39;</span><span class="p">:</span> <span class="n">flattened_bboxes</span><span class="p">,</span>
+              <span class="s1">&#39;visualization_weights&#39;</span><span class="p">:</span> <span class="n">flattened_visualization_weights</span><span class="p">,</span>
+              <span class="s1">&#39;points_xyz&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">points_xyz</span><span class="p">,</span>
+              <span class="s1">&#39;points_padding&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">points_padding</span><span class="p">,</span>
+              <span class="s1">&#39;gt_bboxes_2d&#39;</span><span class="p">:</span> <span class="n">bboxes_2d</span><span class="p">,</span>
+              <span class="s1">&#39;gt_bboxes_2d_weights&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d_mask</span><span class="p">,</span>
+              <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+              <span class="s1">&#39;difficulties&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
+              <span class="s1">&#39;source_ids&#39;</span><span class="p">:</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">source_ids</span><span class="p">,</span>
+          <span class="p">}))</span>
+
+    <span class="c1"># Update AP metrics.</span>
+
+    <span class="c1"># Skip zeroth step decoding.</span>
+    <span class="k">if</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">global_step</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># TODO(bencaine/vrv): Refactor to unify Waymo code and KITTI</span>
+
+    <span class="c1"># Returned values are saved in model_dir/decode_* directories.</span>
+    <span class="n">output_to_save</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">batch_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+      <span class="n">pred_bboxes</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_predicted_bboxes</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span>
+      <span class="n">pred_bbox_scores</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_predicted_bbox_scores</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span>
+
+      <span class="c1"># The current API expects a &#39;height&#39; matrix to be passed for filtering</span>
+      <span class="c1"># detections based on height.  This is a KITTI-ism that we need to remove,</span>
+      <span class="c1"># but for now we just give a height of 1.  The MinHeight metadata function</span>
+      <span class="c1"># for non-KITTI datasets should have a threshold lower than this value.</span>
+      <span class="n">heights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+      <span class="n">gt_mask</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+      <span class="n">gt_labels</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
+      <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
+      <span class="n">gt_difficulties</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
+      <span class="n">gt_num_points</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">num_points_in_bboxes</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
+
+      <span class="k">for</span> <span class="n">metric_cls</span> <span class="ow">in</span> <span class="p">[</span>
+          <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">waymo_metrics</span><span class="p">,</span> <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">waymo_metrics_bev</span><span class="p">,</span>
+          <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">kitti_metrics</span>
+      <span class="p">]:</span>
+        <span class="n">metric_cls</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+            <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">source_ids</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+                <span class="n">groundtruth_labels</span><span class="o">=</span><span class="n">gt_labels</span><span class="p">,</span>
+                <span class="n">groundtruth_bboxes</span><span class="o">=</span><span class="n">gt_bboxes</span><span class="p">,</span>
+                <span class="n">groundtruth_difficulties</span><span class="o">=</span><span class="n">gt_difficulties</span><span class="p">,</span>
+                <span class="n">groundtruth_num_points</span><span class="o">=</span><span class="n">gt_num_points</span><span class="p">,</span>
+                <span class="n">detection_scores</span><span class="o">=</span><span class="n">pred_bbox_scores</span><span class="p">,</span>
+                <span class="n">detection_boxes</span><span class="o">=</span><span class="n">pred_bboxes</span><span class="p">,</span>
+                <span class="n">detection_heights_in_pixels</span><span class="o">=</span><span class="n">heights</span><span class="p">,</span>
+            <span class="p">))</span>
+
+      <span class="n">gt_save_mask</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+          <span class="nb">bool</span><span class="p">)</span>
+      <span class="n">pd_save_mask</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_valid_mask</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+      <span class="n">class_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_classes</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">])</span>
+
+      <span class="n">saved_results</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">pose</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">pose</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span>
+          <span class="n">frame_id</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">source_ids</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span>
+          <span class="n">bboxes</span><span class="o">=</span><span class="n">pred_bboxes</span><span class="p">[</span><span class="n">pd_save_mask</span><span class="p">],</span>
+          <span class="n">scores</span><span class="o">=</span><span class="n">pred_bbox_scores</span><span class="p">[</span><span class="n">pd_save_mask</span><span class="p">],</span>
+          <span class="n">gt_labels</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
+          <span class="n">gt_label_ids</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">label_ids</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
+          <span class="n">class_ids</span><span class="o">=</span><span class="n">class_ids</span><span class="p">[</span><span class="n">pd_save_mask</span><span class="p">],</span>
+          <span class="n">gt_bboxes</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
+          <span class="n">gt_difficulties</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
+      <span class="p">)</span>
+      <span class="n">serialized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SaveTensors</span><span class="p">(</span><span class="n">saved_results</span><span class="p">)</span>
+      <span class="n">output_to_save</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">source_ids</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span> <span class="n">serialized</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">output_to_save</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
