@@ -161,13 +161,14 @@ def AddLaserAndCamera(params):
   if job != 'decoder':
     return params
 
-  extractor_params = params.extractors.values()
+  extractor_params = dict(params.extractors.IterParams()).values()
   extractor_classes = [p.cls for p in extractor_params]
 
   # Add images if not present.
   if kitti_input_generator.KITTIImageExtractor not in extractor_classes:
-    params.extractors.images = kitti_input_generator.KITTIImageExtractor.Params(
-    )
+    params.extractors.Define('images',
+                             kitti_input_generator.KITTIImageExtractor.Params(),
+                             '')
 
   # Add raw lasers if not present.
   if kitti_input_generator.KITTILaserExtractor not in extractor_classes:
@@ -177,8 +178,8 @@ def AddLaserAndCamera(params):
         labels = p
     if labels is None:
       labels = kitti_input_generator.KITTILabelExtractor.Params()
-    params.extractors.lasers = kitti_input_generator.KITTILaserExtractor.Params(
-        labels)
+    params.extractors.Define(
+        'lasers', kitti_input_generator.KITTILaserExtractor.Params(labels), '')
 
   return params
 
