@@ -15,11 +15,16 @@
 # ==============================================================================
 r"""Tool to convert Waymo Open Dataset to tf.Examples.
 
-Run via:
+An example of running on Cloud DataFlow: (not verified working yet).
 
-python generate_waymo_tf.py \
-  --input_file_pattern=/path/to/input/filepattern \
-  --output_filebase=/dir/to/write/output@10
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
+
+path/to/generate_waymo_tf.py \
+  --input_file_pattern=gs://path/to/waymo/inputs \
+  --output_filebase=gs://$BUCKET/waymo/training/output@1000 -- \
+  --project=$PROJECT \
+  --temp_location=$TEMP_DIR \
+  --runner=DataflowRunner
 """
 
 from __future__ import absolute_import
@@ -45,13 +50,13 @@ FLAGS = flags.FLAGS
 
 
 def main(argv):
-  if len(argv) > 1:
-    raise app.UsageError('Too many command-line arguments.')
-
   beam_utils.BeamInit()
 
   assert FLAGS.input_file_pattern
   assert FLAGS.output_filebase
+
+  # Construct pipeline options from argv.
+  options = beam.options.pipeline_options.PipelineOptions(argv[1:])
 
   reader = beam_utils.GetReader(
       'tfrecord',
@@ -64,7 +69,7 @@ def main(argv):
       value_coder=beam.coders.ProtoCoder(tf.train.Example))
 
   emitter_fn = beam_utils.GetEmitterFn('tfrecord')
-  with beam_utils.GetPipelineRoot() as root:
+  with beam_utils.GetPipelineRoot(options=options) as root:
     _ = (
         root
         | 'Read' >> reader

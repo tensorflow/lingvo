@@ -32,7 +32,7 @@ def BeamInit():
   pass
 
 
-def GetPipelineRoot():
+def GetPipelineRoot(options=None):
   """Return the root of the beam pipeline.
 
   Typical usage looks like:
@@ -44,10 +44,13 @@ def GetPipelineRoot():
   exited, though one can manually run the pipeline built from the root object as
   well.
 
+  Args:
+    options: A beam.options.pipeline_options.PipelineOptions object.
+
   Returns:
     A beam.Pipeline root object.
   """
-  return beam.Pipeline()
+  return beam.Pipeline(options=options)
 
 
 def GetReader(record_format, file_pattern, value_coder, **kwargs):
