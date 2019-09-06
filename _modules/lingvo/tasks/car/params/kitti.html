@@ -306,13 +306,14 @@
   <span class="k">if</span> <span class="n">job</span> <span class="o">!=</span> <span class="s1">&#39;decoder&#39;</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">params</span>
 
-  <span class="n">extractor_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+  <span class="n">extractor_params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
   <span class="n">extractor_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">cls</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">extractor_params</span><span class="p">]</span>
 
   <span class="c1"># Add images if not present.</span>
   <span class="k">if</span> <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTIImageExtractor</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">extractor_classes</span><span class="p">:</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTIImageExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
-    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;images&#39;</span><span class="p">,</span>
+                             <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTIImageExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+                             <span class="s1">&#39;&#39;</span><span class="p">)</span>
 
   <span class="c1"># Add raw lasers if not present.</span>
   <span class="k">if</span> <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTILaserExtractor</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">extractor_classes</span><span class="p">:</span>
@@ -322,8 +323,8 @@
         <span class="n">labels</span> <span class="o">=</span> <span class="n">p</span>
     <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">labels</span> <span class="o">=</span> <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">lasers</span> <span class="o">=</span> <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTILaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
-        <span class="n">labels</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;lasers&#39;</span><span class="p">,</span> <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTILaserExtractor</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">labels</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">params</span></div>
 
