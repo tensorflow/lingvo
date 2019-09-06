@@ -52,6 +52,18 @@ RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
     python get-pip.py && \
     rm get-pip.py
 
+ARG bazel_version=0.28.1
+# This is to install bazel, for development purposes.
+ENV BAZEL_VERSION ${bazel_version}
+RUN mkdir /bazel && \
+    cd /bazel && \
+    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -o /bazel/LICENSE.txt https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE && \
+    chmod +x bazel-*.sh && \
+    ./bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    cd / && \
+    rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
+
 ARG pip_dependencies='contextlib2 \
       Pillow \
       h5py \
@@ -84,18 +96,13 @@ RUN jupyter serverextension enable --py jupyter_http_over_ws
 RUN pip2 --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")==1.15.0.dev20190814
 RUN pip3 --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")==1.15.0.dev20190814
 
-ARG bazel_version=0.28.1
-# This is to install bazel, for development purposes.
-ENV BAZEL_VERSION ${bazel_version}
-RUN mkdir /bazel && \
-    cd /bazel && \
-    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -O https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
-    curl -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36" -fSsL -o /bazel/LICENSE.txt https://raw.githubusercontent.com/bazelbuild/bazel/master/LICENSE && \
-    chmod +x bazel-*.sh && \
-    ./bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
-    cd / && \
-    rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
+# Install pip packages that may depend on TensorFlow.
 
+# Because this image uses tf-nightly 1.15, we install a special
+# version of waymo-open-dataset.
+ARG post_tf_pip_dependencies='waymo-od-tf1-15'
+RUN pip2 --no-cache-dir install $post_tf_pip_dependencies && \
+    pip3 --no-cache-dir install $post_tf_pip_dependencies
 
 # TensorBoard
 EXPOSE 6006
