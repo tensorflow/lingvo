@@ -107,13 +107,43 @@ def AddAttentionSummary(attention_tensors,
                         max_outputs=3):
   """Adds an image summary showing the attention probability matrix and state.
 
+  Tensors are in sequence tensor format with the batch dimension in axis 1.
+
   Args:
     attention_tensors: A list of 3D tensors shaped [target_len, batch_size,
-       source_len] where attention[i, j, k] is the probability for the i-th
-       output attending to the k-th input for element j in the batch.
+      source_len] where attention[i, j, k] is the probability for the i-th
+      output attending to the k-th input for element j in the batch.
     src_paddings: A tensor of binary paddings shaped [source_len, batch] for the
       source sequence.
     tgt_paddings: A tensor of binary paddings shaped [target_len, batch] for the
+      target sequence.
+    transcripts: Optional, transcripts shaped [batch, source_len] for the source
+      sequence.
+    max_outputs: Integer maximum number of elements of the batch to plot.
+  """
+  AddAttentionSummaryBatchMajor(
+      [tf.transpose(atten, [1, 0, 2]) for atten in attention_tensors],
+      tf.transpose(src_paddings), tf.transpose(tgt_paddings), transcripts,
+      max_outputs)
+
+
+def AddAttentionSummaryBatchMajor(attention_tensors,
+                                  src_paddings,
+                                  tgt_paddings,
+                                  transcripts=None,
+                                  max_outputs=3):
+  """Adds an image summary showing the attention probability matrix and state.
+
+  As opposed to AddAttentionSummary() takes all tensors with batch dimension in
+  axis 0.
+
+  Args:
+    attention_tensors: A list of 3D tensors shaped [batch_size, target_len,
+      source_len] where attention[b, i, j] is the probability for the i-th
+      output attending to the j-th input for element b in the batch.
+    src_paddings: A tensor of binary paddings shaped [batch, source_len] for the
+      source sequence.
+    tgt_paddings: A tensor of binary paddings shaped [batch, target_len] for the
       target sequence.
     transcripts: Optional, transcripts shaped [batch, source_len] for the source
       sequence.
@@ -123,16 +153,16 @@ def AddAttentionSummary(attention_tensors,
   if not _ShouldAddSummary():
     return
   with plot.MatplotlibFigureSummary(name, max_outputs=max_outputs) as fig:
-    src_lens = SequenceLength(tf.transpose(src_paddings))
-    tgt_lens = SequenceLength(tf.transpose(tgt_paddings))
+    src_lens = SequenceLength(src_paddings)
+    tgt_lens = SequenceLength(tgt_paddings)
     for n, atten in enumerate(attention_tensors):
       # Diagnostic metric that decreases as attention picks up.
       max_entropy = tf.log(tf.cast(src_lens, tf.float32))
-      max_entropy = tf.expand_dims(tf.expand_dims(max_entropy, 0), -1)
+      max_entropy = tf.expand_dims(tf.expand_dims(max_entropy, -1), -1)
       atten_normalized_entropy = -atten * tf.log(atten + 1e-10) / max_entropy
       scalar('Attention/average_normalized_entropy/%d' % n,
              tf.reduce_mean(atten_normalized_entropy))
-      args = [tf.transpose(atten, [1, 0, 2]), src_lens, tgt_lens]
+      args = [atten, src_lens, tgt_lens]
       if transcripts is not None and n == 0:
         args.append(transcripts)
       fig.AddSubplot(
