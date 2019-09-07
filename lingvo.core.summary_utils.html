@@ -241,6 +241,7 @@
 <dt id="lingvo.core.summary_utils.AddAttentionSummary">
 <code class="sig-prename descclassname">lingvo.core.summary_utils.</code><code class="sig-name descname">AddAttentionSummary</code><span class="sig-paren">(</span><em class="sig-param">attention_tensors</em>, <em class="sig-param">src_paddings</em>, <em class="sig-param">tgt_paddings</em>, <em class="sig-param">transcripts=None</em>, <em class="sig-param">max_outputs=3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/summary_utils.html#AddAttentionSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.summary_utils.AddAttentionSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds an image summary showing the attention probability matrix and state.</p>
+<p>Tensors are in sequence tensor format with the batch dimension in axis 1.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -250,6 +251,30 @@ output attending to the k-th input for element j in the batch.</p></li>
 <li><p><strong>src_paddings</strong> – A tensor of binary paddings shaped [source_len, batch] for the
 source sequence.</p></li>
 <li><p><strong>tgt_paddings</strong> – A tensor of binary paddings shaped [target_len, batch] for the
+target sequence.</p></li>
+<li><p><strong>transcripts</strong> – Optional, transcripts shaped [batch, source_len] for the source
+sequence.</p></li>
+<li><p><strong>max_outputs</strong> – Integer maximum number of elements of the batch to plot.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.summary_utils.AddAttentionSummaryBatchMajor">
+<code class="sig-prename descclassname">lingvo.core.summary_utils.</code><code class="sig-name descname">AddAttentionSummaryBatchMajor</code><span class="sig-paren">(</span><em class="sig-param">attention_tensors</em>, <em class="sig-param">src_paddings</em>, <em class="sig-param">tgt_paddings</em>, <em class="sig-param">transcripts=None</em>, <em class="sig-param">max_outputs=3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/summary_utils.html#AddAttentionSummaryBatchMajor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.summary_utils.AddAttentionSummaryBatchMajor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds an image summary showing the attention probability matrix and state.</p>
+<p>As opposed to AddAttentionSummary() takes all tensors with batch dimension in
+axis 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>attention_tensors</strong> – A list of 3D tensors shaped [batch_size, target_len,
+source_len] where attention[b, i, j] is the probability for the i-th
+output attending to the j-th input for element b in the batch.</p></li>
+<li><p><strong>src_paddings</strong> – A tensor of binary paddings shaped [batch, source_len] for the
+source sequence.</p></li>
+<li><p><strong>tgt_paddings</strong> – A tensor of binary paddings shaped [batch, target_len] for the
 target sequence.</p></li>
 <li><p><strong>transcripts</strong> – Optional, transcripts shaped [batch, source_len] for the source
 sequence.</p></li>
