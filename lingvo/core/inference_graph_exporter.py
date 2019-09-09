@@ -152,37 +152,64 @@ def ConvertSubgraphDictToProto(subgraphs_dict):
 
 def GetOutputOpNames(graph,
                      inference_graph_proto,
-                     preserve_colocation_nodes=True):
+                     subgraphs=None,
+                     preserve_colocation_nodes=True,
+                     preserve_saver_restore_nodes=False,
+                     preserve_extra_ops=None):
   """Gets output op names from an inference graph.
 
   Args:
     graph: The tf graph.
     inference_graph_proto: an InferenceGraph proto.
+    subgraphs: an optional list of subgraph names. If provided, only output ops
+      from these subgraphs are preserved. Otherwise, all subgraphs are included.
     preserve_colocation_nodes: a Python bool, default to True. Preserves nodes
       colocating with the closure of output ops in the returned array.
+    preserve_saver_restore_nodes: a Python bool, default to True. Preserves
+      nodes for restoring according to inference_graph_proto.saver_def.
+    preserve_extra_ops: an optional list of extra op names to preserve as long
+      as they present in the graph.
 
   Returns:
     Array of tf op names that should be preserved in the graph.
   """
   output_op_names = set()
-  for subgraph in six.itervalues(inference_graph_proto.subgraphs):
+
+  def _GetOpName(tensor_or_op_name):
+    """Returns the op name of the given node name."""
+    # Tensor names have format <op_name>:<output_index>. Some inference
+    # graphs put tensors and others put ops in the feeds/fetches (depends
+    # on how it is used). We differentiate here. We still do the lookup in
+    # the graph to sanity check (versus relying on the text manipulation).
+    # If this logic ever breaks, TensorFlow will raise a ValueError with
+    # a description of the syntax of each.
+    if re.search(r':[0-9]+$', tensor_or_op_name):
+      # Tensor-name.
+      t = graph.get_tensor_by_name(tensor_or_op_name)
+      return t.op.name
+    else:
+      op = graph.get_operation_by_name(tensor_or_op_name)
+      return op.name
+
+  for subgraph_name, subgraph in six.iteritems(inference_graph_proto.subgraphs):
+    if subgraphs and subgraph_name not in subgraphs:
+      tf.logging.info('Skip subgraph %s.', subgraph_name)
+      continue
     # Sometimes feeds aren't connected to any outputs but keep them in the graph
     # anyways to avoid errors.
     for tensor_or_op_name in (
         list(subgraph.feeds.values()) + list(subgraph.fetches.values())):
-      # Tensor names have format <op_name>:<output_index>. Some inference
-      # graphs put tensors and others put ops in the feeds/fetches (depends
-      # on how it is used). We differentiate here. We still do the lookup in
-      # the graph to sanity check (versus relying on the text manipulation).
-      # If this logic ever breaks, TensorFlow will raise a ValueError with
-      # a description of the syntax of each.
-      if re.search(r':[0-9]+$', tensor_or_op_name):
-        # Tensor-name.
-        t = graph.get_tensor_by_name(tensor_or_op_name)
-        output_op_names.add(t.op.name)
-      else:
-        op = graph.get_operation_by_name(tensor_or_op_name)
-        output_op_names.add(op.name)
+      output_op_names.add(_GetOpName(tensor_or_op_name))
+
+  if preserve_saver_restore_nodes:
+    # Only nodes for restoring is preserved. saver_def.save_tensor_name is
+    # skipped because it's only used for saving.
+    saver_def = inference_graph_proto.saver_def
+    output_op_names.add(_GetOpName(saver_def.filename_tensor_name))
+    output_op_names.add(_GetOpName(saver_def.restore_op_name))
+
+  if not preserve_colocation_nodes and not preserve_extra_ops:
+    return sorted(list(output_op_names))
 
   # We also need to preserve any nodes that are used for colocation.
   # E.g., a node may have this attr:
@@ -204,11 +231,10 @@ def GetOutputOpNames(graph,
                                               list(output_op_names))
   reachable_vars = [node.name for node in graph_def.node]
 
-  if not preserve_colocation_nodes:
-    return sorted(list(output_op_names))
-
   for node in graph.get_operations():
-    if '_class' in node.node_def.attr:
+    if preserve_extra_ops and node.name in preserve_extra_ops:
+      output_op_names.add(node.name)
+    elif preserve_colocation_nodes and '_class' in node.node_def.attr:
       for loc in node.node_def.attr['_class'].list.s:
         loc = loc.decode('utf-8')
         if loc.startswith('loc:@'):

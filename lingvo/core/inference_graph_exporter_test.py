@@ -354,5 +354,114 @@ class InferenceGraphExporterLinearModelTest(test_utils.TestCase):
     self.assertNotEqual(fixed_op_seed_1, fixed_op_seed_4)
 
 
+class GetOutputNamesTest(test_utils.TestCase):
+
+  def _TestGraph(self):
+    params = model_registry.GetParams('test.LinearModelParams', 'Test')
+    inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(
+        params)
+    graph = tf.Graph()
+    with graph.as_default():
+      tf.import_graph_def(inference_graph.graph_def, name='')
+    return graph, inference_graph
+
+  def testDefault(self):
+    graph, inference_graph = self._TestGraph()
+    output_op_names = inference_graph_exporter.GetOutputOpNames(
+        graph, inference_graph)
+    self.assertEqual(output_op_names, [
+        # pyformat: disable
+        'inference/add_2',
+        'inference/input',
+        'save/Assign_1',
+        'save/Assign_2',
+        'testing/b/var',
+        'testing/b/var/Assign',
+        'testing/b/var/Initializer/random_normal',
+        'testing/b/var/Initializer/random_normal/RandomStandardNormal',
+        'testing/b/var/Initializer/random_normal/mean',
+        'testing/b/var/Initializer/random_normal/mul',
+        'testing/b/var/Initializer/random_normal/shape',
+        'testing/b/var/Initializer/random_normal/stddev',
+        'testing/b/var/read',
+        'testing/w/var',
+        'testing/w/var/Assign',
+        'testing/w/var/Initializer/random_normal',
+        'testing/w/var/Initializer/random_normal/RandomStandardNormal',
+        'testing/w/var/Initializer/random_normal/mean',
+        'testing/w/var/Initializer/random_normal/mul',
+        'testing/w/var/Initializer/random_normal/shape',
+        'testing/w/var/Initializer/random_normal/stddev',
+        'testing/w/var/read',
+        # pyformat: enable
+    ])
+
+  def testNoPreserveColocationNodes(self):
+    graph, inference_graph = self._TestGraph()
+    output_op_names = inference_graph_exporter.GetOutputOpNames(
+        graph, inference_graph, preserve_colocation_nodes=False)
+    self.assertEqual(output_op_names, [
+        # pyformat: disable
+        'inference/add_2',
+        'inference/input',
+        # pyformat: enable
+    ])
+
+  def testPreserveSaverRestoreNodes(self):
+    graph, inference_graph = self._TestGraph()
+    output_op_names = inference_graph_exporter.GetOutputOpNames(
+        graph,
+        inference_graph,
+        preserve_colocation_nodes=False,
+        preserve_saver_restore_nodes=True)
+    self.assertEqual(output_op_names, [
+        # pyformat: disable
+        'inference/add_2',
+        'inference/input',
+        'save/Const',
+        'save/restore_all',
+        # pyformat: enable
+    ])
+
+  def testPreserveExtraOps(self):
+    graph, inference_graph = self._TestGraph()
+    output_op_names = inference_graph_exporter.GetOutputOpNames(
+        graph,
+        inference_graph,
+        preserve_colocation_nodes=False,
+        preserve_extra_ops=[
+            'init_all_tables', 'init_all_variables', 'tpu_init_op'
+        ])
+    self.assertEqual(output_op_names, [
+        # pyformat: disable
+        'inference/add_2',
+        'inference/input',
+        'init_all_tables',
+        'init_all_variables',
+        # pyformat: enable
+    ])
+
+  def testPreserveSaverNodesAndExtraOps(self):
+    graph, inference_graph = self._TestGraph()
+    output_op_names = inference_graph_exporter.GetOutputOpNames(
+        graph,
+        inference_graph,
+        preserve_colocation_nodes=False,
+        preserve_saver_restore_nodes=True,
+        preserve_extra_ops=[
+            'init_all_tables', 'init_all_variables', 'tpu_init_op'
+        ])
+    self.assertEqual(output_op_names, [
+        # pyformat: disable
+        'inference/add_2',
+        'inference/input',
+        'init_all_tables',
+        'init_all_variables',
+        'save/Const',
+        'save/restore_all',
+        # pyformat: enable
+    ])
+
+
 if __name__ == '__main__':
   tf.test.main()
