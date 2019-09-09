@@ -824,67 +824,22 @@ The value when the key is not found.</p></li>
 
 <dl class="function">
 <dt id="lingvo.core.ops.v">
-<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">file_pattern</em>, <em class="sig-param">bucket_upper_bound</em>, <em class="sig-param">bucket_batch_limit</em>, <em class="sig-param">out_types</em>, <em class="sig-param">processor</em>, <em class="sig-param">input_source_weights=[]</em>, <em class="sig-param">file_random_seed=301</em>, <em class="sig-param">file_buffer_size=10000</em>, <em class="sig-param">file_parallelism=16</em>, <em class="sig-param">bucket_adjust_every_n=0</em>, <em class="sig-param">flush_every_n=0</em>, <em class="sig-param">num_threads=1</em>, <em class="sig-param">require_sequential_order=False</em>, <em class="sig-param">use_chaining=False</em>, <em class="sig-param">dynamic_padding_dimensions=[]</em>, <em class="sig-param">dynamic_padding_constants=[]</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>Produces examples from processed from records.</p>
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">token</em>, <em class="sig-param">vocab</em>, <em class="sig-param">load_token_ids_from_vocab=False</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up the token in the vocab and return its id.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file_pattern</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
-A comma-separated list of glob patterns or sharded file patternsfor the data files. A sharded file pattern looks like <a class="reference external" href="mailto:/path/name&#37;&#52;&#48;100">/path/name<span>&#64;</span>100</a> or /path/name&#64;*.</p></li>
-<li><p><strong>bucket_upper_bound</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>.
-Bucketing scheme. Specifies each bucket’s upper bound.</p></li>
-<li><p><strong>bucket_batch_limit</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>.
-Batching scheme. Specifies each bucket’s maximum batchsize.</p></li>
-<li><p><strong>out_types</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.DTypes</span></code> that has length <code class="xref py py-obj docutils literal notranslate"><span class="pre">&gt;=</span> <span class="pre">1</span></code>.
-A list of tensor types.</p></li>
-<li><p><strong>processor</strong> – A function decorated with &#64;Defun.
-A function that processes a string (one record) and returns
-a list of tensors. The last tensor must be a int32 scalar, which is
-used in conjunction with <code class="xref py py-obj docutils literal notranslate"><span class="pre">bucket_upper_bound</span></code> to bucket all the
-samples.  The other tensors belongs to one sample. They have the
-respective <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_types</span></code>.  These tensors’ first dimension are _not_ the
-batch dimension. Instead, when multiple samples are merged into a
-batch, GenericInput’s implementation expand the batch dimension (dim
-0) and concatenate the corresponding tensors into one tensor.</p></li>
-<li><p><strong>input_source_weights</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
-A list of input sources weights that control the inputexample mix. The records will be sampled from inputs proportionally to theseweights. When empty list is provided, no mix weighting will be done.Defaults to empty list.</p></li>
-<li><p><strong>file_random_seed</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">301</span></code>.
-Random seeds used to produce randomized records.</p></li>
-<li><p><strong>file_buffer_size</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">10000</span></code>.
-The randomization shuffling buffer.</p></li>
-<li><p><strong>file_parallelism</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">16</span></code>.
-How many sstables are opened and concurrently iterated over.</p></li>
-<li><p><strong>bucket_adjust_every_n</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0</span></code>.
-If non-zero, optimize the values of bucket_upper_boundexcept the last one after every N records based on the current input lengthdistribution.</p></li>
-<li><p><strong>flush_every_n</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0</span></code>.
-If non-zero, flushes all batches buffered so far every thesemany records are yielded.</p></li>
-<li><p><strong>num_threads</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span></code>.
-Number of threads to use for the record batcher. Each threadfills separate batches based on bucket limits.</p></li>
-<li><p><strong>require_sequential_order</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#False" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
-If true, the input op is required to process the fileglob as well as the contents of each file in a deterministic sequential order.Setting this automatically disables file_random_seed, file_buffer_size,file_parallelism, num_threads, and requires a single file_pattern.</p></li>
-<li><p><strong>use_chaining</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#False" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
-If true, the input op is outputing records from file patterns in order. That is, first all records from first file pattern will be yielded, then all records from the second file pattern and so on. If false, the records from different file patterns will be mixed.</p></li>
-<li><p><strong>dynamic_padding_dimensions</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
-If not empty, must be the same length as out.
-Specifies the 0-indexed dimension to pad dynamically for each output.
-The output is padded to the longest tensor in the batch along the dimension.
-The first (0-th) dimension is _not_ the batch dimension. A value of -1
-indicates the specified output should not be padded, eg. if the output is a
-scalar rather than a sequence.</p></li>
-<li><p><strong>dynamic_padding_constants</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
-Must be set if <code class="xref py py-obj docutils literal notranslate"><span class="pre">dynamic_padding_dimension</span></code> is
-provided. The constant value to use for padding.</p></li>
+<li><p><strong>token</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A scalar or list of strings.</p></li>
+<li><p><strong>vocab</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>. A list of strings.</p></li>
+<li><p><strong>load_token_ids_from_vocab</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#False" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+Whether token ids are present in vocab (i.e. vocab
+contains two colums, one for IDs and one for words).  If false, line numbers
+are used.</p></li>
 <li><p><strong>name</strong> – A name for the operation (optional).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (out, bucket_keys).</p>
-<dl class="simple">
-<dt>out: A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_types</span></code>. The 1st dimension of every tensor is the batch dimension.</dt><dd><p></p>
-</dd>
-</dl>
-<p>bucket_keys: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</p>
-</p>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A scalar or list of ints.</p>
 </dd>
 </dl>
 </dd></dl>
