@@ -290,15 +290,21 @@ NestedMap.</p>
 
 <dl class="function">
 <dt id="lingvo.core.inference_graph_exporter.GetOutputOpNames">
-<code class="sig-prename descclassname">lingvo.core.inference_graph_exporter.</code><code class="sig-name descname">GetOutputOpNames</code><span class="sig-paren">(</span><em class="sig-param">graph</em>, <em class="sig-param">inference_graph_proto</em>, <em class="sig-param">preserve_colocation_nodes=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#GetOutputOpNames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.GetOutputOpNames" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.inference_graph_exporter.</code><code class="sig-name descname">GetOutputOpNames</code><span class="sig-paren">(</span><em class="sig-param">graph</em>, <em class="sig-param">inference_graph_proto</em>, <em class="sig-param">subgraphs=None</em>, <em class="sig-param">preserve_colocation_nodes=True</em>, <em class="sig-param">preserve_saver_restore_nodes=False</em>, <em class="sig-param">preserve_extra_ops=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#GetOutputOpNames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.GetOutputOpNames" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets output op names from an inference graph.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>graph</strong> – The tf graph.</p></li>
 <li><p><strong>inference_graph_proto</strong> – an InferenceGraph proto.</p></li>
+<li><p><strong>subgraphs</strong> – an optional list of subgraph names. If provided, only output ops
+from these subgraphs are preserved. Otherwise, all subgraphs are included.</p></li>
 <li><p><strong>preserve_colocation_nodes</strong> – a Python bool, default to True. Preserves nodes
 colocating with the closure of output ops in the returned array.</p></li>
+<li><p><strong>preserve_saver_restore_nodes</strong> – a Python bool, default to True. Preserves
+nodes for restoring according to inference_graph_proto.saver_def.</p></li>
+<li><p><strong>preserve_extra_ops</strong> – an optional list of extra op names to preserve as long
+as they present in the graph.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

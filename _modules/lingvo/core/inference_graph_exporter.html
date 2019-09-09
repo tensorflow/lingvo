@@ -297,37 +297,64 @@
 
 <div class="viewcode-block" id="GetOutputOpNames"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.GetOutputOpNames">[docs]</a><span class="k">def</span> <span class="nf">GetOutputOpNames</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span>
                      <span class="n">inference_graph_proto</span><span class="p">,</span>
-                     <span class="n">preserve_colocation_nodes</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                     <span class="n">subgraphs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">preserve_colocation_nodes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                     <span class="n">preserve_saver_restore_nodes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                     <span class="n">preserve_extra_ops</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Gets output op names from an inference graph.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    graph: The tf graph.</span>
 <span class="sd">    inference_graph_proto: an InferenceGraph proto.</span>
+<span class="sd">    subgraphs: an optional list of subgraph names. If provided, only output ops</span>
+<span class="sd">      from these subgraphs are preserved. Otherwise, all subgraphs are included.</span>
 <span class="sd">    preserve_colocation_nodes: a Python bool, default to True. Preserves nodes</span>
 <span class="sd">      colocating with the closure of output ops in the returned array.</span>
+<span class="sd">    preserve_saver_restore_nodes: a Python bool, default to True. Preserves</span>
+<span class="sd">      nodes for restoring according to inference_graph_proto.saver_def.</span>
+<span class="sd">    preserve_extra_ops: an optional list of extra op names to preserve as long</span>
+<span class="sd">      as they present in the graph.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    Array of tf op names that should be preserved in the graph.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">output_op_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-  <span class="k">for</span> <span class="n">subgraph</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">itervalues</span><span class="p">(</span><span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="nf">_GetOpName</span><span class="p">(</span><span class="n">tensor_or_op_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the op name of the given node name.&quot;&quot;&quot;</span>
+    <span class="c1"># Tensor names have format &lt;op_name&gt;:&lt;output_index&gt;. Some inference</span>
+    <span class="c1"># graphs put tensors and others put ops in the feeds/fetches (depends</span>
+    <span class="c1"># on how it is used). We differentiate here. We still do the lookup in</span>
+    <span class="c1"># the graph to sanity check (versus relying on the text manipulation).</span>
+    <span class="c1"># If this logic ever breaks, TensorFlow will raise a ValueError with</span>
+    <span class="c1"># a description of the syntax of each.</span>
+    <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;:[0-9]+$&#39;</span><span class="p">,</span> <span class="n">tensor_or_op_name</span><span class="p">):</span>
+      <span class="c1"># Tensor-name.</span>
+      <span class="n">t</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_tensor_by_name</span><span class="p">(</span><span class="n">tensor_or_op_name</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">op</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operation_by_name</span><span class="p">(</span><span class="n">tensor_or_op_name</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span>
+
+  <span class="k">for</span> <span class="n">subgraph_name</span><span class="p">,</span> <span class="n">subgraph</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">subgraphs</span> <span class="ow">and</span> <span class="n">subgraph_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">subgraphs</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Skip subgraph </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">subgraph_name</span><span class="p">)</span>
+      <span class="k">continue</span>
     <span class="c1"># Sometimes feeds aren&#39;t connected to any outputs but keep them in the graph</span>
     <span class="c1"># anyways to avoid errors.</span>
     <span class="k">for</span> <span class="n">tensor_or_op_name</span> <span class="ow">in</span> <span class="p">(</span>
         <span class="nb">list</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">feeds</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">fetches</span><span class="o">.</span><span class="n">values</span><span class="p">())):</span>
-      <span class="c1"># Tensor names have format &lt;op_name&gt;:&lt;output_index&gt;. Some inference</span>
-      <span class="c1"># graphs put tensors and others put ops in the feeds/fetches (depends</span>
-      <span class="c1"># on how it is used). We differentiate here. We still do the lookup in</span>
-      <span class="c1"># the graph to sanity check (versus relying on the text manipulation).</span>
-      <span class="c1"># If this logic ever breaks, TensorFlow will raise a ValueError with</span>
-      <span class="c1"># a description of the syntax of each.</span>
-      <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;:[0-9]+$&#39;</span><span class="p">,</span> <span class="n">tensor_or_op_name</span><span class="p">):</span>
-        <span class="c1"># Tensor-name.</span>
-        <span class="n">t</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_tensor_by_name</span><span class="p">(</span><span class="n">tensor_or_op_name</span><span class="p">)</span>
-        <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">op</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operation_by_name</span><span class="p">(</span><span class="n">tensor_or_op_name</span><span class="p">)</span>
-        <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">_GetOpName</span><span class="p">(</span><span class="n">tensor_or_op_name</span><span class="p">))</span>
+
+  <span class="k">if</span> <span class="n">preserve_saver_restore_nodes</span><span class="p">:</span>
+    <span class="c1"># Only nodes for restoring is preserved. saver_def.save_tensor_name is</span>
+    <span class="c1"># skipped because it&#39;s only used for saving.</span>
+    <span class="n">saver_def</span> <span class="o">=</span> <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">saver_def</span>
+    <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">_GetOpName</span><span class="p">(</span><span class="n">saver_def</span><span class="o">.</span><span class="n">filename_tensor_name</span><span class="p">))</span>
+    <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">_GetOpName</span><span class="p">(</span><span class="n">saver_def</span><span class="o">.</span><span class="n">restore_op_name</span><span class="p">))</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">preserve_colocation_nodes</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">preserve_extra_ops</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">output_op_names</span><span class="p">))</span>
 
   <span class="c1"># We also need to preserve any nodes that are used for colocation.</span>
   <span class="c1"># E.g., a node may have this attr:</span>
@@ -349,11 +376,10 @@
                                               <span class="nb">list</span><span class="p">(</span><span class="n">output_op_names</span><span class="p">))</span>
   <span class="n">reachable_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph_def</span><span class="o">.</span><span class="n">node</span><span class="p">]</span>
 
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">preserve_colocation_nodes</span><span class="p">:</span>
-    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">output_op_names</span><span class="p">))</span>
-
   <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">():</span>
-    <span class="k">if</span> <span class="s1">&#39;_class&#39;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">node_def</span><span class="o">.</span><span class="n">attr</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">preserve_extra_ops</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">preserve_extra_ops</span><span class="p">:</span>
+      <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">preserve_colocation_nodes</span> <span class="ow">and</span> <span class="s1">&#39;_class&#39;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">node_def</span><span class="o">.</span><span class="n">attr</span><span class="p">:</span>
       <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">node_def</span><span class="o">.</span><span class="n">attr</span><span class="p">[</span><span class="s1">&#39;_class&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">s</span><span class="p">:</span>
         <span class="n">loc</span> <span class="o">=</span> <span class="n">loc</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">loc</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;loc:@&#39;</span><span class="p">):</span>
