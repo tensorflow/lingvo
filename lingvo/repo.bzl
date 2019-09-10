@@ -5,7 +5,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 def _find_tf_include_path(repo_ctx):
     exec_result = repo_ctx.execute(
         [
-            "python",
+            "python3",
             "-c",
             "import tensorflow as tf; import sys; " +
             "sys.stdout.write(tf.sysconfig.get_include())",
@@ -19,7 +19,7 @@ def _find_tf_include_path(repo_ctx):
 def _find_tf_lib_path(repo_ctx):
     exec_result = repo_ctx.execute(
         [
-            "python",
+            "python3",
             "-c",
             "import tensorflow as tf; import sys; " +
             "sys.stdout.write(tf.sysconfig.get_lib())",
@@ -86,6 +86,25 @@ cc_library(
         executable = False,
     )
 
+def _zlib_includes_repo_impl(repo_ctx):
+    tf_include_path = _find_tf_include_path(repo_ctx)
+    repo_ctx.symlink(
+        tf_include_path + "/external/zlib_archive",
+        "zlib",
+    )
+    repo_ctx.file(
+        "BUILD",
+        content = """
+cc_library(
+    name = "includes",
+    hdrs = glob(["zlib/**/*.h"]),
+    includes = ["zlib"],
+    visibility = ["//visibility:public"],
+)
+""",
+        executable = False,
+    )
+
 def _protobuf_includes_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)
     repo_ctx.symlink(tf_include_path, "tf_includes")
@@ -118,7 +137,8 @@ cc_library(
     includes = ["tensorflow_includes"],
     deps = ["@absl_includes//:includes",
             "@eigen_archive//:includes",
-            "@protobuf_archive//:includes",],
+            "@protobuf_archive//:includes",
+            "@zlib_includes//:includes",],
     visibility = ["//visibility:public"],
 )
 """,
@@ -151,6 +171,10 @@ def cc_tf_configure():
         implementation = _absl_includes_repo_impl,
     )
     make_absl_repo(name = "absl_includes")
+    make_zlib_repo = repository_rule(
+        implementation = _zlib_includes_repo_impl,
+    )
+    make_zlib_repo(name = "zlib_includes")
     make_protobuf_repo = repository_rule(
         implementation = _protobuf_includes_repo_impl,
     )
