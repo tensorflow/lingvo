@@ -631,6 +631,43 @@
   <span class="k">return</span> <span class="n">session_config</span></div>
 
 
+<div class="viewcode-block" id="Transform"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Transform">[docs]</a><span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Replaces every nested value x in &#39;v&#39; with fn(x) and returns the result.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="n">lst</span> <span class="o">=</span> <span class="p">[</span><span class="n">Transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">v</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)(</span><span class="n">lst</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">Transform</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">fn</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)(</span><span class="nb">zip</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">values</span><span class="p">))</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Pack"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Pack">[docs]</a><span class="k">def</span> <span class="nf">Pack</span><span class="p">(</span><span class="n">tmpl</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Packs &#39;values&#39; according to &#39;tmpl&#39;.&quot;&quot;&quot;</span>
+  <span class="n">values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+  <span class="n">flat_tmpl</span> <span class="o">=</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">tmpl</span><span class="p">)</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">flat_tmpl</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+  <span class="n">v_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+  <span class="c1"># Replace tensors in &#39;tmpl&#39; with &#39;values&#39;.</span>
+  <span class="k">return</span> <span class="n">Transform</span><span class="p">(</span><span class="n">tmpl</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">next</span><span class="p">(</span><span class="n">v_iter</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="Flatten"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Flatten">[docs]</a><span class="k">def</span> <span class="nf">Flatten</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Flattens &#39;x&#39; by extracting tensors from nested structures to a list.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="n">flat_x</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+      <span class="n">flat_x</span> <span class="o">+=</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">flat_x</span>
+  <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">Flatten</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">])</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">]</span></div>
+
+
 <span class="n">_NAME_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">&#39;[A-Za-z_][A-Za-z0-9_]*&#39;</span><span class="p">)</span>
 
 
@@ -681,22 +718,7 @@
 
 <div class="viewcode-block" id="NestedMap.Flatten"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Flatten">[docs]</a>  <span class="k">def</span> <span class="nf">Flatten</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Flatten the `.NestedMap` and returns values in a list.&quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">Expand</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-        <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
-          <span class="n">ret</span> <span class="o">+=</span> <span class="n">Expand</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">ret</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">v</span><span class="p">]</span>
-
-    <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-      <span class="n">ret</span> <span class="o">+=</span> <span class="n">Expand</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">ret</span></div>
+    <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="NestedMap.FlattenItems"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.FlattenItems">[docs]</a>  <span class="k">def</span> <span class="nf">FlattenItems</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Flatten the `.NestedMap` and returns &lt;key, value&gt; pairs in a list.</span>
@@ -727,23 +749,7 @@
 
 <div class="viewcode-block" id="NestedMap.Transform"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy of this `.NestedMap` with fn applied on each value.&quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">DoTransform</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-        <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
-          <span class="n">ret</span> <span class="o">+=</span> <span class="p">[</span><span class="n">DoTransform</span><span class="p">(</span><span class="n">x</span><span class="p">)]</span>
-        <span class="k">return</span> <span class="n">ret</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-
-    <span class="n">ret</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-      <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">DoTransform</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
-
-    <span class="k">return</span> <span class="n">ret</span></div>
+    <span class="k">return</span> <span class="n">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="NestedMap.Filter"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Filter">[docs]</a>  <span class="k">def</span> <span class="nf">Filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy of this `.NestedMap` with entries that fn(entry) is True.&quot;&quot;&quot;</span>
@@ -794,17 +800,7 @@
 
 <div class="viewcode-block" id="NestedMap.Pack"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Pack">[docs]</a>  <span class="k">def</span> <span class="nf">Pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lst</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy of this with each value replaced by a value in lst.&quot;&quot;&quot;</span>
-
-    <span class="k">class</span> <span class="nc">DoPack</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-
-      <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lst</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span>
-
-      <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="k">del</span> <span class="n">x</span>
-        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iter</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">DoPack</span><span class="p">(</span><span class="n">lst</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lst</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="NestedMap.IsCompatible"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.IsCompatible">[docs]</a>  <span class="k">def</span> <span class="nf">IsCompatible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns true if self and other is compatible.</span>
