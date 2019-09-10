@@ -486,6 +486,43 @@ def SessionConfig(soft_placement=True, inline=True, cluster_def=None):
   return session_config
 
 
+def Transform(v, fn):
+  """Replaces every nested value x in 'v' with fn(x) and returns the result."""
+  if isinstance(v, list):
+    lst = [Transform(x, fn) for x in v]
+    return type(v)(lst)
+  elif isinstance(v, dict):
+    keys = sorted(v.keys())
+    values = [Transform(v[k], fn) for k in keys]
+    return type(v)(zip(keys, values))
+  else:
+    return fn(v)
+
+
+def Pack(tmpl, values):
+  """Packs 'values' according to 'tmpl'."""
+  values = list(values)
+  flat_tmpl = Flatten(tmpl)
+  assert len(flat_tmpl) == len(values)
+  v_iter = iter(values)
+  # Replace tensors in 'tmpl' with 'values'.
+  return Transform(tmpl, lambda _: next(v_iter))
+
+
+def Flatten(x):
+  """Flattens 'x' by extracting tensors from nested structures to a list."""
+  if isinstance(x, list):
+    flat_x = []
+    for v in x:
+      flat_x += Flatten(v)
+    return flat_x
+  elif isinstance(x, dict):
+    keys = sorted(x.keys())
+    return Flatten([x[k] for k in keys])
+  else:
+    return [x]
+
+
 _NAME_PATTERN = re.compile('[A-Za-z_][A-Za-z0-9_]*')
 
 
@@ -536,22 +573,7 @@ class NestedMap(dict):
 
   def Flatten(self):
     """Flatten the `.NestedMap` and returns values in a list."""
-
-    def Expand(v):
-      if isinstance(v, NestedMap):
-        return v.Flatten()
-      elif isinstance(v, list):
-        ret = []
-        for x in v:
-          ret += Expand(x)
-        return ret
-      else:
-        return [v]
-
-    ret = []
-    for k in sorted(self.keys()):
-      ret += Expand(self[k])
-    return ret
+    return Flatten(self)
 
   def FlattenItems(self):
     """Flatten the `.NestedMap` and returns <key, value> pairs in a list.
@@ -582,23 +604,7 @@ class NestedMap(dict):
 
   def Transform(self, fn):
     """Returns a copy of this `.NestedMap` with fn applied on each value."""
-
-    def DoTransform(v):
-      if isinstance(v, NestedMap):
-        return v.Transform(fn)
-      elif isinstance(v, list):
-        ret = []
-        for x in v:
-          ret += [DoTransform(x)]
-        return ret
-      else:
-        return fn(v)
-
-    ret = NestedMap()
-    for k in sorted(self.keys()):
-      ret[k] = DoTransform(self[k])
-
-    return ret
+    return Transform(self, fn)
 
   def Filter(self, fn):
     """Returns a copy of this `.NestedMap` with entries that fn(entry) is True."""
@@ -649,17 +655,7 @@ class NestedMap(dict):
 
   def Pack(self, lst):
     """Returns a copy of this with each value replaced by a value in lst."""
-
-    class DoPack(object):
-
-      def __init__(self, lst):
-        self._iter = iter(lst)
-
-      def __call__(self, x):
-        del x
-        return next(self._iter)
-
-    return self.Transform(DoPack(lst))
+    return Pack(self, lst)
 
   def IsCompatible(self, other):
     """Returns true if self and other is compatible.
