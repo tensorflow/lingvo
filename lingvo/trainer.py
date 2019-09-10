@@ -1426,7 +1426,7 @@ class RunnerManager(object):
 
     FLAGS.cluster_spec = ('@'.join(
         '{}={}'.format(job, ','.join(hosts))
-        for job, hosts in cluster_spec_dict.iteritems()))
+        for job, hosts in six.iteritems(cluster_spec_dict)))
 
     FLAGS.xla_device = 'tpu'
     FLAGS.enable_asserts = False
