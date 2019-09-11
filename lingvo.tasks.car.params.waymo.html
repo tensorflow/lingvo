@@ -1,0 +1,534 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.params.waymo module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.car.tools package" href="lingvo.tasks.car.tools.html" />
+    <link rel="prev" title="lingvo.tasks.car.params.kitti module" href="lingvo.tasks.car.params.kitti.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.html">lingvo.tasks.car package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.params.html">lingvo.tasks.car.params package</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.params.waymo module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.tasks.car.params.waymo.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.car.params.waymo">
+<span id="lingvo-tasks-car-params-waymo-module"></span><h1>lingvo.tasks.car.params.waymo module<a class="headerlink" href="#module-lingvo.tasks.car.params.waymo" title="Permalink to this headline">¶</a></h1>
+<p>Train models on the waymo open dataset.</p>
+<dl class="function">
+<dt id="lingvo.tasks.car.params.waymo.WaymoTrainSpec">
+<code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">WaymoTrainSpec</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoTrainSpec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoTrainSpec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Training set.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.params.waymo.WaymoMiniTrainSpec">
+<code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">WaymoMiniTrainSpec</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoMiniTrainSpec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoMiniTrainSpec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Training shards used for decoding.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.params.waymo.WaymoValSpec">
+<code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">WaymoValSpec</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoValSpec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoValSpec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validation set.</p>
+<p>Validation contains no overlapping run segments with training.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>params</strong> – A Waymo open dataset input params.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An updated Waymo open dataset params with the validation spec.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>p</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.params.waymo.WaymoMinivalSpec">
+<code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">WaymoMinivalSpec</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoMinivalSpec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoMinivalSpec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Miniature validation set (10% of full validation set).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.params.waymo.WaymoTestSpec">
+<code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">WaymoTestSpec</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoTestSpec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoTestSpec" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.params.waymo.WaymoSparseLaserTrain">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">WaymoSparseLaserTrain</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoSparseLaserTrain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoSparseLaserTrain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser" title="lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser</span></code></a></p>
+<p>Waymo train set with sparse laser data.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.WaymoSparseLaserTrain.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoSparseLaserTrain.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoSparseLaserTrain.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.params.waymo.WaymoSparseLaserValidation">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">WaymoSparseLaserValidation</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoSparseLaserValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoSparseLaserValidation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser" title="lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser</span></code></a></p>
+<p>Waymo validation set with sparse laser data.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.WaymoSparseLaserValidation.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoSparseLaserValidation.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoSparseLaserValidation.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.params.waymo.WaymoSparseLaserMinival">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">WaymoSparseLaserMinival</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoSparseLaserMinival"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoSparseLaserMinival" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser" title="lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser</span></code></a></p>
+<p>Waymo mini validation set with sparse laser data.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.WaymoSparseLaserMinival.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoSparseLaserMinival.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoSparseLaserMinival.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.params.waymo.WaymoSparseLaserTest">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">WaymoSparseLaserTest</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoSparseLaserTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoSparseLaserTest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser" title="lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoSparseLaser</span></code></a></p>
+<p>Waymo test set with sparse laser data. Has no groundtruth labels.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.WaymoSparseLaserTest.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#WaymoSparseLaserTest.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.WaymoSparseLaserTest.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.params.waymo._FilterKeepLabels">
+<code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">_FilterKeepLabels</code><span class="sig-paren">(</span><em class="sig-param">params</em>, <em class="sig-param">label_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#_FilterKeepLabels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo._FilterKeepLabels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keep only label names in ‘label_names’ from input.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">StarNetBase</code><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams" title="lingvo.core.base_model_params.SingleTaskModelParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model_params.SingleTaskModelParams</span></code></a></p>
+<p>StarNet model for running on Waymo.</p>
+<p>This the base model, please refer to specialized vehicles, pedestrians, etc.
+models below to get an appropriate model to train.</p>
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.RUN_LOCALLY">
+<code class="sig-name descname">RUN_LOCALLY</code><em class="property"> = False</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.RUN_LOCALLY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.NUM_ANCHOR_BBOX_OFFSETS">
+<code class="sig-name descname">NUM_ANCHOR_BBOX_OFFSETS</code><em class="property"> = 25</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.NUM_ANCHOR_BBOX_OFFSETS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.NUM_ANCHOR_BBOX_ROTATIONS">
+<code class="sig-name descname">NUM_ANCHOR_BBOX_ROTATIONS</code><em class="property"> = 4</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.NUM_ANCHOR_BBOX_ROTATIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.NUM_ANCHOR_BBOX_DIMENSIONS">
+<code class="sig-name descname">NUM_ANCHOR_BBOX_DIMENSIONS</code><em class="property"> = 1</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.NUM_ANCHOR_BBOX_DIMENSIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.GT_MIN_NUM_POINTS">
+<code class="sig-name descname">GT_MIN_NUM_POINTS</code><em class="property"> = 5</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.GT_MIN_NUM_POINTS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.NUM_GIN_LAYERS">
+<code class="sig-name descname">NUM_GIN_LAYERS</code><em class="property"> = 5</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.NUM_GIN_LAYERS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.GIN_HIDDEN_DIMS">
+<code class="sig-name descname">GIN_HIDDEN_DIMS</code><em class="property"> = 64</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.GIN_HIDDEN_DIMS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.NUM_POINTS_PER_CELL">
+<code class="sig-name descname">NUM_POINTS_PER_CELL</code><em class="property"> = 512</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.NUM_POINTS_PER_CELL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.AnchorBoxSettings">
+<em class="property">class </em><code class="sig-name descname">AnchorBoxSettings</code><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetBase.AnchorBoxSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.AnchorBoxSettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCarV1AnchorBoxSettings" title="lingvo.tasks.car.input_preprocessors.SparseCarV1AnchorBoxSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_preprocessors.SparseCarV1AnchorBoxSettings</span></code></a></p>
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.AnchorBoxSettings.ROTATIONS">
+<code class="sig-name descname">ROTATIONS</code><em class="property"> = [0, 1.5707963267948966, 2.356194490192345, 0.7853981633974483]</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.AnchorBoxSettings.ROTATIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase._configure_input">
+<em class="property">classmethod </em><code class="sig-name descname">_configure_input</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">split</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetBase._configure_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase._configure_input" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.Train">
+<em class="property">classmethod </em><code class="sig-name descname">Train</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetBase.Train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.Train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the training dataset.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.Minitrain">
+<em class="property">classmethod </em><code class="sig-name descname">Minitrain</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetBase.Minitrain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.Minitrain" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.Test">
+<em class="property">classmethod </em><code class="sig-name descname">Test</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetBase.Test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.Test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the testing dataset.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.Dev">
+<em class="property">classmethod </em><code class="sig-name descname">Dev</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetBase.Dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.Dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the development dataset.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.Minidev">
+<em class="property">classmethod </em><code class="sig-name descname">Minidev</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetBase.Minidev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.Minidev" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.StarNetBase.Task">
+<em class="property">classmethod </em><code class="sig-name descname">Task</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetBase.Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetBase.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns task params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.params.waymo.StarNetVehicle">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">StarNetVehicle</code><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetVehicle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetVehicle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.params.waymo.StarNetBase" title="lingvo.tasks.car.params.waymo.StarNetBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.params.waymo.StarNetBase</span></code></a></p>
+<p>StarNet model for cars, running on Waymo.</p>
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetVehicle.GT_MIN_NUM_POINTS">
+<code class="sig-name descname">GT_MIN_NUM_POINTS</code><em class="property"> = 5</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetVehicle.GT_MIN_NUM_POINTS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings">
+<em class="property">class </em><code class="sig-name descname">AnchorBoxSettings</code><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetVehicle.AnchorBoxSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCarV1AnchorBoxSettings" title="lingvo.tasks.car.input_preprocessors.SparseCarV1AnchorBoxSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_preprocessors.SparseCarV1AnchorBoxSettings</span></code></a></p>
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings.DIMENSION_PRIORS">
+<code class="sig-name descname">DIMENSION_PRIORS</code><em class="property"> = [(4.725808, 2.079292, 1.768998)]</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings.DIMENSION_PRIORS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings.ROTATIONS">
+<code class="sig-name descname">ROTATIONS</code><em class="property"> = [0, 1.5707963267948966, 2.356194490192345, 0.7853981633974483]</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings.ROTATIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings.CENTER_X_OFFSETS">
+<code class="sig-name descname">CENTER_X_OFFSETS</code><em class="property"> = array([-1.294, -0.647,  0.   ,  0.647,  1.294])</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings.CENTER_X_OFFSETS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings.CENTER_Y_OFFSETS">
+<code class="sig-name descname">CENTER_Y_OFFSETS</code><em class="property"> = array([-1.294, -0.647,  0.   ,  0.647,  1.294])</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings.CENTER_Y_OFFSETS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings.CENTER_Z_OFFSETS">
+<code class="sig-name descname">CENTER_Z_OFFSETS</code><em class="property"> = [0.819622]</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetVehicle.AnchorBoxSettings.CENTER_Z_OFFSETS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.StarNetVehicle._configure_input">
+<em class="property">classmethod </em><code class="sig-name descname">_configure_input</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">split</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetVehicle._configure_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetVehicle._configure_input" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.StarNetVehicle.Task">
+<em class="property">classmethod </em><code class="sig-name descname">Task</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetVehicle.Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetVehicle.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns task params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.params.waymo.StarNetPed">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.params.waymo.</code><code class="sig-name descname">StarNetPed</code><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetPed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetPed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.params.waymo.StarNetBase" title="lingvo.tasks.car.params.waymo.StarNetBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.params.waymo.StarNetBase</span></code></a></p>
+<p>StarNet model for pedestrians, running on Waymo.</p>
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetPed.NUM_ANCHOR_BBOX_ROTATIONS">
+<code class="sig-name descname">NUM_ANCHOR_BBOX_ROTATIONS</code><em class="property"> = 2</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetPed.NUM_ANCHOR_BBOX_ROTATIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetPed.GT_MIN_NUM_POINTS">
+<code class="sig-name descname">GT_MIN_NUM_POINTS</code><em class="property"> = 5</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetPed.GT_MIN_NUM_POINTS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings">
+<em class="property">class </em><code class="sig-name descname">AnchorBoxSettings</code><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetPed.AnchorBoxSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCarV1AnchorBoxSettings" title="lingvo.tasks.car.input_preprocessors.SparseCarV1AnchorBoxSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_preprocessors.SparseCarV1AnchorBoxSettings</span></code></a></p>
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings.DIMENSION_PRIORS">
+<code class="sig-name descname">DIMENSION_PRIORS</code><em class="property"> = [(0.90134, 0.857218, 1.712443)]</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings.DIMENSION_PRIORS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings.ROTATIONS">
+<code class="sig-name descname">ROTATIONS</code><em class="property"> = [0, 1.5707963267948966]</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings.ROTATIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings.CENTER_X_OFFSETS">
+<code class="sig-name descname">CENTER_X_OFFSETS</code><em class="property"> = array([-0.6, -0.3,  0. ,  0.3,  0.6])</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings.CENTER_X_OFFSETS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings.CENTER_Y_OFFSETS">
+<code class="sig-name descname">CENTER_Y_OFFSETS</code><em class="property"> = array([-0.6, -0.3,  0. ,  0.3,  0.6])</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings.CENTER_Y_OFFSETS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings.CENTER_Z_OFFSETS">
+<code class="sig-name descname">CENTER_Z_OFFSETS</code><em class="property"> = [0.819622]</em><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetPed.AnchorBoxSettings.CENTER_Z_OFFSETS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.StarNetPed._configure_input">
+<em class="property">classmethod </em><code class="sig-name descname">_configure_input</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">split</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetPed._configure_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetPed._configure_input" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.params.waymo.StarNetPed.Task">
+<em class="property">classmethod </em><code class="sig-name descname">Task</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/params/waymo.html#StarNetPed.Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.params.waymo.StarNetPed.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns task params.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.tasks.car.tools.html" class="btn btn-neutral float-right" title="lingvo.tasks.car.tools package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.tasks.car.params.kitti.html" class="btn btn-neutral float-left" title="lingvo.tasks.car.params.kitti module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
