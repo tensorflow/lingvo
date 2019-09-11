@@ -1892,22 +1892,27 @@ class SRUCell(RNNCell):
   def GetOutput(self, state):
     return state.m
 
-  def LayerNorm(self, x, scale):
+  def LayerNorm(self, theta, gate_name, x, bias):
     """Applies layer normalization on the last dimension of 'x'.
 
     Args:
+      theta: a NestedMap of layer params.
+      gate_name: the name of the gate, e.g., 'i_i', 'f_g', 'c', etc.
       x: activation tensor, where the last dimension represents channels.
-      scale: the scale tensor of the layer normalization
+      bias: the bias tensor of the gate.
 
     Returns:
       Layer normalized 'x', with the same shape as the input.
     """
     p = self.params
-    mean = tf.reduce_mean(x, axis=[1], keepdims=True)
-    centered = x - mean
-    variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
-    normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
-    return normed * scale
+    if p.apply_layer_norm:
+      mean = tf.reduce_mean(x, axis=[1], keepdims=True)
+      centered = x - mean
+      variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
+      normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
+      scale = theta['%s_ln_scale' % gate_name]
+      x = normed * scale
+    return x + bias
 
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
@@ -1925,9 +1930,7 @@ class SRUCell(RNNCell):
           value=xmw, num_or_size_splits=4, axis=1)
       b_t2, b_resized, b_f, b_r = tf.split(
           value=tf.expand_dims(theta.b, 0), num_or_size_splits=4, axis=1)
-      if p.apply_layer_norm:
-        f_t = self.LayerNorm(f_t, theta.f_t_ln_scale)
-      f_t = tf.add(f_t, b_f)
+      f_t = self.LayerNorm(theta, 'f_t', f_t, b_f)
       f_t = tf.nn.sigmoid(f_t)
       i_t = 1.0 - f_t
     else:
@@ -1936,23 +1939,16 @@ class SRUCell(RNNCell):
       b_t2, b_resized, b_i, b_f, b_r = tf.split(
           value=tf.expand_dims(theta.b, 0), num_or_size_splits=5, axis=1)
 
-      if p.apply_layer_norm:
-        f_t = self.LayerNorm(f_t, theta.f_t_ln_scale)
-      f_t = tf.add(f_t, b_f)
+      f_t = self.LayerNorm(theta, 'f_t', f_t, b_f)
       f_t = tf.nn.sigmoid(f_t)
-      if p.apply_layer_norm:
-        i_t = self.LayerNorm(i_t, theta.i_t_ln_scale)
-      i_t = tf.add(i_t, b_i)
+      i_t = self.LayerNorm(theta, 'i_t', i_t, b_i)
       i_t = tf.nn.sigmoid(i_t)
 
-    if p.apply_layer_norm:
-      r_t = self.LayerNorm(r_t, theta.r_t_ln_scale)
-    r_t = tf.add(r_t, b_r)
+    r_t = self.LayerNorm(theta, 'r_t', r_t, b_r)
     r_t = tf.nn.sigmoid(r_t)
 
     c_t = f_t * state0.c + i_t * x_t2
-    if p.apply_layer_norm:
-      c_t = self.LayerNorm(c_t, theta.c_t_ln_scale)
+    c_t = self.LayerNorm(theta, 'c_t', c_t, 0)
 
     # now it is obvious that these inputs don't use layer norm.
     resized = tf.add(resized, b_resized)
