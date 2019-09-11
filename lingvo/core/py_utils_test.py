@@ -1973,6 +1973,12 @@ class ReadFileLinesTest(tf.test.TestCase):
     lines = [line.strip() for line in py_utils.ReadFileLines(outpath)]
     self.assertAllEqual(lines, contents)
 
+  def testReadFilesLinesFromPackage(self):
+    # py_utils.py is at lingvo/core relative to the working
+    # directory, so it will load from the lingvo package instead
+    lines = py_utils.ReadFileLines('core/py_utils.py')
+    self.assertIsNotNone(lines)
+
   def testReadFileLinesWithInvalidFile(self):
     path = os.path.join(tf.test.get_temp_dir(), 'fake.txt')
 

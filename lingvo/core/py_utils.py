@@ -3284,7 +3284,7 @@ def ReadFileLines(file_path):
     try:
       lines = pkgutil.get_data(
           'lingvo', file_path.replace('lingvo/', '',
-                                      1)).splitlines(keepends=True)
+                                      1)).splitlines(True)
     except IOError:
       # If pkgutil can't find the file, continue and let GFile raise the error.
       lines = None
