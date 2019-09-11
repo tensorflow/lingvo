@@ -1036,13 +1036,15 @@ implementation. It does the 4-matrix implementation found in appendix C.</p>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.SRUCell.LayerNorm">
-<code class="sig-name descname">LayerNorm</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">scale</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell.LayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell.LayerNorm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">LayerNorm</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">gate_name</em>, <em class="sig-param">x</em>, <em class="sig-param">bias</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell.LayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell.LayerNorm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies layer normalization on the last dimension of ‘x’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – a NestedMap of layer params.</p></li>
+<li><p><strong>gate_name</strong> – the name of the gate, e.g., ‘i_i’, ‘f_g’, ‘c’, etc.</p></li>
 <li><p><strong>x</strong> – activation tensor, where the last dimension represents channels.</p></li>
-<li><p><strong>scale</strong> – the scale tensor of the layer normalization</p></li>
+<li><p><strong>bias</strong> – the bias tensor of the gate.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
