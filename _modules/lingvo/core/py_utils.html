@@ -3463,7 +3463,8 @@
 <span class="sd">  Raises:</span>
 <span class="sd">    ValueError: if the input axis is invalid.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">use_tpu</span><span class="p">():</span>
+  <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">use_tpu</span><span class="p">():</span>
+    <span class="c1"># Fallback to tf.cumsum when inputs are not floats or not running on TPU.</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="n">exclusive</span><span class="p">)</span>
 
   <span class="n">rank</span> <span class="o">=</span> <span class="n">GetRank</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
