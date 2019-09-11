@@ -211,6 +211,62 @@
 <span class="sd">    e.g., &quot;sunny&quot;.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
+  <span class="c1"># Valid options for metadata that we can use for validation</span>
+  <span class="c1"># Filters that aren&#39;t in this list will still be allowed, but these will</span>
+  <span class="c1"># be checked for extra safety.</span>
+  <span class="n">VALIDATED_FILTER_OPTIONS</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+      <span class="n">time_of_day</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Day&#39;</span><span class="p">,</span> <span class="s1">&#39;Dawn/Dusk&#39;</span><span class="p">,</span> <span class="s1">&#39;Night&#39;</span><span class="p">],</span>
+      <span class="n">weather</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;rain&#39;</span><span class="p">,</span> <span class="s1">&#39;sunny&#39;</span><span class="p">],</span>
+      <span class="n">location</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;location_sf&#39;</span><span class="p">,</span> <span class="s1">&#39;location_phx&#39;</span><span class="p">,</span> <span class="s1">&#39;location_other&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="WaymoFrameMetadataExtractor.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoFrameMetadataExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoFrameMetadataExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;equality_filters&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A list of tuples(str, list) &#39;</span>
+        <span class="s1">&#39;where each first value is a metadata key (e.g. `weather`) &#39;</span>
+        <span class="s1">&#39;and the second value is a list of valid values to filter for. &#39;</span>
+        <span class="s1">&#39;Each filter will check whether the value of a given example &#39;</span>
+        <span class="s1">&#39;for that metadata key matches one of the allowed filter values. &#39;</span>
+        <span class="s1">&#39;Then the result of each filter (each tuple) will be AND-ed &#39;</span>
+        <span class="s1">&#39;together. Example usage would be: &#39;</span>
+        <span class="s1">&#39;[(&quot;location&quot;, [&quot;location_sf&quot;]), (&quot;weather&quot;, [&quot;sunny&quot;])] &#39;</span>
+        <span class="s1">&#39;Which would only allow through examples that are in SF &#39;</span>
+        <span class="s1">&#39;AND have sunny weather. &#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="WaymoFrameMetadataExtractor._ValidateFilterValues"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoFrameMetadataExtractor._ValidateFilterValues">[docs]</a>  <span class="k">def</span> <span class="nf">_ValidateFilterValues</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check the filter against several blessed values.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">for</span> <span class="n">filter_key</span><span class="p">,</span> <span class="n">filter_values</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">equality_filters</span><span class="p">:</span>
+      <span class="c1"># Type check</span>
+      <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filter_key</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span>
+          <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filter_values</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Each element in `equality_filters` must be a &#39;</span>
+                         <span class="s1">&#39;tuple of (str, list).&#39;</span><span class="p">)</span>
+      <span class="c1"># If it&#39;s not one of the &quot;blessed&quot; validated options, just let it through</span>
+      <span class="k">if</span> <span class="n">filter_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">VALIDATED_FILTER_OPTIONS</span><span class="p">:</span>
+        <span class="k">continue</span>
+
+      <span class="c1"># If we do know its valid options, check each value against this list</span>
+      <span class="n">valid_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">VALIDATED_FILTER_OPTIONS</span><span class="p">[</span><span class="n">filter_key</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">filter_value</span> <span class="ow">in</span> <span class="n">filter_values</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">filter_value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_options</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+              <span class="s1">&#39;Filter </span><span class="si">{}</span><span class="s1"> value: </span><span class="si">{}</span><span class="s1"> not in valid options: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                  <span class="n">filter_key</span><span class="p">,</span> <span class="n">filter_value</span><span class="p">,</span> <span class="n">valid_options</span><span class="p">))</span></div>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">WaymoFrameMetadataExtractor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">equality_filters</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">equality_filters</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`equality_filters` param must be a list.&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">equality_filters</span><span class="p">]):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Every item in `equality_filters` must be a tuple.&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateFilterValues</span><span class="p">()</span>
+
 <div class="viewcode-block" id="WaymoFrameMetadataExtractor.FeatureMap"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoFrameMetadataExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return a dictionary from tf.Example feature names to Features.&quot;&quot;&quot;</span>
     <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{}</span>
@@ -256,7 +312,25 @@
         <span class="n">run_start_offset</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
         <span class="n">time_of_day</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span>
         <span class="n">location</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span>
-        <span class="n">weather</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)</span></div></div>
+        <span class="n">weather</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WaymoFrameMetadataExtractor.Filter"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoFrameMetadataExtractor.Filter">[docs]</a>  <span class="k">def</span> <span class="nf">Filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Optionally filters the data based on context info.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">equality_filters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="mi">1</span>
+
+    <span class="n">allowed_example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">filter_key</span><span class="p">,</span> <span class="n">filter_values</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">equality_filters</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">filter_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Filter key `</span><span class="si">{}</span><span class="s1">` not found in extracted data.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filter_key</span><span class="p">))</span>
+      <span class="n">has_allowed_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">filter_key</span><span class="p">],</span> <span class="n">filter_values</span><span class="p">))</span>
+      <span class="n">allowed_example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">allowed_example</span><span class="p">,</span> <span class="n">has_allowed_data</span><span class="p">)</span>
+
+    <span class="n">not_allowed_example</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">allowed_example</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">not_allowed_example</span> <span class="o">*</span> <span class="n">input_extractor</span><span class="o">.</span><span class="n">BUCKET_UPPER_BOUND</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="WaymoImageExtractor"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoImageExtractor">[docs]</a><span class="k">class</span> <span class="nc">WaymoImageExtractor</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">FieldsExtractor</span><span class="p">):</span>

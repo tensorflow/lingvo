@@ -824,9 +824,42 @@ The value when the key is not found.</p></li>
 
 <dl class="function">
 <dt id="lingvo.core.ops.v">
-<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">token_ids</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">ngram_vocab_filepath</em>, <em class="sig-param">ngram_separator=''</em>, <em class="sig-param">name=None</em>, <em class="sig-param">ctx=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>This is the slowpath function for Eager mode.
-This is for function ngram_id_to_token</p>
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">labels</em>, <em class="sig-param">tokenization_filepath</em>, <em class="sig-param">append_eos=True</em>, <em class="sig-param">maxlen=300</em>, <em class="sig-param">sos_id=1</em>, <em class="sig-param">eos_id=2</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>A tokenizer to convert string to BPE ids.</p>
+<p>This op is especially convenient for mapping string text to a sequenec of word BPE
+ids. The <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> strings are tokenized via BPE. This op is typically used in conjunction with BpeIdsToWords.
+As the vocabulary file it receives the mapping from each word to the series of BPE ids.
+An example of lines in the vocabulary file:
+…
+AARON 10005,16,29
+AARON’S 10005,16,3466
+AARONSON 10005,16,17,447
+…</p>
+<p>The output tensor <code class="xref py py-obj docutils literal notranslate"><span class="pre">token_ids</span></code> is a sequence of integer ids with &lt;s&gt; prepended.
+The output tensor <code class="xref py py-obj docutils literal notranslate"><span class="pre">target_ids</span></code> is a sequence of integer ids with &lt;/s&gt; appended.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>labels</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+The batch of tf.String tensors. Expected shape is [batch_size].</p></li>
+<li><p><strong>tokenization_filepath</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A path to a text file where each line is a word separated with space form a list of ids which are separated by ‘,’.</p></li>
+<li><p><strong>append_eos</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#True" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.</p></li>
+<li><p><strong>maxlen</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">300</span></code>.
+Maximum length of token_ids/target_ids/paddings.</p></li>
+<li><p><strong>sos_id</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+<li><p><strong>eos_id</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">2</span></code>.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (token_ids, target_ids, paddings).</p>
+<p>token_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. The ids with &lt;s&gt;. The shape is [batch_size, maxlen].
+target_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. The ids with &lt;/s&gt;. The shape is [batch_size, maxlen].
+paddings: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. The paddings. The shape is [batch_size, maxlen].</p>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
 <div class="section" id="submodules">
