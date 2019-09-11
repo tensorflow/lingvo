@@ -170,6 +170,7 @@
 <span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">import</span> <span class="nn">pkgutil</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
@@ -3410,6 +3411,36 @@
   <span class="c1"># regexp ensures that a match implies there are two groups:</span>
   <span class="c1"># the record format and then the file pattern.</span>
   <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="ReadFileLines"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ReadFileLines">[docs]</a><span class="k">def</span> <span class="nf">ReadFileLines</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Read a text file and return the lines.</span>
+
+<span class="sd">  If the file cannot be found at the given path, attempt to load it from the</span>
+<span class="sd">  Lingvo package (useful for data dependencies in par files).</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    file_path: path to file, either absolute or relative to the bazel workspace.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A list of lines from the file.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="n">pkgutil</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span>
+          <span class="s1">&#39;lingvo&#39;</span><span class="p">,</span> <span class="n">file_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;lingvo/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                      <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">splitlines</span><span class="p">(</span><span class="n">keepends</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+      <span class="c1"># If pkgutil can&#39;t find the file, continue and let GFile raise the error.</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="kc">None</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">lines</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+  <span class="k">return</span> <span class="n">lines</span></div>
 
 
 <span class="c1"># Partially borrowed from</span>
