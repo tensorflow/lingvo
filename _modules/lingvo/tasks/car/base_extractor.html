@@ -166,6 +166,7 @@
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">datasource</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">generic_input</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
@@ -227,6 +228,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">64</span>
     <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>

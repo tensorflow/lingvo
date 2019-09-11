@@ -2750,7 +2750,7 @@
         <span class="s1">&#39;be included in an example.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="GroundTruthAugmentor._ReadDB"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.GroundTruthAugmentor._ReadDB">[docs]</a>  <span class="k">def</span> <span class="nf">_ReadDB</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="GroundTruthAugmentor._ReadDB"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.GroundTruthAugmentor._ReadDB">[docs]</a>  <span class="k">def</span> <span class="nf">_ReadDB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_patterns</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Read the groundtruth database and return as a NestedMap of Tensors.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -2786,7 +2786,7 @@
       <span class="k">return</span> <span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="n">points_mask</span><span class="p">,</span> <span class="n">bboxes_3d</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">)</span>
 
     <span class="c1"># Read the entire dataset into memory.</span>
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">groundtruth_database</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">)</span>
     <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">interleave</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span><span class="p">,</span> <span class="n">cycle_length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">num_parallel_calls</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_db_objects</span><span class="p">)</span>
@@ -2925,7 +2925,7 @@
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading groundtruth database at </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
                     <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">groundtruth_database</span><span class="p">))</span>
-    <span class="n">db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReadDB</span><span class="p">()</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">groundtruth_database</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ReadDB</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
 
     <span class="n">original_features_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span><span class="p">)</span>
 

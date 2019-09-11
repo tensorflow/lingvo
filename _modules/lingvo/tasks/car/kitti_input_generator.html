@@ -164,6 +164,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">datasource</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
@@ -626,6 +627,22 @@
 
 
 <div class="viewcode-block" id="KITTIBase"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIBase">[docs]</a><span class="k">class</span> <span class="nc">KITTIBase</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">BaseExtractor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;KITTI dataset base parameters.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="KITTIBase.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIBase.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTIBase</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># Subclasses should set the following in file_datasource:</span>
+    <span class="c1"># - file_pattern_prefix: path to data directory (may be overridden at</span>
+    <span class="c1">#   runtime)</span>
+    <span class="c1"># - base_datasource.file_pattern: file pattern of records relative to the</span>
+    <span class="c1">#   data directory</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">PrefixedDataSourceWrapper</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_type</span> <span class="o">=</span> <span class="s1">&#39;tfrecord&#39;</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">class_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
