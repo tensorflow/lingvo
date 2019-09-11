@@ -66,6 +66,62 @@ class WaymoFrameMetadataExtractor(input_extractor.FieldsExtractor):
     e.g., "sunny".
   """
 
+  # Valid options for metadata that we can use for validation
+  # Filters that aren't in this list will still be allowed, but these will
+  # be checked for extra safety.
+  VALIDATED_FILTER_OPTIONS = py_utils.NestedMap(
+      time_of_day=['Day', 'Dawn/Dusk', 'Night'],
+      weather=['rain', 'sunny'],
+      location=['location_sf', 'location_phx', 'location_other'])
+
+  @classmethod
+  def Params(cls):
+    p = super(WaymoFrameMetadataExtractor, cls).Params()
+    p.Define(
+        'equality_filters', None, 'A list of tuples(str, list) '
+        'where each first value is a metadata key (e.g. `weather`) '
+        'and the second value is a list of valid values to filter for. '
+        'Each filter will check whether the value of a given example '
+        'for that metadata key matches one of the allowed filter values. '
+        'Then the result of each filter (each tuple) will be AND-ed '
+        'together. Example usage would be: '
+        '[("location", ["location_sf"]), ("weather", ["sunny"])] '
+        'Which would only allow through examples that are in SF '
+        'AND have sunny weather. ')
+    return p
+
+  def _ValidateFilterValues(self):
+    """Check the filter against several blessed values."""
+    p = self.params
+    for filter_key, filter_values in p.equality_filters:
+      # Type check
+      if (not isinstance(filter_key, str) or
+          not isinstance(filter_values, list)):
+        raise ValueError('Each element in `equality_filters` must be a '
+                         'tuple of (str, list).')
+      # If it's not one of the "blessed" validated options, just let it through
+      if filter_key not in self.VALIDATED_FILTER_OPTIONS:
+        continue
+
+      # If we do know its valid options, check each value against this list
+      valid_options = self.VALIDATED_FILTER_OPTIONS[filter_key]
+      for filter_value in filter_values:
+        if filter_value not in valid_options:
+          raise ValueError(
+              'Filter {} value: {} not in valid options: {}'.format(
+                  filter_key, filter_value, valid_options))
+
+  def __init__(self, params):
+    super(WaymoFrameMetadataExtractor, self).__init__(params)
+    p = self.params
+
+    if p.equality_filters:
+      if not isinstance(p.equality_filters, list):
+        raise ValueError('`equality_filters` param must be a list.')
+      if not all([isinstance(val, tuple) for val in p.equality_filters]):
+        raise ValueError('Every item in `equality_filters` must be a tuple.')
+      self._ValidateFilterValues()
+
   def FeatureMap(self):
     """Return a dictionary from tf.Example feature names to Features."""
     feature_map = {}
@@ -112,6 +168,24 @@ class WaymoFrameMetadataExtractor(input_extractor.FieldsExtractor):
         time_of_day=tf.string,
         location=tf.string,
         weather=tf.string)
+
+  def Filter(self, outputs):
+    """Optionally filters the data based on context info."""
+    p = self.params
+    if p.equality_filters is None:
+      return 1
+
+    allowed_example = tf.convert_to_tensor(True)
+    for filter_key, filter_values in p.equality_filters:
+      if filter_key not in outputs:
+        raise ValueError(
+            'Filter key `{}` not found in extracted data.'.format(filter_key))
+      has_allowed_data = tf.reduce_any(
+          tf.equal(outputs[filter_key], filter_values))
+      allowed_example = tf.logical_and(allowed_example, has_allowed_data)
+
+    not_allowed_example = 1 - tf.to_int32(allowed_example)
+    return 1 + (not_allowed_example * input_extractor.BUCKET_UPPER_BOUND)
 
 
 class WaymoImageExtractor(input_extractor.FieldsExtractor):
