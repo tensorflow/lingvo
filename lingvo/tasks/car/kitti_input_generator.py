@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from lingvo import compat as tf
+from lingvo.core import datasource
 from lingvo.core import hyperparams
 from lingvo.core import ops
 from lingvo.core import py_utils
@@ -481,6 +482,22 @@ class KITTILabelExtractor(input_extractor.FieldsExtractor):
 
 
 class KITTIBase(input_extractor.BaseExtractor):
+  """KITTI dataset base parameters."""
+
+  @classmethod
+  def Params(cls, *args, **kwargs):
+    p = super(KITTIBase, cls).Params(*args, **kwargs)
+
+    # Subclasses should set the following in file_datasource:
+    # - file_pattern_prefix: path to data directory (may be overridden at
+    #   runtime)
+    # - base_datasource.file_pattern: file pattern of records relative to the
+    #   data directory
+    p.file_datasource = datasource.PrefixedDataSourceWrapper.Params()
+    p.file_datasource.base_datasource = datasource.SimpleDataSource.Params()
+    p.file_datasource.base_datasource.file_type = 'tfrecord'
+
+    return p
 
   @property
   def class_names(self):

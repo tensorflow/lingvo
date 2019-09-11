@@ -21,6 +21,7 @@ from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
+from lingvo.core import datasource
 from lingvo.core import generic_input
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
@@ -82,6 +83,9 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     p.batch_size = 64
     p.use_per_host_infeed = True
     p.file_random_seed = 0
+
+    p.file_datasource = datasource.SimpleDataSource.Params()
+
     return p
 
   @base_layer.initializer

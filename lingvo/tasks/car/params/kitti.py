@@ -25,6 +25,7 @@ from lingvo import compat as tf
 from lingvo import model_registry
 from lingvo.core import base_model_params
 from lingvo.core import cluster_factory
+from lingvo.core import datasource
 from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.tasks.car import input_preprocessors
@@ -43,24 +44,24 @@ _KITTI_BASE = os.environ.get('KITTI_DIR', 'FILL-ME-IN')
 # Specifications for the different dataset splits.
 def KITTITrainSpec(params):
   p = params.Copy()
-  p.file_pattern = 'tfrecord:' + os.path.join(
-      _KITTI_BASE, 'kitti_object_3dop_train.tfrecord-*-of-00100')
+  p.file_datasource.base_datasource.file_pattern = (
+      'kitti_object_3dop_train.tfrecord-*-of-00100')
   p.num_samples = 3712
   return p
 
 
 def KITTIValSpec(params):
   p = params.Copy()
-  p.file_pattern = 'tfrecord:' + os.path.join(
-      _KITTI_BASE, 'kitti_object_3dop_val.tfrecord-*-of-00100')
+  p.file_datasource.base_datasource.file_pattern = (
+      'kitti_object_3dop_val.tfrecord-*-of-00100')
   p.num_samples = 3769
   return p
 
 
 def KITTITestSpec(params):
   p = params.Copy()
-  p.file_pattern = 'tfrecord:' + os.path.join(
-      _KITTI_BASE, 'kitti_object_test.tfrecord-*-of-00100')
+  p.file_datasource.base_datasource.file_pattern = (
+      'kitti_object_test.tfrecord-*-of-00100')
   p.num_samples = 7518
   return p
 
@@ -224,6 +225,8 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
   @classmethod
   def _configure_generic_input(cls, p):
     """Update input_config `p` for all jobs."""
+    p.file_datasource.file_pattern_prefix = _KITTI_BASE
+
     # Perform frustum dropping before ground removal (keep_xyz_range).
     p.preprocessors.Define(
         'remove_out_of_frustum',
@@ -305,8 +308,12 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
         kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES.index(
             class_name) for class_name in cls.INCLUDED_CLASSES
     ]
-    groundtruth_db = os.path.join(_KITTI_BASE,
-                                  'kitti_train_object_cls.tfrecord-*-of-00100')
+    groundtruth_db = datasource.PrefixedDataSourceWrapper.Params()
+    groundtruth_db.file_pattern_prefix = _KITTI_BASE
+    groundtruth_db.base_datasource = datasource.SimpleDataSource.Params()
+    groundtruth_db.base_datasource.file_pattern = (
+        'kitti_train_object_cls.tfrecord-*-of-00100')
+
     p.preprocessors.Define(
         'bbox_aug', (input_preprocessors.GroundTruthAugmentor.Params().Set(
             groundtruth_database=groundtruth_db,
@@ -566,18 +573,14 @@ class StarNetPedCycModel0704(StarNetCarsBase):
         kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES.index(
             class_name) for class_name in cls.INCLUDED_CLASSES
     ]
-    groundtruth_db = os.path.join(_KITTI_BASE,
-                                  'kitti_train_object_cls.tfrecord-*-of-00100')
-    p.preprocessors.bbox_aug = (
-        input_preprocessors.GroundTruthAugmentor.Params().Set(
-            groundtruth_database=groundtruth_db,
-            num_db_objects=19700,
-            filter_min_difficulty=2,
-            filter_min_points=7,
-            max_augmented_bboxes=2,
-            max_num_points_per_bbox=1558,
-            label_filter=allowed_label_ids,
-        ))
+    p.preprocessors.bbox_aug.Set(
+        num_db_objects=19700,
+        filter_min_difficulty=2,
+        filter_min_points=7,
+        max_augmented_bboxes=2,
+        max_num_points_per_bbox=1558,
+        label_filter=allowed_label_ids,
+    )
     p.batch_size = 2
 
   @classmethod

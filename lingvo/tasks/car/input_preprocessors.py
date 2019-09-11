@@ -2605,7 +2605,7 @@ class GroundTruthAugmentor(Preprocessor):
         'be included in an example.')
     return p
 
-  def _ReadDB(self):
+  def _ReadDB(self, file_patterns):
     """Read the groundtruth database and return as a NestedMap of Tensors."""
     p = self.params
 
@@ -2641,7 +2641,7 @@ class GroundTruthAugmentor(Preprocessor):
       return (points, features, points_mask, bboxes_3d, label, difficulty)
 
     # Read the entire dataset into memory.
-    dataset = tf.data.Dataset.list_files(p.groundtruth_database)
+    dataset = tf.data.Dataset.list_files(file_patterns)
     dataset = dataset.interleave(
         tf.data.TFRecordDataset, cycle_length=10, num_parallel_calls=10)
     dataset = dataset.take(p.num_db_objects)
@@ -2780,7 +2780,7 @@ class GroundTruthAugmentor(Preprocessor):
 
     tf.logging.info('Loading groundtruth database at %s' %
                     (p.groundtruth_database))
-    db = self._ReadDB()
+    db = p.groundtruth_database.Instantiate().BuildDataSource(self._ReadDB).data
 
     original_features_shape = tf.shape(features.lasers.points_feature)
 
