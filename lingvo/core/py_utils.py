@@ -3318,7 +3318,8 @@ def CumSum(x, axis=0, exclusive=False):
   Raises:
     ValueError: if the input axis is invalid.
   """
-  if not use_tpu():
+  if x.dtype not in (tf.float32, tf.bfloat16) or not use_tpu():
+    # Fallback to tf.cumsum when inputs are not floats or not running on TPU.
     return tf.cumsum(x, axis=axis, exclusive=exclusive)
 
   rank = GetRank(x)
