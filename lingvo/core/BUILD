@@ -1466,6 +1466,21 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_layer",
+        ":builder_layers",
+        ":py_utils",
+        ":rnn_cell",
+        "//lingvo:compat",
+    ],
+)
+
+py_test(
+    name = "step_test",
+    size = "small",
+    srcs = ["step_test.py"],
+    deps = [
+        ":builder_layers",
+        ":step",
+        ":test_utils",
         "//lingvo:compat",
     ],
 )
