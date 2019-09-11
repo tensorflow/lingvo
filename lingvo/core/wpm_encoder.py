@@ -33,6 +33,7 @@ from __future__ import print_function
 import sys
 import lingvo.compat as tf
 from lingvo.core import ops
+from lingvo.core import py_utils
 import six
 
 # Must be a large ID.
@@ -55,13 +56,14 @@ class WpmEncoder(object):
       merge_prob: the probability of merging tokens while encoding.
     """
     # Load vocabulary file.
+    lines = py_utils.ReadFileLines(wpm_filepath)
+
     self._pieces = []
-    with tf.gfile.Open(wpm_filepath, 'r') as f:
-      for line in f.readlines():
-        if isinstance(line, six.binary_type):
-          line = line.decode('utf-8')
-        piece = line.strip().split('\t')[0]
-        self._pieces.append(piece)
+    for line in lines:
+      if isinstance(line, six.binary_type):
+        line = line.decode('utf-8')
+      piece = line.strip().split('\t')[0]
+      self._pieces.append(piece)
     self._merge_prob = merge_prob
 
   def _TokenToString(self, token):

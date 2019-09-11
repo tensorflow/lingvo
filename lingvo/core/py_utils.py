@@ -25,6 +25,7 @@ import contextlib
 import hashlib
 import math
 import numbers
+import pkgutil
 import re
 import threading
 import traceback
@@ -3265,6 +3266,36 @@ def RecordFormatFromFilePattern(file_pattern):
   # regexp ensures that a match implies there are two groups:
   # the record format and then the file pattern.
   return result.groups()
+
+
+def ReadFileLines(file_path):
+  """Read a text file and return the lines.
+
+  If the file cannot be found at the given path, attempt to load it from the
+  Lingvo package (useful for data dependencies in par files).
+
+  Args:
+    file_path: path to file, either absolute or relative to the bazel workspace.
+
+  Returns:
+    A list of lines from the file.
+  """
+  if not tf.io.gfile.exists(file_path):
+    try:
+      lines = pkgutil.get_data(
+          'lingvo', file_path.replace('lingvo/', '',
+                                      1)).splitlines(keepends=True)
+    except IOError:
+      # If pkgutil can't find the file, continue and let GFile raise the error.
+      lines = None
+  else:
+    lines = None
+
+  if not lines:
+    with tf.io.gfile.GFile(file_path, 'r') as f:
+      lines = f.readlines()
+
+  return lines
 
 
 # Partially borrowed from

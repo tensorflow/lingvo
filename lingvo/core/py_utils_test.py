@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import copy
 import itertools
+import os
 
 from lingvo import model_registry
 import lingvo.compat as tf
@@ -1954,6 +1955,29 @@ class RecordFormatTest(tf.test.TestCase):
         'custom:/path/to/baz')
     self.assertEqual(record_format, 'custom')
     self.assertEqual(path, '/path/to/baz')
+
+
+class ReadFileLinesTest(tf.test.TestCase):
+
+  def testReadFileLines(self):
+    contents = [
+        'hello',
+        'world',
+        'foo',
+        'bar',
+    ]
+    outpath = os.path.join(tf.test.get_temp_dir(), 'test.txt')
+    with tf.io.gfile.GFile(outpath, 'w') as f:
+      f.write('\n'.join(contents))
+
+    lines = [line.strip() for line in py_utils.ReadFileLines(outpath)]
+    self.assertAllEqual(lines, contents)
+
+  def testReadFileLinesWithInvalidFile(self):
+    path = os.path.join(tf.test.get_temp_dir(), 'fake.txt')
+
+    with self.assertRaises(tf.errors.NotFoundError):
+      py_utils.ReadFileLines(path)
 
 
 class FocalLossTest(tf.test.TestCase):
