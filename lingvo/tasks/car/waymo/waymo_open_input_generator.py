@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 from lingvo import compat as tf
+from lingvo.core import datasource
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.tasks.car import input_extractor
@@ -863,4 +864,9 @@ class WaymoSparseLaser(input_extractor.BaseExtractor):
             'pad_lasers',
         ],
     )
+
+    p.file_datasource = datasource.PrefixedDataSourceWrapper.Params()
+    p.file_datasource.base_datasource = datasource.SimpleDataSource.Params()
+    p.file_datasource.base_datasource.file_type = 'tfrecord'
+
     return p

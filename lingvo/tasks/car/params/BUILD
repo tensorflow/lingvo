@@ -23,10 +23,32 @@ py_library(
 )
 
 py_library(
+    name = "waymo",
+    srcs = ["waymo.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//lingvo:model_registry",
+        "//lingvo/core:base_model_params",
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:hyperparams",
+        "//lingvo/core:optimizer",
+        "//lingvo/core:py_utils",
+        "//lingvo/tasks/car:input_preprocessors",
+        "//lingvo/tasks/car:lr_util",
+        "//lingvo/tasks/car:starnet",
+        "//lingvo/tasks/car/waymo:waymo_decoder",
+        "//lingvo/tasks/car/waymo:waymo_metadata",
+        "//lingvo/tasks/car/waymo:waymo_open_input_generator",
+        # Implicit numpy dependency.
+    ],
+)
+
+py_library(
     name = "params",
     srcs = ["__init__.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":kitti",
+        ":waymo",
     ],
 )

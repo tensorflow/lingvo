@@ -17,4 +17,5 @@
 # Import ModelParams to ensure that they are added to the global registry.
 # pylint: disable=unused-import
 import lingvo.tasks.car.params.kitti
+import lingvo.tasks.car.params.waymo
 # pylint: enable=unused-import
