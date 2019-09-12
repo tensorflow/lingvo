@@ -259,6 +259,55 @@ class ModelBase(point_detector.PointDetectorBase):
                        'per_class_loss_weight={}'.format(
                            str(p.per_class_loss_weight)))
 
+  def _BBoxDimensionErrors(self, gt_bboxes, pred_bboxes, regression_weights):
+    """Calculates the errors per bounding box dimension for assigned anchors.
+
+    Args:
+      gt_bboxes: float Tensor of shape [batch, num_centers, num_anchors, 7] with
+        the ground truth bounding box for each anchor.
+      pred_bboxes: float Tensor of shape [batch, num_centers, num_anchors, 7]
+        with the predicted bounding box for each anchor.
+      regression_weights: float Tensor with 0/1 weights indicating whether the
+        anchor had a positive assignment.
+
+    Returns:
+      error_metrics_dict: A metrics dict with mean bounding box errors for
+        all positive assigned anchor locations.
+    """
+    gt_bboxes = py_utils.HasShape(gt_bboxes, [-1, -1, -1, 7])
+    batch_size, num_centers, num_anchors = py_utils.GetShape(gt_bboxes, 3)
+    pred_bboxes = py_utils.HasShape(pred_bboxes,
+                                    [batch_size, num_centers, num_anchors, 7])
+    regression_weights = py_utils.HasShape(
+        regression_weights, [batch_size, num_centers, num_anchors, 1])
+
+    sum_regression_weights = tf.reduce_sum(regression_weights)
+
+    def _MaskedAverage(value, axis=None):
+      return (tf.reduce_sum(value * regression_weights, axis=axis) /
+              sum_regression_weights)
+
+    center_error = tf.linalg.norm(
+        gt_bboxes[..., :3] - pred_bboxes[..., :3], axis=-1, keepdims=True)
+    mean_center_error = _MaskedAverage(center_error)
+
+    # Dimension error as shape [3] so we can get separate height, width, length
+    mean_dimension_error = _MaskedAverage(
+        gt_bboxes[..., 3:6] - pred_bboxes[..., 3:6], axis=(0, 1, 2))
+
+    # Angular error in degrees
+    mean_angular_error_rad = _MaskedAverage(gt_bboxes[..., 6:] -
+                                            pred_bboxes[..., 6:])
+    mean_angular_error_deg = mean_angular_error_rad * (180 / np.pi)
+
+    return py_utils.NestedMap({
+        'error/center_distance': (mean_center_error, batch_size),
+        'error/length': (mean_dimension_error[0], batch_size),
+        'error/width': (mean_dimension_error[1], batch_size),
+        'error/height': (mean_dimension_error[2], batch_size),
+        'error/rotation_deg': (mean_angular_error_deg, batch_size),
+    })
+
   def ComputeLoss(self, theta, input_batch, predictions):
     """Compute loss for the sparse detector model v1.
 
@@ -445,6 +494,13 @@ class ModelBase(point_detector.PointDetectorBase):
         'loss/regression/corner': (reg_corner_loss, batch_size),
         'loss/classification': (classification_loss, batch_size),
     })
+
+    # Calculate dimension errors
+    dimension_errors_dict = self._BBoxDimensionErrors(gt_bboxes,
+                                                      predicted_bboxes,
+                                                      reg_weights)
+    metrics_dict.update(dimension_errors_dict)
+
     per_example_dict = py_utils.NestedMap({
         'residuals': predicted_residuals,
         'classification_logits': predicted_classification_logits,

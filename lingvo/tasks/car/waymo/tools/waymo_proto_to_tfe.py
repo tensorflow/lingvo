@@ -127,7 +127,7 @@ same run segment.
 
 bboxes_3d: float - A flattened [M, 7] matrix where there are M boxes in the
 frame, and each box is defined by a 7-DOF format - [center_x ,center_y,
-center_z, length, width, height heading].
+center_z, length, width, height, heading].
 
 label_metadata: floating point - A flattened [M, 4] matrix where there are
 M boxes in the frame, and each md entry is the [speed_x, speed_y, accel_x,
