@@ -342,8 +342,8 @@
       <span class="c1"># Zeroing out padded inputs.</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">_ApplyPadding</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
 
-      <span class="c1"># Evaluate the conv kernel on &#39;inputs&#39;.</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EvaluateConvKernel</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+      <span class="c1"># Apply conv on &#39;inputs&#39;.</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
 
       <span class="c1"># NOTE: this may be slightly inaccurate when p.dilation_rate[0] &gt; 1.</span>
       <span class="c1"># But there&#39;s likely no real problems. Trying to set it gives an error:</span>
@@ -358,6 +358,9 @@
       <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">OutShape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)))</span>
       <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">conv_padding</span></div>
 
+<div class="viewcode-block" id="BaseConv2DLayerWithPadding._ApplyConv"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._ApplyConv">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">conv_input</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EvaluateConvKernel</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">conv_input</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="BaseConv2DLayerWithPadding._EvaluateConvKernel"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._EvaluateConvKernel">[docs]</a>  <span class="k">def</span> <span class="nf">_EvaluateConvKernel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">conv_input</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Evaluate the convolution kernel on input &#39;conv_input&#39;.&quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
@@ -365,6 +368,12 @@
 
 <div class="viewcode-block" id="Conv2DLayerWithPadding"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding">[docs]</a><span class="k">class</span> <span class="nc">Conv2DLayerWithPadding</span><span class="p">(</span><span class="n">BaseConv2DLayerWithPadding</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Conv2D layer.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Conv2DLayerWithPadding.Params"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Conv2DLayerWithPadding</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether or not to apply a bias before activation.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -386,6 +395,14 @@
                 <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
                 <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+            <span class="s1">&#39;b&#39;</span><span class="p">,</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_channels</span><span class="p">],</span>
+                <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span>
 
 <div class="viewcode-block" id="Conv2DLayerWithPadding.OutputChannels"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding.OutputChannels">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">OutputChannels</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
@@ -401,6 +418,13 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">filter_w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span>
     <span class="k">return</span> <span class="n">filter_w</span></div>
+
+<div class="viewcode-block" id="Conv2DLayerWithPadding._ApplyConv"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._ApplyConv">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">conv_input</span><span class="p">):</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EvaluateConvKernel</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">conv_input</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">bias_add</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span></div>
 
 <div class="viewcode-block" id="Conv2DLayerWithPadding._EvaluateConvKernel"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._EvaluateConvKernel">[docs]</a>  <span class="k">def</span> <span class="nf">_EvaluateConvKernel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply convolution to inputs.&quot;&quot;&quot;</span>
