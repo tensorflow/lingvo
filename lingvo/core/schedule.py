@@ -447,6 +447,60 @@ class LinearRampupExponentialDecay(
     super(LinearRampupExponentialDecay, self).__init__(params)
 
 
+class LinearRampupSqrtDecayByBatchSizeAndReplicas(BaseLearningRateSchedule):
+  """Linearly increase learning rate until warmup_examples, then sqrt decay.
+
+  Same as the Transformer learning schedule, except that learning rate
+  multiplier and time scales are adjusted according to the aggregate batch size
+  (batch_size * num_replicas).
+
+  The implied peak learning rate multiplier given by this schedule is:
+      sqrt(batch_size * num_replicas / warmup_examples).
+
+  Can only be used with synchronized trainers.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(LinearRampupSqrtDecayByBatchSizeAndReplicas, cls).Params()
+    p.Define(
+        'warmup_examples', 256 * 2**20,
+        'Increase the learning rate linearly for the first warmup_examples '
+        'training examples, and then starts square-root decay.')
+    p.Define('batch_size', None,
+             'Norminal (per-replica) batch size. Must be provided.')
+    p.Define(
+        'num_replicas', None, 'Number of worker replicas. If None, '
+        'determined automatically (and error if this fails).')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(LinearRampupSqrtDecayByBatchSizeAndReplicas, self).__init__(params)
+    p = self.params
+    assert p.batch_size > 0
+    if p.num_replicas:
+      self._num_replicas = p.num_replicas
+    else:
+      # Infer from cluster.
+      cluster_params = self.cluster.params.Copy()
+      cluster_params.task = 0
+      assert cluster_params.mode == 'sync'
+      cluster_params.job = 'trainer_client'
+      my_cluster = cluster_params.Instantiate()
+      self._num_replicas = my_cluster.num_splits_per_client
+    assert self._num_replicas > 0
+
+  def FProp(self, theta, current_step):
+    """Returns the current learning rate decay."""
+    p = self.params
+    current_step = tf.to_float(current_step)
+    warmup_steps = tf.to_float(p.warmup_examples /
+                               (p.batch_size * self._num_replicas))
+    return tf.minimum((current_step + 1) * warmup_steps**-1.5,
+                      (current_step + 1)**-0.5)
+
+
 class LinearRampupPiecewiseConstantSchedule(BaseLearningRateSchedule):
   """A learning rate schedule that does the following.
 

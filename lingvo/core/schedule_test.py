@@ -403,6 +403,18 @@ class LearningRateScheduleTest(test_utils.TestCase):
               [5000000, 0.5]
           ])
 
+  def testLinearRampupSqrtDecayByBatchSizeAndReplicasSchedule(self):
+    p = schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas.Params().Set(
+        warmup_examples=100000, batch_size=100)
+    with self.session(), cluster_factory.ForTestingWorker(
+        mode='sync', job='trainer_client', gpus=10):
+      lrs = p.Instantiate()
+      self.assertAllClose(lrs.Value(-1).eval(), 0.0)
+      self.assertAllClose(lrs.Value(49).eval(), 0.05)
+      self.assertAllClose(lrs.Value(99).eval(), 0.1)
+      self.assertAllClose(lrs.Value(399).eval(), 0.05)
+      self.assertAllClose(lrs.Value(1599).eval(), 0.025)
+
   def testDevBasedSchedule(self):
     logdir = tf.test.get_temp_dir()
     tf.gfile.MkDir(os.path.join(logdir, 'eval_dev'))
