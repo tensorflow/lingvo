@@ -516,8 +516,10 @@ class BaseTask(base_layer.BaseLayer):
 
   def _FPropResult(self, metrics, per_example):
     # Adds stats about the input batch.
-    metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
-        self.input_generator.GlobalBatchSize()), tf.constant(1.0))
+    p = self._params
+    if p.input is not None:
+      metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
+          self.input_generator.GlobalBatchSize()), tf.constant(1.0))
     # Generates summaries.
     for name, (value, weight) in six.iteritems(metrics):
       self.AddEvalMetric(name, value, weight)
