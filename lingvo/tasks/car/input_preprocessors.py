@@ -611,7 +611,8 @@ class PointsToGrid(Preprocessor):
 
     points_xyz = features.lasers.points_xyz
     points_feature = features.lasers.points_feature
-    if features.lasers.points_padding is not None:
+    if ('points_padding' in features.lasers and
+        features.lasers.points_padding is not None):
       points_mask = 1 - features.lasers.points_padding
       points_xyz = tf.boolean_mask(points_xyz, points_mask)
       points_feature = tf.boolean_mask(points_feature, points_mask)
@@ -2666,14 +2667,11 @@ class GroundTruthAugmentor(Preprocessor):
     """Construct db example filter.
 
     Args:
-      db: NestedMap of the following Tensors:
-        points_mask - [N, P] - The points mask for every object in the database,
-        where N is the number of objects and P is the maximum number of points
-        per object.
-
-        labels - [N] - int32 Label for each object in the database.
-
-        difficulties - [N] - int32 Difficulty for each label in the database.
+      db: NestedMap of the following Tensors: points_mask - [N, P] - The points
+        mask for every object in the database, where N is the number of objects
+        and P is the maximum number of points per object.  labels - [N] - int32
+        Label for each object in the database.  difficulties - [N] - int32
+        Difficulty for each label in the database.
 
     Returns:
       A [N] boolean Tensor for each object in the database, True if
