@@ -197,8 +197,8 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
       # Zeroing out padded inputs.
       inputs = _ApplyPadding(inputs, paddings)
 
-      # Evaluate the conv kernel on 'inputs'.
-      out = self._EvaluateConvKernel(theta, inputs)
+      # Apply conv on 'inputs'.
+      out = self._ApplyConv(theta, inputs)
 
       # NOTE: this may be slightly inaccurate when p.dilation_rate[0] > 1.
       # But there's likely no real problems. Trying to set it gives an error:
@@ -213,6 +213,9 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
       out = py_utils.HasShape(out, self.OutShape(tf.shape(inputs)))
       return out, conv_padding
 
+  def _ApplyConv(self, theta, conv_input):
+    return self._EvaluateConvKernel(theta, conv_input)
+
   def _EvaluateConvKernel(self, theta, conv_input):
     """Evaluate the convolution kernel on input 'conv_input'."""
     raise NotImplementedError
@@ -220,6 +223,12 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
 
 class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
   """Conv2D layer."""
+
+  @classmethod
+  def Params(cls):
+    p = super(Conv2DLayerWithPadding, cls).Params()
+    p.Define('bias', False, 'Whether or not to apply a bias before activation.')
+    return p
 
   @base_layer.initializer
   def __init__(self, params):
@@ -241,6 +250,14 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
                 init=py_utils.WeightInit.Constant(0.0),
                 dtype=p.dtype,
                 collections=[self.__class__.__name__ + '_vars']))
+      if p.bias:
+        self.CreateVariable(
+            'b',
+            py_utils.WeightParams(
+                shape=[self.output_channels],
+                init=py_utils.WeightInit.Constant(0.0),
+                dtype=p.dtype,
+                collections=[self.__class__.__name__ + '_vars']))
 
   @classmethod
   def OutputChannels(cls, p):
@@ -256,6 +273,13 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
     else:
       filter_w = theta.w
     return filter_w
+
+  def _ApplyConv(self, theta, conv_input):
+    out = self._EvaluateConvKernel(theta, conv_input)
+    p = self.params
+    if p.bias:
+      out = tf.nn.bias_add(out, self.theta.b)
+    return out
 
   def _EvaluateConvKernel(self, theta, inputs):
     """Apply convolution to inputs."""
