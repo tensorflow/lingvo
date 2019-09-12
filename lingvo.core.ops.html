@@ -824,28 +824,22 @@ The value when the key is not found.</p></li>
 
 <dl class="function">
 <dt id="lingvo.core.ops.v">
-<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">token_ids</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">vocab_filepath</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>A tokenizer to map BPE ids to strings.</p>
-<p>This op is to map a sequence of integer ids to a string. The op is typically
-used in conjunction with BpeWordsToIds.</p>
-<p>The op will consume <code class="xref py py-obj docutils literal notranslate"><span class="pre">seq_lengths</span></code> of tokens from <code class="xref py py-obj docutils literal notranslate"><span class="pre">token_ids</span></code> and convert it to
-string <code class="xref py py-obj docutils literal notranslate"><span class="pre">sequences</span></code>. A space character will be interested inbetween tokens. We do
-not filter any tokens (i.e., &lt;s&gt; and &lt;/s&gt; are not treated specially).</p>
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">keys</em>, <em class="sig-param">vals=[]</em>, <em class="sig-param">unk=-1</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maps every element of x according a static mapping.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>token_ids</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
-The ids (can include paddings; length is determined by seq_lengths). The shape is [batch_size, maxlen].</p></li>
-<li><p><strong>seq_lengths</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
-The length of the ids. The shape is [batch_size].</p></li>
-<li><p><strong>vocab_filepath</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
-A path to a text file where each line is a BPE string token.</p></li>
+<li><p><strong>x</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A Tensor of type string.</p></li>
+<li><p><strong>keys</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>. The list of keys.</p></li>
+<li><p><strong>vals</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
+The list of values. If empty, defaults to [0 .. len(keys)).</p></li>
+<li><p><strong>unk</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.
+The value when the key is not found.</p></li>
 <li><p><strong>name</strong> – A name for the operation (optional).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
-The string sequences. The shape is [batch_size].</p>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A Tensor of type int32. Same shape of x.</p>
 </dd>
 </dl>
 </dd></dl>

@@ -1,0 +1,405 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.steps.rnn_steps &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.steps.rnn_steps</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.steps.rnn_steps</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;Step APIs for RNN layers.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">rnn_cell</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">step</span>
+
+
+<div class="viewcode-block" id="RnnStep"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStep">[docs]</a><span class="k">class</span> <span class="nc">RnnStep</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">Step</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A step containing an RNNCell.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RnnStep.Params"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStep.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RnnStep</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Params for the RNN cell.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">RnnStep</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RnnStep.PrepareExternalInputs"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStep.PrepareExternalInputs">[docs]</a>  <span class="k">def</span> <span class="nf">PrepareExternalInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Does not modify the external_inputs parameter.</span>
+
+<span class="sd">    This parameter, if provided, is assumed to be a vector that should be</span>
+<span class="sd">    concatenated with the other vectors in step_inputs.inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: unused.</span>
+<span class="sd">      external_inputs: Either a tensor or None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      external_inputs, unmodified.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">external_inputs</span></div>
+
+<div class="viewcode-block" id="RnnStep.ZeroState"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStep.ZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the zero_state for the RNN cell.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: Variables used by the RNNCell.</span>
+<span class="sd">      external_inputs: unused.</span>
+<span class="sd">      batch_size: An int scalar representing the batch size of per-step inputs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The zero state of the RNNCell.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">cell</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RnnStep.FProp"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStep.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Performs one inference step on the RNN cell.</span>
+
+<span class="sd">    If external_inputs is not None, it is added as another act input</span>
+<span class="sd">    to the RNNCell.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: Variables used by the RNNCell.</span>
+<span class="sd">      external_inputs: If not None, concatenated with step_inputs.input. A</span>
+<span class="sd">        tensor of shape [batch_size, external_input_dim].</span>
+<span class="sd">      step_inputs: A NestedMap containing an &#39;input&#39; list of [batch_size, dim]</span>
+<span class="sd">        where the sum of dim (including external_inputs) is</span>
+<span class="sd">        p.cell.num_input_nodes.</span>
+<span class="sd">      padding: A 0/1 float tensor of shape [batch_size]; 1.0 means that this</span>
+<span class="sd">        batch element is empty in this step.</span>
+<span class="sd">      state0: A NestedMap of state, either produced by ZeroState or a previous</span>
+<span class="sd">        invocation of FProp.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      (output, state1), where output is the cell output (GetOutput(state1))</span>
+<span class="sd">      of shape [batch_size, p.cell.num_output_nodes], and state1 is the cell&#39;s</span>
+<span class="sd">      recurrent state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cell_inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">act</span><span class="o">=</span><span class="n">step_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">external_inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">cell_inputs</span><span class="o">.</span><span class="n">act</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">external_inputs</span><span class="p">)</span>
+    <span class="n">cell_inputs</span><span class="o">.</span><span class="n">padding</span> <span class="o">=</span> <span class="n">padding</span>
+    <span class="n">state1</span><span class="p">,</span> <span class="n">extra</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">cell</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">cell_inputs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">output</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">GetOutput</span><span class="p">(</span><span class="n">state1</span><span class="p">),</span> <span class="n">extra</span><span class="o">=</span><span class="n">extra</span><span class="p">,</span>
+        <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">),</span> <span class="n">state1</span></div></div>
+
+
+<div class="viewcode-block" id="RnnStackStep"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStackStep">[docs]</a><span class="k">class</span> <span class="nc">RnnStackStep</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A stack of RnnSteps.</span>
+
+<span class="sd">  Three types of inputs are supported:</span>
+<span class="sd">    step_inputs.input: This is the standard input. It is expected to change</span>
+<span class="sd">      on every step of the sequence, and it is fed only to the first layer.</span>
+<span class="sd">    step_inputs.context: This input changes for each step of the sequence, but</span>
+<span class="sd">      is fed to every layer.</span>
+<span class="sd">    external_inputs: This input is fixed at the beginning of the sequence.</span>
+<span class="sd">      It is fed to every layer.</span>
+
+<span class="sd">  Residual connections are also supported. When residual_start &gt; 0, the output</span>
+<span class="sd">  of layer i (i &gt;= residual_start) is added to the output of layer</span>
+<span class="sd">  i - residual_stride.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RnnStackStep.Params"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStackStep.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs Params for an RnnStackStep.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">RnnStackStep</span><span class="o">.</span><span class="n">InternalParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Name of this layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;rnn_cell_tpl&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;RNNCell params template. &#39;</span>
+        <span class="s1">&#39;Can be a single param or &#39;</span>
+        <span class="s1">&#39;a list of rnn_layers params, one for each layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;external_input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Size of the external input. &#39;</span>
+        <span class="s1">&#39;The external input is given at the start of the sequence &#39;</span>
+        <span class="s1">&#39;and is given to every layer at every step.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;step_input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Size of the step input. &#39;</span>
+        <span class="s1">&#39;This input is only given to the first layer and is expected to &#39;</span>
+        <span class="s1">&#39;be different for each step.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;context_input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Size of the context input. &#39;</span>
+        <span class="s1">&#39;This input is given to every layer and is expected to be &#39;</span>
+        <span class="s1">&#39;different for each step.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;rnn_cell_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Size of the rnn cells. &#39;</span>
+        <span class="s1">&#39;This may be overridden by parameters set in rnn_cell_tpl.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;rnn_cell_hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;internal size of the rnn cells. When &#39;</span>
+        <span class="s1">&#39;set to &gt; 0 it enables a projection layer at the output of the &#39;</span>
+        <span class="s1">&#39;rnn cell. This may be overridden by parameters set in rnn_cell_tpl.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rnn_layers&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of rnn layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;residual_start&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;Start residual connections from this layer. For this and higher &#39;</span>
+        <span class="s1">&#39;layers, the layer output is the sum of the RNN cell output and &#39;</span>
+        <span class="s1">&#39;input; if the layer also normalizes its output, then the &#39;</span>
+        <span class="s1">&#39;normalization is done over this sum. Set to 0 to disable &#39;</span>
+        <span class="s1">&#39;residual connections.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;residual_stride&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+             <span class="s1">&#39;Number of lstm layers to skip per residual connection.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="RnnStackStep.InternalParams"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStackStep.InternalParams">[docs]</a>  <span class="k">class</span> <span class="nc">InternalParams</span><span class="p">(</span><span class="n">hyperparams</span><span class="o">.</span><span class="n">InstantiableParams</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A hyperparams object that converts itself into a StackStep.</span>
+
+<span class="sd">    This object operates like a normal InstantiatableParams, but instead</span>
+<span class="sd">    of using the default Instantiate method, it converts its params into</span>
+<span class="sd">    StackStep params and instantiates a StackStep.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+      <span class="nb">super</span><span class="p">(</span><span class="n">RnnStackStep</span><span class="o">.</span><span class="n">InternalParams</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">StackStep</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RnnStackStep.InternalParams.Instantiate"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStackStep.InternalParams.Instantiate">[docs]</a>    <span class="k">def</span> <span class="nf">Instantiate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+      <span class="n">sub</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span>
+
+      <span class="c1"># Users can either provide a single rnn_cell_tpl or one per layer.</span>
+      <span class="c1"># If only one is provided, we replicate it for each layer.</span>
+      <span class="n">rnn_cell_tpls</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rnn_cell_tpls</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">rnn_cell_tpls</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span>
+
+      <span class="c1"># We may provide up to three tensors as input to the RnnStep:</span>
+      <span class="c1"># the normal input, the context input (from step_inputs.context),</span>
+      <span class="c1"># and the external input (from external_inputs).</span>
+      <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">context_input_dim</span><span class="p">:</span>
+        <span class="n">arity</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">external_input_dim</span><span class="p">:</span>
+        <span class="n">arity</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="n">extra_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">context_input_dim</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">external_input_dim</span>
+
+      <span class="c1"># The first layer&#39;s input comes from step_inputs.input. Later layers</span>
+      <span class="c1"># will get their inputs from the previous layer&#39;s output.</span>
+      <span class="n">input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">step_input_dim</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span><span class="p">):</span>
+        <span class="n">step_i</span> <span class="o">=</span> <span class="n">RnnStep</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+        <span class="n">step_i</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rnn_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span> <span class="o">=</span> <span class="n">rnn_cell_tpls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">input_nodes</span> <span class="o">+</span> <span class="n">extra_dim</span>
+        <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">inputs_arity</span> <span class="o">=</span> <span class="n">arity</span>
+        <span class="c1"># The dimensions of each cell may be specified in the cell template</span>
+        <span class="c1"># but most users will specify them in the stack params.</span>
+        <span class="k">if</span> <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span>
+        <span class="k">if</span> <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_hidden_nodes</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_hidden_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_hidden_dim</span>
+        <span class="n">input_nodes</span> <span class="o">=</span> <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">step_i</span><span class="p">)</span>
+
+      <span class="n">stack_params</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">StackStep</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">stack_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+      <span class="n">stack_params</span><span class="o">.</span><span class="n">sub</span> <span class="o">=</span> <span class="n">sub</span>
+      <span class="n">stack_params</span><span class="o">.</span><span class="n">residual_start</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_start</span>
+      <span class="n">stack_params</span><span class="o">.</span><span class="n">residual_stride</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_stride</span>
+      <span class="k">return</span> <span class="n">stack_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span></div></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
