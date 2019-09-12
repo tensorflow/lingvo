@@ -756,7 +756,8 @@
 
     <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_xyz</span>
     <span class="n">points_feature</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span>
-    <span class="k">if</span> <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;points_padding&#39;</span> <span class="ow">in</span> <span class="n">features</span><span class="o">.</span><span class="n">lasers</span> <span class="ow">and</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
       <span class="n">points_mask</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_padding</span>
       <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">,</span> <span class="n">points_mask</span><span class="p">)</span>
       <span class="n">points_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">points_feature</span><span class="p">,</span> <span class="n">points_mask</span><span class="p">)</span>
@@ -2811,14 +2812,11 @@
     <span class="sd">&quot;&quot;&quot;Construct db example filter.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      db: NestedMap of the following Tensors:</span>
-<span class="sd">        points_mask - [N, P] - The points mask for every object in the database,</span>
-<span class="sd">        where N is the number of objects and P is the maximum number of points</span>
-<span class="sd">        per object.</span>
-
-<span class="sd">        labels - [N] - int32 Label for each object in the database.</span>
-
-<span class="sd">        difficulties - [N] - int32 Difficulty for each label in the database.</span>
+<span class="sd">      db: NestedMap of the following Tensors: points_mask - [N, P] - The points</span>
+<span class="sd">        mask for every object in the database, where N is the number of objects</span>
+<span class="sd">        and P is the maximum number of points per object.  labels - [N] - int32</span>
+<span class="sd">        Label for each object in the database.  difficulties - [N] - int32</span>
+<span class="sd">        Difficulty for each label in the database.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A [N] boolean Tensor for each object in the database, True if</span>

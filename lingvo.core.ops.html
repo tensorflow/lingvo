@@ -824,22 +824,19 @@ The value when the key is not found.</p></li>
 
 <dl class="function">
 <dt id="lingvo.core.ops.v">
-<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">keys</em>, <em class="sig-param">vals=[]</em>, <em class="sig-param">unk=-1</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>Maps every element of x according a static mapping.</p>
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">msg=''</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Asserts that all input tensors are non-scalar and have the same 0-th dim size.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A Tensor of type string.</p></li>
-<li><p><strong>keys</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>. The list of keys.</p></li>
-<li><p><strong>vals</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
-The list of values. If empty, defaults to [0 .. len(keys)).</p></li>
-<li><p><strong>unk</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.
-The value when the key is not found.</p></li>
+<li><p><strong>x</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects. The list of tensors.</p></li>
+<li><p><strong>msg</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>.
+The error message generated when the assertion failed.</p></li>
 <li><p><strong>name</strong> – A name for the operation (optional).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A Tensor of type int32. Same shape of x.</p>
+<dd class="field-even"><p>The created Operation.</p>
 </dd>
 </dl>
 </dd></dl>
