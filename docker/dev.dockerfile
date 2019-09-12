@@ -10,7 +10,7 @@ ARG cpu_base_image="ubuntu:16.04"
 ARG base_image=$cpu_base_image
 FROM $base_image
 
-LABEL maintainer="Patrick Nguyen <drpng@google.com>"
+LABEL maintainer="Lingvo team <lingvo-bot@google.com>"
 
 # Re-declare args because the args declared before FROM can't be used in any
 # instruction after a FROM.
