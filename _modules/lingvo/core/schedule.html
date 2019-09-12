@@ -592,6 +592,60 @@
     <span class="nb">super</span><span class="p">(</span><span class="n">LinearRampupExponentialDecay</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="LinearRampupSqrtDecayByBatchSizeAndReplicas"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupSqrtDecayByBatchSizeAndReplicas</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Linearly increase learning rate until warmup_examples, then sqrt decay.</span>
+
+<span class="sd">  Same as the Transformer learning schedule, except that learning rate</span>
+<span class="sd">  multiplier and time scales are adjusted according to the aggregate batch size</span>
+<span class="sd">  (batch_size * num_replicas).</span>
+
+<span class="sd">  The implied peak learning rate multiplier given by this schedule is:</span>
+<span class="sd">      sqrt(batch_size * num_replicas / warmup_examples).</span>
+
+<span class="sd">  Can only be used with synchronized trainers.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LinearRampupSqrtDecayByBatchSizeAndReplicas.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LinearRampupSqrtDecayByBatchSizeAndReplicas</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;warmup_examples&#39;</span><span class="p">,</span> <span class="mi">256</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="mi">20</span><span class="p">,</span>
+        <span class="s1">&#39;Increase the learning rate linearly for the first warmup_examples &#39;</span>
+        <span class="s1">&#39;training examples, and then starts square-root decay.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;batch_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Norminal (per-replica) batch size. Must be provided.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_replicas&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of worker replicas. If None, &#39;</span>
+        <span class="s1">&#39;determined automatically (and error if this fails).&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">LinearRampupSqrtDecayByBatchSizeAndReplicas</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_replicas</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_num_replicas</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_replicas</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Infer from cluster.</span>
+      <span class="n">cluster_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">cluster_params</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">assert</span> <span class="n">cluster_params</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sync&#39;</span>
+      <span class="n">cluster_params</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer_client&#39;</span>
+      <span class="n">my_cluster</span> <span class="o">=</span> <span class="n">cluster_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_num_replicas</span> <span class="o">=</span> <span class="n">my_cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_replicas</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="LinearRampupSqrtDecayByBatchSizeAndReplicas.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the current learning rate decay.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">current_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">current_step</span><span class="p">)</span>
+    <span class="n">warmup_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">warmup_examples</span> <span class="o">/</span>
+                               <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_replicas</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">((</span><span class="n">current_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">warmup_steps</span><span class="o">**-</span><span class="mf">1.5</span><span class="p">,</span>
+                      <span class="p">(</span><span class="n">current_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span></div></div>
+
+
 <div class="viewcode-block" id="LinearRampupPiecewiseConstantSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupPiecewiseConstantSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupPiecewiseConstantSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A learning rate schedule that does the following.</span>
 
