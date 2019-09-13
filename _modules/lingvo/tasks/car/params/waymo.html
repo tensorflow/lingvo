@@ -380,6 +380,9 @@
       <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">64</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">16</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">16</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="StarNetBase.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Train">[docs]</a>  <span class="nd">@classmethod</span>
@@ -592,6 +595,31 @@
     <span class="n">p</span><span class="o">.</span><span class="n">nms_iou_threshold</span><span class="p">[</span><span class="n">class_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;Pedestrian&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.46</span>
     <span class="n">p</span><span class="o">.</span><span class="n">nms_score_threshold</span><span class="p">[</span><span class="n">class_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;Pedestrian&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.01</span>
 
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="StarNetPedFused"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetPedFused">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">StarNetPedFused</span><span class="p">(</span><span class="n">StarNetPed</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;StarNet Pedestrian model with SparseSampler fused input preprocessor.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="StarNetPedFused._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetPedFused._configure_input">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedFused</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">)</span>
+    <span class="c1"># Fuses select_centers and gather_features into one sampler.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;sampler&#39;</span><span class="p">,</span>
+        <span class="n">input_preprocessors</span><span class="o">.</span><span class="n">SparseSampler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">center_selector</span><span class="o">=</span><span class="s1">&#39;farthest&#39;</span><span class="p">,</span>
+            <span class="n">neighbor_sampler</span><span class="o">=</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span>
+            <span class="n">num_centers</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">select_centers</span><span class="o">.</span><span class="n">num_cell_centers</span><span class="p">,</span>
+            <span class="n">keep_z_range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.09522381</span><span class="p">,</span> <span class="mf">1.720825</span><span class="p">),</span>
+            <span class="n">num_neighbors</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">gather_features</span><span class="o">.</span><span class="n">num_points_per_cell</span><span class="p">,</span>
+            <span class="n">max_distance</span><span class="o">=</span><span class="mf">2.75</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="s1">&#39;select_centers&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="s1">&#39;gather_features&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;select_centers&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
+        <span class="s1">&#39;gather_features&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="s1">&#39;sampler&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div></div>
 </pre></div>
 
