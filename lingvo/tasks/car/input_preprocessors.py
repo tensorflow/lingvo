@@ -3104,3 +3104,113 @@ class RepeatPreprocessor(Preprocessor):
       dtypes = self.subprocessor.TransformDTypes(dtypes)
 
     return dtypes
+
+
+class SparseSampler(Preprocessor):
+  """Fused SparseCenterSelector and SparseCellGatherFeatures.
+
+  This preprocessor expects features to contain the following keys:
+  - lasers.points_xyz of shape [P, 3]
+  - lasers.points_feature of shape [P, F]
+
+  Adds the following features:
+    anchor_centers - [num_centers, 3] - Floating point output containing the
+    center (x, y, z) locations for tiling anchor boxes.
+
+    cell_center_xyz - [num_centers, 3] - Floating point output containing
+    the center (x, y, z) locations for each cell to featurize.
+
+    cell_center_padding - [num_centers] - 0/1 padding for each center.
+
+    cell_points_xyz - [num_centers, num_neighbors, 3] - Floating point
+    output containing the (x, y, z) locations for each point for a given
+    center.
+
+    cell_feature - [num_centers, num_neighbors, F] - Floating point output
+    containing the features for each point for a given center.
+
+    cell_points_padding - [num_centers, num_neighbors] - 0/1 padding
+    for the points in each cell.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(SparseSampler, cls).Params()
+    p.Define('center_selector', 'farthest', 'Method to sample centers. '
+             'Valid options - uniform, farthest.')
+    p.Define('neighbor_sampler', 'uniform', 'Method to select neighbors. '
+             'Valid options - uniform, closest.')
+    p.Define('num_centers', 16, 'The number of centers to sample.')
+    p.Define(
+        'keep_z_range', (-np.inf, np.inf),
+        'Only points that have z coordinates within this range are kept. '
+        'Approximate ground-removal can be performed by specifying a '
+        'lower-bound on the z-range.')
+    p.Define('num_neighbors', 64, 'Sample these many points within the '
+             'neighorhood.')
+    p.Define(
+        'max_distance', 1.0, 'Points with L2 distances from a center '
+        'larger than this threshold are not considered to be in the '
+        'neighborhood.')
+    return p
+
+  def TransformFeatures(self, features):
+    p = self.params
+    n, m = p.num_centers, p.num_neighbors
+
+    points = py_utils.HasShape(features.lasers.points_xyz, [-1, 3])
+    if ('points_padding' in features.lasers) and (features.lasers.points_padding
+                                                  is not None):
+      raise ValueError(
+          'SparseSampler preprocessor does not support padded lasers.')
+
+    # If num_points < num_centers, pad points to have at least num_centers
+    # points.
+    num_points = tf.shape(points)[0]
+    required_num_points = tf.maximum(num_points, p.num_centers)
+    zeros = tf.zeros([required_num_points - num_points, 3])
+    points = tf.concat([points, zeros], axis=0)
+
+    center_paddings, centers, indices, paddings = ops.sample_points(
+        points=points,
+        center_selector=p.center_selector,
+        neighbor_sampler=p.neighbor_sampler,
+        num_centers=p.num_centers,
+        center_z_min=p.keep_z_range[0],
+        center_z_max=p.keep_z_range[1],
+        num_neighbors=p.num_neighbors,
+        max_distance=p.max_distance,
+        random_seed=p.random_seed if p.random_seed else -1)
+    center_paddings = py_utils.HasShape(center_paddings, [n])
+    centers = py_utils.HasShape(centers, [n])
+    indices = py_utils.HasShape(indices, [n, m])
+    paddings = py_utils.HasShape(paddings, [n, m])
+    features.cell_center_padding = center_paddings
+    features.cell_center_xyz = py_utils.HasShape(
+        tf.gather(points, centers), [n, 3])
+    features.anchor_centers = features.cell_center_xyz
+    features.cell_points_xyz = py_utils.HasShape(
+        tf.gather(points, indices), [n, m, 3])
+    features.cell_feature = tf.gather(features.lasers.points_feature, indices)
+    features.cell_points_padding = paddings
+    return features
+
+  def TransformShapes(self, shapes):
+    p = self.params
+    n, m, f = p.num_centers, p.num_neighbors, shapes.lasers.points_feature[-1]
+    shapes.anchor_centers = tf.TensorShape([n, 3])
+    shapes.cell_center_padding = tf.TensorShape([n])
+    shapes.cell_center_xyz = tf.TensorShape([n, 3])
+    shapes.cell_points_xyz = tf.TensorShape([n, m, 3])
+    shapes.cell_feature = tf.TensorShape([n, m, f])
+    shapes.cell_points_padding = tf.TensorShape([n, m])
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    dtypes.anchor_centers = tf.float32
+    dtypes.cell_center_padding = tf.float32
+    dtypes.cell_center_xyz = tf.float32
+    dtypes.cell_points_xyz = tf.float32
+    dtypes.cell_feature = tf.float32
+    dtypes.cell_points_padding = tf.float32
+    return dtypes
