@@ -1398,10 +1398,11 @@ class RNNCellTest(test_utils.TestCase):
       if enable_ln_on_c:
         self.assertEqual(lstm.theta.ln_scale_c.get_shape(),
                          tf.TensorShape([params.num_hidden_nodes]))
+        self.assertEqual(lstm.theta.bias_c.get_shape(),
+                         tf.TensorShape([params.num_hidden_nodes]))
       else:
         self.assertNotIn('ln_scale_c', lstm.theta)
-      self.assertEqual(lstm.theta.bias_c.get_shape(),
-                       tf.TensorShape([params.num_hidden_nodes]))
+        self.assertNotIn('bias_c', lstm.theta)
       # Output projection.
       self.assertEqual(
           lstm.theta.w_output_proj.get_shape(),
@@ -1430,7 +1431,7 @@ class RNNCellTest(test_utils.TestCase):
       if enable_ln_on_c:
         self.assertEqual(2 + 3 * 4 + 2, len(wts))
       else:
-        self.assertEqual(2 + 3 * 4 + 1, len(wts))
+        self.assertEqual(2 + 3 * 4, len(wts))
 
       if enable_ln_on_c:
         m_expected = [[-0.751002], [0.784634], [0.784634]]

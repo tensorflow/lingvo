@@ -1249,8 +1249,11 @@ class LayerNormalizedLSTMCellLean(RNNCell):
         '(see https://arxiv.org/abs/1603.08042). '
         'Set to 0 to disable projection.')
     p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqrt against.')
-    p.Define('enable_ln_on_c', True,
-             'Whether to apply layer normalization on state.c.')
+    p.Define(
+        'enable_ln_on_c', True,
+        'Whether to apply layer normalization on state.c. '
+        'If false, LayerNormalizedLSTMCellLean will behave exactly as '
+        'LayerNormalizedLSTMCellSimple.')
 
     # TODO(yonghui): Get rid of the following two params.
     p.Define('output_nonlinearity', True,
@@ -1294,8 +1297,6 @@ class LayerNormalizedLSTMCellLean(RNNCell):
       ln_gates = ['i_g', 'i_i', 'f_g', 'o_g']
       if p.enable_ln_on_c:
         ln_gates += ['c']
-      else:
-        self.CreateVariable('bias_c', pc, self.AddGlobalVN)
       for ln_name in ln_gates:
         self.CreateVariable('ln_scale_' + ln_name, pc, self.AddGlobalVN)
         self.CreateVariable('bias_' + ln_name, pc, self.AddGlobalVN)
@@ -1349,7 +1350,6 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     """
     p = self.params
     if gate_name == 'c' and not p.enable_ln_on_c:
-      x += theta['bias_c']
       return x
     mean = tf.reduce_mean(x, axis=[1], keepdims=True)
     centered = x - mean
@@ -1368,6 +1368,8 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     f_g = self._LayerNormGate(theta, 'f_g', f_g)
     o_g = self._LayerNormGate(theta, 'o_g', o_g)
     new_c = tf.sigmoid(f_g) * state0.c + tf.sigmoid(i_g) * tf.tanh(i_i)
+    # new_c_normed is only used for computing 'new_m'. We use the un-normalized
+    # new_cc as cell state to keep the residual property of lstm cell.
     new_c_normed = self._LayerNormGate(theta, 'c', new_c)
     new_m = tf.sigmoid(o_g) * tf.tanh(new_c_normed)
 
@@ -1463,8 +1465,6 @@ class DoubleProjectionLSTMCell(RNNCell):
       ln_gates = self.gates
       if p.enable_ln_on_c:
         ln_gates += ['c']
-      else:
-        self.CreateVariable('bias_c', pc, self.AddGlobalVN)
       for ln_name in ln_gates:
         self.CreateVariable('ln_scale_' + ln_name, pc, self.AddGlobalVN)
         self.CreateVariable('bias_' + ln_name, pc, self.AddGlobalVN)
@@ -1532,7 +1532,6 @@ class DoubleProjectionLSTMCell(RNNCell):
     """
     p = self.params
     if gate_name == 'c' and not p.enable_ln_on_c:
-      x += theta['bias_c']
       return x
     mean = tf.reduce_mean(x, axis=[1], keepdims=True)
     centered = x - mean
