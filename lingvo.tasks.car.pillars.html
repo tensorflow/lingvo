@@ -169,8 +169,8 @@
 <p>PointPillars implementation.</p>
 <p>[1] PointPillars. <a class="reference external" href="https://arxiv.org/abs/1812.05784">https://arxiv.org/abs/1812.05784</a></p>
 <dl class="function">
-<dt id="lingvo.tasks.car.pillars._SparseToDense">
-<code class="sig-prename descclassname">lingvo.tasks.car.pillars.</code><code class="sig-name descname">_SparseToDense</code><span class="sig-paren">(</span><em class="sig-param">grid_shape</em>, <em class="sig-param">locations</em>, <em class="sig-param">feats</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#_SparseToDense"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars._SparseToDense" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.tasks.car.pillars.SparseToDense">
+<code class="sig-prename descclassname">lingvo.tasks.car.pillars.</code><code class="sig-name descname">SparseToDense</code><span class="sig-paren">(</span><em class="sig-param">grid_shape</em>, <em class="sig-param">locations</em>, <em class="sig-param">feats</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#SparseToDense"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.SparseToDense" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts a sparse representation back to the dense grid.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -185,6 +185,25 @@
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>grid_feats</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.pillars.ProcessPillars">
+<code class="sig-prename descclassname">lingvo.tasks.car.pillars.</code><code class="sig-name descname">ProcessPillars</code><span class="sig-paren">(</span><em class="sig-param">input_batch</em>, <em class="sig-param">num_laser_features</em>, <em class="sig-param">featurizer</em>, <em class="sig-param">theta_featurizer</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#ProcessPillars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.ProcessPillars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute features for the pillars and convert them back to a dense grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors.</p></li>
+<li><p><strong>num_laser_features</strong> – Number of laser features (excluding pillar features)</p></li>
+<li><p><strong>featurizer</strong> – The featurizer layer.</p></li>
+<li><p><strong>theta_featurizer</strong> – The weights for featurizer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The dense features with shape [b, nx, ny, nz * fdims].</p>
 </dd>
 </dl>
 </dd></dl>
@@ -220,6 +239,18 @@
 <dt id="lingvo.tasks.car.pillars.Builder._Upsample">
 <code class="sig-name descname">_Upsample</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">stride</em>, <em class="sig-param">idims</em>, <em class="sig-param">odims</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#Builder._Upsample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.Builder._Upsample" title="Permalink to this definition">¶</a></dt>
 <dd><p>[1]. Sec 2.2.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.pillars.Builder.Contract">
+<code class="sig-name descname">Contract</code><span class="sig-paren">(</span><em class="sig-param">down_strides=(2</em>, <em class="sig-param">2</em>, <em class="sig-param">2)</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#Builder.Contract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.Builder.Contract" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contracting part of [1] Sec 2.2.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.pillars.Builder.Expand">
+<code class="sig-name descname">Expand</code><span class="sig-paren">(</span><em class="sig-param">odims</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#Builder.Expand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.Builder.Expand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expanding part of [1] Sec 2.2.</p>
 </dd></dl>
 
 <dl class="method">

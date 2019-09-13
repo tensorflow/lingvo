@@ -1394,8 +1394,11 @@
         <span class="s1">&#39;(see https://arxiv.org/abs/1603.08042). &#39;</span>
         <span class="s1">&#39;Set to 0 to disable projection.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;layer_norm_epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-8</span><span class="p">,</span> <span class="s1">&#39;Tiny value to guard rsqrt against.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;enable_ln_on_c&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
-             <span class="s1">&#39;Whether to apply layer normalization on state.c.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;enable_ln_on_c&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to apply layer normalization on state.c. &#39;</span>
+        <span class="s1">&#39;If false, LayerNormalizedLSTMCellLean will behave exactly as &#39;</span>
+        <span class="s1">&#39;LayerNormalizedLSTMCellSimple.&#39;</span><span class="p">)</span>
 
     <span class="c1"># TODO(yonghui): Get rid of the following two params.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_nonlinearity&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
@@ -1439,8 +1442,6 @@
       <span class="n">ln_gates</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="s1">&#39;i_i&#39;</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">]</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
         <span class="n">ln_gates</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_c&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">ln_name</span> <span class="ow">in</span> <span class="n">ln_gates</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
@@ -1494,7 +1495,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">gate_name</span> <span class="o">==</span> <span class="s1">&#39;c&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
-      <span class="n">x</span> <span class="o">+=</span> <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;bias_c&#39;</span><span class="p">]</span>
       <span class="k">return</span> <span class="n">x</span>
     <span class="n">mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">centered</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">mean</span>
@@ -1513,6 +1513,8 @@
     <span class="n">f_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNormGate</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="n">f_g</span><span class="p">)</span>
     <span class="n">o_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNormGate</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">,</span> <span class="n">o_g</span><span class="p">)</span>
     <span class="n">new_c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f_g</span><span class="p">)</span> <span class="o">*</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">i_g</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">i_i</span><span class="p">)</span>
+    <span class="c1"># new_c_normed is only used for computing &#39;new_m&#39;. We use the un-normalized</span>
+    <span class="c1"># new_cc as cell state to keep the residual property of lstm cell.</span>
     <span class="n">new_c_normed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNormGate</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="n">new_c</span><span class="p">)</span>
     <span class="n">new_m</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">o_g</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">new_c_normed</span><span class="p">)</span>
 
@@ -1608,8 +1610,6 @@
       <span class="n">ln_gates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
         <span class="n">ln_gates</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_c&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">ln_name</span> <span class="ow">in</span> <span class="n">ln_gates</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
@@ -1677,7 +1677,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">gate_name</span> <span class="o">==</span> <span class="s1">&#39;c&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
-      <span class="n">x</span> <span class="o">+=</span> <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;bias_c&#39;</span><span class="p">]</span>
       <span class="k">return</span> <span class="n">x</span>
     <span class="n">mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">centered</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">mean</span>

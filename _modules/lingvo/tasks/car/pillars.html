@@ -179,7 +179,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 
-<div class="viewcode-block" id="_SparseToDense"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars._SparseToDense">[docs]</a><span class="k">def</span> <span class="nf">_SparseToDense</span><span class="p">(</span><span class="n">grid_shape</span><span class="p">,</span> <span class="n">locations</span><span class="p">,</span> <span class="n">feats</span><span class="p">):</span>
+<div class="viewcode-block" id="SparseToDense"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.SparseToDense">[docs]</a><span class="k">def</span> <span class="nf">SparseToDense</span><span class="p">(</span><span class="n">grid_shape</span><span class="p">,</span> <span class="n">locations</span><span class="p">,</span> <span class="n">feats</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Converts a sparse representation back to the dense grid.</span>
 
 <span class="sd">  Args:</span>
@@ -199,6 +199,50 @@
       <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
   <span class="n">grid</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">scatter_nd</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">feats</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">fdims</span><span class="p">])</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">*</span> <span class="n">fdims</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="ProcessPillars"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ProcessPillars">[docs]</a><span class="k">def</span> <span class="nf">ProcessPillars</span><span class="p">(</span><span class="n">input_batch</span><span class="p">,</span> <span class="n">num_laser_features</span><span class="p">,</span> <span class="n">featurizer</span><span class="p">,</span>
+                   <span class="n">theta_featurizer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute features for the pillars and convert them back to a dense grid.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    input_batch: A `.NestedMap` object containing input tensors.</span>
+<span class="sd">    num_laser_features: Number of laser features (excluding pillar features)</span>
+<span class="sd">    featurizer: The featurizer layer.</span>
+<span class="sd">    theta_featurizer: The weights for featurizer.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">      The dense features with shape [b, nx, ny, nz * fdims].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">grid_num_points</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+  <span class="c1"># Process points to concatenate a set of fixed features (e.g.,</span>
+  <span class="c1"># add means, centers, normalize points to means).</span>
+  <span class="n">num_features</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">num_laser_features</span>
+  <span class="n">pillar_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_points</span><span class="p">,</span>
+                                    <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_features</span><span class="p">])</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">npillars</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">pillar_points</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+  <span class="n">pillar_xyz</span> <span class="o">=</span> <span class="n">pillar_points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+  <span class="n">pillar_means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">pillar_xyz</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keep_dims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="n">pillar_feats</span> <span class="o">=</span> <span class="n">pillar_points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:]</span>
+  <span class="n">pillar_centers</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_centers</span><span class="p">,</span> <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="n">pillar_concat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+      <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+      <span class="n">values</span><span class="o">=</span><span class="p">[</span>
+          <span class="n">pillar_xyz</span> <span class="o">-</span> <span class="n">pillar_means</span><span class="p">,</span> <span class="n">pillar_feats</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pillar_means</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pillar_centers</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="p">])</span>
+  <span class="c1"># Featurize pillars.</span>
+  <span class="n">pillar_features</span> <span class="o">=</span> <span class="n">featurizer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta_featurizer</span><span class="p">,</span> <span class="n">pillar_concat</span><span class="p">)</span>
+
+  <span class="c1"># Convert back to the dense grid.</span>
+  <span class="n">pillar_locations</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_locations</span><span class="p">,</span>
+                                       <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">npillars</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="n">dense_features</span> <span class="o">=</span> <span class="n">SparseToDense</span><span class="p">(</span>
+      <span class="n">grid_shape</span><span class="o">=</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">),</span>
+      <span class="n">locations</span><span class="o">=</span><span class="n">pillar_locations</span><span class="p">,</span>
+      <span class="n">feats</span><span class="o">=</span><span class="n">pillar_features</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">dense_features</span></div>
 
 
 <span class="c1"># pyformat: disable</span>
@@ -258,30 +302,39 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_BN</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_Relu</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">))</span></div>
 
+<div class="viewcode-block" id="Builder.Contract"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder.Contract">[docs]</a>  <span class="k">def</span> <span class="nf">Contract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">down_strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;Contracting part of [1] Sec 2.2.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Branch</span><span class="p">(</span>
+        <span class="s1">&#39;branch&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_TopDown</span><span class="p">(</span><span class="s1">&#39;topdown&#39;</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="n">down_strides</span><span class="p">),</span>
+        <span class="p">[</span><span class="s1">&#39;b1.final&#39;</span><span class="p">,</span> <span class="s1">&#39;b0.final&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Builder.Expand"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder.Expand">[docs]</a>  <span class="k">def</span> <span class="nf">Expand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">odims</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Expanding part of [1] Sec 2.2.&quot;&quot;&quot;</span>
+    <span class="c1"># Note that the resulting output will be 3*odims</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Concat</span><span class="p">(</span>
+        <span class="s1">&#39;concat&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+            <span class="s1">&#39;b2&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ArgIdx</span><span class="p">(</span><span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Upsample</span><span class="p">(</span><span class="s1">&#39;ups&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="n">odims</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+            <span class="s1">&#39;b1&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ArgIdx</span><span class="p">(</span><span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Upsample</span><span class="p">(</span><span class="s1">&#39;ups&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="n">odims</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+            <span class="s1">&#39;b0&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ArgIdx</span><span class="p">(</span><span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Upsample</span><span class="p">(</span><span class="s1">&#39;ups&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="n">odims</span><span class="p">)))</span></div>
+
 <div class="viewcode-block" id="Builder.Backbone"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder.Backbone">[docs]</a>  <span class="k">def</span> <span class="nf">Backbone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">down_strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)):</span>
     <span class="sd">&quot;&quot;&quot;[1]. Sec 2.2.&quot;&quot;&quot;</span>
     <span class="c1"># We assume (H, W) are multiple of 8. So that we can concat</span>
     <span class="c1"># multiple-scale feature maps together after upsample.</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
         <span class="s1">&#39;backbone&#39;</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Branch</span><span class="p">(</span>
-            <span class="s1">&#39;branch&#39;</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_TopDown</span><span class="p">(</span><span class="s1">&#39;topdown&#39;</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="n">down_strides</span><span class="p">),</span>
-            <span class="p">[</span><span class="s1">&#39;b1.final&#39;</span><span class="p">,</span> <span class="s1">&#39;b0.final&#39;</span><span class="p">]),</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Concat</span><span class="p">(</span>
-            <span class="s1">&#39;concat&#39;</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
-                <span class="s1">&#39;b2&#39;</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_ArgIdx</span><span class="p">(</span><span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_Upsample</span><span class="p">(</span><span class="s1">&#39;ups&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="n">odims</span><span class="p">)),</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
-                <span class="s1">&#39;b1&#39;</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_ArgIdx</span><span class="p">(</span><span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_Upsample</span><span class="p">(</span><span class="s1">&#39;ups&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="n">odims</span><span class="p">)),</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
-                <span class="s1">&#39;b0&#39;</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_ArgIdx</span><span class="p">(</span><span class="s1">&#39;idx&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_Upsample</span><span class="p">(</span><span class="s1">&#39;ups&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="n">odims</span><span class="p">))))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Contract</span><span class="p">(</span><span class="n">down_strides</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Expand</span><span class="p">(</span><span class="n">odims</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="Builder.Detector"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder.Detector">[docs]</a>  <span class="k">def</span> <span class="nf">Detector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">bias_params_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="c1"># Implemented according to VoxelNet</span>
@@ -441,37 +494,9 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">input_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()))</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span>
         <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;input_batch shapes: &#39;</span><span class="p">)</span>
-
-    <span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">grid_num_points</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-    <span class="c1"># Process points to concatenate a set of fixed features (e.g.,</span>
-    <span class="c1"># add means, centers, normalize points to means).</span>
-    <span class="n">num_features</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_laser_features</span>
-    <span class="n">pillar_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_points</span><span class="p">,</span>
-                                      <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_features</span><span class="p">])</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">npillars</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">pillar_points</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-    <span class="n">pillar_xyz</span> <span class="o">=</span> <span class="n">pillar_points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-    <span class="n">pillar_means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">pillar_xyz</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keep_dims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">pillar_feats</span> <span class="o">=</span> <span class="n">pillar_points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:]</span>
-    <span class="n">pillar_centers</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_centers</span><span class="p">,</span>
-                                       <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
-    <span class="n">pillar_concat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-        <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-        <span class="n">values</span><span class="o">=</span><span class="p">[</span>
-            <span class="n">pillar_xyz</span> <span class="o">-</span> <span class="n">pillar_means</span><span class="p">,</span> <span class="n">pillar_feats</span><span class="p">,</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pillar_means</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pillar_centers</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-        <span class="p">])</span>
-
-    <span class="c1"># Featurize pillars.</span>
-    <span class="n">pillar_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">featurizer</span><span class="p">,</span> <span class="n">pillar_concat</span><span class="p">)</span>
-
-    <span class="c1"># Convert back to the dense grid.</span>
-    <span class="n">pillar_locations</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_locations</span><span class="p">,</span>
-                                         <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">npillars</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
-    <span class="n">dense_features</span> <span class="o">=</span> <span class="n">_SparseToDense</span><span class="p">(</span>
-        <span class="n">grid_shape</span><span class="o">=</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">),</span>
-        <span class="n">locations</span><span class="o">=</span><span class="n">pillar_locations</span><span class="p">,</span>
-        <span class="n">feats</span><span class="o">=</span><span class="n">pillar_features</span><span class="p">)</span>
+    <span class="c1"># Featurize pillars and convert back to dense grid.</span>
+    <span class="n">dense_features</span> <span class="o">=</span> <span class="n">ProcessPillars</span><span class="p">(</span><span class="n">input_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_laser_features</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">featurizer</span><span class="p">)</span>
 
     <span class="c1"># Backbone</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;dense_features.shape = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dense_features</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
