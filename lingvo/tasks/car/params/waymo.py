@@ -235,6 +235,9 @@ class StarNetBase(base_model_params.SingleTaskModelParams):
       p.batch_size = 2
     else:
       p.batch_size = 4
+      p.file_buffer_size = 64
+      p.file_parallelism = 16
+      p.num_batcher_threads = 16
     return p
 
   @classmethod
@@ -447,4 +450,29 @@ class StarNetPed(StarNetBase):
     p.nms_iou_threshold[class_names.index('Pedestrian')] = 0.46
     p.nms_score_threshold[class_names.index('Pedestrian')] = 0.01
 
+    return p
+
+
+@model_registry.RegisterSingleTaskModel
+class StarNetPedFused(StarNetPed):
+  """StarNet Pedestrian model with SparseSampler fused input preprocessor."""
+
+  @classmethod
+  def _configure_input(cls, p, split):
+    p = super(StarNetPedFused, cls)._configure_input(p, split)
+    # Fuses select_centers and gather_features into one sampler.
+    p.preprocessors.Define(
+        'sampler',
+        input_preprocessors.SparseSampler.Params().Set(
+            center_selector='farthest',
+            neighbor_sampler='uniform',
+            num_centers=p.preprocessors.select_centers.num_cell_centers,
+            keep_z_range=(0.09522381, 1.720825),
+            num_neighbors=p.preprocessors.gather_features.num_points_per_cell,
+            max_distance=2.75), '')
+    p.preprocessors.Delete('select_centers')
+    p.preprocessors.Delete('gather_features')
+    p.preprocessors_order.remove('select_centers')
+    p.preprocessors_order[p.preprocessors_order.index(
+        'gather_features')] = 'sampler'
     return p
