@@ -34,7 +34,7 @@ from lingvo.tasks.car import point_detector
 import numpy as np
 
 
-def _SparseToDense(grid_shape, locations, feats):
+def SparseToDense(grid_shape, locations, feats):
   """Converts a sparse representation back to the dense grid.
 
   Args:
@@ -54,6 +54,50 @@ def _SparseToDense(grid_shape, locations, feats):
       axis=2)
   grid = tf.scatter_nd(indices, feats, [b, nx, ny, nz, fdims])
   return tf.reshape(grid, [b, nx, ny, nz * fdims])
+
+
+def ProcessPillars(input_batch, num_laser_features, featurizer,
+                   theta_featurizer):
+  """Compute features for the pillars and convert them back to a dense grid.
+
+  Args:
+    input_batch: A `.NestedMap` object containing input tensors.
+    num_laser_features: Number of laser features (excluding pillar features)
+    featurizer: The featurizer layer.
+    theta_featurizer: The weights for featurizer.
+
+  Returns:
+      The dense features with shape [b, nx, ny, nz * fdims].
+  """
+  bs, nx, ny, nz = py_utils.GetShape(input_batch.grid_num_points, 4)
+  # Process points to concatenate a set of fixed features (e.g.,
+  # add means, centers, normalize points to means).
+  num_features = 3 + num_laser_features
+  pillar_points = py_utils.HasShape(input_batch.pillar_points,
+                                    [bs, -1, -1, num_features])
+  _, npillars, npoints, _ = py_utils.GetShape(pillar_points, 4)
+  pillar_xyz = pillar_points[..., :3]
+  pillar_means = tf.reduce_mean(pillar_xyz, axis=2, keep_dims=True)
+  pillar_feats = pillar_points[..., 3:]
+  pillar_centers = py_utils.HasShape(input_batch.pillar_centers, [bs, -1, 1, 3])
+  pillar_concat = tf.concat(
+      axis=3,
+      values=[
+          pillar_xyz - pillar_means, pillar_feats,
+          tf.tile(pillar_means, [1, 1, npoints, 1]),
+          tf.tile(pillar_centers, [1, 1, npoints, 1])
+      ])
+  # Featurize pillars.
+  pillar_features = featurizer.FProp(theta_featurizer, pillar_concat)
+
+  # Convert back to the dense grid.
+  pillar_locations = py_utils.HasShape(input_batch.pillar_locations,
+                                       [bs, npillars, 3])
+  dense_features = SparseToDense(
+      grid_shape=(nx, ny, nz),
+      locations=pillar_locations,
+      feats=pillar_features)
+  return dense_features
 
 
 # pyformat: disable
@@ -113,30 +157,39 @@ class Builder(builder_lib.ModelBuilderBase):
         self._BN('bn', odims),
         self._Relu('relu'))
 
+  def Contract(self, down_strides=(2, 2, 2)):
+    """Contracting part of [1] Sec 2.2."""
+    return self._Branch(
+        'branch',
+        self._TopDown('topdown', strides=down_strides),
+        ['b1.final', 'b0.final'])
+
+  def Expand(self, odims):
+    """Expanding part of [1] Sec 2.2."""
+    # Note that the resulting output will be 3*odims
+    return self._Concat(
+        'concat',
+        self._Seq(
+            'b2',
+            self._ArgIdx('idx', [0]),
+            self._Upsample('ups', 4, 256, odims)),
+        self._Seq(
+            'b1',
+            self._ArgIdx('idx', [1]),
+            self._Upsample('ups', 2, 128, odims)),
+        self._Seq(
+            'b0',
+            self._ArgIdx('idx', [2]),
+            self._Upsample('ups', 1, 64, odims)))
+
   def Backbone(self, odims, down_strides=(2, 2, 2)):
     """[1]. Sec 2.2."""
     # We assume (H, W) are multiple of 8. So that we can concat
     # multiple-scale feature maps together after upsample.
     return self._Seq(
         'backbone',
-        self._Branch(
-            'branch',
-            self._TopDown('topdown', strides=down_strides),
-            ['b1.final', 'b0.final']),
-        self._Concat(
-            'concat',
-            self._Seq(
-                'b2',
-                self._ArgIdx('idx', [0]),
-                self._Upsample('ups', 4, 256, odims)),
-            self._Seq(
-                'b1',
-                self._ArgIdx('idx', [1]),
-                self._Upsample('ups', 2, 128, odims)),
-            self._Seq(
-                'b0',
-                self._ArgIdx('idx', [2]),
-                self._Upsample('ups', 1, 64, odims))))
+        self.Contract(down_strides),
+        self.Expand(odims))
 
   def Detector(self, name, idims, odims, bias_params_init=None):
     # Implemented according to VoxelNet
@@ -296,37 +349,9 @@ class ModelV1(point_detector.PointDetectorBase):
     p = self.params
     input_batch.Transform(lambda x: (x.shape, x.shape.num_elements())).VLog(
         0, 'input_batch shapes: ')
-
-    bs, nx, ny, nz = py_utils.GetShape(input_batch.grid_num_points, 4)
-    # Process points to concatenate a set of fixed features (e.g.,
-    # add means, centers, normalize points to means).
-    num_features = 3 + p.num_laser_features
-    pillar_points = py_utils.HasShape(input_batch.pillar_points,
-                                      [bs, -1, -1, num_features])
-    _, npillars, npoints, _ = py_utils.GetShape(pillar_points, 4)
-    pillar_xyz = pillar_points[..., :3]
-    pillar_means = tf.reduce_mean(pillar_xyz, axis=2, keep_dims=True)
-    pillar_feats = pillar_points[..., 3:]
-    pillar_centers = py_utils.HasShape(input_batch.pillar_centers,
-                                       [bs, -1, 1, 3])
-    pillar_concat = tf.concat(
-        axis=3,
-        values=[
-            pillar_xyz - pillar_means, pillar_feats,
-            tf.tile(pillar_means, [1, 1, npoints, 1]),
-            tf.tile(pillar_centers, [1, 1, npoints, 1])
-        ])
-
-    # Featurize pillars.
-    pillar_features = self.featurizer.FProp(theta.featurizer, pillar_concat)
-
-    # Convert back to the dense grid.
-    pillar_locations = py_utils.HasShape(input_batch.pillar_locations,
-                                         [bs, npillars, 3])
-    dense_features = _SparseToDense(
-        grid_shape=(nx, ny, nz),
-        locations=pillar_locations,
-        feats=pillar_features)
+    # Featurize pillars and convert back to dense grid.
+    dense_features = ProcessPillars(input_batch, p.num_laser_features,
+                                    self.featurizer, theta.featurizer)
 
     # Backbone
     tf.logging.vlog(1, 'dense_features.shape = %s', dense_features.shape)
