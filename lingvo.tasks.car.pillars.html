@@ -329,16 +329,16 @@ overridden if desired.</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.car.pillars.ModelV1.ComputeLoss">
-<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em>, <em class="sig-param">predictions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#ModelV1.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.ModelV1.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predictions</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#ModelV1.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.ModelV1.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes loss and other metrics for the given predictions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</p></li>
-<li><p><strong>input_batch</strong> – The input batch from which we accesses the groundtruth.</p></li>
 <li><p><strong>predictions</strong> – The output of <a class="reference internal" href="#lingvo.tasks.car.pillars.ModelV1.ComputePredictions" title="lingvo.tasks.car.pillars.ModelV1.ComputePredictions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputePredictions</span></code></a>, contains: logits - [b,
 nx, ny, nz, na, 7 + num_classes]. na is the number of anchor
 boxes per cell. […, :7] are (dx, dy, dz, dw, dl, dh, dt).</p></li>
+<li><p><strong>input_batch</strong> – The input batch from which we accesses the groundtruth.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

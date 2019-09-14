@@ -453,17 +453,17 @@
         <span class="s1">&#39;error/rotation_deg&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_angular_error_deg</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
     <span class="p">})</span></div>
 
-<div class="viewcode-block" id="ModelBase.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelBase.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+<div class="viewcode-block" id="ModelBase.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelBase.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute loss for the sparse detector model v1.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      predictions: A `.NestedMap` object containing residuals and</span>
+<span class="sd">        classification_logits.</span>
 <span class="sd">      input_batch: A `.NestedMap` expected to contain cell_center_xyz,</span>
 <span class="sd">        cell_points_xyz, cell_feature, anchor_bboxes,</span>
 <span class="sd">        anchor_localization_residuals, assigned_gt_labels, and</span>
 <span class="sd">        assigned_cls_mask. See class doc string for details.</span>
-<span class="sd">      predictions: A `.NestedMap` object containing residuals and</span>
-<span class="sd">        classification_logits.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Two dicts:</span>

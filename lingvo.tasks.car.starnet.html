@@ -326,18 +326,18 @@ anchor had a positive assignment.</p></li>
 
 <dl class="method">
 <dt id="lingvo.tasks.car.starnet.ModelBase.ComputeLoss">
-<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em>, <em class="sig-param">predictions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predictions</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute loss for the sparse detector model v1.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</p></li>
+<li><p><strong>predictions</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing residuals and
+classification_logits.</p></li>
 <li><p><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> expected to contain cell_center_xyz,
 cell_points_xyz, cell_feature, anchor_bboxes,
 anchor_localization_residuals, assigned_gt_labels, and
 assigned_cls_mask. See class doc string for details.</p></li>
-<li><p><strong>predictions</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing residuals and
-classification_logits.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
