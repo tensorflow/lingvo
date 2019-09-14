@@ -310,7 +310,7 @@
       <span class="k">try</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
       <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_KeyErrorString</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
 
   <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_params&#39;</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_immutable&#39;</span><span class="p">:</span>
@@ -319,7 +319,7 @@
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
       <span class="c1"># cPickle expects __getattr__ to raise AttributeError, not KeyError.</span>
-      <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_KeyErrorString</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
 
   <span class="k">def</span> <span class="nf">__dir__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
@@ -354,6 +354,31 @@
   <span class="c1"># TODO(sadovsky): Is it okay not to touch memo?</span>
   <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_memo</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Params._SimilarKeys"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._SimilarKeys">[docs]</a>  <span class="k">def</span> <span class="nf">_SimilarKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a list of params keys that are similar to name.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_Overlaps</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;The fraction of 3-char substrings in &lt;name&gt; that appear in key.&quot;&quot;&quot;</span>
+      <span class="n">matches</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">trials</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">-</span> <span class="mi">3</span><span class="p">):</span>
+        <span class="n">trials</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">3</span><span class="p">]</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
+          <span class="n">matches</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="k">if</span> <span class="n">trials</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">/</span> <span class="n">trials</span>
+      <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="s1">&#39;_params&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="k">if</span> <span class="n">_Overlaps</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="Params._KeyErrorString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._KeyErrorString">[docs]</a>  <span class="k">def</span> <span class="nf">_KeyErrorString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">similar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SimilarKeys</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">similar</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39; (did you mean: [</span><span class="si">%s</span><span class="s1">])&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">similar</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">name</span></div>
 
 <div class="viewcode-block" id="Params.Copy"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Copy">[docs]</a>  <span class="k">def</span> <span class="nf">Copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CopyTo</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)())</span></div>
@@ -439,7 +464,7 @@
         <span class="c1"># pylint: disable=protected-access</span>
         <span class="n">param</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
       <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_KeyErrorString</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
     <span class="k">return</span> <span class="bp">self</span></div>
 
 <div class="viewcode-block" id="Params.Get"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Get">[docs]</a>  <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -464,7 +489,7 @@
       <span class="c1"># pylint: disable=protected-access</span>
       <span class="k">return</span> <span class="n">param</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+      <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_KeyErrorString</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="Params.Delete"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Delete">[docs]</a>  <span class="k">def</span> <span class="nf">Delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Deletes multiple parameters.</span>
@@ -489,7 +514,7 @@
         <span class="c1"># pylint: disable=protected-access</span>
         <span class="k">del</span> <span class="n">param</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
       <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_KeyErrorString</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
     <span class="k">return</span> <span class="bp">self</span></div>
 
 <div class="viewcode-block" id="Params.IterParams"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.IterParams">[docs]</a>  <span class="k">def</span> <span class="nf">IterParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
