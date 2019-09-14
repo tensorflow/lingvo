@@ -1785,6 +1785,7 @@ def main(unused_argv):
   # pylint: disable=g-import-not-at-top
   # pylint: disable=unused-variable
   from lingvo import model_imports
+  assert FLAGS.model, '--model not provided!'
   RunnerManager(FLAGS.model).Start()
 
 
