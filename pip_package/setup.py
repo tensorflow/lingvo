@@ -21,7 +21,7 @@ from setuptools import setup
 from setuptools.command.install import install
 from setuptools.dist import Distribution
 
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -30,8 +30,13 @@ if '--project_name' in sys.argv:
   sys.argv.pop(project_name_idx)
 
 REQUIRED_PACKAGES = [
+    'ipykernel',
+    'jupyter',
+    'jupyter_http_over_ws',
     'matplotlib',
+    'Pillow',
     'protobuf>=3.7,<4',
+    'sklearn',
     'sympy',
     'waymo-od-tf1-15',
 ]

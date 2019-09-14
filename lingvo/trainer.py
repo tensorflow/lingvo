@@ -33,11 +33,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import importlib
 import inspect
 import os
 import re
 import threading
 import time
+
 from lingvo import base_trial
 from lingvo import executor
 from lingvo import model_registry
@@ -1734,8 +1736,21 @@ class RunnerManager(object):
     """Start the process."""
     tf.logging.set_verbosity(tf.logging.INFO)
 
-    assert self.model_registry.GetClass(
-        self._model_name), ('Model %s is not found.' % FLAGS.model)
+    # First try to see whether the model has been fetched by lingvo
+    # model_imports already.
+    try:
+      model_cls = self.model_registry.GetClass(self._model_name)
+    except LookupError as e:
+      # Try importing the module path implicitly defined by FLAGS.model so we
+      # can register those models.
+      module_name = self._model_name.rpartition('.')[0]
+      module_obj = importlib.import_module(module_name)
+      tf.logging.info('Imported custom params: %s' % module_obj)
+      # Strip off 'params.'
+      self._model_name = self._model_name.replace('params.', '')
+      model_cls = self.model_registry.GetClass(self._model_name)
+      if model_cls is None:
+        raise e
 
     if FLAGS.mode == 'inspect_model':
       self.InspectModel()
