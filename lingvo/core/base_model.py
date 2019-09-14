@@ -367,13 +367,13 @@ class BaseTask(base_layer.BaseLayer):
     """
     raise NotImplementedError('Abstract method')
 
-  def ComputeLoss(self, theta, input_batch, predictions):
+  def ComputeLoss(self, theta, predictions, input_batch):
     """Computes loss and other metrics for the given predictions.
 
     Args:
       theta: A `.NestedMap` object containing variable values of this task.
-      input_batch: A `.NestedMap` object containing input tensors to this tower.
       predictions: The output of `ComputePredictions`.
+      input_batch: A `.NestedMap` object containing input tensors to this tower.
 
     Returns:
       Two dicts:
@@ -430,8 +430,8 @@ class BaseTask(base_layer.BaseLayer):
       training example, where the first dimension of each tensor is the batch
       index.
     """
-    predicted = self.ComputePredictions(theta, input_batch)
-    return self.ComputeLoss(theta, input_batch, predicted)
+    predictions = self.ComputePredictions(theta, input_batch)
+    return self.ComputeLoss(theta, predictions, input_batch)
 
   def FProp(self, theta, input_batch):
     """Forward propagation.
@@ -973,11 +973,11 @@ class DistillationTask(BaseTask):
         raise ValueError('teacher target type not defined properly: %s' %
                          self.p.teacher_target_type)
 
-  def ComputeLoss(self, theta, input_batch, predictions):
+  def ComputeLoss(self, theta, predictions, input_batch):
     per_example = {}
     with tf.name_scope('groundtruth_loss'):
       groundtruth_loss, groundtruth_per_example = self.student.ComputeLoss(
-          theta.student, input_batch, predictions.student)
+          theta.student, predictions.student, input_batch)
       groundtruth_loss['groundtruth_loss'] = groundtruth_loss['loss']
       per_example.update(groundtruth_per_example)
 

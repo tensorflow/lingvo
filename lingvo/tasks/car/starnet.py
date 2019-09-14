@@ -308,17 +308,17 @@ class ModelBase(point_detector.PointDetectorBase):
         'error/rotation_deg': (mean_angular_error_deg, batch_size),
     })
 
-  def ComputeLoss(self, theta, input_batch, predictions):
+  def ComputeLoss(self, theta, predictions, input_batch):
     """Compute loss for the sparse detector model v1.
 
     Args:
       theta: A `.NestedMap` object containing variable values of this task.
+      predictions: A `.NestedMap` object containing residuals and
+        classification_logits.
       input_batch: A `.NestedMap` expected to contain cell_center_xyz,
         cell_points_xyz, cell_feature, anchor_bboxes,
         anchor_localization_residuals, assigned_gt_labels, and
         assigned_cls_mask. See class doc string for details.
-      predictions: A `.NestedMap` object containing residuals and
-        classification_logits.
 
     Returns:
       Two dicts:

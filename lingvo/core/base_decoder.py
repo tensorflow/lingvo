@@ -71,8 +71,8 @@ class BaseDecoder(base_layer.BaseLayer):
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
       encoder_outputs: a NestedMap computed by encoder.
-      targets: A dict of string to tensors representing the targets one try to
-        predict.
+      targets: A NestedMap containing additional inputs to the decoder,
+        such as the targets being predicted.
 
     Returns:
       A DecoderOutput namedtuple.

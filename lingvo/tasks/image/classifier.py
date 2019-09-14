@@ -237,7 +237,7 @@ class ModelV2(BaseClassifier):
     logits = self.softmax.Logits(theta.softmax, act)
     return py_utils.NestedMap(act=act, logits=logits)
 
-  def ComputeLoss(self, theta, input_batch, predictions):
+  def ComputeLoss(self, theta, predictions, input_batch):
     p = self.params
     batch = tf.shape(input_batch.data)[0]
     act = predictions.act

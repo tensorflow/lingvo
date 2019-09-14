@@ -83,9 +83,9 @@ class MTBaseModel(base_model.BaseTask):
         predictions['encoder_outputs'] = encoder_outputs
       return predictions
 
-  def ComputeLoss(self, theta, batch, predictions):
+  def ComputeLoss(self, theta, predictions, input_batch):
     with self._DecoderDevice():
-      return self.dec.ComputeLoss(theta.dec, predictions, batch.tgt)
+      return self.dec.ComputeLoss(theta.dec, predictions, input_batch.tgt)
 
   def _GetTokenizerKeyToUse(self, key):
     """Returns a tokenizer key to use for the provided `key`."""

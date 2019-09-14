@@ -87,7 +87,7 @@ class IdentityRegressionTask(base_model.BaseTask):
     """sum(m * x) + b."""
     return tf.reduce_sum(theta.m * input_batch.src_ids, axis=1) + theta.b
 
-  def ComputeLoss(self, theta, input_batch, predicted):
+  def ComputeLoss(self, theta, predicted, input_batch):
     diff = predicted - input_batch.tgt_ids
     per_example_loss = diff * diff
     batch_dim = py_utils.GetShape(per_example_loss)[0]

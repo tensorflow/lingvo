@@ -412,15 +412,15 @@ class ModelV1(point_detector.PointDetectorBase):
 
     return ret
 
-  def ComputeLoss(self, theta, input_batch, predictions):
+  def ComputeLoss(self, theta, predictions, input_batch):
     """Computes loss and other metrics for the given predictions.
 
     Args:
       theta: A `.NestedMap` object containing variable values of this task.
-      input_batch: The input batch from which we accesses the groundtruth.
       predictions: The output of `ComputePredictions`, contains: logits - [b,
         nx, ny, nz, na, 7 + num_classes]. na is the number of anchor
         boxes per cell. [..., :7] are (dx, dy, dz, dw, dl, dh, dt).
+      input_batch: The input batch from which we accesses the groundtruth.
 
     Returns:
       Two dicts defined as BaseTask.ComputeLoss.
