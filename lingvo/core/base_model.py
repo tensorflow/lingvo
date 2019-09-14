@@ -505,8 +505,7 @@ class BaseTask(base_layer.BaseLayer):
         with py_utils.ModelSplit(split_id):
           with tf.device(cluster.WorkerDeviceInModelSplit(0)):
             with tf.name_scope('tower_%d_%d' % (w_id, s_id)):
-              batch = self.input_generator.PreprocessInputBatch(
-                  input_batch[split_id])
+              batch = input_batch[split_id]
               metrics, per_example = self.FPropTower(theta_local, batch)
         all_metrics.append(metrics)
         all_per_example_tensors.append(per_example)

@@ -268,7 +268,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """
     assert num_splits >= 1
 
-    batch = self.InputBatch()
+    batch = self.GetPreprocessedInputBatch()
     if num_splits == 1:
       # Special case. No split is needed.
       return [batch]
