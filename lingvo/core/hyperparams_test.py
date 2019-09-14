@@ -371,6 +371,20 @@ escaping_single : 'In "quotes"'
     np.FromText(p.ToText())
     self.assertEqual(np.activation, ['RELU', 'NONE'])
 
+  def testSimilarKeys(self):
+    p = _params.Params()
+    p.Define('activation', 'RELU', 'Can be a string or a list of strings.')
+    p.Define('activations', 'RELU', 'Many activations.')
+    p.Define('cheesecake', None, 'dessert')
+    p.Define('tofu', None, 'not dessert')
+
+    def set_param():
+      p.actuvation = 1
+
+    self.assertRaisesWithLiteralMatch(
+        AttributeError, 'actuvation (did you mean: [activation,activations])',
+        set_param)
+
 
 if __name__ == '__main__':
   tf.test.main()

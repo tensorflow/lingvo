@@ -165,7 +165,7 @@ class Params(object):
       try:
         self._params[name].Set(value)
       except KeyError:
-        raise AttributeError(name)
+        raise AttributeError(self._KeyErrorString(name))
 
   def __getattr__(self, name):
     if name == '_params' or name == '_immutable':
@@ -174,7 +174,7 @@ class Params(object):
       return self._params[name].Get()
     except KeyError:
       # cPickle expects __getattr__ to raise AttributeError, not KeyError.
-      raise AttributeError(name)
+      raise AttributeError(self._KeyErrorString(name))
 
   def __dir__(self):
     return sorted(self._params.keys())
@@ -209,6 +209,31 @@ class Params(object):
   # TODO(sadovsky): Is it okay not to touch memo?
   def __deepcopy__(self, unused_memo):
     return self.Copy()
+
+  def _SimilarKeys(self, name):
+    """Return a list of params keys that are similar to name."""
+
+    def _Overlaps(name, key):
+      """The fraction of 3-char substrings in <name> that appear in key."""
+      matches = 0
+      trials = 0
+      for i in range(len(name) - 3):
+        trials += 1
+        if name[i:i + 3] in key:
+          matches += 1
+      if trials:
+        return float(matches) / trials
+      return 0
+
+    if '_params' in self.__dict__:
+      return [key for key in self._params if _Overlaps(name, key) > 0.5]
+    return []
+
+  def _KeyErrorString(self, name):
+    similar = self._SimilarKeys(name)
+    if similar:
+      return name + ' (did you mean: [%s])' % (','.join(sorted(similar)))
+    return name
 
   def Copy(self):
     return self._CopyTo(type(self)())
@@ -294,7 +319,7 @@ class Params(object):
         # pylint: disable=protected-access
         param._params[key].Set(value)
       except KeyError:
-        raise AttributeError(name)
+        raise AttributeError(self._KeyErrorString(name))
     return self
 
   def Get(self, name):
@@ -319,7 +344,7 @@ class Params(object):
       # pylint: disable=protected-access
       return param._params[key].Get()
     except KeyError:
-      raise AttributeError(name)
+      raise AttributeError(self._KeyErrorString(name))
 
   def Delete(self, *args):
     """Deletes multiple parameters.
@@ -344,7 +369,7 @@ class Params(object):
         # pylint: disable=protected-access
         del param._params[key]
       except KeyError:
-        raise AttributeError(name)
+        raise AttributeError(self._KeyErrorString(name))
     return self
 
   def IterParams(self):
