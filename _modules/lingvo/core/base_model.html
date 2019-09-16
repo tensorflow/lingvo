@@ -1128,7 +1128,7 @@
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;distillation_loss&#39;</span><span class="p">):</span>
       <span class="n">distillation_loss</span><span class="p">,</span> <span class="n">distill_per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeDistillationLoss</span><span class="p">(</span>
-          <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">)</span>
+          <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
       <span class="n">distillation_loss</span><span class="p">[</span><span class="s1">&#39;distillation_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">distillation_loss</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span>
       <span class="n">per_example</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">distill_per_example</span><span class="p">)</span>
 
@@ -1140,7 +1140,7 @@
     <span class="p">])</span>
     <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span></div>
 
-<div class="viewcode-block" id="DistillationTask.ComputeDistillationLoss"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.ComputeDistillationLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeDistillationLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+<div class="viewcode-block" id="DistillationTask.ComputeDistillationLoss"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.ComputeDistillationLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeDistillationLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DistillationTask.BProp"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.BProp">[docs]</a>  <span class="k">def</span> <span class="nf">BProp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
