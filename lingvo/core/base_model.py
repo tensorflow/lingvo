@@ -983,7 +983,7 @@ class DistillationTask(BaseTask):
 
     with tf.name_scope('distillation_loss'):
       distillation_loss, distill_per_example = self.ComputeDistillationLoss(
-          theta, input_batch, predictions)
+          theta, predictions, input_batch)
       distillation_loss['distillation_loss'] = distillation_loss['loss']
       per_example.update(distill_per_example)
 
@@ -995,7 +995,7 @@ class DistillationTask(BaseTask):
     ])
     return metrics, per_example
 
-  def ComputeDistillationLoss(self, theta, input_batch, predictions):
+  def ComputeDistillationLoss(self, theta, predictions, input_batch):
     raise NotImplementedError('Abstract method')
 
   def BProp(self):
