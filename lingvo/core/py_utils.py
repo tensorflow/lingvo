@@ -524,6 +524,32 @@ def Flatten(x):
     return [x]
 
 
+def IsCompatible(lhs, rhs):
+  """Returns true if lhs and rhs are compatible."""
+
+  def DoCompare(x, y):
+    """Compares x and y."""
+    if isinstance(x, NestedMap) or isinstance(y, NestedMap):
+      if not isinstance(x, NestedMap) or not isinstance(y, NestedMap):
+        return False
+      if sorted(x.keys()) != sorted(y.keys()):
+        return False
+      for (k, v) in six.iteritems(x):
+        if not DoCompare(v, y[k]):
+          return False
+    elif isinstance(x, list) or isinstance(y, list):
+      if not isinstance(x, list) or not isinstance(y, list):
+        return False
+      if len(x) != len(y):
+        return False
+      for (u, v) in zip(x, y):
+        if not DoCompare(u, v):
+          return False
+    return True
+
+  return DoCompare(lhs, rhs)
+
+
 _NAME_PATTERN = re.compile('[A-Za-z_][A-Za-z0-9_]*')
 
 
@@ -659,34 +685,13 @@ class NestedMap(dict):
     return Pack(self, lst)
 
   def IsCompatible(self, other):
-    """Returns true if self and other is compatible.
+    """Returns true if self and other are compatible.
 
     Args:
       other: Another `.NestedMap`.  If x and y are two compatible `.NestedMap`,
         `x.Pack(y.Flatten())` produces y and `y.Pack(x.Flatten())` produces x.
     """
-
-    def DoCompare(x, y):
-      """Compares x and y."""
-      if isinstance(x, NestedMap) or isinstance(y, NestedMap):
-        if not isinstance(x, NestedMap) or not isinstance(y, NestedMap):
-          return False
-        if sorted(x.keys()) != sorted(y.keys()):
-          return False
-        for (k, v) in six.iteritems(x):
-          if not DoCompare(v, y[k]):
-            return False
-      elif isinstance(x, list) or isinstance(y, list):
-        if not isinstance(x, list) or not isinstance(y, list):
-          return False
-        if len(x) != len(y):
-          return False
-        for (u, v) in zip(x, y):
-          if not DoCompare(u, v):
-            return False
-      return True
-
-    return DoCompare(self, other)
+    return IsCompatible(self, other)
 
   def _ToStrings(self):
     """Returns debug strings in a list for this `.NestedMap`."""
