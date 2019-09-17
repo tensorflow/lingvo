@@ -40,6 +40,11 @@ def histogram(*args, **kwargs):  # pylint: disable=invalid-name
     tf.summary.histogram(*args, **kwargs)
 
 
+def image(*args, **kwargs):  # pylint: disable=invalid-name
+  if _ShouldAddSummary():
+    tf.summary.image(*args, **kwargs)
+
+
 def SequenceLength(padding):
   """Computes the length of a sequence based on binary padding.
 
