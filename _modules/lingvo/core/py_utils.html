@@ -1345,7 +1345,7 @@
   <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
   <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">)</span>
   <span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
-  <span class="n">shape</span> <span class="o">=</span> <span class="n">ToStaticShape</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+  <span class="n">shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">ToStaticShape</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
   <span class="n">dim0</span> <span class="o">=</span> <span class="mi">1</span>
   <span class="k">if</span> <span class="n">shape</span><span class="p">:</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">dim_size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">dim_size</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">]),</span> <span class="n">shape</span>
@@ -1750,8 +1750,8 @@
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Model variables overridden: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">vars_overridden</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="_ComputeGradientsSimple"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._ComputeGradientsSimple">[docs]</a><span class="k">def</span> <span class="nf">_ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
-                            <span class="n">colocate_gradients_with_ops</span><span class="p">,</span> <span class="n">gate_gradients</span><span class="p">):</span>
+<div class="viewcode-block" id="ComputeGradientsSimple"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeGradientsSimple">[docs]</a><span class="k">def</span> <span class="nf">ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
+                           <span class="n">colocate_gradients_with_ops</span><span class="p">,</span> <span class="n">gate_gradients</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span>
       <span class="n">loss</span><span class="p">,</span>
       <span class="n">all_vars</span><span class="p">,</span>
@@ -1791,9 +1791,9 @@
 
   <span class="c1"># Computes the gradients.</span>
   <span class="c1"># Sum the grads so that we can compute statistics across the whole batch.</span>
-  <span class="n">all_grads</span> <span class="o">=</span> <span class="n">_ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
-                                      <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
-                                      <span class="n">gate_gradients</span><span class="p">)</span>
+  <span class="n">all_grads</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
+                                     <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
+                                     <span class="n">gate_gradients</span><span class="p">)</span>
 
   <span class="c1"># NOTE: We can&#39;t use tpu_optimizer.CrossShardOptimizer since</span>
   <span class="c1"># we need to scale the grads *after* the cross_replica_sum to</span>
@@ -1837,9 +1837,9 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="c1"># Computes the gradients.</span>
   <span class="c1"># Sum the grads so that we can compute statistics across the whole batch.</span>
-  <span class="n">all_grads</span> <span class="o">=</span> <span class="n">_ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
-                                      <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
-                                      <span class="n">gate_gradients</span><span class="p">)</span>
+  <span class="n">all_grads</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
+                                     <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
+                                     <span class="n">gate_gradients</span><span class="p">)</span>
 
   <span class="c1"># NOTE: We can&#39;t use tpu_optimizer.CrossShardOptimizer since</span>
   <span class="c1"># we need to scale the grads *after* the cross_replica_sum to</span>
@@ -1936,7 +1936,7 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsTpu</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsSimple</span>
+      <span class="n">take_grad</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span>
 
   <span class="n">grads</span> <span class="o">=</span> <span class="n">take_grad</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">filtered_vlist</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
                     <span class="n">colocate_gradients_with_ops</span><span class="p">,</span> <span class="n">gate_gradients</span><span class="p">)</span>

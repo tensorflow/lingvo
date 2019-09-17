@@ -295,9 +295,10 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: bprop variable: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
     <span class="c1"># Compute gradients.</span>
-    <span class="n">var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeGradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">grad_aggregation_method</span><span class="p">,</span>
-                                          <span class="n">p</span><span class="o">.</span><span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
-                                          <span class="n">p</span><span class="o">.</span><span class="n">gate_gradients</span><span class="p">)</span>
+    <span class="n">var_grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">ComputeGradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">,</span>
+                                                <span class="n">p</span><span class="o">.</span><span class="n">grad_aggregation_method</span><span class="p">,</span>
+                                                <span class="n">p</span><span class="o">.</span><span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
+                                                <span class="n">p</span><span class="o">.</span><span class="n">gate_gradients</span><span class="p">)</span>
 
     <span class="c1"># L2 regularizer.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">l2_regularizer_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
