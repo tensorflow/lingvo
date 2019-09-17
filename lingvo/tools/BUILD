@@ -12,6 +12,17 @@ load(
 )
 
 py_binary(
+    name = "gke_launch",
+    srcs = ["gke_launch.py"],
+    python_version = "PY2",
+    deps = [
+        # Implicit absl.app dependency.
+        # Implicit absl.flags dependency.
+        # Implicit yaml dependency.
+    ],
+)
+
+py_binary(
     name = "keras2ckpt",
     srcs = ["keras2ckpt.py"],
     python_version = "PY3",
