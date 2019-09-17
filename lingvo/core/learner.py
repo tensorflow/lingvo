@@ -150,9 +150,10 @@ class Learner(base_layer.BaseLayer):
       tf.logging.info('%s: bprop variable: %s', p.name, v.name)
 
     # Compute gradients.
-    var_grads = py_utils.ComputeGradients(loss, vmap, p.grad_aggregation_method,
-                                          p.colocate_gradients_with_ops,
-                                          p.gate_gradients)
+    var_grads = self.optimizer.ComputeGradients(loss, vmap,
+                                                p.grad_aggregation_method,
+                                                p.colocate_gradients_with_ops,
+                                                p.gate_gradients)
 
     # L2 regularizer.
     if p.l2_regularizer_weight is not None:

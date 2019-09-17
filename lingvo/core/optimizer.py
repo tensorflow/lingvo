@@ -42,6 +42,10 @@ class Base(base_layer.BaseLayer):
     """Adds summary if needed."""
     pass
 
+  def ComputeGradients(self, loss, vmap, *args, **kwargs):
+    """Allows subclasses control computation of gradients."""
+    return py_utils.ComputeGradients(loss, vmap, *args, **kwargs)
+
   def Apply(self, lr, var_grad):
     """Applies the gradient to the variable.
 

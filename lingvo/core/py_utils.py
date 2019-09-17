@@ -1200,7 +1200,7 @@ def CreateVariable(name,
   p = params.Copy()
   assert isinstance(p, hyperparams.Params)
   dtype = p.dtype
-  shape = ToStaticShape(p.shape)
+  shape = tf.TensorShape(ToStaticShape(p.shape)).as_list()
   dim0 = 1
   if shape:
     assert all([dim_size > 0 for dim_size in shape]), shape
@@ -1605,8 +1605,8 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
   tf.logging.info('Model variables overridden: %s', vars_overridden)
 
 
-def _ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
-                            colocate_gradients_with_ops, gate_gradients):
+def ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
+                           colocate_gradients_with_ops, gate_gradients):
   return tf.gradients(
       loss,
       all_vars,
@@ -1646,9 +1646,9 @@ def _ComputeGradientsTpu(loss, all_vars, grad_aggregation_method,
 
   # Computes the gradients.
   # Sum the grads so that we can compute statistics across the whole batch.
-  all_grads = _ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
-                                      colocate_gradients_with_ops,
-                                      gate_gradients)
+  all_grads = ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
+                                     colocate_gradients_with_ops,
+                                     gate_gradients)
 
   # NOTE: We can't use tpu_optimizer.CrossShardOptimizer since
   # we need to scale the grads *after* the cross_replica_sum to
@@ -1692,9 +1692,9 @@ def _ComputeGradientsTpuNas(loss, all_vars, grad_aggregation_method,
   """
   # Computes the gradients.
   # Sum the grads so that we can compute statistics across the whole batch.
-  all_grads = _ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
-                                      colocate_gradients_with_ops,
-                                      gate_gradients)
+  all_grads = ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
+                                     colocate_gradients_with_ops,
+                                     gate_gradients)
 
   # NOTE: We can't use tpu_optimizer.CrossShardOptimizer since
   # we need to scale the grads *after* the cross_replica_sum to
@@ -1791,7 +1791,7 @@ def ComputeGradients(
       else:
         take_grad = _ComputeGradientsTpu
     else:
-      take_grad = _ComputeGradientsSimple
+      take_grad = ComputeGradientsSimple
 
   grads = take_grad(loss, filtered_vlist, grad_aggregation_method,
                     colocate_gradients_with_ops, gate_gradients)
