@@ -57,9 +57,6 @@ def _Recv(tensor_type, tensor_name, send_device, recv_device, name=None):
   return result
 
 
-_ops.RegisterShape("_Recv")(None)
-
-
 def _Send(tensor, tensor_name, send_device, recv_device, name=None):
   r"""Sends the named tensor from send_device to recv_device.
 
@@ -83,9 +80,6 @@ def _Send(tensor, tensor_name, send_device, recv_device, name=None):
       client_terminated=False,
       name=name if name else "Send")
   return result
-
-
-_ops.RegisterShape("_Send")(None)
 
 
 def _XlaSend(tensor, tensor_name, name=None):
