@@ -138,7 +138,6 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
     assert p.name
     assert len(p.filter_shape) == 4
     assert len(p.filter_stride) == 2
-    assert all(x > 0 for x in p.filter_shape)
     assert all(x > 0 for x in p.filter_stride)
     assert len(p.dilation_rate) == 2
     assert all(x > 0 for x in p.dilation_rate)
