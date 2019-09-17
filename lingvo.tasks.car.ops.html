@@ -351,6 +351,42 @@ padding: A <code class="xref py py-obj docutils literal notranslate"><span class
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.tasks.car.ops.v">
+<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">num_points_per_cell</em>, <em class="sig-param">x_intervals</em>, <em class="sig-param">y_intervals</em>, <em class="sig-param">z_intervals</em>, <em class="sig-param">x_range</em>, <em class="sig-param">y_range</em>, <em class="sig-param">z_range</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Re-organize input points into equally spaced grids. Points in each grid cell are</p>
+<p>shuffled. When not enough available points, the center of each cell with all 0
+on feature dimensions will be used as padding.</p>
+<p>The number of points in each grid cell. I.e.,
+output_points[i, j, k, num_points[i, j, k]:, :] are padded points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+[n, d]. d &gt;= 3 and the first 3 dimensions are treated as x,y,z.</p></li>
+<li><p><strong>num_points_per_cell</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of points to keep in each cell.</p></li>
+<li><p><strong>x_intervals</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of cells along x-axis.</p></li>
+<li><p><strong>y_intervals</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of cells along y-axis.</p></li>
+<li><p><strong>z_intervals</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of cells along z-axis.</p></li>
+<li><p><strong>x_range</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>.
+tuple of two scalars: (xmin, xmax). Spatial span of the grid.</p></li>
+<li><p><strong>y_range</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>.
+tuple of two scalars: (ymin, ymax). Spatial span of the grid.</p></li>
+<li><p><strong>z_range</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>.
+tuple of two scalars: (zmin, zmax). Spatial span of the grid.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (output_points, grid_centers, num_points).</p>
+<p>output_points: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [x_intervals, y_intervals, z_intervals, num_per_grid, d].
+grid_centers: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [x_intervals, y_intervals, z_intervals, 3]. Grid cell centers.
+num_points: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. [x_intervals, y_intervals, z_intervals].</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 
