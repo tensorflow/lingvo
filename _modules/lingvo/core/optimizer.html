@@ -218,7 +218,18 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span><span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="kc">False</span><span class="p">)):</span>
           <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">var_update_op</span></div></div>
+    <span class="k">return</span> <span class="n">var_update_op</span></div>
+
+<div class="viewcode-block" id="Base.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies any computation to run after each tpu trainining loop.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      global_step: Global step variable.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Ops to run after training loop ends.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="SGD"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.SGD">[docs]</a><span class="k">class</span> <span class="nc">SGD</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>

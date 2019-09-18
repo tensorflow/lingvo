@@ -270,6 +270,17 @@
 
     <span class="k">return</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">VariableFilter</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="Learner.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies any computation to run after each tpu trainining loop.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      global_step: Global step variable.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Ops to run after training loop ends.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">ApplyPostTrainingLoop</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="Learner.Apply"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">,</span> <span class="n">gradient_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gradient_adjuster</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes updates on &#39;vmap&#39; to optimize &#39;loss&#39;.</span>
 

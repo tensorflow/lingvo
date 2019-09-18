@@ -783,9 +783,24 @@
         <span class="n">outfeed_dequeue_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedDequeueLoop</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_ConstructPostTrainingLoop</span><span class="p">(</span><span class="n">train_loop_op</span><span class="p">,</span> <span class="n">outfeed_dequeue_op</span><span class="p">):</span>
+          <span class="sd">&quot;&quot;&quot;Returns the op for tpu training with tail cpu computation.&quot;&quot;&quot;</span>
+          <span class="c1"># Adds a tail computation that is run after the tpu_training loop</span>
+          <span class="c1"># step finishes. This allows us to run certain computation that</span>
+          <span class="c1"># acts on the variable between tpu_train_loop iterations and</span>
+          <span class="c1"># amortizing the cost of the operations. Alternative of running</span>
+          <span class="c1"># tpu.outside_compilation &amp; using tf.cond is expenseive.</span>
+          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">train_loop_op</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructPostTrainingLoop</span><span class="p">()</span>
+            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">post_training_loop_op</span><span class="p">]):</span>
+              <span class="k">return</span> <span class="p">([[</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">train_loop_op</span><span class="p">],</span>
+                       <span class="n">outfeed_dequeue_op</span><span class="p">])</span>
         <span class="c1"># Get metric result from a single replica; they are all same here.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_train_ops</span> <span class="o">=</span> <span class="p">[[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">batch_parallel_res</span><span class="p">],</span>
-                               <span class="n">outfeed_dequeue_op</span><span class="p">]</span>
+        <span class="n">all_tpu_ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">batch_parallel_res</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_train_ops</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">_ConstructPostTrainingLoop</span><span class="p">(</span><span class="n">all_tpu_ops</span><span class="p">,</span> <span class="n">outfeed_dequeue_op</span><span class="p">))</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
