@@ -298,7 +298,7 @@ class BaseTask(base_layer.BaseLayer):
           tf.logging.warning('input.num_batcher_threads > 1 inside eval mode.  '
                              'The input generator may not iterate over exactly '
                              'one epoch per run')
-
+      tf.logging.info('input_params: %s', p.input)
       input_params = self.cluster.PlaceInput(p.input)
       with py_utils.outside_all_rewrites():
         self.CreateChild('input', input_params)

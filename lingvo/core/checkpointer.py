@@ -33,45 +33,58 @@ class Checkpointer(object):
   Needs to be created within a graph context.
   """
 
-  def __init__(self, train_dir, model):
+  def __init__(self, train_dir, model, train_params=None, save_only=False):
     """Initialize Checkpointer.
 
     Args:
      train_dir: Training directory for saving checkpoints.
-     model: Model.
+     model: A BaseModel instance or None.
+     train_params: If specified, use these training params instead of those
+       in the `model`.
+     save_only: This checkpointer is only intended for saving checkpoints.
     """
     self._train_dir = train_dir
-    self._model = model
-    self._params = model.params
+    self._save_only = save_only
 
     self._vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
     self._uninitialized_vars = tf.report_uninitialized_variables(self._vars)
     self._initialize_vars = tf.global_variables_initializer()
 
     self._save_path = os.path.join(self._train_dir, 'ckpt')
-    self._model_tasks = model.tasks
 
-    tp = self._params.train
-    self._save_interval_seconds = tp.save_interval_seconds
+    if train_params:
+      self._train_params = train_params
+      self._model = None
+    else:
+      assert model
+      self._train_params = model.params.train
+      self._model = model
+
+    if not self._save_only:
+      self._params = model.params
+      self._model_tasks = model.tasks
+      self._model = model
+
     self._next_checkpoint_seconds = 0
+    self._save_interval_seconds = self._train_params.save_interval_seconds
     self._saver = self._GetSaver()
 
   def _GetSaver(self):
     """Returns a saver."""
-    p = self._params
-    if p.is_eval and self._model.ema:
+    if not self._save_only and self._model.ema and self._params.is_eval:
       tf.logging.info('Using EMA for evaluation.')
       return tf.train.Saver(self._model.ema.variables_to_restore())
-    tp = p.train
     return tf.train.Saver(
         sharded=True,
-        max_to_keep=tp.save_max_to_keep,
-        keep_checkpoint_every_n_hours=tp.save_keep_checkpoint_every_n_hours,
+        max_to_keep=self._train_params.save_max_to_keep,
+        keep_checkpoint_every_n_hours=self._train_params
+        .save_keep_checkpoint_every_n_hours,
         pad_step_number=True,  # %08d
         write_version=tf.train.SaverDef.V2)
 
   def RestoreFromPath(self, sess, checkpoint_path):
     """Load the checkpoint from specified path."""
+    assert not self._save_only
     tf.logging.info('Load from checkpoint %s.', checkpoint_path)
     self._saver.restore(sess, checkpoint_path)
     tf.logging.info('Load checkpoint done.')
@@ -100,6 +113,7 @@ class Checkpointer(object):
     tf.logging.info('Save checkpoint done: %s', path)
 
   def _Restore(self, sess):
+    assert not self._save_only
     path = tf.train.latest_checkpoint(self._train_dir)
     if path:
       self.RestoreFromPath(sess, path)
@@ -111,6 +125,7 @@ class Checkpointer(object):
     Args:
       sess: tf.Session.
     """
+    assert not self._save_only
     uninitialized_var_names = list(sess.run(self._uninitialized_vars))
     if not uninitialized_var_names:
       return
@@ -166,6 +181,7 @@ class Checkpointer(object):
     Args:
       sess: tf.Session.
     """
+    assert not self._save_only
     uninitialized_vars = sess.run(self._uninitialized_vars)
     if 'global_step' not in uninitialized_vars:
       return

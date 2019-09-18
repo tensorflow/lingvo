@@ -114,3 +114,8 @@ class MultiTaskModelParams(_BaseModelParams):
   def Model(cls):
     """Returns model params."""
     raise NotImplementedError('Abstract method')
+
+  @classmethod
+  def ProgramSchedule(cls):
+    """Returns a schedule for the Executor."""
+    raise NotImplementedError('Abstract method')

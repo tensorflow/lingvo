@@ -67,6 +67,8 @@ class BaseProgram(object):
     p.Define('dataset_name', None,
              'Dataset the program is operating on, eg: "Test"')
     p.Define('name', 'base_program', 'Program name.')
+    p.Define('task_name', None,
+             'If multi-task, what the high-level task name is')
     return p
 
   def __init__(self, params):
@@ -74,8 +76,14 @@ class BaseProgram(object):
     p = self.params
     self._task_params = p.task
     self._logdir = p.logdir
+    self._task_name = p.task_name
+
     # Program dirs are where the summaries are written to.
-    program_dir_name = p.name + '_' + p.dataset_name.lower()
+    if p.task_name:
+      program_dir_name = p.task_name + '_' + p.name + '_' + p.dataset_name.lower(
+      )
+    else:
+      program_dir_name = p.name + '_' + p.dataset_name.lower()
     self._program_dir = os.path.join(self._logdir, program_dir_name)
     self._summary_writer = tf.summary.FileWriter(self._program_dir)
 
@@ -110,6 +118,11 @@ class BaseProgram(object):
     pass
 
   def Run(self, sess):
+    """Execute the program using the given session handle."""
+    pass
+
+  def RestoreIfNeeded(self, sess):
+    """Restore from checkpoint if necessary."""
     pass
 
 
@@ -238,6 +251,7 @@ class TrainProgram(BaseProgram):
     return dict(zip(sorted(per_example_tensors), concatenated_arrays))
 
   def BuildTpuSubgraph(self):
+    tf.logging.info('TrainProgram BuildTpuSubGraph')
     with py_utils.OpportunisticVariableReuseScope(True):
       self._eval_metrics = metrics.TpuEvalMetrics()
       data_parallelism = self.data_parallelism
@@ -284,16 +298,15 @@ class TrainProgram(BaseProgram):
       # Get metric result from a single replica; they are all same here.
       self.tpu_ops = [[t[0] for t in batch_parallel_res], outfeed_dequeue_op]
 
-      # TODO(blee): This is going to need to be fixed for multiple-model
-      # execution. Need to get only the vars associated with the model.
       self._checkpointer = self._CreateCheckpointer(self._checkpoint_dir,
                                                     self._model)
     return self.tpu_ops
 
-  def Run(self, sess):
-    tf.logging.info('Executing train program.')
-    p = self.params
+  def RestoreIfNeeded(self, sess):
     self._checkpointer.RestoreIfNeeded(sess)
+
+  def Run(self, sess):
+    tf.logging.info('Executing train program for %s.', self._task_name)
     gsteps = py_utils.GetGlobalStep()
 
     infeed_future = self._infeed_pool.apply_async(
@@ -316,10 +329,6 @@ class TrainProgram(BaseProgram):
       self._SummarizeValue(global_step, key, val)
 
     task.ProcessFPropResults(sess, global_step, eval_metrics, outfeeds)
-    if p.always_checkpoint_after_execution:
-      self._checkpointer.Save(sess, gsteps)
-    else:
-      self._checkpointer.MaybeSave(sess, gsteps)
 
 
 class EvalProgram(BaseProgram):
@@ -332,6 +341,7 @@ class EvalProgram(BaseProgram):
   """
 
   def BuildTpuSubgraph(self):
+    tf.logging.info('EvalProgram BuildTpuSubGraph')
     with py_utils.OpportunisticVariableReuseScope(True):
       self._eval_metrics = metrics.TpuEvalMetrics()
       data_parallelism = self.data_parallelism
@@ -373,7 +383,7 @@ class EvalProgram(BaseProgram):
       return self.tpu_ops
 
   def Run(self, sess):
-    tf.logging.info('Executing eval program.')
+    tf.logging.info('Executing eval program for %s.', self._task_name)
     self._checkpointer.RestoreIfNeeded(sess)
     gsteps = py_utils.GetGlobalStep()
     infeed_future = self._infeed_pool.apply_async(
@@ -407,6 +417,7 @@ class DecodeProgram(BaseProgram):
       self._summary_writer.flush()
 
   def BuildTpuSubgraph(self):
+    tf.logging.info('DecodeProgram BuildTpuSubGraph')
     py_utils.ResetStepSeed()
 
     def _DecodeFn():
@@ -431,7 +442,7 @@ class DecodeProgram(BaseProgram):
     return None
 
   def Run(self, sess):
-    tf.logging.info('Executing decode program.')
+    tf.logging.info('Executing decode program for %s.', self._task_name)
     self._checkpointer.RestoreIfNeeded(sess)
     gsteps = py_utils.GetGlobalStep()
     global_step = sess.run(gsteps)
@@ -456,6 +467,17 @@ class DecodeProgram(BaseProgram):
         os.path.basename(self._program_dir), global_step, summaries)
 
 
+class MultiTaskProgramSchedule(object):
+  """Container for ProgramSchedules for a MultiTask model."""
+
+  @classmethod
+  def Params(cls):
+    p = hyperparams.InstantiableParams(cls)
+    p.Define('program_schedule_dict', None,
+             'task_name -> ProgramScheduleParams')
+    return p
+
+
 class SimpleProgramSchedule(object):
   """A schedule of programs associated with a single task.
 
@@ -466,13 +488,16 @@ class SimpleProgramSchedule(object):
 
   @classmethod
   def Params(cls):
+    """Params for a SimpleProgramSchedule."""
     p = hyperparams.InstantiableParams(cls)
     p.Define('task_dict', None, 'dataset_name -> task params')
+    p.Define('task_name', None, 'High level task name')
     p.Define('logdir', None, 'Log directory')
-    p.Define('train_program', None, '')
+    p.Define('train_program', None, 'Train program params')
     p.Define('train_executions_per_eval', 1, '')
-    p.Define('eval_programs', [], '')
+    p.Define('eval_programs', [], 'List of eval program params.')
     p.Define('num_splits_per_client', None, '')
+    p.Define('dataset_names', [], 'List of all dataset names.')
     return p
 
   def __init__(self, params):
@@ -486,10 +511,12 @@ class SimpleProgramSchedule(object):
                        (p.train_program.dataset_name, p.task_dict))
     p.train_program.task = p.task_dict[p.train_program.dataset_name]
     p.train_program.num_splits_per_client = p.num_splits_per_client
+    p.train_program.task_name = p.task_name
 
     for eval_program_params in p.eval_programs:
       eval_program_params.logdir = p.logdir
       eval_program_params.task = p.task_dict[eval_program_params.dataset_name]
+      eval_program_params.task_name = p.task_name
       eval_program_params.num_splits_per_client = p.num_splits_per_client
 
     self.eval_programs = []
@@ -535,7 +562,10 @@ def SimpleProgramScheduleForTask(train_dataset_name, train_steps_per_loop,
   train_program_params.dataset_name = train_dataset_name
   program_schedule_params.train_program = train_program_params
 
+  program_schedule_params.dataset_names = []
+
   for dataset_name in eval_dataset_names:
+    program_schedule_params.dataset_names.append(dataset_name)
     if eval_steps_per_loop > 0:
       eval_program_params = EvalProgram.Params()
       eval_program_params.name = 'eval_tpu'

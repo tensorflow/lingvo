@@ -1341,6 +1341,20 @@ class RunnerManager(object):
     assert value == 2.0, 'Something is really wrong.'
     tf.logging.info('Launched tensorflow.')
 
+  def GetExecutorParams(self):
+    """Get the params needed to instantiate the ExecutorTpu.
+
+    Returns:
+       ps_params_dict: high_level task_name -> ProgramScheduleParams
+       train_cfg: Either a SingleTaskModelParams or MultiTaskModelParams.
+    """
+    cluster = cluster_factory.Current()
+    self.UpdateClusterParamsFromFlags(cluster.params, 'executor_tpu')
+    ps_params_dict, train_cfg = executor.GetExecutorParams(
+        self._model_name, cluster.params, self.model_registry)
+
+    return ps_params_dict, train_cfg
+
   def GetParamsForDataset(self, job_name, dataset_name):
     """Returns params for job `job_name` on the dataset `dataset_name`."""
     # Get the current cluster and update its params from flags.
@@ -1368,18 +1382,6 @@ class RunnerManager(object):
     if FLAGS.saver_keep_checkpoint_every_n_hours:
       cfg.train.save_keep_checkpoint_every_n_hours = FLAGS.saver_keep_checkpoint_every_n_hours
     return cfg
-
-  def GetProgramScheduleParams(self, job_name, dataset_names):
-    """Returns ProgramSchedule  params for job `job_name` and  datasets `dataset_name`."""
-    # Get the current cluster and update its params from flags.
-    cluster = cluster_factory.Current()
-    self.UpdateClusterParamsFromFlags(cluster.params, job_name)
-    with cluster_factory.Cluster(cluster.params):
-      ps_cfg, model_cfg_dict = self.model_registry.GetProgramSchedule(
-          self._model_name, dataset_names)
-      for v in model_cfg_dict.values():
-        v.cluster = cluster.params
-    return ps_cfg, model_cfg_dict
 
   def MaybeConfigRunDistributed(self):
     """If given a `FLAGS.cluster_spec`, update flags for running distributed."""
@@ -1517,11 +1519,9 @@ class RunnerManager(object):
     elif job in ('ps', 'worker', 'input'):
       self._tf_server.join()
     elif job == 'executor_tpu':
-      # TODO(blee): Fix the instantiation of ExecutorTpu
-      program_schedule, task_dict = self.GetProgramScheduleParams(
-          'executor_tpu', ['Train', 'Test'])
-      return self.ExecutorTpu(task_dict, program_schedule, model_task_name,
-                              logdir, tf_master)
+      ps_cfg_dict, train_cfg = self.GetExecutorParams()
+      return self.ExecutorTpu(train_cfg, ps_cfg_dict, model_task_name, logdir,
+                              tf_master)
     else:
       raise ValueError('job %s is not supported' % job)
 
