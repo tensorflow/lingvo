@@ -351,7 +351,7 @@ favor of string representations.</p>
 
 <dl class="method">
 <dt id="lingvo.core.hyperparams.Params.ToText">
-<code class="sig-name descname">ToText</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.ToText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.ToText" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ToText</code><span class="sig-paren">(</span><em class="sig-param">include_types=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.ToText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.ToText" title="Permalink to this definition">¶</a></dt>
 <dd><p>Encodes params into a simple text format.</p>
 <p>Each param is represented as a single line in the output.  The param
 name and value is separated by a “:”.  The nest param name is
@@ -362,15 +362,19 @@ of its type.</p>
 (whichever would involve the least escaping) and will have some characters
 backslash escaped. String properties can span multiple lines.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>The encoded text.</p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>include_types</strong> – Should we return types of the values. If True, the types
+dict will be returned as a second val in a return tuple</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The encoded text or (encoded text, types dict) if include_types is True.</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.hyperparams.Params.FromText">
-<code class="sig-name descname">FromText</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.FromText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.FromText" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FromText</code><span class="sig-paren">(</span><em class="sig-param">text</em>, <em class="sig-param">type_overrides=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.FromText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.FromText" title="Permalink to this definition">¶</a></dt>
 <dd><p>Merges params specified in ‘text’ into ‘params’.</p>
 <p>‘text’ follows the simple text format as produced by
 ParamsToSimpleText.  For a param specified in both ‘params’ and
@@ -378,7 +382,10 @@ ParamsToSimpleText.  For a param specified in both ‘params’ and
 Params specified in ‘text’ but not in ‘params’ are ignored.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>text</strong> – A text representation of params.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – A text representation of params.</p></li>
+<li><p><strong>type_overrides</strong> – Overrides for the types of the params.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Raises</dt>
 <dd class="field-even"><ul class="simple">
@@ -387,6 +394,18 @@ Params specified in ‘text’ but not in ‘params’ are ignored.</p>
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params.ToTextWithTypes">
+<code class="sig-name descname">ToTextWithTypes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.ToTextWithTypes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.ToTextWithTypes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as ToText but encodes both params and their types.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params.FromTextWithTypes">
+<code class="sig-name descname">FromTextWithTypes</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.FromTextWithTypes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.FromTextWithTypes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as FromText but expects to have types encoded in the text.</p>
 </dd></dl>
 
 </dd></dl>

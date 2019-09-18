@@ -522,7 +522,7 @@
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">):</span>
       <span class="k">yield</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">param</span><span class="o">.</span><span class="n">Get</span><span class="p">())</span></div>
 
-<div class="viewcode-block" id="Params.ToText"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.ToText">[docs]</a>  <span class="k">def</span> <span class="nf">ToText</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.ToText"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.ToText">[docs]</a>  <span class="k">def</span> <span class="nf">ToText</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_types</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Encodes params into a simple text format.</span>
 
 <span class="sd">    Each param is represented as a single line in the output.  The param</span>
@@ -535,10 +535,15 @@
 <span class="sd">    (whichever would involve the least escaping) and will have some characters</span>
 <span class="sd">    backslash escaped. String properties can span multiple lines.</span>
 
+<span class="sd">    Args:</span>
+<span class="sd">      include_types: Should we return types of the values. If True, the types</span>
+<span class="sd">        dict will be returned as a second val in a return tuple</span>
+
 <span class="sd">    Returns:</span>
-<span class="sd">      The encoded text.</span>
+<span class="sd">      The encoded text or (encoded text, types dict) if include_types is True.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">kv</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">def</span> <span class="nf">GetRepr</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Get the representation of `val`.&quot;&quot;&quot;</span>
@@ -569,16 +574,19 @@
           <span class="n">Traverse</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">[</span><span class="si">%d</span><span class="s1">]&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">kv</span><span class="p">)</span>
       <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">)):</span>
         <span class="n">kv</span><span class="p">[</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">_QuoteString</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">types</span><span class="p">[</span><span class="n">prefix</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="s1">&#39;str&#39;</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">kv</span><span class="p">[</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">GetRepr</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+        <span class="n">types</span><span class="p">[</span><span class="n">prefix</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
 
     <span class="n">Traverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">kv</span><span class="p">)</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">kv</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
       <span class="n">ret</span> <span class="o">+=</span> <span class="n">k</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="s1">&#39; : &#39;</span> <span class="o">+</span> <span class="n">v</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
-    <span class="k">return</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="Params.FromText"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.FromText">[docs]</a>  <span class="k">def</span> <span class="nf">FromText</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">types</span><span class="p">)</span> <span class="k">if</span> <span class="n">include_types</span> <span class="k">else</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="Params.FromText"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.FromText">[docs]</a>  <span class="k">def</span> <span class="nf">FromText</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">type_overrides</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Merges params specified in &#39;text&#39; into &#39;params&#39;.</span>
 
 <span class="sd">    &#39;text&#39; follows the simple text format as produced by</span>
@@ -588,6 +596,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      text: A text representation of params.</span>
+<span class="sd">      type_overrides: Overrides for the types of the params.</span>
 <span class="sd">    Raises:</span>
 <span class="sd">      AttributeError: text contains invalid parameter key</span>
 <span class="sd">      ValueError: text contains invalid parameter value</span>
@@ -595,6 +604,7 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;This Params instance is immutable.&#39;</span><span class="p">)</span>
     <span class="n">kv</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">type_overrides</span> <span class="o">=</span> <span class="n">type_overrides</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">string_continue</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># None or (key, quote, value)</span>
     <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
       <span class="c1"># Continuing a multi-line string.</span>
@@ -630,16 +640,25 @@
         <span class="n">kv</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_stripped</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">kv</span><span class="p">):</span>
       <span class="n">old_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+      <span class="n">val_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">old_val</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">)):</span>
+        <span class="n">val_type</span> <span class="o">=</span> <span class="s1">&#39;str&#39;</span>
+      <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">type_overrides</span><span class="p">:</span>
+        <span class="n">val_type</span> <span class="o">=</span> <span class="n">type_overrides</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
       <span class="c1"># Converts val (a string) to a best-guessed typed value.</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">val_type</span> <span class="o">==</span> <span class="s1">&#39;bool&#39;</span><span class="p">:</span>
         <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="n">val</span> <span class="ow">and</span> <span class="p">(</span><span class="n">val</span> <span class="o">!=</span> <span class="s1">&#39;False&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">val</span> <span class="o">!=</span> <span class="s1">&#39;false&#39;</span><span class="p">))</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+      <span class="k">elif</span> <span class="n">val_type</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">:</span>
         <span class="n">val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+      <span class="k">elif</span> <span class="n">val_type</span> <span class="o">==</span> <span class="s1">&#39;float&#39;</span><span class="p">:</span>
         <span class="n">val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">DType</span><span class="p">):</span>
+      <span class="k">elif</span> <span class="n">val_type</span> <span class="o">==</span> <span class="s1">&#39;DType&#39;</span><span class="p">:</span>
         <span class="n">val</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">as_dtype</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">)):</span>
+      <span class="k">elif</span> <span class="n">val_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;list&#39;</span><span class="p">,</span> <span class="s1">&#39;tuple&#39;</span><span class="p">]:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">val_type</span> <span class="o">==</span> <span class="s1">&#39;dict&#39;</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">if</span> <span class="n">val</span> <span class="o">!=</span> <span class="s1">&#39;dict&#39;</span> <span class="k">else</span> <span class="p">{}</span>
+      <span class="k">elif</span> <span class="n">val_type</span> <span class="o">==</span> <span class="s1">&#39;str&#39;</span><span class="p">:</span>
         <span class="n">val</span> <span class="o">=</span> <span class="n">_UnquoteString</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">val</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">val</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;]&#39;</span><span class="p">):</span>
           <span class="c1"># We may have stored a list as a string, try converting to a list.</span>
@@ -648,10 +667,6 @@
             <span class="n">val</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
           <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="k">pass</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-        <span class="n">val</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="n">val</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">if</span> <span class="n">val</span> <span class="o">!=</span> <span class="s1">&#39;dict&#39;</span> <span class="k">else</span> <span class="p">{}</span>
       <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="ow">or</span> <span class="n">old_val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;NoneType&#39;</span><span class="p">:</span>
           <span class="n">val</span> <span class="o">=</span> <span class="kc">None</span>
@@ -667,7 +682,26 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Error processing </span><span class="si">%r</span><span class="s1"> : </span><span class="si">%r</span><span class="s1"> with </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Failed to read a parameter: </span><span class="si">%r</span><span class="s1"> : </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">val</span><span class="p">})</span></div></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">val</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="Params.ToTextWithTypes"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.ToTextWithTypes">[docs]</a>  <span class="k">def</span> <span class="nf">ToTextWithTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Same as ToText but encodes both params and their types.&quot;&quot;&quot;</span>
+    <span class="n">text</span><span class="p">,</span> <span class="n">types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToText</span><span class="p">(</span><span class="n">include_types</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">types</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+      <span class="n">text</span> <span class="o">+=</span> <span class="n">k</span> <span class="o">+</span> <span class="s1">&#39; : &#39;</span> <span class="o">+</span> <span class="n">v</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="k">return</span> <span class="n">text</span></div>
+
+<div class="viewcode-block" id="Params.FromTextWithTypes"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.FromTextWithTypes">[docs]</a>  <span class="k">def</span> <span class="nf">FromTextWithTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Same as FromText but expects to have types encoded in the text.&quot;&quot;&quot;</span>
+    <span class="n">text</span><span class="p">,</span> <span class="n">types_str</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">types_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">row</span><span class="p">:</span>
+        <span class="k">continue</span>
+      <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+      <span class="n">types</span><span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">type_overrides</span><span class="o">=</span><span class="n">types</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="InstantiableParams"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams">[docs]</a><span class="k">class</span> <span class="nc">InstantiableParams</span><span class="p">(</span><span class="n">Params</span><span class="p">):</span>
