@@ -218,9 +218,10 @@
 
     <span class="c1"># Compute the length for bucketing.</span>
     <span class="n">bucket_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">src_paddings</span><span class="p">),</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tgt_paddings</span><span class="p">)))</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">src_paddings</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tgt_paddings</span><span class="p">))))</span>
     <span class="n">tgt_weights</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tgt_paddings</span>
 
     <span class="c1"># Return tensors in an order consistent with __init__.</span>
