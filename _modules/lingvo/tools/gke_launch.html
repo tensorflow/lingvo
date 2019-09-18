@@ -1,0 +1,685 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tools.gke_launch &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tools.gke_launch</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tools.gke_launch</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;Launch script for GKE jobs.</span>
+
+<span class="sd">This script generates the GKE deployment configs for TPU training, GPU/CPU</span>
+<span class="sd">decoding, and TensorBoard jobs.</span>
+
+<span class="sd">It assumes you have:</span>
+
+<span class="sd">a) Copied any input data to GCS.</span>
+<span class="sd">b) Docker and GKE/GCP tools installed locally.</span>
+<span class="sd">c) Created the TPU and GPU clusters using `gcloud containers create`.</span>
+
+<span class="sd">This script launches jobs by:</span>
+
+<span class="sd">1) Building a lingvo docker image built from --base_image, copying</span>
+<span class="sd">   the directory pointed to by --build, writing that image to --image</span>
+<span class="sd">   (with an automatically generated date-based tag for versioning).</span>
+
+<span class="sd">2) Identifying the full name of the GKE cluster that each accelerator</span>
+<span class="sd">   job runs in based on --trainer_cell and --decoder_cell</span>
+
+<span class="sd">3) Writing out .yaml configuration files based on --name, --model, --logdir,</span>
+<span class="sd">   that will launch the docker images for each job type.</span>
+
+<span class="sd">Usage looks something like:</span>
+
+<span class="sd">  python3 lingvo/tools/gke_launch.py \</span>
+<span class="sd">    --model=$MODEL \</span>
+<span class="sd">    --base_image=tensorflow:lingvo_lib_gpu \</span>
+<span class="sd">    --image=$DOCKER_IMAGE \</span>
+<span class="sd">    --logdir=$LOGDIR \</span>
+<span class="sd">    --tpu_type=$TPU_TYPE \</span>
+<span class="sd">    --trainer_cell=$TPU_CLUSTER_NAME \</span>
+<span class="sd">    --decoder_cell=$GPU_CLUSTER_NAME \</span>
+<span class="sd">    --decoder_gpus=1 \</span>
+<span class="sd">    --gpu_type=$GPU_TYPE \</span>
+<span class="sd">    --decoder=dev \</span>
+<span class="sd">    --extra_envs=KITTI_DIR=$GCS_PATH \</span>
+<span class="sd">    --name=$EXP_NAME \</span>
+<span class="sd">    --build=$YOUR_CODE_DIR \</span>
+<span class="sd">    $ACTION $TARGETS</span>
+
+<span class="sd">ACTION specifies whether to start (up), stop (down) or reload the target jobs.</span>
+<span class="sd">One can also specify &quot;print&quot; to just print out the .yaml configuration files.</span>
+
+<span class="sd">TARGETS specifies whether the action affects all jobs (&quot;all&quot;) or just an</span>
+<span class="sd">individual job (&quot;trainer&quot;, &quot;decoder&quot;, &quot;tensorboard&quot;).</span>
+
+<span class="sd">See the flags definition below for details on the arguments.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+
+<span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">app</span>
+<span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">flags</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+<span class="c1"># General flags for all jobs.</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Base name of experiment.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Name of registered model.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Name of docker image to use.  If tag is not specified &quot;</span>
+    <span class="s2">&quot;and --build is set, a time-based tag will be used.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s2">&quot;logdir&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;GCS location of base logdir.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s2">&quot;gpu_type&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Type of GPU to use, e.g., &#39;p100&#39; or &#39;v100&#39;.&quot;</span><span class="p">)</span>
+
+<span class="c1"># Cluster flags</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s2">&quot;trainer_cell&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;Query name for the GKE cluster to use for training. &quot;</span>
+    <span class="s2">&quot;Must uniquely identify among all active clusters.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s2">&quot;decoder_cell&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;Query name for the GKE cluster to use for decoding. &quot;</span>
+    <span class="s2">&quot;Must uniquely identify among all active clusters.&quot;</span><span class="p">)</span>
+
+<span class="c1"># TPU training flags.</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s2">&quot;tpu_type&quot;</span><span class="p">,</span> <span class="s2">&quot;v3-8&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Type of TPU to use for training, e.g., &#39;v3-8&#39; for a 2x2.&quot;</span><span class="p">)</span>
+
+<span class="c1"># Decoder flags.</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s2">&quot;decoder_ram&quot;</span><span class="p">,</span> <span class="s2">&quot;24G&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Amount of CPU memory for the decoder.&quot;</span><span class="p">)</span>
+<span class="c1"># TODO(vrv): Support launching multiple decoder jobs when this is</span>
+<span class="c1"># comma-separated.</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s2">&quot;decoder&quot;</span><span class="p">,</span> <span class="s2">&quot;dev&quot;</span><span class="p">,</span> <span class="s2">&quot;Split(s) of dataset for decoding.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s2">&quot;decoder_gpus&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+                     <span class="s2">&quot;Number of GPUs per machine for decoding.&quot;</span><span class="p">)</span>
+
+<span class="c1"># Docker-based flags.</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s2">&quot;build&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;If set, builds the docker image &quot;</span>
+    <span class="s2">&quot;for --image including all code from this directory.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s2">&quot;base_image&quot;</span><span class="p">,</span> <span class="s2">&quot;tensorflow:lingvo_lib&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Base Lingvo docker image to use. If using GPU, make &quot;</span>
+    <span class="s2">&quot;sure you have built a GPU-enabled image.&quot;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s2">&quot;extra_envs&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;Extra comma-separated list of key=value environment &quot;</span>
+    <span class="s2">&quot;variables to set when building the docker image.&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="_get_or_add"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch._get_or_add">[docs]</a><span class="k">def</span> <span class="nf">_get_or_add</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Gets cfg[name], or adds &#39;name&#39; with an empty dict if not present.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cfg</span><span class="p">:</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">name</span><span class="p">:</span> <span class="p">{}})</span>
+  <span class="k">return</span> <span class="n">cfg</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="add_gpu_to_pod"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch.add_gpu_to_pod">[docs]</a><span class="k">def</span> <span class="nf">add_gpu_to_pod</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">gpu_type</span><span class="p">,</span> <span class="n">num_gpus</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Sets the appropriate GPU fields to cfg.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    cfg: The YAML-based dictionary to update.</span>
+<span class="sd">    gpu_type: The type of GPU to launch on GKE.</span>
+<span class="sd">    num_gpus: The number of GPUs to launch in the task.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">num_gpus</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">return</span>
+
+  <span class="k">if</span> <span class="n">gpu_type</span> <span class="o">==</span> <span class="s2">&quot;p100&quot;</span><span class="p">:</span>
+    <span class="n">gpu_str</span> <span class="o">=</span> <span class="s2">&quot;nvidia-tesla-p100&quot;</span>
+  <span class="k">elif</span> <span class="n">gpu_type</span> <span class="o">==</span> <span class="s2">&quot;v100&quot;</span><span class="p">:</span>
+    <span class="n">gpu_str</span> <span class="o">=</span> <span class="s2">&quot;nvidia-tesla-v100&quot;</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid gpu type: &quot;</span><span class="p">,</span> <span class="n">gpu_type</span><span class="p">)</span>
+  <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;spec&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+      <span class="p">{</span><span class="s2">&quot;nodeSelector&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;cloud.google.com/gke-accelerator&quot;</span><span class="p">:</span> <span class="n">gpu_str</span>
+      <span class="p">}})</span>
+
+  <span class="n">containers</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;spec&quot;</span><span class="p">][</span><span class="s2">&quot;containers&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">resources</span> <span class="o">=</span> <span class="n">_get_or_add</span><span class="p">(</span><span class="n">containers</span><span class="p">,</span> <span class="s2">&quot;resources&quot;</span><span class="p">)</span>
+  <span class="n">resources</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;limits&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;nvidia.com/gpu&quot;</span><span class="p">:</span> <span class="n">num_gpus</span><span class="p">}})</span></div>
+
+
+<div class="viewcode-block" id="set_pod_cpu_memory"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch.set_pod_cpu_memory">[docs]</a><span class="k">def</span> <span class="nf">set_pod_cpu_memory</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">cpu_memory</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Sets the amount of CPU memory to request in the container.&quot;&quot;&quot;</span>
+  <span class="n">containers</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;spec&quot;</span><span class="p">][</span><span class="s2">&quot;containers&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">resources</span> <span class="o">=</span> <span class="n">_get_or_add</span><span class="p">(</span><span class="n">containers</span><span class="p">,</span> <span class="s2">&quot;resources&quot;</span><span class="p">)</span>
+  <span class="n">resources</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;requests&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;memory&quot;</span><span class="p">:</span> <span class="n">cpu_memory</span><span class="p">}})</span></div>
+
+
+<div class="viewcode-block" id="decoder_template"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch.decoder_template">[docs]</a><span class="k">def</span> <span class="nf">decoder_template</span><span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">decoder_type</span><span class="p">,</span>
+                     <span class="n">decoder_gpus</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Constructs the base yaml config for the decoder.&quot;&quot;&quot;</span>
+  <span class="n">name</span> <span class="o">=</span> <span class="n">job_name</span> <span class="o">+</span> <span class="s2">&quot;.decoder&quot;</span>
+  <span class="n">container_name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span>
+  <span class="n">job</span> <span class="o">=</span> <span class="s2">&quot;decoder_&quot;</span> <span class="o">+</span> <span class="n">decoder_type</span>
+  <span class="k">return</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">apiVersion: v1</span>
+<span class="s2">kind: Pod</span>
+<span class="s2">metadata:</span>
+<span class="s2">  name: </span><span class="si">{job_name}</span><span class="s2"></span>
+<span class="s2">spec:</span>
+<span class="s2">  restartPolicy: Never</span>
+<span class="s2">  containers:</span>
+<span class="s2">    - name: </span><span class="si">{container_name}</span><span class="s2"></span>
+<span class="s2">      image: </span><span class="si">{image}</span><span class="s2"></span>
+<span class="s2">      command: [&quot;/usr/bin/python3&quot;]</span>
+<span class="s2">      args: [&quot;-m&quot;, &quot;lingvo.trainer&quot;, &quot;--mode=sync&quot;, &quot;--alsologtostderr&quot;, &quot;--model=</span><span class="si">{model}</span><span class="s2">&quot;, &quot;--logdir=</span><span class="si">{logdir}</span><span class="s2">&quot;, &quot;--job=</span><span class="si">{job}</span><span class="s2">&quot;, &quot;--decoder_gpus=</span><span class="si">{decoder_gpus}</span><span class="s2">&quot;, &quot;--decoder_replicas=1&quot;, &quot;--cluster_spec=</span><span class="si">{job}</span><span class="s2">=localhost:0&quot;]</span>
+<span class="s2">  &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+      <span class="n">job_name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+      <span class="n">container_name</span><span class="o">=</span><span class="n">container_name</span><span class="p">,</span>
+      <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+      <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+      <span class="n">logdir</span><span class="o">=</span><span class="n">logdir</span><span class="p">,</span>
+      <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span>
+      <span class="n">decoder_gpus</span><span class="o">=</span><span class="n">decoder_gpus</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_tpu_resource"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch._tpu_resource">[docs]</a><span class="k">def</span> <span class="nf">_tpu_resource</span><span class="p">(</span><span class="n">tpu_type</span><span class="p">):</span>
+  <span class="n">version</span><span class="p">,</span> <span class="n">num_chips</span> <span class="o">=</span> <span class="n">tpu_type</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="s2">&quot;cloud-tpus.google.com/</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">num_chips</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="tpu_training_template"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch.tpu_training_template">[docs]</a><span class="k">def</span> <span class="nf">tpu_training_template</span><span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">tpu_type</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Constructs the base yaml config for the TPU trainer.&quot;&quot;&quot;</span>
+  <span class="n">name</span> <span class="o">=</span> <span class="n">job_name</span> <span class="o">+</span> <span class="s2">&quot;.trainer&quot;</span>
+  <span class="n">container_name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span>
+  <span class="n">tpu_string</span> <span class="o">=</span> <span class="n">_tpu_resource</span><span class="p">(</span><span class="n">tpu_type</span><span class="p">)</span>
+  <span class="k">return</span> <span class="s2">&quot;&quot;&quot;apiVersion: batch/v1</span>
+<span class="s2">kind: Job</span>
+<span class="s2">metadata:</span>
+<span class="s2">  name: </span><span class="si">{name}</span><span class="s2"></span>
+<span class="s2">spec:</span>
+<span class="s2">  template:</span>
+<span class="s2">    metadata:</span>
+<span class="s2">      annotations:</span>
+<span class="s2">        tf-version.cloud-tpus.google.com: &quot;nightly&quot;</span>
+<span class="s2">    spec:</span>
+<span class="s2">      restartPolicy: Never</span>
+<span class="s2">      containers:</span>
+<span class="s2">      - name: </span><span class="si">{container_name}</span><span class="s2"></span>
+<span class="s2">        image: </span><span class="si">{image}</span><span class="s2"></span>
+<span class="s2">        command: [&quot;/usr/bin/python3&quot;]</span>
+<span class="s2">        args: [&quot;-m&quot;, &quot;lingvo.trainer&quot;, &quot;--mode=sync&quot;, &quot;--alsologtostderr&quot;, &quot;--model=</span><span class="si">{model}</span><span class="s2">&quot;, &quot;--logdir=</span><span class="si">{logdir}</span><span class="s2">&quot;, &quot;--tpu=$(KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS)&quot;]</span>
+<span class="s2">        resources:</span>
+<span class="s2">          limits:</span>
+<span class="s2">            </span><span class="si">{tpu_string}</span><span class="s2"></span>
+<span class="s2">  &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+      <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+      <span class="n">container_name</span><span class="o">=</span><span class="n">container_name</span><span class="p">,</span>
+      <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+      <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+      <span class="n">logdir</span><span class="o">=</span><span class="n">logdir</span><span class="p">,</span>
+      <span class="n">tpu_string</span><span class="o">=</span><span class="n">tpu_string</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="tensorboard_template"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch.tensorboard_template">[docs]</a><span class="k">def</span> <span class="nf">tensorboard_template</span><span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">port</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Constructs the tensorboard YAML template.&quot;&quot;&quot;</span>
+  <span class="n">job_name</span> <span class="o">=</span> <span class="n">job_name</span> <span class="o">+</span> <span class="s2">&quot;.tensorboard&quot;</span>
+  <span class="n">container_name</span> <span class="o">=</span> <span class="n">job_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span>
+
+  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;To poll for tensorboard address, run: $ kubectl get service </span><span class="si">%s</span><span class="s2"> -w&quot;</span> <span class="o">%</span>
+        <span class="p">(</span><span class="n">container_name</span> <span class="o">+</span> <span class="s2">&quot;-service&quot;</span><span class="p">))</span>
+  <span class="k">return</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">apiVersion: apps/v1</span>
+<span class="s2">kind: Deployment</span>
+<span class="s2">metadata:</span>
+<span class="s2">  name: </span><span class="si">{job_name}</span><span class="s2"></span>
+<span class="s2">spec:</span>
+<span class="s2">  replicas: 1</span>
+<span class="s2">  selector:</span>
+<span class="s2">    matchLabels:</span>
+<span class="s2">      name: </span><span class="si">{job_name}</span><span class="s2"></span>
+<span class="s2">  template:</span>
+<span class="s2">    metadata:</span>
+<span class="s2">      labels:</span>
+<span class="s2">        name: </span><span class="si">{job_name}</span><span class="s2"></span>
+<span class="s2">    spec:</span>
+<span class="s2">      restartPolicy: Always</span>
+<span class="s2">      containers:</span>
+<span class="s2">      - name: </span><span class="si">{container_name}</span><span class="s2"></span>
+<span class="s2">        image: gcr.io/tensorflow/tpu-util:r1.11</span>
+<span class="s2">        command:</span>
+<span class="s2">        - tensorboard</span>
+<span class="s2">        - --logdir=$(MODEL_BUCKET)</span>
+<span class="s2">        env:</span>
+<span class="s2">        - name: MODEL_BUCKET</span>
+<span class="s2">          value: </span><span class="si">{logdir}</span><span class="s2"></span>
+<span class="s2">        ports:</span>
+<span class="s2">        - containerPort: </span><span class="si">{port}</span><span class="s2"></span>
+<span class="s2">---</span>
+<span class="s2">apiVersion: v1</span>
+<span class="s2">kind: Service</span>
+<span class="s2">metadata:</span>
+<span class="s2">  name: </span><span class="si">{container_name}</span><span class="s2">-service</span>
+<span class="s2">spec:</span>
+<span class="s2">  type: LoadBalancer</span>
+<span class="s2">  selector:</span>
+<span class="s2">    name: </span><span class="si">{job_name}</span><span class="s2"></span>
+<span class="s2">  ports:</span>
+<span class="s2">  - port: </span><span class="si">{port}</span><span class="s2"></span>
+<span class="s2">    targetPort: </span><span class="si">{port}</span><span class="s2"></span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+    <span class="n">job_name</span><span class="o">=</span><span class="n">job_name</span><span class="p">,</span> <span class="n">container_name</span><span class="o">=</span><span class="n">container_name</span><span class="p">,</span> <span class="n">logdir</span><span class="o">=</span><span class="n">logdir</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="build_docker_image"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch.build_docker_image">[docs]</a><span class="k">def</span> <span class="nf">build_docker_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">base_image</span><span class="p">,</span> <span class="n">code_directory</span><span class="p">,</span> <span class="n">extra_envs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Build a docker image and push it to the location specified by image.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    image: String name of tag to use, e.g., &#39;gcr.io/foo/bar:version&#39;</span>
+<span class="sd">    base_image: String name of base lingvo image to build from.</span>
+<span class="sd">    code_directory: Location of directory whose contents will be copied into the</span>
+<span class="sd">      image.</span>
+<span class="sd">    extra_envs: A comma-separated list of key=value environment variables to be</span>
+<span class="sd">      built into the docker.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">preamble</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="s2">&quot;FROM </span><span class="si">%s</span><span class="s2"> AS lingvo&quot;</span> <span class="o">%</span> <span class="n">base_image</span><span class="p">,</span>
+  <span class="p">]</span>
+  <span class="n">envs</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="s2">&quot;ENV LD_LIBRARY_PATH=$</span><span class="si">{LD_LIBRARY_PATH}</span><span class="s2">:/home/kubernetes/bin/nvidia/lib64&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;ENV PATH=$</span><span class="si">{PATH}</span><span class="s2">:/home/kubernetes/bin/nvidia/bin&quot;</span><span class="p">,</span>
+  <span class="p">]</span>
+  <span class="k">for</span> <span class="n">env_pairs</span> <span class="ow">in</span> <span class="n">extra_envs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">):</span>
+    <span class="n">envs</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;ENV </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">env_pairs</span><span class="p">]</span>
+
+  <span class="n">copy_code</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;WORKDIR /tmp/lingvo&quot;</span><span class="p">,</span> <span class="s2">&quot;COPY . .&quot;</span><span class="p">]</span>
+
+  <span class="n">gpu_docker_file</span> <span class="o">=</span> <span class="n">preamble</span> <span class="o">+</span> <span class="n">envs</span> <span class="o">+</span> <span class="n">copy_code</span>
+  <span class="n">tmp_dockerfile</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;.dockerfile&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tmp_dockerfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gpu_docker_file</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Writing Dockerfile to&quot;</span><span class="p">,</span> <span class="n">tmp_dockerfile</span><span class="p">)</span>
+
+  <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;docker build --tag </span><span class="si">%s</span><span class="s2"> --no-cache -f- </span><span class="si">%s</span><span class="s2"> &lt; </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span>
+            <span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">code_directory</span><span class="p">,</span> <span class="n">tmp_dockerfile</span><span class="p">))</span>
+  <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;docker push </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">image</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_gke_cluster"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch.get_gke_cluster">[docs]</a><span class="k">def</span> <span class="nf">get_gke_cluster</span><span class="p">(</span><span class="n">gke_cluster_spec</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Get the full name of the GKE cluster given shorthand `gke_cluster_spec`.</span>
+
+<span class="sd">  For example, gcloud container cluster list produces:</span>
+
+<span class="sd">  NAME                      LOCATION        ...</span>
+<span class="sd">  p100-europe-west4-a-nh16  europe-west4-a  ...</span>
+<span class="sd">  test-df-europe            europe-west4-a  ...</span>
+
+<span class="sd">  Then a gke_cluster_spec of &#39;p100&#39; or &#39;df&#39; will produce the fully-qualified</span>
+<span class="sd">  cluster.</span>
+
+<span class="sd">  A gke_cluster_spec of &#39;europe&#39; will raise a ValueError because there are two</span>
+<span class="sd">  active clusters that have the string &#39;europe&#39; in them.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    gke_cluster_spec: A string specifying a filter on active clusters.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The fully qualified GKE cluster name, or None if not found.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: If gke_cluster_spec does not uniquely identify an</span>
+<span class="sd">      active cluster.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">gke_cluster_spec</span><span class="p">:</span>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+  <span class="n">active_clusters</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span>
+      <span class="p">[</span><span class="s2">&quot;gcloud&quot;</span><span class="p">,</span> <span class="s2">&quot;container&quot;</span><span class="p">,</span> <span class="s2">&quot;clusters&quot;</span><span class="p">,</span> <span class="s2">&quot;list&quot;</span><span class="p">])</span>
+  <span class="n">cluster_names</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="n">c</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">active_clusters</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">c</span>
+  <span class="p">]</span>
+  <span class="n">filtered</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cluster_names</span> <span class="k">if</span> <span class="n">gke_cluster_spec</span> <span class="ow">in</span> <span class="n">c</span><span class="p">]</span>
+
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cluster filter was not precise enough.&quot;</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">filtered</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+  <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s2">&quot;kubectl&quot;</span><span class="p">,</span> <span class="s2">&quot;config&quot;</span><span class="p">,</span> <span class="s2">&quot;view&quot;</span><span class="p">])</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  <span class="n">clusters</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">result</span> <span class="k">if</span> <span class="s2">&quot;    cluster: &quot;</span> <span class="ow">in</span> <span class="n">r</span><span class="p">]</span>
+  <span class="n">cluster</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">clusters</span> <span class="k">if</span> <span class="n">filtered</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">r</span><span class="p">]</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+  <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">cluster</span></div>
+
+
+<span class="c1"># Not yet used, but illustrates one what needs to do.</span>
+<div class="viewcode-block" id="create_tpu_cluster"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch.create_tpu_cluster">[docs]</a><span class="k">def</span> <span class="nf">create_tpu_cluster</span><span class="p">(</span><span class="n">cluster_name</span><span class="p">,</span> <span class="n">zone</span><span class="p">):</span>
+  <span class="n">_</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span>
+      <span class="s2">&quot;gcloud&quot;</span><span class="p">,</span> <span class="s2">&quot;container&quot;</span><span class="p">,</span> <span class="s2">&quot;clusters&quot;</span><span class="p">,</span> <span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="n">cluster_name</span><span class="p">,</span>
+      <span class="s2">&quot;--cluster_version=1.13&quot;</span><span class="p">,</span> <span class="s2">&quot;--scopes=cloud-platform,gke-default&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;--enable-ip-alias&quot;</span><span class="p">,</span> <span class="s2">&quot;--enable-tpu&quot;</span><span class="p">,</span> <span class="s2">&quot;--async&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;--zone=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">zone</span>
+  <span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="validate_args"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch.validate_args">[docs]</a><span class="k">def</span> <span class="nf">validate_args</span><span class="p">(</span><span class="n">argv</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Validates the input arguments. Raises a UsageError if invalid.&quot;&quot;&quot;</span>
+  <span class="n">valid_commands</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;up&quot;</span><span class="p">,</span> <span class="s2">&quot;down&quot;</span><span class="p">,</span> <span class="s2">&quot;print&quot;</span><span class="p">,</span> <span class="s2">&quot;reload&quot;</span><span class="p">]</span>
+  <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Command not provided. &quot;</span>
+             <span class="s2">&quot;Command must be one of </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">valid_commands</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_commands</span><span class="p">:</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;Command must be one of </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">valid_commands</span>
+
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Too many arguments.&quot;</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="n">valid_targets</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;trainer&quot;</span><span class="p">,</span> <span class="s2">&quot;decoder&quot;</span><span class="p">,</span> <span class="s2">&quot;tensorboard&quot;</span><span class="p">,</span> <span class="s2">&quot;all&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_targets</span><span class="p">:</span>
+      <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;Target must be one of </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">valid_targets</span>
+
+  <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">app</span><span class="o">.</span><span class="n">UsageError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../lingvo.tools.gke_launch.html#lingvo.tools.gke_launch.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">):</span>
+  <span class="n">validate_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+  <span class="n">action</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">target</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="s2">&quot;all&quot;</span>
+
+  <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;trainer&quot;</span><span class="p">,</span> <span class="s2">&quot;decoder&quot;</span><span class="p">,</span> <span class="s2">&quot;tensorboard&quot;</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="p">[</span><span class="n">target</span><span class="p">]</span>
+
+  <span class="n">image</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">image</span>
+
+  <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;reload&quot;</span><span class="p">:</span>
+    <span class="n">actions</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;down&quot;</span><span class="p">,</span> <span class="s2">&quot;up&quot;</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">actions</span> <span class="o">=</span> <span class="p">[</span><span class="n">action</span><span class="p">]</span>
+
+  <span class="c1"># Maybe build.</span>
+  <span class="k">if</span> <span class="s2">&quot;up&quot;</span> <span class="ow">in</span> <span class="n">actions</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">build</span><span class="p">:</span>
+    <span class="c1"># If image does not specify a tag, create a temporary one.</span>
+    <span class="k">if</span> <span class="s2">&quot;:&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">image</span><span class="p">:</span>
+      <span class="n">image</span> <span class="o">+=</span> <span class="s2">&quot;:</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">_%H-%M-%S&quot;</span><span class="p">)</span>
+
+    <span class="n">build_docker_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">base_image</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">build</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">extra_envs</span><span class="p">)</span>
+
+  <span class="c1"># Write out the YAML deployment files to a temporary directory</span>
+  <span class="c1"># for post-hoc inspection.</span>
+  <span class="n">root</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Writing out yaml configs to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">root</span><span class="p">)</span>
+
+  <span class="n">action_to_cmd</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;up&quot;</span><span class="p">:</span> <span class="s2">&quot;create&quot;</span><span class="p">,</span> <span class="s2">&quot;down&quot;</span><span class="p">:</span> <span class="s2">&quot;delete&quot;</span><span class="p">}</span>
+
+  <span class="c1"># Start or stop the jobs as requested.</span>
+  <span class="k">if</span> <span class="s2">&quot;tensorboard&quot;</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
+    <span class="c1"># Create tensorboard config.  Template consists of two yaml configs, so skip</span>
+    <span class="c1"># parsing.</span>
+    <span class="n">tb_tmpl</span> <span class="o">=</span> <span class="n">tensorboard_template</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="mi">6006</span><span class="p">)</span>
+    <span class="n">tb_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;tensorboard.yaml&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tb_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">tb_tmpl</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;print&quot;</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;TB yaml: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">tb_tmpl</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">action</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;kubectl </span><span class="si">%s</span><span class="s2"> -f </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">action_to_cmd</span><span class="p">[</span><span class="n">action</span><span class="p">],</span> <span class="n">tb_path</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Running: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="s2">&quot;trainer&quot;</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
+    <span class="n">tpu_cluster</span> <span class="o">=</span> <span class="n">get_gke_cluster</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">trainer_cell</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">tpu_cluster</span>
+    <span class="n">tpu_tmpl</span> <span class="o">=</span> <span class="n">tpu_training_template</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span>
+                                     <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu_type</span><span class="p">)</span>
+    <span class="c1"># Check that it can be loaded.</span>
+    <span class="n">tpu_cfg</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">tpu_tmpl</span><span class="p">)</span>
+
+    <span class="n">trainer_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;tpu_train.yaml&quot;</span><span class="p">)</span>
+    <span class="n">loaded</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_dump</span><span class="p">(</span><span class="n">tpu_cfg</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">trainer_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">loaded</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">&quot;print&quot;</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">TPU yaml: </span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">loaded</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">action</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;kubectl </span><span class="si">%s</span><span class="s2"> -f </span><span class="si">%s</span><span class="s2"> --cluster </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">action_to_cmd</span><span class="p">[</span><span class="n">action</span><span class="p">],</span>
+                                                 <span class="n">trainer_path</span><span class="p">,</span> <span class="n">tpu_cluster</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Running: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="s2">&quot;decoder&quot;</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
+    <span class="n">decoder_cluster</span> <span class="o">=</span> <span class="n">get_gke_cluster</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_cell</span><span class="p">)</span>
+    <span class="n">decoder_tmpl</span> <span class="o">=</span> <span class="n">decoder_template</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span>
+                                    <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span>
+                                    <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span><span class="p">)</span>
+
+    <span class="c1"># Parse into YAML</span>
+    <span class="n">decoder_cfg</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">decoder_tmpl</span><span class="p">)</span>
+    <span class="c1"># Set decoder config values.</span>
+    <span class="n">add_gpu_to_pod</span><span class="p">(</span><span class="n">decoder_cfg</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">gpu_type</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span><span class="p">)</span>
+    <span class="n">set_pod_cpu_memory</span><span class="p">(</span><span class="n">decoder_cfg</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_ram</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">decoder_cluster</span>
+    <span class="n">decoder_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;decoder.yaml&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">decoder_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">safe_dump</span><span class="p">(</span><span class="n">decoder_cfg</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="s2">&quot;print&quot;</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Decoder yaml: </span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_dump</span><span class="p">(</span><span class="n">decoder_cfg</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">action</span> <span class="ow">in</span> <span class="n">actions</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;kubectl </span><span class="si">%s</span><span class="s2"> -f </span><span class="si">%s</span><span class="s2"> --cluster </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">action_to_cmd</span><span class="p">[</span><span class="n">action</span><span class="p">],</span>
+                                                 <span class="n">decoder_path</span><span class="p">,</span> <span class="n">decoder_cluster</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Running: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+  <span class="n">flags</span><span class="o">.</span><span class="n">mark_flags_as_required</span><span class="p">([</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;logdir&quot;</span><span class="p">])</span>
+  <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
