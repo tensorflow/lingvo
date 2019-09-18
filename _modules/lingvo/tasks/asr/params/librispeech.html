@@ -167,6 +167,7 @@
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_registry</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model_params</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">datasource</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">program</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tokenizers</span>
@@ -301,7 +302,16 @@
     <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">vn_std</span> <span class="o">=</span> <span class="mf">0.075</span>
     <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">vn_start_step</span> <span class="o">=</span> <span class="mi">20000</span>
 
-    <span class="k">return</span> <span class="n">p</span></div></div>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="Librispeech960Base.ProgramSchedule"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.ProgramSchedule">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">ProgramSchedule</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">program</span><span class="o">.</span><span class="n">SimpleProgramScheduleForTask</span><span class="p">(</span>
+        <span class="n">train_dataset_name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span>
+        <span class="n">train_steps_per_loop</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+        <span class="n">eval_dataset_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Test&#39;</span><span class="p">],</span>
+        <span class="n">eval_steps_per_loop</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Librispeech960Grapheme"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>

@@ -166,6 +166,7 @@
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_registry</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model_params</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">program</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.image</span> <span class="k">import</span> <span class="n">classifier</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.image</span> <span class="k">import</span> <span class="n">input_generator</span>
 
@@ -201,6 +202,15 @@
 
   <span class="n">BN</span> <span class="o">=</span> <span class="kc">False</span>
   <span class="n">DROP</span> <span class="o">=</span> <span class="mf">0.2</span>
+
+<div class="viewcode-block" id="LeNet5.ProgramSchedule"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.LeNet5.ProgramSchedule">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">ProgramSchedule</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">program</span><span class="o">.</span><span class="n">SimpleProgramScheduleForTask</span><span class="p">(</span>
+        <span class="n">train_dataset_name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span>
+        <span class="n">train_steps_per_loop</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">eval_dataset_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Test&#39;</span><span class="p">],</span>
+        <span class="n">eval_steps_per_loop</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LeNet5.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.LeNet5.Task">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>

@@ -569,7 +569,20 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_summary</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;decoder&#39;</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">add_summary</span></div>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">add_summary</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">worker_cluster_def</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a tf.train.ClusterDef representing the worker cluster.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">job</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/job:&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">workers</span> <span class="o">=</span> <span class="p">[</span><span class="n">addr</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;grpc://&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">addr</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ClusterSpec</span><span class="p">({</span><span class="n">job</span><span class="p">:</span> <span class="n">workers</span><span class="p">})</span><span class="o">.</span><span class="n">as_cluster_def</span><span class="p">()</span></div>
 
 
 <span class="c1"># Ops that must be placed on the &#39;ps&#39; devices.</span>

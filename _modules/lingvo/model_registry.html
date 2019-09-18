@@ -383,6 +383,7 @@
     <span class="k">for</span> <span class="n">dataset_name</span> <span class="ow">in</span> <span class="n">dataset_names</span><span class="p">:</span>
       <span class="n">model_cfg</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
       <span class="n">model_cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
+      <span class="n">_MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">)</span>
       <span class="n">model_cfg_dict</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
     <span class="n">program_schedule_cfg</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="o">.</span><span class="n">ProgramSchedule</span><span class="p">()</span>
