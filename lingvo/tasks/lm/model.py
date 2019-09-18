@@ -200,7 +200,7 @@ class LanguageModel(base_model.BaseTask):
     tokens_from_labels = self.input_generator.IdsToStrings(labels, lengths)
     oovs = tf.equal(labels, self.input_generator.tokenizer.unk_id)
     num_oovs_per_sample = tf.to_int32(
-        tf.reduce_sum(tf.to_float(oovs) * (1 - paddings), axis=1))
+        tf.round(tf.reduce_sum(tf.to_float(oovs) * (1 - paddings), axis=1)))
     # [time, batch]
     ids, paddings, labels, weights = self._TrimIfPossibleThenTranspose(
         ids, paddings, labels, 1.0 - paddings)

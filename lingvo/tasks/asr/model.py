@@ -253,7 +253,7 @@ class AsrModel(base_model.BaseTask):
     tgt = self._GetTargetForDecoderMetrics(input_batch)
     transcripts = self.input_generator.IdsToStrings(
         tgt.labels,
-        tf.cast(tf.reduce_sum(1.0 - tgt.paddings, 1) - 1.0, tf.int32))
+        tf.to_int32(tf.round(tf.reduce_sum(1.0 - tgt.paddings, 1) - 1.0)))
 
     # Filter out all isolated '<noise>' tokens.
     noise_pattern = ' <noise> |^<noise> | <noise>$|^<noise>$'

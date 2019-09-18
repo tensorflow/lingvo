@@ -534,8 +534,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       return
     transcript = targets.transcripts[:index + 1]
 
-    srclen = tf.cast(tf.reduce_sum(1 - source_paddings[:, index]), tf.int32)
-    tgtlen = tf.cast(tf.reduce_sum(1 - targets.paddings[index, :]), tf.int32)
+    srclen = tf.to_int32(tf.round(tf.reduce_sum(1 - source_paddings[:, index])))
+    tgtlen = tf.to_int32(
+        tf.round(tf.reduce_sum(1 - targets.paddings[index, :])))
 
     def PlotAttentionForOneExample(atten_probs,
                                    target_fig,

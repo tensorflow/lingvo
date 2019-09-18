@@ -55,7 +55,7 @@ def SequenceLength(padding):
     seq_lens, A tensor of shape [batch] containing the non-padded length of each
       element of plot_tensor along the batch dimension.
   """
-  seq_lens = tf.cast(tf.reduce_sum(1 - padding, axis=1), tf.int32)
+  seq_lens = tf.to_int32(tf.round(tf.reduce_sum(1 - padding, axis=1)))
   # Get rid of any extra dimensions.
   batch_size = tf.shape(padding)[0]
   seq_lens = tf.reshape(seq_lens, [batch_size], name='seq_lens')

@@ -106,7 +106,8 @@ class MTBaseModel(base_model.BaseTask):
       topk_lens = decoder_outs.topk_lens
       topk_scores = decoder_outs.topk_scores
 
-      slen = tf.to_int32(tf.reduce_sum(1 - input_batch.src.paddings, 1) - 1)
+      slen = tf.to_int32(
+          tf.round(tf.reduce_sum(1 - input_batch.src.paddings, 1) - 1))
       srcs = self.input_generator.IdsToStrings(
           input_batch.src.ids, slen, self._GetTokenizerKeyToUse('src'))
       topk_decoded = self.input_generator.IdsToStrings(
@@ -116,7 +117,8 @@ class MTBaseModel(base_model.BaseTask):
 
       refs = self.input_generator.IdsToStrings(
           input_batch.tgt.labels,
-          tf.to_int32(tf.reduce_sum(1.0 - input_batch.tgt.paddings, 1) - 1.0),
+          tf.to_int32(
+              tf.round(tf.reduce_sum(1.0 - input_batch.tgt.paddings, 1) - 1.0)),
           self._GetTokenizerKeyToUse('tgt'))
 
       ret_dict = {

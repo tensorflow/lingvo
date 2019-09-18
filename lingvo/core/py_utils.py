@@ -2392,7 +2392,7 @@ def DeterministicDropout(x, keep_prob, seeds, noise_shape=None, name=None):
       return x
   with tf.name_scope(name, 'dropout', [x]) as name:
     if use_tpu():
-      seeds = tf.cast(seeds, tf.int32)
+      seeds = tf.to_int32(seeds)
     keep_prob = tf.convert_to_tensor(
         keep_prob, dtype=tf.float32, name='keep_prob')
     # uniform in [keep_prob, 1.0 + keep_prob)
@@ -2609,13 +2609,13 @@ def SumAbs(tensor_list):
 
 def PiecewiseConstant(x_in, boundaries, values, vdtype):
   """Returns the piecewise value of x_in."""
-  x_in = tf.cast(tf.convert_to_tensor(x_in), tf.float32)
+  x_in = tf.to_float(tf.convert_to_tensor(x_in))
   assert len(values) == len(boundaries) + 1
   assert sorted(boundaries) == list(boundaries)
   bs = tf.convert_to_tensor(boundaries, dtype=tf.float32)
   vs = tf.convert_to_tensor(values, dtype=vdtype)
   # The following is equivalent to 'return vs[index]'.
-  index = tf.reduce_sum(tf.cast(tf.greater(x_in, bs), tf.int32))
+  index = tf.reduce_sum(tf.to_int32(tf.greater(x_in, bs)))
   one_hot_vec = tf.one_hot(
       tf.expand_dims(index, 0), depth=len(values), dtype=vdtype)
   return Matmul(tf.reshape(vs, (1, -1)), tf.transpose(one_hot_vec))[0][0]
@@ -2784,8 +2784,7 @@ def ReversePaddedSequence(inputs, paddings):
     A reversed tensor of the same shape as `inputs`.
   """
   inversed_paddings = 1.0 - tf.squeeze(paddings, 2)
-  inputs_length = tf.cast(
-      tf.rint(tf.reduce_sum(inversed_paddings, axis=0)), dtype=tf.int32)
+  inputs_length = tf.to_int32(tf.rint(tf.reduce_sum(inversed_paddings, axis=0)))
   return tf.reverse_sequence(inputs, inputs_length, seq_axis=0, batch_axis=1)
 
 

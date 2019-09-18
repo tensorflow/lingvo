@@ -67,7 +67,7 @@ def SequenceAppendToken(x, x_paddings, token, extend=False):
       - The new paddings, Tensor of shape [batch_size, x_len_max].
   """
   batch_size = py_utils.GetShape(x)[0]
-  x_len = tf.cast(tf.reduce_sum(1 - x_paddings, 1), tf.int32)
+  x_len = tf.to_int32(tf.round(tf.reduce_sum(1 - x_paddings, 1)))
   if extend:
     x = tf.pad(x, [[0, 0], [0, 1]])
   # Mask all invalid entries of `x` to 0.
@@ -101,8 +101,8 @@ def SequenceConcat(x, x_paddings, y, y_paddings, pad=0):
         [batch_size, x_len_max + y_len_max].
   """
   # Get the length (w/ eos).
-  x_len = tf.cast(tf.reduce_sum(1 - x_paddings, 1), tf.int32)
-  y_len = tf.cast(tf.reduce_sum(1 - y_paddings, 1), tf.int32)
+  x_len = tf.to_int32(tf.round(tf.reduce_sum(1 - x_paddings, 1)))
+  y_len = tf.to_int32(tf.round(tf.reduce_sum(1 - y_paddings, 1)))
 
   batch_size = py_utils.GetShape(x)[0]
   y_len_max = py_utils.GetShape(y)[1]
@@ -217,7 +217,7 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
       raise ValueError('Unknown or unsupported oracle policy: %s' %
                        oracle_policy)
 
-    x_len = tf.cast(tf.reduce_sum(1 - x_paddings, 1), tf.int32)
+    x_len = tf.to_int32(tf.round(tf.reduce_sum(1 - x_paddings, 1)))
 
     # Compute the desired length per example in the batch.
     ratio = tf.random.uniform([batch_size], 0.0, 1.0, seed=p.random_seed)

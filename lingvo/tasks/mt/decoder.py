@@ -187,7 +187,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       logits = xent_loss.logits
       correct_preds = tf.cast(
           tf.equal(
-              tf.cast(tf.reshape(tf.argmax(logits, 1), [-1]), tf.int32),
+              tf.to_int32(tf.reshape(tf.argmax(logits, 1), [-1])),
               tf.reshape(target_labels, [-1])), p.dtype)
       correct_next_preds = tf.reduce_sum(
           correct_preds * tf.reshape(target_weights, [-1]))
@@ -234,7 +234,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
     target_weights = targets.weights
     target_paddings = targets.paddings
     max_seq_length = tf.to_int32(
-        tf.reduce_max(tf.reduce_sum(1.0 - target_paddings, 1)))
+        tf.round(tf.reduce_max(tf.reduce_sum(1.0 - target_paddings, 1))))
     summary_utils.scalar('max_seq_length', max_seq_length)
     # Assert to make sure after max_seq_length, all are padded steps for all
     # sequences.
@@ -300,8 +300,9 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
         axes.set_xlabel(plot.ToUnicode('Input sequence index'), wrap=True)
 
     index = 0
-    srclen = tf.cast(tf.reduce_sum(1 - source_paddings[:, index]), tf.int32)
-    tgtlen = tf.cast(tf.reduce_sum(1 - targets.paddings[index, :]), tf.int32)
+    srclen = tf.to_int32(tf.round(tf.reduce_sum(1 - source_paddings[:, index])))
+    tgtlen = tf.to_int32(
+        tf.round(tf.reduce_sum(1 - targets.paddings[index, :])))
 
     num_rows = len(atten_probs)
     with plot.MatplotlibFigureSummary(
@@ -1469,9 +1470,8 @@ class TransformerDecoder(MTBaseDecoder):
     with tf.control_dependencies([tf.assert_equal(source_batch, target_batch)]):
       target_batch = tf.identity(target_batch)
 
-    source_padding_ratio = tf.cast(
-        tf.reduce_sum(source_paddings, axis=0), tf.float32)
-    source_padding_ratio /= tf.cast(tf.shape(source_paddings)[0], tf.float32)
+    source_padding_ratio = tf.to_float(tf.reduce_sum(source_paddings, axis=0))
+    source_padding_ratio /= tf.to_float(tf.shape(source_paddings)[0])
     summary_utils.scalar('source_padding_ratio',
                          tf.reduce_mean(source_padding_ratio))
 
@@ -1729,7 +1729,7 @@ class InsertionDecoder(base_decoder.BaseBeamSearchDecoder):
     loss = tf.reduce_sum(
         tf.gather_nd(log_probs, target_indices) *
         predictions.tgt.target_weights)
-    loss_weight = tf.cast(batch_size, tf.float32)
+    loss_weight = tf.to_float(batch_size)
 
     return ({
         'loss': (loss, loss_weight)
