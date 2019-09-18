@@ -681,7 +681,7 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 
 <dl class="class">
 <dt id="lingvo.trainer.RunnerManager.ExecutorTpu">
-<em class="property">class </em><code class="sig-name descname">ExecutorTpu</code><span class="sig-paren">(</span><em class="sig-param">task_dict</em>, <em class="sig-param">program_schedule_params</em>, <em class="sig-param">model_task_name</em>, <em class="sig-param">logdir</em>, <em class="sig-param">tf_master</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.ExecutorTpu" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-name descname">ExecutorTpu</code><span class="sig-paren">(</span><em class="sig-param">train_cfg</em>, <em class="sig-param">ps_params_dict</em>, <em class="sig-param">model_task_name</em>, <em class="sig-param">logdir</em>, <em class="sig-param">tf_master</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.ExecutorTpu" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
 <p>This is an experimental BaseRunner that does arbitrary multi-program execution on a TPU.</p>
 <p>Overview of operation:</p>
@@ -712,15 +712,24 @@ share the TPU.</p></li>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.trainer.RunnerManager.GetParamsForDataset">
-<code class="sig-name descname">GetParamsForDataset</code><span class="sig-paren">(</span><em class="sig-param">job_name</em>, <em class="sig-param">dataset_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.GetParamsForDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.GetParamsForDataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns params for job <code class="xref py py-obj docutils literal notranslate"><span class="pre">job_name</span></code> on the dataset <code class="xref py py-obj docutils literal notranslate"><span class="pre">dataset_name</span></code>.</p>
+<dt id="lingvo.trainer.RunnerManager.GetExecutorParams">
+<code class="sig-name descname">GetExecutorParams</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.GetExecutorParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.GetExecutorParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the params needed to instantiate the ExecutorTpu.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>high_level task_name -&gt; ProgramScheduleParams
+train_cfg: Either a SingleTaskModelParams or MultiTaskModelParams.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>ps_params_dict</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.trainer.RunnerManager.GetProgramScheduleParams">
-<code class="sig-name descname">GetProgramScheduleParams</code><span class="sig-paren">(</span><em class="sig-param">job_name</em>, <em class="sig-param">dataset_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.GetProgramScheduleParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.GetProgramScheduleParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns ProgramSchedule  params for job <code class="xref py py-obj docutils literal notranslate"><span class="pre">job_name</span></code> and  datasets <code class="xref py py-obj docutils literal notranslate"><span class="pre">dataset_name</span></code>.</p>
+<dt id="lingvo.trainer.RunnerManager.GetParamsForDataset">
+<code class="sig-name descname">GetParamsForDataset</code><span class="sig-paren">(</span><em class="sig-param">job_name</em>, <em class="sig-param">dataset_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.GetParamsForDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.GetParamsForDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns params for job <code class="xref py py-obj docutils literal notranslate"><span class="pre">job_name</span></code> on the dataset <code class="xref py py-obj docutils literal notranslate"><span class="pre">dataset_name</span></code>.</p>
 </dd></dl>
 
 <dl class="method">

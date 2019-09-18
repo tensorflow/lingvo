@@ -367,28 +367,17 @@
     <span class="k">return</span> <span class="n">cfg</span></div>
 
 <div class="viewcode-block" id="_ModelRegistryHelper.GetProgramSchedule"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetProgramSchedule">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">GetProgramSchedule</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">class_key</span><span class="p">,</span> <span class="n">dataset_names</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">GetProgramSchedule</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">class_key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Retrieve the ProgramSchedule and a dict of task params.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      class_key: String class key (i.e. `image.mnist.LeNet5`).</span>
-<span class="sd">      dataset_names: List of dataset name strings.</span>
-
 <span class="sd">    Returns:</span>
 <span class="sd">      ProgramSchedule.Params()</span>
-<span class="sd">      A dict of dataset_name -&gt; task Params()</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">model_params_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="n">class_key</span><span class="p">)</span>
-    <span class="n">model_cfg_dict</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">dataset_name</span> <span class="ow">in</span> <span class="n">dataset_names</span><span class="p">:</span>
-      <span class="n">model_cfg</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
-      <span class="n">model_cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
-      <span class="n">_MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">)</span>
-      <span class="n">model_cfg_dict</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-
     <span class="n">program_schedule_cfg</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="o">.</span><span class="n">ProgramSchedule</span><span class="p">()</span>
-
-    <span class="k">return</span> <span class="n">program_schedule_cfg</span><span class="p">,</span> <span class="n">model_cfg_dict</span></div></div>
+    <span class="k">return</span> <span class="n">program_schedule_cfg</span></div></div>
 
 <span class="c1"># pyformat: disable</span>
 <span class="c1"># pylint: disable=invalid-name</span>

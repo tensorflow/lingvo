@@ -164,11 +164,77 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">os</span>
+
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">base_runner</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">checkpointer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">task_scheduler</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">device_assignment_lib</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+
+
+<span class="k">def</span> <span class="nf">GetExecutorParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">cluster_params</span><span class="p">,</span> <span class="n">model_registry</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Get the params needed to instantiate the Executor.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    model_name: A model name regsitered in the ModelRegistry.</span>
+<span class="sd">    cluster_params: A cluster hyperparams object.</span>
+<span class="sd">    model_registry: A ModelRegistry object.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    ps_params_dict: High-level task name -&gt; ProgramScheduleParams</span>
+<span class="sd">    train_cfg: A SingleTaskModelParams or MultiTaskModelParams.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">ps_params_dict</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">cluster_params</span><span class="p">):</span>
+    <span class="n">ps_cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetProgramSchedule</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
+    <span class="n">train_cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+    <span class="n">train_cfg</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_params</span>
+
+    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
+      <span class="n">multi_task_train_cfg</span> <span class="o">=</span> <span class="n">train_cfg</span>
+      <span class="c1"># Create SingleTaskModelParams from a MultiTaskModelParams.</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+        <span class="n">single_task_params</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+        <span class="n">single_task_params</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">cluster</span>
+        <span class="n">single_task_params</span><span class="o">.</span><span class="n">train</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">train</span>
+        <span class="n">single_task_params</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+        <span class="n">single_task_params</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ps_cfg</span><span class="o">.</span><span class="n">program_schedule_dict</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span>
+              <span class="s1">&#39;Could not find </span><span class="si">%s</span><span class="s1"> in ps_cfg.program_schedule_dict: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span>
+              <span class="n">ps_cfg</span><span class="p">)</span>
+        <span class="n">program_schedule_params</span> <span class="o">=</span> <span class="n">ps_cfg</span><span class="o">.</span><span class="n">program_schedule_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+        <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Train&#39;</span><span class="p">:</span> <span class="n">single_task_params</span><span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">eval_dataset_name</span> <span class="ow">in</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">:</span>
+          <span class="n">multi_task_eval_cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span>
+              <span class="n">model_name</span><span class="p">,</span> <span class="n">eval_dataset_name</span><span class="p">)</span>
+          <span class="n">eval_task_params</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+          <span class="n">eval_task_params</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">single_task_params</span><span class="o">.</span><span class="n">cluster</span>
+          <span class="n">eval_task_params</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">multi_task_eval_cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+          <span class="n">eval_task_params</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">multi_task_eval_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+          <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span>
+              <span class="n">eval_dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">eval_task_params</span>
+        <span class="n">ps_params_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">program_schedule_params</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">program_schedule_params</span> <span class="o">=</span> <span class="n">ps_cfg</span>
+      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Train&#39;</span><span class="p">:</span> <span class="n">train_cfg</span><span class="p">}</span>
+      <span class="k">for</span> <span class="n">eval_dataset_name</span> <span class="ow">in</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">:</span>
+        <span class="n">task_eval_params</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span>
+                                                    <span class="n">eval_dataset_name</span><span class="p">)</span>
+        <span class="n">task_eval_params</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">cluster</span>
+        <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span><span class="n">eval_dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">task_eval_params</span>
+      <span class="n">ps_params_dict</span><span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">program_schedule_params</span>
+
+  <span class="k">return</span> <span class="n">ps_params_dict</span><span class="p">,</span> <span class="n">train_cfg</span>
 
 
 <span class="k">class</span> <span class="nc">ExecutorTpu</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
@@ -184,21 +250,20 @@
 <span class="sd">    share the TPU.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_dict</span><span class="p">,</span> <span class="n">program_schedule_params</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span>
-               <span class="n">logdir</span><span class="p">,</span> <span class="n">tf_master</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_cfg</span><span class="p">,</span> <span class="n">ps_params_dict</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
+               <span class="n">tf_master</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Construct an ExecutorTpu BaseRunner.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      task_dict: A dict of dataset_name -&gt; task params.</span>
-<span class="sd">      program_schedule_params: A ProgramSchedule params.</span>
+<span class="sd">      train_cfg: SingleTaskModelParams or MultiTaskModelParams</span>
+<span class="sd">      ps_params_dict: A dict of top-level task name -&gt; ProgramSchedule params,</span>
+<span class="sd">          if train_cfg is a SingleTaskModelParams, we expect only one entry.</span>
 <span class="sd">      model_task_name: An override for multi-task models, currently unused.</span>
 <span class="sd">      logdir:  String path to the log directory to output to.</span>
 <span class="sd">      tf_master: String path to the master job, e.g. &#39;local&#39;.</span>
 <span class="sd">      **kwargs: keyword args to pass through to BaseRunner.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># TODO(blee): fix this.</span>
-    <span class="n">train_params</span> <span class="o">=</span> <span class="n">task_dict</span><span class="p">[</span><span class="s1">&#39;Train&#39;</span><span class="p">]</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">ExecutorTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_params</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ExecutorTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
                                       <span class="n">tf_master</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">worker_cluster_def</span>
 
@@ -211,18 +276,45 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;data_parallelism: </span><span class="si">%d</span><span class="s1">, num_devices_per_split: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
                     <span class="n">data_parallelism</span><span class="p">,</span> <span class="n">num_devices_per_split</span><span class="p">)</span>
 
-    <span class="c1"># Update run-time params</span>
-    <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span> <span class="o">=</span> <span class="n">task_dict</span>
-    <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
-    <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">data_parallelism</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">task_scheduler</span> <span class="o">=</span> <span class="kc">None</span>
 
+    <span class="c1"># If this is a multi-task model, grab the params for the TaskScheduler.</span>
+    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;single_task_model&#39;</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ps_params_dict</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span> <span class="o">=</span> <span class="n">ps_params_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_single_task_mode</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;multi_task_model&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">task_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">task_schedule_params</span> <span class="o">=</span> <span class="n">task_scheduler</span><span class="o">.</span><span class="n">ConstantScheduler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+        <span class="n">task_schedule_params</span><span class="o">.</span><span class="n">task_probs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">task_probs</span><span class="o">.</span><span class="n">IterParams</span><span class="p">()))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">task_schedule_params</span> <span class="o">=</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">task_schedule</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">task_scheduler</span> <span class="o">=</span> <span class="n">task_schedule_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_single_task_mode</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span>
+          <span class="s1">&#39;Model </span><span class="si">%s</span><span class="s1"> is not a sub-class of SingleTaskModel or MultiTaskModel&#39;</span><span class="p">,</span>
+          <span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;train_cfg.cls: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
 
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;program_schedule_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                    <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">task_string</span><span class="p">,</span> <span class="n">program_schedule_params</span> <span class="ow">in</span> <span class="n">ps_params_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
+      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">data_parallelism</span>
+      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">task_string</span>
+      <span class="n">ps</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span><span class="p">[</span><span class="n">task_string</span><span class="p">]</span> <span class="o">=</span> <span class="n">ps</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;program_schedule_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">+=</span> <span class="n">ps</span><span class="o">.</span><span class="n">Programs</span><span class="p">()</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule</span><span class="o">.</span><span class="n">Programs</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_programs: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">))</span>
 
     <span class="c1"># BaseRunner legacy</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="kc">None</span>
@@ -275,6 +367,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
+            <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
+            <span class="n">save_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
   <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Run training.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;executor_tpu&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span>
@@ -285,19 +384,34 @@
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(</span><span class="n">embedding_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
-      <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="c1"># Single task</span>
-        <span class="c1"># Get program_schedule associated with single task and run it</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
 
+      <span class="c1"># Initialize the variables first, if needed.</span>
+      <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
+        <span class="n">program</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+
+      <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
           <span class="k">return</span>
 
-        <span class="c1"># TODO(blee): Multi-task.</span>
-        <span class="c1"># Sample a task</span>
-        <span class="c1"># Get program schedule associated with sampled task and run it</span>
+        <span class="c1"># If a task is explicitly selected, only run the programs associated</span>
+        <span class="c1"># with that task.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_single_task_mode</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Single task mode: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+          <span class="n">program_schedule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="c1"># Otherwise, sample a task.</span>
+          <span class="n">model_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_scheduler</span><span class="o">.</span><span class="n">Sample</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Sampled </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">model_task</span><span class="p">)</span>
+          <span class="n">program_schedule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span><span class="p">[</span><span class="n">model_task</span><span class="p">]</span>
+
+        <span class="n">program_schedule</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+
+        <span class="c1"># TODO(blee): More complex saving rules. Currently, we assume</span>
+        <span class="c1"># we save after every task&#39;s program schedule execution.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 </pre></div>
 
            </div>

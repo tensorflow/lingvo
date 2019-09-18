@@ -1486,6 +1486,20 @@
     <span class="k">assert</span> <span class="n">value</span> <span class="o">==</span> <span class="mf">2.0</span><span class="p">,</span> <span class="s1">&#39;Something is really wrong.&#39;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Launched tensorflow.&#39;</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="RunnerManager.GetExecutorParams"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.GetExecutorParams">[docs]</a>  <span class="k">def</span> <span class="nf">GetExecutorParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get the params needed to instantiate the ExecutorTpu.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">       ps_params_dict: high_level task_name -&gt; ProgramScheduleParams</span>
+<span class="sd">       train_cfg: Either a SingleTaskModelParams or MultiTaskModelParams.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">)</span>
+    <span class="n">ps_params_dict</span><span class="p">,</span> <span class="n">train_cfg</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">GetExecutorParams</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ps_params_dict</span><span class="p">,</span> <span class="n">train_cfg</span></div>
+
 <div class="viewcode-block" id="RunnerManager.GetParamsForDataset"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.GetParamsForDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetParamsForDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns params for job `job_name` on the dataset `dataset_name`.&quot;&quot;&quot;</span>
     <span class="c1"># Get the current cluster and update its params from flags.</span>
@@ -1513,18 +1527,6 @@
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_keep_checkpoint_every_n_hours</span><span class="p">:</span>
       <span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_keep_checkpoint_every_n_hours</span>
     <span class="k">return</span> <span class="n">cfg</span></div>
-
-<div class="viewcode-block" id="RunnerManager.GetProgramScheduleParams"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.GetProgramScheduleParams">[docs]</a>  <span class="k">def</span> <span class="nf">GetProgramScheduleParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">dataset_names</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns ProgramSchedule  params for job `job_name` and  datasets `dataset_name`.&quot;&quot;&quot;</span>
-    <span class="c1"># Get the current cluster and update its params from flags.</span>
-    <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">):</span>
-      <span class="n">ps_cfg</span><span class="p">,</span> <span class="n">model_cfg_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetProgramSchedule</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="n">dataset_names</span><span class="p">)</span>
-      <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">model_cfg_dict</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-        <span class="n">v</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="n">ps_cfg</span><span class="p">,</span> <span class="n">model_cfg_dict</span></div>
 
 <div class="viewcode-block" id="RunnerManager.MaybeConfigRunDistributed"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigRunDistributed">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeConfigRunDistributed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If given a `FLAGS.cluster_spec`, update flags for running distributed.&quot;&quot;&quot;</span>
@@ -1662,11 +1664,9 @@
     <span class="k">elif</span> <span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;ps&#39;</span><span class="p">,</span> <span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;input&#39;</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tf_server</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
     <span class="k">elif</span> <span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">:</span>
-      <span class="c1"># TODO(blee): Fix the instantiation of ExecutorTpu</span>
-      <span class="n">program_schedule</span><span class="p">,</span> <span class="n">task_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetProgramScheduleParams</span><span class="p">(</span>
-          <span class="s1">&#39;executor_tpu&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">])</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ExecutorTpu</span><span class="p">(</span><span class="n">task_dict</span><span class="p">,</span> <span class="n">program_schedule</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span>
-                              <span class="n">logdir</span><span class="p">,</span> <span class="n">tf_master</span><span class="p">)</span>
+      <span class="n">ps_cfg_dict</span><span class="p">,</span> <span class="n">train_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetExecutorParams</span><span class="p">()</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ExecutorTpu</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">,</span> <span class="n">ps_cfg_dict</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
+                              <span class="n">tf_master</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;job </span><span class="si">%s</span><span class="s1"> is not supported&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="p">)</span></div>
 
