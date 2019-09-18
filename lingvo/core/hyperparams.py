@@ -377,7 +377,7 @@ class Params(object):
     for name, param in six.iteritems(self._params):
       yield (name, param.Get())
 
-  def ToText(self):
+  def ToText(self, include_types=False):
     """Encodes params into a simple text format.
 
     Each param is represented as a single line in the output.  The param
@@ -390,10 +390,15 @@ class Params(object):
     (whichever would involve the least escaping) and will have some characters
     backslash escaped. String properties can span multiple lines.
 
+    Args:
+      include_types: Should we return types of the values. If True, the types
+        dict will be returned as a second val in a return tuple
+
     Returns:
-      The encoded text.
+      The encoded text or (encoded text, types dict) if include_types is True.
     """
     kv = {}
+    types = {}
 
     def GetRepr(val):
       """Get the representation of `val`."""
@@ -424,16 +429,19 @@ class Params(object):
           Traverse(val, '%s[%d]' % (prefix, i), kv)
       elif isinstance(p, (six.string_types, six.text_type)):
         kv[prefix] = _QuoteString(p)
+        types[prefix[1:]] = 'str'
       else:
         kv[prefix] = str(GetRepr(p))
+        types[prefix[1:]] = type(p).__name__
 
     Traverse(self, '', kv)
     ret = ''
     for (k, v) in sorted(kv.items()):
       ret += k[1:] + ' : ' + v + '\n'
-    return ret
 
-  def FromText(self, text):
+    return (ret, types) if include_types else ret
+
+  def FromText(self, text, type_overrides=None):
     """Merges params specified in 'text' into 'params'.
 
     'text' follows the simple text format as produced by
@@ -443,6 +451,7 @@ class Params(object):
 
     Args:
       text: A text representation of params.
+      type_overrides: Overrides for the types of the params.
     Raises:
       AttributeError: text contains invalid parameter key
       ValueError: text contains invalid parameter value
@@ -450,6 +459,7 @@ class Params(object):
     if self._immutable:
       raise TypeError('This Params instance is immutable.')
     kv = {}
+    type_overrides = type_overrides or {}
     string_continue = None  # None or (key, quote, value)
     for line in text.split('\n'):
       # Continuing a multi-line string.
@@ -485,16 +495,25 @@ class Params(object):
         kv[key] = value_stripped
     for key, val in six.iteritems(kv):
       old_val = self.Get(key)
+      val_type = type(old_val).__name__
+      if isinstance(old_val, (six.string_types, six.text_type)):
+        val_type = 'str'
+      if key in type_overrides:
+        val_type = type_overrides[key]
       # Converts val (a string) to a best-guessed typed value.
-      if isinstance(old_val, bool):
+      if val_type == 'bool':
         val = (val and (val != 'False') and (val != 'false'))
-      elif isinstance(old_val, int):
+      elif val_type == 'int':
         val = int(val)
-      elif isinstance(old_val, float):
+      elif val_type == 'float':
         val = float(val)
-      elif isinstance(old_val, tf.DType):
+      elif val_type == 'DType':
         val = tf.as_dtype(val)
-      elif isinstance(old_val, (six.string_types, six.text_type)):
+      elif val_type in ['list', 'tuple']:
+        val = ast.literal_eval(val)
+      elif val_type == 'dict':
+        val = ast.literal_eval(val) if val != 'dict' else {}
+      elif val_type == 'str':
         val = _UnquoteString(val)
         if val.startswith('[') and val.endswith(']'):
           # We may have stored a list as a string, try converting to a list.
@@ -503,10 +522,6 @@ class Params(object):
             val = ast.literal_eval(val)
           except ValueError:
             pass
-      elif isinstance(old_val, (list, tuple)):
-        val = ast.literal_eval(val)
-      elif isinstance(old_val, dict):
-        val = ast.literal_eval(val) if val != 'dict' else {}
       elif isinstance(old_val, type) or old_val is None:
         if val == 'NoneType':
           val = None
@@ -523,6 +538,25 @@ class Params(object):
       else:
         raise ValueError('Failed to read a parameter: %r : %r' % (key, val))
       self.Set(**{key: val})
+
+  def ToTextWithTypes(self):
+    """Same as ToText but encodes both params and their types."""
+    text, types = self.ToText(include_types=True)
+    text += '\n\n'
+    for (k, v) in sorted(types.items()):
+      text += k + ' : ' + v + '\n'
+    return text
+
+  def FromTextWithTypes(self, text):
+    """Same as FromText but expects to have types encoded in the text."""
+    text, types_str = text.split('\n\n')
+    types = {}
+    for row in types_str.split('\n'):
+      if not row:
+        continue
+      k, v = row.split(':')
+      types[k.strip()] = v.strip()
+    self.FromText(text, type_overrides=types)
 
 
 class InstantiableParams(Params):

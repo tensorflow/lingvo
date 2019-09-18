@@ -385,6 +385,62 @@ escaping_single : 'In "quotes"'
         AttributeError, 'actuvation (did you mean: [activation,activations])',
         set_param)
 
+  def testFromToTextTypes(self):
+    p = _params.Params()
+    p.Define('scale', None, 'A float scale but default is None.')
+    np1 = p.Copy()
+    np2 = p.Copy()
+    p.Set(scale=1.0)
+    self.assertRaises(ValueError, lambda: np1.FromText(p.ToText()))
+    text, types = p.ToText(include_types=True)
+    self.assertEqual(types['scale'], 'float')
+    np2.FromText(text, type_overrides=types)
+    self.assertEqual(np2.scale, 1.0)
+
+  def testTypeOverride(self):
+    p = _params.Params()
+    p.Define('scale', '1', 'A str that will be overriden by float.')
+    np1 = p.Copy()
+    np2 = p.Copy()
+    p.Set(scale=2.1)
+
+    # Check that type is erased if types are not used (old behavior).
+    no_types_text = p.ToText()
+    np1.FromText(no_types_text)
+    self.assertEqual(np1.scale, '2.1')
+
+    # Check that type is not erased if we use type_overrides.
+    types_text, types = p.ToText(include_types=True)
+    self.assertEqual(types['scale'], 'float')
+    np2.FromText(types_text, type_overrides=types)
+    self.assertEqual(np2.scale, 2.1)
+
+  def testDeterministicSerialize(self):
+    p = _params.Params()
+    p.Define('a', 42, '')
+    p.Define('b', None, '')
+    p.Define('c', 'C', '')
+    p.Define('d', None, '')
+    pnest = _params.Params()
+    pnest.Define('x', 'X', '')
+    p.Define('e', pnest, '')
+    p.Define('f', [pnest.Copy().Set(x=2)], '')
+    pclean = p.Copy()
+
+    p.a = 43
+    p.d = [1, 2, 3]
+    p.e.x = 7
+    base_serialized = p.ToTextWithTypes()
+    for _ in range(10):
+      serialized = p.ToTextWithTypes()
+      serialized_copy = p.Copy().ToTextWithTypes()
+      self.assertEqual(serialized, base_serialized)
+      self.assertEqual(serialized_copy, base_serialized)
+      for x in [serialized, serialized_copy]:
+        deserialized = pclean.Copy()
+        deserialized.FromTextWithTypes(x)
+        self.assertEqual(p, deserialized)
+
 
 if __name__ == '__main__':
   tf.test.main()

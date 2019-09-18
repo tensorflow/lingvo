@@ -3149,6 +3149,27 @@ class FeedForwardNetTest(test_utils.TestCase):
 
       self.assertAllEqual(xd, x)
 
+  def testDeterministicSerialize(self):
+    p = layers.FeedForwardNet.Params().Set(
+        input_dim=4,
+        projection=layers.ProjectionLayer.Params().Set(
+            has_bias=True,
+            params_init=py_utils.WeightInit.KaimingUniformFanInRelu()),
+        activation='TANH',
+        hidden_layer_dims=[5, 5, 1],
+        batch_norm=True,
+        weight_norm=False)
+    base_serialized = p.ToTextWithTypes()
+    for _ in range(10):
+      serialized = p.ToTextWithTypes()
+      serialized_copy = p.Copy().ToTextWithTypes()
+      self.assertEqual(serialized, base_serialized)
+      self.assertEqual(serialized_copy, base_serialized)
+      for x in [serialized, serialized_copy]:
+        deserialized = layers.FeedForwardNet.Params()
+        deserialized.FromTextWithTypes(x)
+        self.assertEqual(p, deserialized)
+
 
 class AddingAccumulatorTest(test_utils.TestCase):
   """Test for AddingAccumulator."""
