@@ -638,9 +638,24 @@ class TrainerTpu(base_runner.BaseRunner):
         outfeed_dequeue_op = self._OutfeedDequeueLoop(
             self._model.GetTask().per_example_tensors, self._steps_per_loop,
             self._cluster.num_splits_per_client)
+
+        def _ConstructPostTrainingLoop(train_loop_op, outfeed_dequeue_op):
+          """Returns the op for tpu training with tail cpu computation."""
+          # Adds a tail computation that is run after the tpu_training loop
+          # step finishes. This allows us to run certain computation that
+          # acts on the variable between tpu_train_loop iterations and
+          # amortizing the cost of the operations. Alternative of running
+          # tpu.outside_compilation & using tf.cond is expenseive.
+          with tf.control_dependencies(train_loop_op):
+            self._model.ConstructPostTrainingLoop()
+            with tf.control_dependencies(
+                [self._model.GetTask().post_training_loop_op]):
+              return ([[tf.identity(o) for o in train_loop_op],
+                       outfeed_dequeue_op])
         # Get metric result from a single replica; they are all same here.
-        self._tpu_train_ops = [[t[0] for t in batch_parallel_res],
-                               outfeed_dequeue_op]
+        all_tpu_ops = [t[0] for t in batch_parallel_res]
+        self._tpu_train_ops = (
+            _ConstructPostTrainingLoop(all_tpu_ops, outfeed_dequeue_op))
 
       self.initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()

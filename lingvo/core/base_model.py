@@ -550,6 +550,11 @@ class BaseTask(base_layer.BaseLayer):
     tf.logging.info('BaseTask.AdjustGradients')
     return vars_gradients
 
+  def PostTrainingLoop(self):
+    gs = self._global_step_var
+    self._post_training_loop_op = tf.group(
+        *[opt.ApplyPostTrainingLoop(gs) for opt in self.learners])
+
   def BProp(self):
     self._BPropForVariables(self.vars)
 
@@ -749,6 +754,12 @@ class BaseTask(base_layer.BaseLayer):
     assert self._train_op is not None, (
         'No train op is defined. Call BProp first.')
     return self._train_op
+
+  @property
+  def post_training_loop_op(self):
+    assert self._post_training_loop_op is not None, (
+        'No post_training_loop_op op is defined. Call PostTrainingLoop first.')
+    return self._post_training_loop_op
 
   @property
   def global_step(self):
@@ -1093,6 +1104,9 @@ class BaseModel(base_layer.BaseLayer):
   def ConstructFPropBPropGraph(self):
     raise NotImplementedError('Abstract method')
 
+  def ConstructPostTrainingLoop(self):
+    raise NotImplementedError('Abstract method')
+
   def ConstructFPropGraph(self):
     raise NotImplementedError('Abstract method')
 
@@ -1204,6 +1218,9 @@ class SingleTaskModel(BaseModel):
     if self.ema:
       tf.logging.info('ApplyExponentialMovingAverage on %s', self._task)
       self._task.ApplyExponentialMovingAverage(self.ema)
+
+  def ConstructPostTrainingLoop(self):
+    self._task.PostTrainingLoop()
 
   def ConstructFPropGraph(self):
     self._task.FPropDefaultTheta()

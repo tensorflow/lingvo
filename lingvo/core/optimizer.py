@@ -75,6 +75,17 @@ class Base(base_layer.BaseLayer):
     self.AddSummary(lr, optimizer, var_grad)
     return var_update_op
 
+  def ApplyPostTrainingLoop(self, global_step):
+    """Applies any computation to run after each tpu trainining loop.
+
+    Args:
+      global_step: Global step variable.
+
+    Returns:
+      Ops to run after training loop ends.
+    """
+    return tf.no_op()
+
 
 class SGD(Base):
   """SGD."""
