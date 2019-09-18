@@ -87,6 +87,10 @@ class DecoderTestCaseBase(test_utils.TestCase):
     p.dtype = dtype
     p.target_seq_len = 5
     p.random_seed = 12345
+    p.emb.params_init = py_utils.WeightInit.Uniform(0.04, 12345)
+    p.atten_rnn_cell_tpl.params_init = py_utils.WeightInit.Uniform(0.04, 12345)
+    p.rnn_cell_tpl.params_init = py_utils.WeightInit.Uniform(0.04, 12345)
+    p.softmax.params_init = py_utils.WeightInit.Uniform(0.04, 123)
 
     for lp in base_layer.RecursiveFindLayerParams(p):
       lp.dtype = dtype
@@ -108,9 +112,9 @@ class DecoderTestCaseBase(test_utils.TestCase):
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
       if p.feed_attention_context_vec_to_softmax:
-        CompareToGoldenSingleFloat(self, 7.618915, actual_loss)
+        CompareToGoldenSingleFloat(self, 7.640674, actual_loss)
       else:
-        CompareToGoldenSingleFloat(self, 7.624220, actual_loss)
+        CompareToGoldenSingleFloat(self, 7.624605, actual_loss)
 
   def _DecoderGradientCheckerHelper(self,
                                     decoder_cls,
@@ -166,9 +170,9 @@ class DecoderTestCaseBase(test_utils.TestCase):
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
       if p.feed_attention_context_vec_to_softmax:
-        CompareToGoldenSingleFloat(self, 2.7668, actual_loss)
+        CompareToGoldenSingleFloat(self, 2.768977, actual_loss)
       else:
-        CompareToGoldenSingleFloat(self, 2.772428, actual_loss)
+        CompareToGoldenSingleFloat(self, 2.772613, actual_loss)
 
 
 class DecoderTest(DecoderTestCaseBase):
@@ -176,21 +180,6 @@ class DecoderTest(DecoderTestCaseBase):
   def testDecoderConstruction(self):
     p = self._DecoderParams()
     _ = decoder.MTDecoderV1(p)
-
-  def testDecoderFPropFixedAttentionSeed(self, dtype=tf.float64):
-    with self.session(use_gpu=True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
-      p = self._DecoderParams(dtype=dtype)
-      p.feed_attention_context_vec_to_softmax = False
-      p.attention.params_init = py_utils.WeightInit.Gaussian(0.1, 12345)
-      dec = decoder.MTDecoderV1(p)
-      encoder_outputs, targets = self._Inputs(dtype=dtype)
-      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
-
-      tf.global_variables_initializer().run()
-      actual_loss = loss.eval()
-      print('actual loss = ', actual_loss)
-      CompareToGoldenSingleFloat(self, 7.624183, actual_loss)
 
   def testDecoderFPropFunctional(self):
     self._DecoderFPropHelper(decoder.MTDecoderV1, tf.float64, False)
@@ -247,11 +236,11 @@ class DecoderTest(DecoderTestCaseBase):
         (src_batch, p.beam_search.num_hyps_per_beam),
         actual_decode.topk_scores.shape)
 
-    expected_topk_ids = [[2, 0, 0, 0, 0], [11, 2, 0, 0, 0], [2, 0, 0, 0, 0],
-                         [6, 2, 0, 0, 0]]
+    expected_topk_ids = [[2, 0, 0, 0, 0], [13, 2, 0, 0, 0], [0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0]]
 
-    expected_topk_lens = [1, 2, 1, 2]
-    expected_topk_scores = [[-3.78467, -5.771077], [-3.334115, -5.597376]]
+    expected_topk_lens = [1, 2, 0, 0]
+    expected_topk_scores = [[-3.783162, -5.767723], [0., 0.]]
 
     self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
     self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
@@ -293,11 +282,11 @@ class DecoderTest(DecoderTestCaseBase):
         (src_batch, p.beam_search.num_hyps_per_beam),
         actual_decode_feeding_att_context.topk_scores.shape)
 
-    expected_topk_ids = [[2, 0, 0, 0, 0], [12, 2, 0, 0, 0], [0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0]]
+    expected_topk_ids = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [2, 0, 0, 0, 0],
+                         [8, 2, 0, 0, 0]]
 
-    expected_topk_lens = [1, 2, 0, 0]
-    expected_topk_scores = [[-3.747134, -5.680344], [0., 0.]]
+    expected_topk_lens = [0, 0, 1, 2]
+    expected_topk_scores = [[0., 0.], [-3.292501, -5.533068]]
 
     self.assertAllEqual(expected_topk_ids,
                         actual_decode_feeding_att_context.topk_ids)
@@ -325,7 +314,7 @@ class TransformerDecoderTestCaseBase(test_utils.TestCase):
     p.token_emb.vocab_size = 20
     p.token_emb.embedding_dim = 4
     p.token_emb.max_num_shards = 1
-    p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim()
+    p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim(seed=12345)
     p.position_emb.embedding_dim = 4
     if use_task_emb:
       p.task_emb = p.token_emb.Copy()
@@ -547,7 +536,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
-      self.assertAlmostEqual(15.864315, actual_loss, delta=0.0001)
+      CompareToGoldenSingleFloat(self, 15.565945, actual_loss)
 
   def test_ExpandToNumHyps(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
@@ -594,7 +583,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
-      self.assertAlmostEqual(16.155428, actual_loss, delta=0.0001)
+      CompareToGoldenSingleFloat(self, 15.657612, actual_loss)
 
   def _testExtendStep(self, sess, dec, encoder_outputs, tgts, num_hyps):
     p = self._DecoderParams()
@@ -764,12 +753,12 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
         (src_batch, p.beam_search.num_hyps_per_beam),
         actual_decode.topk_scores.shape)
 
-    expected_topk_ids = [[2, 0, 0, 0, 0], [6, 2, 0, 0, 0], [2, 0, 0, 0, 0],
-                         [14, 2, 0, 0, 0], [6, 2, 0, 0, 0], [6, 6, 2, 0, 0],
+    expected_topk_ids = [[2, 0, 0, 0, 0], [6, 2, 0, 0, 0], [14, 2, 0, 0, 0],
+                         [14, 14, 2, 0, 0], [2, 0, 0, 0, 0], [19, 2, 0, 0, 0],
                          [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
-    expected_topk_lens = [1, 2, 1, 2, 2, 3, 0, 0]
-    expected_topk_scores = [[-2.226787, -4.215915], [-2.232645, -4.228243],
-                            [-5.217594, -7.671792], [0., 0.]]
+    expected_topk_lens = [1, 2, 2, 3, 1, 2, 0, 0]
+    expected_topk_scores = [[-2.059117, -4.157316], [-4.449532, -6.390632],
+                            [-2.486378, -4.982234], [0., 0.]]
 
     # Assert expected IDs etc
     self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
@@ -785,17 +774,14 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     atten_vec_0 = list(np.expand_dims(np.array(hyp.atten_vecs[0].prob), 0)[0])
     atten_vec_1 = list(np.expand_dims(np.array(hyp.atten_vecs[1].prob), 0)[0])
 
-    expected_atten_vec_0 = [0.273083, 0.337312, 0.202556, 0.187049, 0.0]
-    expected_atten_vec_1 = [
-        0.19762064516544342, 0.32778304815292358, 0.24845050275325775,
-        0.22614581882953644, 0.0
-    ]
+    expected_atten_vec_0 = [0.221406, 0.346385, 0.22003, 0.212177, 0.]
+    expected_atten_vec_1 = [0.216729, 0.332198, 0.23248, 0.218592, 0.]
 
     self.assertAllClose(atten_vec_0, expected_atten_vec_0)
     self.assertAllClose(atten_vec_1, expected_atten_vec_1)
 
     # Test normalized scores of hypotheses.
-    self.assertAlmostEqual(hyp.normalized_score, -4.21591472626, places=4)
+    CompareToGoldenSingleFloat(self, -4.157315, hyp.normalized_score)
 
 
 class InsertionDecoderTest(TransformerDecoderTestCaseBase):

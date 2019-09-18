@@ -220,7 +220,7 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
     x_len = tf.cast(tf.reduce_sum(1 - x_paddings, 1), tf.int32)
 
     # Compute the desired length per example in the batch.
-    ratio = tf.random.uniform([batch_size], 0.0, 1.0)
+    ratio = tf.random.uniform([batch_size], 0.0, 1.0, seed=p.random_seed)
     if force_sample_last_token:
       c_len = tf.minimum(
           tf.cast(ratio * tf.cast(x_len, tf.float32), tf.int32), x_len - 1) + 1
@@ -243,7 +243,8 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
                   x_len - 1, 1)), tf.float32) * 1e9
     # Gumbel-max trick to sample (we only sample valid positions per sample in
     # the batch).
-    z = -tf.math.log(-tf.math.log(tf.random.uniform([batch_size, time_dim])))
+    z = -tf.math.log(-tf.math.log(
+        tf.random.uniform([batch_size, time_dim], seed=p.random_seed)))
     unused_c_values, c_indices = tf.nn.top_k(z_logits + z, time_dim)
 
     # Trim everything > c_len_max.

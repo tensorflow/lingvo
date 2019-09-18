@@ -595,6 +595,7 @@ class InsertionModelTest(test_utils.TestCase):
     p.name = 'insertion'
     p.input = self._InputParams()
     p.decoder = self._DecoderParams()
+    p.random_seed = 12345
     return p
 
   def testSampleCanvasAndTargets(self):
@@ -619,19 +620,19 @@ class InsertionModelTest(test_utils.TestCase):
           descriptor.target_indices, descriptor.target_weights
       ])
 
-      canvas_gold = np.asarray([[11, 13, 14, 15, 2], [10, 12, 13, 15, 2],
-                                [2, 0, 0, 0, 0], [11, 12, 13, 2, 0]], np.int32)
+      canvas_gold = np.asarray([[13, 15, 2, 0, 0], [10, 11, 14, 2, 0],
+                                [2, 0, 0, 0, 0], [10, 11, 13, 14, 2]], np.int32)
       canvas_paddings_gold = np.asarray(
-          [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 1, 1, 1, 1], [0, 0, 0, 0, 1]],
-          np.float32)
+          [[0., 0., 0., 1., 1.], [0., 0., 0., 0., 1.], [0., 1., 1., 1., 1.],
+           [0., 0., 0., 0., 0.]], np.float32)
       target_indices_gold = np.asarray(
-          [[0, 0, 10], [0, 0, 2], [0, 1, 12], [0, 1, 2], [0, 2, 2], [0, 3, 2],
-           [0, 4, 2], [1, 0, 2], [1, 1, 11], [1, 1, 2], [1, 2, 2], [1, 3, 14],
-           [1, 3, 2], [1, 4, 2], [2, 0, 2], [3, 0, 10], [3, 0, 2], [3, 1, 2],
-           [3, 2, 2], [3, 3, 14], [3, 3, 2]], np.int32)
-      target_weights_gold = np.asarray([1, 0, 1, 0, 1, 1, 1] +
-                                       [1, 1, 0, 1, 1, 0, 1] + [1] +
-                                       [1, 0, 1, 1, 1, 0], np.float32)
+          [[0, 0, 10], [0, 0, 11], [0, 0, 12], [0, 0, 2], [0, 1, 14], [0, 1, 2],
+           [0, 2, 2], [1, 0, 2], [1, 1, 2], [1, 2, 12], [1, 2, 13], [1, 2, 2],
+           [1, 3, 15], [1, 3, 2], [2, 0, 2], [3, 0, 2], [3, 1, 2], [3, 2, 12],
+           [3, 2, 2], [3, 3, 2], [3, 4, 2]], np.int32)
+      target_weights_gold = np.asarray([1, 1, 1, 0, 1, 0, 1] +
+                                       [1, 1, 1, 1, 0, 1, 0] + [1] +
+                                       [1, 1, 1, 0, 1, 1], np.float32)
       target_weights_gold = np.reshape(target_weights_gold,
                                        [target_weights_gold.shape[0], 1])
 
@@ -671,20 +672,20 @@ class InsertionModelTest(test_utils.TestCase):
           descriptor.target_indices, descriptor.target_weights
       ])
 
-      canvas_gold = np.asarray([[
-          32010, 32012, 32002, 2, 0, 0, 0, 0, 0, 0, 0, 0
-      ], [32020, 32021, 32022, 32024, 32025, 32002, 200, 201, 202, 204, 205, 2]
-                               ], np.int32)
-      canvas_paddings_gold = np.asarray([[0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
-                                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-                                        np.float32)
+      canvas_gold = np.asarray([
+          [32014, 32002, 104, 2, 0, 0, 0, 0],
+          [32020, 32021, 32022, 32002, 200, 201, 202, 2],
+      ], np.int32)
+      canvas_paddings_gold = np.asarray(
+          [[0., 0., 0., 0., 1., 1., 1., 1.], [0., 0., 0., 0., 0., 0., 0., 0.]],
+          np.float32)
       target_indices_gold = np.asarray(
-          [[0, 0, 2], [0, 1, 11], [0, 1, 2], [0, 2, 14], [0, 2, 2], [1, 0, 2],
-           [1, 1, 2], [1, 2, 2], [1, 3, 2], [1, 4, 2], [1, 5, 2], [0, 3, 100],
-           [0, 3, 101], [0, 3, 102], [0, 3, 104], [0, 3, 2], [1, 6, 2],
-           [1, 7, 2], [1, 8, 2], [1, 9, 2], [1, 10, 2], [1, 11, 2]], np.int32)
-      target_weights_gold = np.asarray([1, 1, 0, 1, 0] + [1, 1, 1, 1, 1, 1] +
-                                       [1, 1, 1, 1, 0] + [1, 1, 1, 1, 1, 1],
+          [[0, 0, 10], [0, 0, 11], [0, 0, 12], [0, 0, 2], [0, 1, 2], [1, 0, 2],
+           [1, 1, 2], [1, 2, 2], [1, 3, 24], [1, 3, 25], [1, 3, 2], [0, 2, 100],
+           [0, 2, 101], [0, 2, 102], [0, 2, 2], [0, 3, 2], [1, 4, 2], [1, 5, 2],
+           [1, 6, 2], [1, 7, 204], [1, 7, 205], [1, 7, 2]], np.int32)
+      target_weights_gold = np.asarray([1, 1, 1, 0, 1] + [1, 1, 1, 1, 1, 0] +
+                                       [1, 1, 1, 0, 1] + [1, 1, 1, 1, 1, 0],
                                        np.float32)
       target_weights_gold = np.reshape(target_weights_gold,
                                        [target_weights_gold.shape[0], 1])
