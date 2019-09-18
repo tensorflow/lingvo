@@ -404,6 +404,35 @@ class ClusterTest(test_utils.TestCase):
         job_name='/job:trainer', task_id=3, device_name='GPU', device_id=3)
     self.assertEqual(expected_device, d)
 
+  def testWorkerClusterDef(self):
+    p = cluster_factory.Cluster.Params()
+
+    p.worker.name = '/job:trainer_client'
+    p.worker.targets = ','.join([
+        'grpc://localhost:8470',
+        'grpc://localhost:8471',
+        'grpc://localhost:8472',
+        'grpc://localhost:8473',
+    ])
+
+    cluster_def = tf.train.ClusterSpec({
+        'trainer_client': [
+            'localhost:8470', 'localhost:8471', 'localhost:8472',
+            'localhost:8473'
+        ]
+    }).as_cluster_def()
+
+    cluster = p.Instantiate()
+    self.assertEqual(cluster.worker_cluster_def, cluster_def)
+
+  def testWorkerClusterDefWithoutTargets(self):
+    p = cluster_factory.Cluster.Params()
+
+    p.worker.name = '/job:trainer_client'
+
+    cluster = p.Instantiate()
+    self.assertIsNone(cluster.worker_cluster_def)
+
 
 if __name__ == '__main__':
   tf.test.main()

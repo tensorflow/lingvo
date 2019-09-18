@@ -55,6 +55,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     train_params = task_dict['Train']
     super(ExecutorTpu, self).__init__(train_params, model_task_name, logdir,
                                       tf_master, **kwargs)
+    self._cluster_def = self._cluster.worker_cluster_def
 
     # There is a single Executor task
     assert self._cluster.num_replicas == 1
@@ -104,7 +105,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     def _WaitTillInit():
       """Wait until the model is ready."""
       try:
-        with self._GetSession() as sess:
+        with self._GetSession(cluster_def=self._cluster_def) as sess:
           topology = sess.run(
               tf.tpu.initialize_system(embedding_config=None, job=None))
           device_assignment = device_assignment_lib.device_assignment(
@@ -134,7 +135,8 @@ class ExecutorTpu(base_runner.BaseRunner):
     self._RunLoop('executor_tpu', self._Loop)
 
   def _Loop(self):
-    with tf.container(self._container_id), self._GetSession() as sess:
+    with tf.container(self._container_id), self._GetSession(
+        cluster_def=self._cluster_def) as sess:
       sess.run(self.initialize_tables)
       sess.run(self._initialize_local_vars)
       sess.run(tf.tpu.initialize_system(embedding_config=None, job=None))

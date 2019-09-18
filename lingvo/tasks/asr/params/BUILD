@@ -25,6 +25,7 @@ py_library(
     deps = [
         "//lingvo:model_registry",
         "//lingvo/core:base_model_params",
+        "//lingvo/core:program_lib",
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
         "//lingvo/core:tokenizers",

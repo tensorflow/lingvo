@@ -22,6 +22,7 @@ from __future__ import print_function
 from lingvo import model_registry
 from lingvo.core import base_model_params
 from lingvo.core import datasource
+from lingvo.core import program
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import tokenizers
@@ -157,6 +158,15 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
     p.train.vn_start_step = 20000
 
     return p
+
+  @classmethod
+  def ProgramSchedule(cls):
+    return program.SimpleProgramScheduleForTask(
+        train_dataset_name='Train',
+        train_steps_per_loop=50,
+        eval_dataset_names=['Test'],
+        eval_steps_per_loop=5,
+        decode_steps_per_loop=0)
 
 
 @model_registry.RegisterSingleTaskModel

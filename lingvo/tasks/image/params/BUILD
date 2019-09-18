@@ -11,6 +11,7 @@ py_library(
     deps = [
         "//lingvo:model_registry",
         "//lingvo/core:base_model_params",
+        "//lingvo/core:program_lib",
         "//lingvo/tasks/image:classifier",
         "//lingvo/tasks/image:input_generator",
     ],

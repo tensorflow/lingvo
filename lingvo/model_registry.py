@@ -238,6 +238,7 @@ class _ModelRegistryHelper(object):
     for dataset_name in dataset_names:
       model_cfg = model_params_cls.Model()
       model_cfg.input = model_params_cls.GetDatasetParams(dataset_name)
+      _MaybeUpdateParamsFromFlags(model_cfg)
       model_cfg_dict[dataset_name] = model_cfg.Copy()
 
     program_schedule_cfg = model_params_cls.ProgramSchedule()

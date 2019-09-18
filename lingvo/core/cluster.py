@@ -426,6 +426,19 @@ class _Cluster(object):
     else:
       return p.add_summary
 
+  @property
+  def worker_cluster_def(self):
+    """Returns a tf.train.ClusterDef representing the worker cluster."""
+    p = self.params.worker
+
+    if not p.targets:
+      return None
+
+    job = p.name.replace('/job:', '', 1)
+    workers = [addr.replace('grpc://', '', 1) for addr in p.targets.split(',')]
+
+    return tf.train.ClusterSpec({job: workers}).as_cluster_def()
+
 
 # Ops that must be placed on the 'ps' devices.
 _VAR_OPS = ['Variable', 'VariableV2', 'AutoReloadVariable', 'VarHandleOp']

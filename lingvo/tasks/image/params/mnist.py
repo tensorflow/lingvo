@@ -21,6 +21,7 @@ from __future__ import print_function
 
 from lingvo import model_registry
 from lingvo.core import base_model_params
+from lingvo.core import program
 from lingvo.tasks.image import classifier
 from lingvo.tasks.image import input_generator
 
@@ -56,6 +57,15 @@ class LeNet5(Base):
 
   BN = False
   DROP = 0.2
+
+  @classmethod
+  def ProgramSchedule(cls):
+    return program.SimpleProgramScheduleForTask(
+        train_dataset_name='Train',
+        train_steps_per_loop=100,
+        eval_dataset_names=['Test'],
+        eval_steps_per_loop=5,
+        decode_steps_per_loop=0)
 
   @classmethod
   def Task(cls):

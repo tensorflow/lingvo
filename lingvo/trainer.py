@@ -549,12 +549,7 @@ class TrainerTpu(base_runner.BaseRunner):
     self._steps_per_loop = min(self.params.train.tpu_steps_per_loop,
                                self.params.train.max_steps)
 
-    if self._cluster.params.worker.targets:
-      self._cluster_def = tf.train.ClusterSpec({
-          'worker': self._cluster.params.worker.targets.split(',')
-      }).as_cluster_def()
-    else:
-      self._cluster_def = None
+    self._cluster_def = self._cluster.worker_cluster_def
 
     self._initialized = threading.Event()
 
@@ -1309,7 +1304,7 @@ class RunnerManager(object):
 
   def MaybeLaunchTensorFlow(self):
     """Starts TF machinary in this process."""
-    if FLAGS.run_locally:
+    if FLAGS.run_locally or FLAGS.tpu:
       return
 
     tf.logging.info('Launching tensorflow.')
@@ -1407,20 +1402,26 @@ class RunnerManager(object):
     if not FLAGS.tpu:
       return
 
+    if not FLAGS.job:
+      FLAGS.job = 'trainer_client'
+
+    if FLAGS.job not in ('trainer_client', 'executor_tpu'):
+      raise ValueError('Only trainer_client and executor_tpu jobs are '
+                       'supported on TPU.')
+
     cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
         tpu=FLAGS.tpu,
         project=FLAGS.gcp_project,
         zone=FLAGS.tpu_zone,
-        coordinator_name='trainer_client',
-        coordinator_address='localhost:0')
+        job_name=FLAGS.job)
     cluster_spec_dict = cluster_resolver.cluster_spec().as_dict()
 
-    FLAGS.job = 'trainer_client'
+    FLAGS.mode = 'sync'
     FLAGS.tf_master = cluster_resolver.master()
 
-    FLAGS.worker_job = '/job:worker'
+    FLAGS.worker_job = '/job:{}'.format(FLAGS.job)
     FLAGS.worker_replicas = 1
-    FLAGS.worker_num_tpu_hosts = len(cluster_spec_dict['worker'])
+    FLAGS.worker_num_tpu_hosts = len(cluster_spec_dict[FLAGS.job])
     FLAGS.worker_tpus = (
         cluster_resolver.num_accelerators()['TPU'] * FLAGS.worker_num_tpu_hosts)
     FLAGS.ps_job = FLAGS.worker_job
@@ -1452,7 +1453,8 @@ class RunnerManager(object):
     if FLAGS.tpu:
       job_name = cluster.worker.name.replace('/job:', '', 1)
       worker_hosts = _GetClusterSpecDict()[job_name]
-      cluster.worker.targets = ','.join(worker_hosts)
+      cluster.worker.targets = ','.join(
+          'grpc://{}'.format(host) for host in worker_hosts)
 
     cluster.ps.name = FLAGS.ps_job
     cluster.ps.replicas = FLAGS.ps_replicas
