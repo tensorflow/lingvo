@@ -824,29 +824,29 @@ The value when the key is not found.</p></li>
 
 <dl class="function">
 <dt id="lingvo.core.ops.v">
-<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">hist_file</em>, <em class="sig-param">tol=0</em>, <em class="sig-param">minimize=True</em>, <em class="sig-param">metric=''</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>Determines the best global step from a history file.</p>
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">in_hyps</em>, <em class="sig-param">max_seq_length=0</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unpacks hyps into tensors of ids, seq_len and scores.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>hist_file</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
-A text file containing ‘step score’ records, or a file pattern that
-matches tf event files in the format of /path_to_file/events.out.tfevents*.</p></li>
-<li><p><strong>tol</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0</span></code>.
-Difference between previous best score and current score must be greater
-than this amount to trigger update.</p></li>
-<li><p><strong>minimize</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#bool" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/2.7/library/constants.html#True" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
-If the metric is being minimized. Recorded in hist_file, smaller
-scores are better if True, and bigger scores are better if False.</p></li>
-<li><p><strong>metric</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>.
-The name of the metric being tracked.</p></li>
+<li><p><strong>in_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A vector of serialized <code class="xref py py-obj docutils literal notranslate"><span class="pre">Hypothesis</span></code> protos.</p></li>
+<li><p><strong>max_seq_length</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0</span></code>.</p></li>
 <li><p><strong>name</strong> – A name for the operation (optional).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int64</span></code>.
-Shape [2]. best_step[0] is scalar value for best global step.
-best_step[1] is scalar value for last global step.</p>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (out_ids, out_seq_lens, out_scores).</p>
+<dl class="simple">
+<dt>out_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>Output sequences, a matrix of shape (batch_size, max_seq_length).
+Sequences shorter than max_seq_length are padded with 0s. If max_seq_length is 0, derive it from the longest sequence in input_hyps.</p>
+</dd>
+<dt>out_seq_lens: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>Length of each of the output sequence, a vector of size <code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_size</span></code>.</p>
+</dd>
+<dt>out_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>Scores for each of the output sequence, a vector of <code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_size</span></code>.</p>
+</dd>
+</dl>
+</p>
 </dd>
 </dl>
 </dd></dl>
