@@ -57,6 +57,8 @@ class Vocab {
     return unk_id_;
   }
 
+  int GetVocabSize() const { return id_to_token_.size(); }
+
   void GreedyMatchStringToTokenId(StringPiece text, int32* token_id,
                                   int* token_size) const {
     // This finds the longest prefix of the "text" in the given list of tokens
