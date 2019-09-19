@@ -168,6 +168,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">bn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">symbolic</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
 
 
@@ -331,7 +332,10 @@
           <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_channels</span><span class="p">]],</span> <span class="mi">0</span><span class="p">))</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span>
+                  <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_channels</span><span class="p">)]</span>
+              <span class="p">],</span> <span class="mi">0</span><span class="p">))</span>
       <span class="p">],</span> <span class="n">inputs</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">_ApplyPadding</span><span class="p">(</span><span class="n">tensor_in</span><span class="p">,</span> <span class="n">padding_in</span><span class="p">):</span>
@@ -354,7 +358,8 @@
       <span class="c1"># Assuming padded nodes will be properly zero-ed out if necessary by</span>
       <span class="c1"># sub-sequent layers.</span>
       <span class="c1"># out = _ApplyPadding(out, conv_padding)</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">OutShape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)))</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+          <span class="n">out</span><span class="p">,</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">OutShape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">))))</span>
       <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">conv_padding</span></div>
 
 <div class="viewcode-block" id="BaseConv2DLayerWithPadding._ApplyConv"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._ApplyConv">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">conv_input</span><span class="p">):</span>
