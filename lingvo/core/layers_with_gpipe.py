@@ -181,6 +181,20 @@ class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
     super(GPipeTransformerLayer, self).__init__(params)
     _common_gpipe_transformer_init(self)
 
+  @classmethod
+  def SetupDeterministicDropout(cls, params):
+    """Replaced dropout layers in transformer with deterministic ones."""
+    params.tr_atten_tpl.residual_dropout_tpl = (
+        layers.DeterministicDropoutLayer.Params())
+    params.tr_atten_tpl.atten_tpl.atten_dropout_deterministic = True
+    params.tr_atten_tpl.atten_tpl.inner_atten_params \
+    .atten_dropout_deterministic = True
+    params.tr_fflayer_tpl.residual_dropout_tpl = (
+        layers.DeterministicDropoutLayer.Params())
+    params.tr_fflayer_tpl.fflayer_tpl.dropout = (
+        layers.DeterministicDropoutLayer.Params())
+    return params
+
   def FProp(self,
             theta,
             source_vecs,
@@ -249,6 +263,35 @@ class GPipeEvolvedTransformerEncoderLayer(
   def FPropMeta(cls, p, inputs, *args):
     return _common_gpipe_transformer_fprop_meta(p, inputs, *args)
 
+  @classmethod
+  def _AttentionSetupDeterministicDropout(cls, tr_atten_tpl):
+    tr_atten_tpl.residual_dropout_tpl = (
+        layers.DeterministicDropoutLayer.Params())
+    tr_atten_tpl.atten_tpl.atten_dropout_deterministic = True
+    tr_atten_tpl.atten_tpl.inner_atten_params.atten_dropout_deterministic = True
+
+  @classmethod
+  def _TransformerSetupDeterministicDropout(cls, transformer_tpl):
+    cls._AttentionSetupDeterministicDropout(transformer_tpl.tr_atten_tpl)
+    transformer_tpl.tr_fflayer_tpl.residual_dropout_tpl = (
+        layers.DeterministicDropoutLayer.Params())
+    transformer_tpl.tr_fflayer_tpl.fflayer_tpl.dropout = (
+        layers.DeterministicDropoutLayer.Params())
+
+  @classmethod
+  def SetupDeterministicDropout(cls, params):
+    """Replaces dropout layers in ET with deterministic ones."""
+    cls._TransformerSetupDeterministicDropout(params.transformer_tpl)
+    params.branched_convs_tpl.dropout_tpl = \
+        layers.DeterministicDropoutLayer.Params()
+    if hasattr(params, 'glu_tpl'):
+      params.glu_tpl.dropout_tpl = layers.DeterministicDropoutLayer.Params()
+    if hasattr(params, 'tr_atten_tpl'):
+      cls._AttentionSetupDeterministicDropout(params.tr_atten_tpl)
+    if hasattr(params, 'tr_double_heads_atten_tpl'):
+      cls._AttentionSetupDeterministicDropout(params.tr_double_heads_atten_tpl)
+    return params
+
 
 class GPipeEvolvedTransformerDecoderLayer(
     layers_with_attention.EvolvedTransformerDecoderLayer):
@@ -286,6 +329,35 @@ class GPipeEvolvedTransformerDecoderLayer(
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
     return _common_gpipe_transformer_fprop_meta(p, inputs, *args)
+
+  @classmethod
+  def _AttentionSetupDeterministicDropout(cls, tr_atten_tpl):
+    tr_atten_tpl.residual_dropout_tpl = (
+        layers.DeterministicDropoutLayer.Params())
+    tr_atten_tpl.atten_tpl.atten_dropout_deterministic = True
+    tr_atten_tpl.atten_tpl.inner_atten_params.atten_dropout_deterministic = True
+
+  @classmethod
+  def _TransformerSetupDeterministicDropout(cls, transformer_tpl):
+    cls._AttentionSetupDeterministicDropout(transformer_tpl.tr_atten_tpl)
+    transformer_tpl.tr_fflayer_tpl.residual_dropout_tpl = (
+        layers.DeterministicDropoutLayer.Params())
+    transformer_tpl.tr_fflayer_tpl.fflayer_tpl.dropout = (
+        layers.DeterministicDropoutLayer.Params())
+
+  @classmethod
+  def SetupDeterministicDropout(cls, params):
+    """Replaces dropout layers in ET with deterministic ones."""
+    cls._TransformerSetupDeterministicDropout(params.transformer_tpl)
+    params.branched_convs_tpl.dropout_tpl = \
+        layers.DeterministicDropoutLayer.Params()
+    if hasattr(params, 'glu_tpl'):
+      params.glu_tpl.dropout_tpl = layers.DeterministicDropoutLayer.Params()
+    if hasattr(params, 'tr_atten_tpl'):
+      cls._AttentionSetupDeterministicDropout(params.tr_atten_tpl)
+    if hasattr(params, 'tr_double_heads_atten_tpl'):
+      cls._AttentionSetupDeterministicDropout(params.tr_double_heads_atten_tpl)
+    return params
 
 
 class GPipeTransformerSoftmaxLayer(layers.SimpleFullSoftmax):
@@ -352,6 +424,7 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
              'Adds task embeddings to every decoder timestep.')
     p.Define('enc_task_emb', None,
              'Adds task embeddings to every encoder timestep.')
+    p.Define('batch_dim', 1, 'The batch dimension.')
     return p
 
   @base_layer.initializer
@@ -390,15 +463,14 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
                     dropout, input_ids, input_pos_ids, task_emb_theta, task_emb,
                     task_ids):
     p = self.params
-    seq_len = tf.shape(input_ids)[0]
-    # [seq_len, batch, model_dim]
+    time_dim = 0 if p.batch_dim else 1
+    seq_len = tf.shape(input_ids)[time_dim]
     input_embs = emb.EmbLookup(emb_theta, input_ids)
     if p.packed_input:  # Packed inputs.
-      # [seq_len, batch, dim] or [batch, dim] in case of beam search.
       pos_embs = pos_emb.FPropWithPosition(pos_emb_theta, input_pos_ids)
     else:
-      # [seq_len, 1, model_dim]
-      pos_embs = tf.expand_dims(pos_emb.FProp(pos_emb_theta, seq_len), 1)
+      pos_embs = tf.expand_dims(
+          pos_emb.FProp(pos_emb_theta, seq_len), p.batch_dim)
 
     input_embs += pos_embs
     if task_emb:
@@ -409,13 +481,12 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
   # To be used for decoding.
   def GetEncoderEmbeddingsDefaultTheta(self, input_ids, task_ids=None):
     p = self.params
-    seq_len = tf.shape(input_ids)[0]
-    # [seq_len, batch, model_dim]
+    time_dim = 0 if p.batch_dim else 1
+    seq_len = tf.shape(input_ids)[time_dim]
     input_embs = self.src_token_emb.EmbLookup(self.theta.src_token_emb,
                                               input_ids)
-    # [seq_len, 1, model_dim]
     pos_embs = tf.expand_dims(
-        self.src_pos_emb.FProp(self.theta.src_pos_emb, seq_len), 1)
+        self.src_pos_emb.FProp(self.theta.src_pos_emb, seq_len), p.batch_dim)
     input_embs += pos_embs
     if task_ids is not None and p.enc_task_emb:
       input_embs += self.src_task_emb.EmbLookup(self.theta.src_task_emb,
@@ -426,14 +497,13 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
   # To be used for decoding.
   def GetDecoderEmbeddingsDefaultTheta(self, input_ids, task_ids=None, t=None):
     p = self.params
-    seq_len = tf.shape(input_ids)[0]
-    # [seq_len, batch, model_dim]
     input_embs = self.tgt_token_emb.EmbLookup(self.theta.tgt_token_emb,
                                               input_ids)
-    # [seq_len, 1, model_dim]
     if t is None:
+      time_dim = 0 if p.batch_dim else 1
+      seq_len = tf.shape(input_ids)[time_dim]
       pos_embs = tf.expand_dims(
-          self.tgt_pos_emb.FProp(self.theta.tgt_pos_emb, seq_len), 1)
+          self.tgt_pos_emb.FProp(self.theta.tgt_pos_emb, seq_len), p.batch_dim)
     else:  # Support decoding.
       pos_embs = tf.slice(
           self.tgt_pos_emb.FProp(self.theta.tgt_pos_emb, p.max_seq_len), [t, 0],
@@ -481,15 +551,17 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
     flops_per_element = 2  # Is this correct?
     vocab = p.token_emb.vocab_size
     dim = p.token_emb.embedding_dim
-    src_time, source_batch = inputs
-    flops = flops_per_element * src_time * source_batch * dim * vocab
+    src_dim_0, src_dim_1 = inputs
+    flops = flops_per_element * src_dim_0 * src_dim_1 * dim * vocab
     args = args if isinstance(args, tuple) else (args,)
-    new_inputs = tshape.Shape([src_time, source_batch, dim])
+    new_inputs = tshape.Shape([src_dim_0, src_dim_1, dim])
     new_args = list(args)
     if p.add_tgt_embedding_layer:
-      tgt_time, tgt_batch = args[1]
-      new_args[1] = tshape.Shape([tgt_time, tgt_batch, dim])
-    new_args = tuple(new_args[:5]) + (None, None)
+      tgt_dim_0, tgt_dim_1 = args[1]
+      new_args[1] = tshape.Shape([tgt_dim_0, tgt_dim_1, dim])
+    new_args[5] = None
+    new_args[6] = None
+    new_args = tuple(new_args[:7])
     return py_utils.NestedMap(flops=flops, out_shapes=(new_inputs,) + new_args)
 
 
@@ -577,6 +649,7 @@ class GPipeTransformerStack(PipeliningLayer):
       p.emb_tpl.is_transparent = p.is_transparent
       p.emb_tpl.add_tgt_embedding_layer = (p.num_decoder_layers > 0)
       p.emb_tpl.name = 'emb'
+      p.emb_tpl.batch_dim = p.batch_dim
       transformers.append(p.emb_tpl)
       if p.softmax_tpl:
         p.softmax_tpl.name = 'softmax'
@@ -595,7 +668,7 @@ class GPipeTransformerStack(PipeliningLayer):
           params.packed_input = p.packed_input
         # Use DeterministicDropoutLayer when used in temp graphs.
         if len(p.splits) > 1 or p.num_micro_batches > 1:
-          params = self.SetupDeterministicDropout(params)
+          params = params.cls.SetupDeterministicDropout(params)
         assert not params.has_aux_atten
         if p.is_transparent and i == 0:
           params.transparent_merger_tpl = p.transparent_merger_tpl.Copy()
@@ -609,7 +682,7 @@ class GPipeTransformerStack(PipeliningLayer):
         if p.packed_input:
           params.packed_input = p.packed_input
         if len(p.splits) > 1 or p.num_micro_batches > 1:
-          params = self.SetupDeterministicDropout(params)
+          params = params.cls.SetupDeterministicDropout(params)
         assert params.has_aux_atten
         transformers.append(params)
       cells = []
@@ -630,19 +703,6 @@ class GPipeTransformerStack(PipeliningLayer):
 
     if p.label_smoothing:
       self.CreateChild('smoother', p.label_smoothing)
-
-  def SetupDeterministicDropout(self, params):
-    """Replaced dropout layers in transformer with deterministic ones."""
-    params.tr_atten_tpl.residual_dropout_tpl = (
-        layers.DeterministicDropoutLayer.Params())
-    params.tr_atten_tpl.atten_tpl.atten_dropout_deterministic = True
-    params.tr_atten_tpl.atten_tpl.inner_atten_params \
-    .atten_dropout_deterministic = True
-    params.tr_fflayer_tpl.residual_dropout_tpl = (
-        layers.DeterministicDropoutLayer.Params())
-    params.tr_fflayer_tpl.fflayer_tpl.dropout = (
-        layers.DeterministicDropoutLayer.Params())
-    return params
 
   def Logits(self, theta, inputs):
     num_splits = len(self.params.splits)
@@ -698,18 +758,23 @@ class GPipeTransformerStack(PipeliningLayer):
     transparent_acc = None
     transparent_weights = None
     for encoder_l in self.GetEncoders():
-      encoder_outs = encoder_l.FProp(
-          encoder_l.theta,
-          source_vecs,
-          source_paddings,
-          None,
-          None,
-          None,
-          None,
-          transparent_acc,
-          transparent_weights,
-          source_task_id=source_task_id,
-          target_task_id=target_task_id)
+      if source_task_id is not None or target_task_id is not None:
+        encoder_outs = encoder_l.FProp(
+            encoder_l.theta,
+            source_vecs,
+            source_paddings,
+            None,
+            None,
+            None,
+            None,
+            transparent_acc,
+            transparent_weights,
+            source_task_id=source_task_id,
+            target_task_id=target_task_id)
+      else:
+        encoder_outs = encoder_l.FProp(encoder_l.theta, source_vecs,
+                                       source_paddings, None, None, None, None,
+                                       transparent_acc, transparent_weights)
       source_vecs = encoder_outs[0]
       if p.is_transparent and len(encoder_outs) == 8:
         transparent_acc = encoder_outs[6]
@@ -736,30 +801,33 @@ class GPipeTransformerStack(PipeliningLayer):
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
       source_input:  A sequence of ints indicating source input ids of [time,
-        batch] shape.
+        batch] shape or [batch, time] if batch_dim is 0.
       source_paddings: A sequence of 0s and 1s indicating input paddings of
-        [time, batch] shape.
+        [time, batch] shape or [batch, time] if batch_dim is 0.
       target_input: A sequence of ints indicating target input ids of [time,
-        batch] shape.
-      target_paddings: [target_time, target_batch]
+        batch] shape or [batch, time] if batch_dim is 0.
+      target_paddings: [target_time, target_batch] or [target_batch,
+        target_time] if batch_dim is 0.
       source_segment_id: A sequence of ints indicating source segment ids of
-        [time, batch] shape.
+        [time, batch] shape or [batch, time] if batch_dim is 0.
       target_segment_id: A sequence of ints indicating target segment ids of
-        [time, batch] shape.
-      labels: A sequence of ints indicating label ids of [time, batch] shape.
+        [time, batch] shape or [batch, time] if batch_dim is 0.
+      labels: A sequence of ints indicating label ids of [time, batch] shape,
+        or [batch, time] if batch_dim is 0.
       label_weights: A sequence of floats indicates label weights of [time,
-        batch] shape.
+        batch] shape, or [batch, time] if batch_dim is 0.
       source_pos_id: A sequence of ints indicating source position ids of [time,
-        batch] shape.
+        batch] shape, or [batch, time] if batch_dim is 0.
       target_pos_id: A sequence of ints indicating target position ids of [time,
-        batch] shape.
+        batch] shape, or [batch, time] if batch_dim is 0.
       source_task_id: A sequence of ints indicating source task ids of [time,
-        batch] shape.
+        batch] shape, or [batch, time] if batch_dim is 0.
       target_task_id: A sequence of ints indicating target task ids of [time,
-        batch] shape.
+        batch] shape, or [batch, time] if batch_dim is 0.
 
     Returns:
-      transformer_output with shape [time, batch, dim]
+      transformer_output with shape [time, batch, dim] or [batch, time, dim]
+      if batch_dim is 0.
     """
     p = self.params
     if p.num_decoder_layers > 0:
@@ -781,12 +849,16 @@ class GPipeTransformerStack(PipeliningLayer):
     label_weights = tf.reshape(label_weights, [-1])
     target_probs = None
     if p.label_smoothing:
-      target_probs = tf.transpose(
-          self.smoother.FProp(
-              theta.smoother,
-              tf.transpose(target_paddings),
-              tf.transpose(labels),
-              target_ids=None), [1, 0, 2])
+      if p.batch_dim:  # Time-major
+        target_probs = tf.transpose(
+            self.smoother.FProp(
+                theta.smoother,
+                tf.transpose(target_paddings),
+                tf.transpose(labels),
+                target_ids=None), [1, 0, 2])
+      else:
+        target_probs = self.smoother.FProp(
+            theta.smoother, target_paddings, labels, target_ids=None)
       target_probs = tf.reshape(target_probs, [-1, p.softmax_tpl.num_classes])
     reshaped_logits = tf.reshape(logits, [-1, p.softmax_tpl.num_classes])
     tgt_labels = tf.reshape(labels, [-1])
@@ -820,33 +892,6 @@ class GPipeEvolvedTransformerStack(GPipeTransformerStack):
     p.encoder_tpl = GPipeEvolvedTransformerEncoderLayer.Params()
     p.decoder_tpl = GPipeEvolvedTransformerDecoderLayer.Params()
     return p
-
-  def _AttentionSetupDeterministicDropout(self, tr_atten_tpl):
-    tr_atten_tpl.residual_dropout_tpl = (
-        layers.DeterministicDropoutLayer.Params())
-    tr_atten_tpl.atten_tpl.atten_dropout_deterministic = True
-    tr_atten_tpl.atten_tpl.inner_atten_params.atten_dropout_deterministic = True
-
-  def _TransformerSetupDeterministicDropout(self, transformer_tpl):
-    self._AttentionSetupDeterministicDropout(transformer_tpl.tr_atten_tpl)
-    transformer_tpl.tr_fflayer_tpl.residual_dropout_tpl = (
-        layers.DeterministicDropoutLayer.Params())
-    transformer_tpl.tr_fflayer_tpl.fflayer_tpl.dropout = (
-        layers.DeterministicDropoutLayer.Params())
-
-  def SetupDeterministicDropout(self, params):
-    """Replaces dropout layers in ET with deterministic ones."""
-    self._TransformerSetupDeterministicDropout(params.transformer_tpl)
-    params.branched_convs_tpl.dropout_tpl = \
-        layers.DeterministicDropoutLayer.Params()
-    if hasattr(params, 'glu_tpl'):
-      params.glu_tpl.dropout_tpl = layers.DeterministicDropoutLayer.Params()
-    if hasattr(params, 'tr_atten_tpl'):
-      self._AttentionSetupDeterministicDropout(params.tr_atten_tpl)
-    if hasattr(params, 'tr_double_heads_atten_tpl'):
-      self._AttentionSetupDeterministicDropout(params.tr_double_heads_atten_tpl)
-
-    return params
 
 
 class DeterministicWeightsLayer(base_layer.BaseLayer):

@@ -510,6 +510,41 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       'testcase_name': '_two_splits',
       'splits': 2
   })
+  def testGPipeTransformerBatchMajorConstruction(self, splits=1):
+    batch = 4
+    tf.flags.FLAGS.tpu_compatible = True
+    with self.session() as sess:
+      with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
+        params = _TransformerParamsWithEmbeddings(
+            splits=splits, num_decoder_layers=4, has_softmax=True)
+        params.batch_dim = 0
+        params.emb_tpl.batch_dim = 0
+        xformer = params.Instantiate()
+        input_ids, id_paddings, tgt_inputs, tgt_paddings, _, _ = (
+            _TransformerRandomInputsIds(batch=batch))
+        input_ids = tf.transpose(input_ids)
+        id_paddings = tf.transpose(id_paddings)
+        tgt_inputs = tf.transpose(tgt_inputs)
+        tgt_paddings = tf.transpose(tgt_paddings)
+        labels = tf.ones([batch, tgt_inputs.shape.as_list()[1]], dtype=tf.int32)
+        label_weights = tf.ones([batch, tgt_inputs.shape.as_list()[1]])
+        tf.set_random_seed(1234)
+        tf.global_variables_initializer().run()
+        xent, logits = xformer.FProp(xformer.theta, input_ids, id_paddings,
+                                     tgt_inputs, tgt_paddings, None, None,
+                                     labels, label_weights, None, None, None,
+                                     None)
+        xent_out, logits_out = sess.run([xent, logits])
+        print('xent_out={}'.format(xent_out))
+        print('logits_out={}'.format(logits_out))
+
+  @parameterized.named_parameters({
+      'testcase_name': '_one_split',
+      'splits': 1
+  }, {
+      'testcase_name': '_two_splits',
+      'splits': 2
+  })
   def testGPipeTransformerFPropPackedInputWithEmbeddings(self, splits=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
