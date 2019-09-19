@@ -196,6 +196,7 @@ class StackStep(Step):
         'n is added to layer n + 2')
     return p
 
+  @base_layer.initializer
   def __init__(self, params):
     super(StackStep, self).__init__(params)
     p = params

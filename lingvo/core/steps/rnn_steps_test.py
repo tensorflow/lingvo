@@ -124,6 +124,48 @@ class RnnStepsTest(test_utils.TestCase):
       p.context_input_dim = 1
       p.rnn_cell_dim = 3
       p.rnn_cell_hidden_dim = 3
+      p.rnn_layers = 2
+      rnn_stack = p.Instantiate()
+
+      external = tf.constant([[1, 2]], tf.float32)
+      packed = rnn_stack.PrepareExternalInputs(rnn_stack.theta, external)
+      state0 = rnn_stack.ZeroState(rnn_stack.theta, packed, 1)
+      output1, state1 = rnn_stack.FProp(
+          rnn_stack.theta, packed,
+          py_utils.NestedMap(
+              inputs=[tf.constant([[4]], tf.float32)],
+              context=tf.constant([[5]], tf.float32)),
+          tf.constant([0.0], dtype=tf.float32), state0)
+
+      tf.global_variables_initializer().run()
+      output1, state1 = sess.run([output1, state1])
+
+      self.assertAllClose(output1.output,
+                          [[0.43175745, -0.39472747, -0.36191428]])
+      self.assertAllClose(
+          state1, {
+              'sub': [{
+                  'm': [[-0.4587491, 0.56409806, 0.23025148]],
+                  'c': [[5.6926787e-01, 6.3084178e-02, 4.1969700e-04]]
+              }, {
+                  'm': [[0.43175745, -0.39472747, -0.36191428]],
+                  'c': [[0.00158867, 0.57818687, -0.98025495]]
+              }]
+          })
+
+  def testRnnStackStepResidual(self):
+    with self.session(use_gpu=False) as sess:
+      p = rnn_steps.RnnStackStep.Params()
+      p.name = 'rnn_stack_step'
+      p.rnn_cell_tpl.params_init = py_utils.WeightInit.Uniform(1.24, 429891685)
+      p.rnn_cell_tpl.bias_init = py_utils.WeightInit.Uniform(1.24, 429891685)
+      p.rnn_cell_tpl.vn.global_vn = False
+      p.rnn_cell_tpl.vn.per_step_vn = False
+      p.external_input_dim = 2
+      p.step_input_dim = 1
+      p.context_input_dim = 1
+      p.rnn_cell_dim = 3
+      p.rnn_cell_hidden_dim = 3
       p.rnn_layers = 3
       p.residual_start = 0
       rnn_stack = p.Instantiate()
@@ -173,7 +215,8 @@ class RnnStepsTest(test_utils.TestCase):
       p.residual_start = 0
       rnn_stack = p.Instantiate()
 
-      packed = rnn_stack.PrepareExternalInputs(rnn_stack.theta, None)
+      packed = rnn_stack.PrepareExternalInputs(rnn_stack.theta,
+                                               py_utils.NestedMap())
       state0 = rnn_stack.ZeroState(rnn_stack.theta, packed, 1)
       output1, state1 = rnn_stack.FProp(
           rnn_stack.theta, packed,

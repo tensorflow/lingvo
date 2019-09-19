@@ -20,7 +20,6 @@ from __future__ import print_function
 
 from lingvo import compat as tf
 from lingvo.core import base_layer
-from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import step
@@ -95,7 +94,9 @@ class RnnStep(step.Step):
       recurrent state.
     """
     cell_inputs = py_utils.NestedMap(act=step_inputs.inputs)
-    if external_inputs is not None:
+    # An empty NestedMap can act as a None value here.
+    if external_inputs is not None and not isinstance(external_inputs,
+                                                      py_utils.NestedMap):
       cell_inputs.act.append(external_inputs)
     cell_inputs.padding = padding
     state1, extra = self.cell.FProp(theta.cell, state0, cell_inputs)
@@ -104,7 +105,7 @@ class RnnStep(step.Step):
         padding=padding), state1
 
 
-class RnnStackStep(object):
+class RnnStackStep(step.Step):
   """A stack of RnnSteps.
 
   Three types of inputs are supported:
@@ -115,7 +116,7 @@ class RnnStackStep(object):
     external_inputs: This input is fixed at the beginning of the sequence.
       It is fed to every layer.
 
-  Residual connections are also supported. When residual_start > 0, the output
+  Residual connections are also supported. When residual_start >= 0, the output
   of layer i (i >= residual_start) is added to the output of layer
   i - residual_stride.
   """
@@ -123,8 +124,7 @@ class RnnStackStep(object):
   @classmethod
   def Params(cls):
     """Constructs Params for an RnnStackStep."""
-    p = RnnStackStep.InternalParams()
-    p.Define('name', None, 'Name of this layer.')
+    p = super(RnnStackStep, cls).Params()
     p.Define(
         'rnn_cell_tpl', rnn_cell.LSTMCellSimple.Params(),
         'RNNCell params template. '
@@ -151,7 +151,7 @@ class RnnStackStep(object):
         'rnn cell. This may be overridden by parameters set in rnn_cell_tpl.')
     p.Define('rnn_layers', 1, 'Number of rnn layers.')
     p.Define(
-        'residual_start', 0,
+        'residual_start', -1,
         'Start residual connections from this layer. For this and higher '
         'layers, the layer output is the sum of the RNN cell output and '
         'input; if the layer also normalizes its output, then the '
@@ -161,20 +161,12 @@ class RnnStackStep(object):
              'Number of lstm layers to skip per residual connection.')
     return p
 
-  class InternalParams(hyperparams.InstantiableParams):
-    """A hyperparams object that converts itself into a StackStep.
-
-    This object operates like a normal InstantiatableParams, but instead
-    of using the default Instantiate method, it converts its params into
-    StackStep params and instantiates a StackStep.
-    """
-
-    def __init__(self):
-      super(RnnStackStep.InternalParams, self).__init__(step.StackStep)
-
-    def Instantiate(self):
+  @base_layer.initializer
+  def __init__(self, params):
+    super(RnnStackStep, self).__init__(params)
+    p = params
+    with tf.variable_scope(p.name):
       sub = []
-      p = self
 
       # Users can either provide a single rnn_cell_tpl or one per layer.
       # If only one is provided, we replicate it for each layer.
@@ -215,4 +207,57 @@ class RnnStackStep(object):
       stack_params.sub = sub
       stack_params.residual_start = p.residual_start
       stack_params.residual_stride = p.residual_stride
-      return stack_params.Instantiate()
+      self.CreateChild('stack', stack_params)
+
+  def PrepareExternalInputs(self, theta, external_inputs):
+    """Delegates external inputs preparation to sub-layers.
+
+    Args:
+      theta: A `.NestedMap` object containing weight values of this layer and
+        its children layers.
+      external_inputs: A `.NestedMap` object. The structure of the internal
+        fields is defined by the sub-steps.
+
+    Returns:
+      A `.NestedMap` containing a pre-processed version of the external_inputs,
+      one per sub-step.
+    """
+    return self.stack.PrepareExternalInputs(theta.stack, external_inputs)
+
+  def ZeroState(self, theta, external_inputs, batch_size):
+    """Computes a zero state for each sub-step.
+
+    Args:
+      theta: A `.NestedMap` object containing weight values of this layer and
+        its children layers.
+      external_inputs: An output from PrepareExternalInputs.
+      batch_size: The number of items in the batch that FProp will process.
+
+    Returns:
+      A `.NestedMap` containing a state0 object for each sub-step.
+    """
+    return self.stack.ZeroState(theta.stack, external_inputs, batch_size)
+
+  def FProp(self, theta, external_inputs, step_inputs, padding, state0):
+    """Performs inference on the stack of sub-steps.
+
+    See the documentation for StackStep for the particulars of passing context
+    information to layers.
+
+    Args:
+      theta: A `.NestedMap` object containing weight values of this layer and
+        its children layers.
+      external_inputs: An output from PrepareExternalInputs.
+      step_inputs: A `.NestedMap` containing a list called 'inputs', an
+        optionally a tensor called 'context'.
+      padding: A 0/1 float tensor of shape [batch_size]; 1.0 means that this
+        batch element is empty in this step.
+      state0: The previous recurrent state.
+
+    Returns:
+      output and state1:
+      output: A `.NestedMap` containing the output of the top-most step.
+      state1: The recurrent state to feed to the next invocation of this graph.
+    """
+    return self.stack.FProp(theta.stack, external_inputs, step_inputs, padding,
+                            state0)
