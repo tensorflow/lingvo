@@ -175,7 +175,6 @@ class BatchNormLayer(base_layer.BaseLayer):
     if paddings is None:
       paddings = self._GetDefaultPaddings(inputs)
     inputs = py_utils.with_dependencies([
-        py_utils.assert_shape_match([tf.shape(inputs)[-1]], [p.dim]),
         py_utils.assert_shape_match([tf.shape(paddings)[-1]], [1]),
     ], inputs)
     with tf.name_scope(p.name):
@@ -250,8 +249,10 @@ class BatchNormLayer(base_layer.BaseLayer):
       with tf.control_dependencies([
           py_utils.assert_greater_equal(norm_variance,
                                         tf.zeros_like(norm_variance)),
-          py_utils.assert_shape_match([p.dim], tf.shape(norm_mean)),
-          py_utils.assert_shape_match([p.dim], tf.shape(norm_variance)),
+          py_utils.assert_shape_match([tf.shape(inputs)[-1]],
+                                      tf.shape(norm_mean)),
+          py_utils.assert_shape_match([tf.shape(inputs)[-1]],
+                                      tf.shape(norm_variance)),
       ]):
         bn_output = tf.nn.batch_normalization(inputs, norm_mean, norm_variance,
                                               beta, gamma, self._epsilon)

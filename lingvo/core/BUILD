@@ -544,6 +544,7 @@ py_library(
         ":base_layer",
         ":bn_layers",
         ":py_utils",
+        ":symbolic",
         ":tshape",
         "//lingvo:compat",
     ],

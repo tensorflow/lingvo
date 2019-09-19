@@ -23,6 +23,7 @@ import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import bn_layers
 from lingvo.core import py_utils
+from lingvo.core import symbolic
 from lingvo.core import tshape
 
 
@@ -186,7 +187,10 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
           py_utils.assert_shape_match(tf.shape(paddings), [-1, -1]),
           py_utils.assert_shape_match(
               tf.shape(inputs),
-              tf.concat([tf.shape(paddings), [-1, self.input_channels]], 0))
+              tf.concat([
+                  tf.shape(paddings),
+                  [-1, symbolic.ToStatic(self.input_channels)]
+              ], 0))
       ], inputs)
 
       def _ApplyPadding(tensor_in, padding_in):
@@ -209,7 +213,8 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
       # Assuming padded nodes will be properly zero-ed out if necessary by
       # sub-sequent layers.
       # out = _ApplyPadding(out, conv_padding)
-      out = py_utils.HasShape(out, self.OutShape(tf.shape(inputs)))
+      out = py_utils.HasShape(
+          out, symbolic.ToStatic(self.OutShape(tf.shape(inputs))))
       return out, conv_padding
 
   def _ApplyConv(self, theta, conv_input):
