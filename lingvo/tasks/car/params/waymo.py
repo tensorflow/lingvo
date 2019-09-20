@@ -460,6 +460,14 @@ class StarNetPedFused(StarNetPed):
   @classmethod
   def _configure_input(cls, p, split):
     p = super(StarNetPedFused, cls)._configure_input(p, split)
+
+    job_type = cluster_factory.Current().job
+
+    if job_type.startswith('trainer') and not cls.RUN_LOCALLY:
+      p.file_buffer_size = 48
+      p.file_parallelism = 48
+      p.num_batcher_threads = 48
+
     # Fuses select_centers and gather_features into one sampler.
     p.preprocessors.Define(
         'sampler',
