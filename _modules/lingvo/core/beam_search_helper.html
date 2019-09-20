@@ -372,6 +372,13 @@
         <span class="s1">&#39;dimension, and the gathers are performed along the second-to-major &#39;</span>
         <span class="s1">&#39;dimension.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;batch_major_compute&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, the target batch dimension &#39;</span>
+        <span class="s1">&#39;is organized as num_beams by num_hyps_per_beam during the &#39;</span>
+        <span class="s1">&#39;ExtendStep computation and the cache is stored following this order. &#39;</span>
+        <span class="s1">&#39;So the topk indices into the cache for ReOrderHyps needs to be &#39;</span>
+        <span class="s1">&#39;reordered before usage. Otherwise, the indices will be directly used &#39;</span>
+        <span class="s1">&#39;without extra transformation.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;local_eos_threshold&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mf">100.0</span><span class="p">,</span>
         <span class="s1">&#39;During beam search, allow &lt;/s&gt; to terminate a hyp if the local score &#39;</span>
         <span class="s1">&#39;for &lt;/s&gt; is greater than local_eos_threshold.&#39;</span><span class="p">)</span>
@@ -461,6 +468,19 @@
     <span class="n">old_hyp_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">out_prev_hyps</span><span class="p">,</span> <span class="n">begin</span><span class="o">=</span><span class="p">[</span><span class="n">cur_step</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_major_compute</span><span class="p">:</span>
+      <span class="c1"># Transformed the indices into the key/value cache for fast decoding</span>
+      <span class="c1"># (prefix_states in other_states) due to the num_hyps dimension of</span>
+      <span class="c1"># cache is computed as num_beams by num_hyps_per_beam, which is different</span>
+      <span class="c1"># from the old_hyp_ids assumption (num_hyps_per_beam by num_beams).</span>
+      <span class="c1"># Both transpose and recomputation are required to correct the indices.</span>
+      <span class="n">num_beams</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">best_scores</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">old_hyp_ids_in_cache_order</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">old_hyp_ids</span><span class="p">,</span> <span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">old_hyp_ids_in_cache_order</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="p">(</span><span class="n">old_hyp_ids_in_cache_order</span> <span class="o">%</span> <span class="n">num_beams</span><span class="p">)</span> <span class="o">*</span> <span class="n">num_hyps_per_beam</span> <span class="o">+</span>
+          <span class="n">old_hyp_ids_in_cache_order</span> <span class="o">//</span> <span class="n">num_beams</span><span class="p">)</span>
+
     <span class="n">new_bs_states</span> <span class="o">=</span> <span class="p">(</span><span class="n">out_best_scores</span><span class="p">,</span> <span class="n">out_cumulative_scores</span><span class="p">,</span> <span class="n">out_scores</span><span class="p">,</span>
                      <span class="n">out_hyps</span><span class="p">,</span> <span class="n">out_prev_hyps</span><span class="p">,</span> <span class="n">out_done_hyps</span><span class="p">,</span> <span class="n">out_atten_probs</span><span class="p">)</span>
 
@@ -469,7 +489,12 @@
       <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">x_in</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">and</span>
           <span class="n">x_in</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">x_in</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_major_state</span><span class="p">:</span>
-          <span class="n">x_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">old_hyp_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+          <span class="c1"># Use corrected indices only here for batch major compute as key/value</span>
+          <span class="c1"># caches are the states being affected.</span>
+          <span class="n">correct_old_hyp_ids</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">old_hyp_ids_in_cache_order</span>
+              <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_major_compute</span> <span class="k">else</span> <span class="n">old_hyp_ids</span><span class="p">)</span>
+          <span class="n">x_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">correct_old_hyp_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">x_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">old_hyp_ids</span><span class="p">)</span>
         <span class="n">x_out</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">x_in</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
