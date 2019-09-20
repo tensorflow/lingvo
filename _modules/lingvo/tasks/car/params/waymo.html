@@ -605,6 +605,14 @@
 <div class="viewcode-block" id="StarNetPedFused._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetPedFused._configure_input">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedFused</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">)</span>
+
+    <span class="n">job_type</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">job</span>
+
+    <span class="k">if</span> <span class="n">job_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">RUN_LOCALLY</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">48</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">48</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">48</span>
+
     <span class="c1"># Fuses select_centers and gather_features into one sampler.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;sampler&#39;</span><span class="p">,</span>
