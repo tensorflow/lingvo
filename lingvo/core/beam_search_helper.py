@@ -227,6 +227,13 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'dimension, and the gathers are performed along the second-to-major '
         'dimension.')
     p.Define(
+        'batch_major_compute', False, 'If True, the target batch dimension '
+        'is organized as num_beams by num_hyps_per_beam during the '
+        'ExtendStep computation and the cache is stored following this order. '
+        'So the topk indices into the cache for ReOrderHyps needs to be '
+        'reordered before usage. Otherwise, the indices will be directly used '
+        'without extra transformation.')
+    p.Define(
         'local_eos_threshold', -100.0,
         'During beam search, allow </s> to terminate a hyp if the local score '
         'for </s> is greater than local_eos_threshold.')
@@ -316,6 +323,19 @@ class BeamSearchHelper(base_layer.BaseLayer):
     old_hyp_ids = tf.reshape(
         tf.slice(out_prev_hyps, begin=[cur_step, 0], size=[1, -1]), [-1])
 
+    if p.batch_major_compute:
+      # Transformed the indices into the key/value cache for fast decoding
+      # (prefix_states in other_states) due to the num_hyps dimension of
+      # cache is computed as num_beams by num_hyps_per_beam, which is different
+      # from the old_hyp_ids assumption (num_hyps_per_beam by num_beams).
+      # Both transpose and recomputation are required to correct the indices.
+      num_beams = tf.shape(best_scores)[0]
+      old_hyp_ids_in_cache_order = tf.reshape(
+          tf.transpose(tf.reshape(old_hyp_ids, [num_hyps_per_beam, -1])), [-1])
+      old_hyp_ids_in_cache_order = (
+          (old_hyp_ids_in_cache_order % num_beams) * num_hyps_per_beam +
+          old_hyp_ids_in_cache_order // num_beams)
+
     new_bs_states = (out_best_scores, out_cumulative_scores, out_scores,
                      out_hyps, out_prev_hyps, out_done_hyps, out_atten_probs)
 
@@ -324,7 +344,12 @@ class BeamSearchHelper(base_layer.BaseLayer):
       if (isinstance(x_in, tf.Tensor) and x_in.shape.ndims and
           x_in.shape.ndims > 0):
         if x_in.shape.ndims > 2 and not p.batch_major_state:
-          x_out = tf.gather(x_in, old_hyp_ids, axis=1)
+          # Use corrected indices only here for batch major compute as key/value
+          # caches are the states being affected.
+          correct_old_hyp_ids = (
+              old_hyp_ids_in_cache_order
+              if p.batch_major_compute else old_hyp_ids)
+          x_out = tf.gather(x_in, correct_old_hyp_ids, axis=1)
         else:
           x_out = tf.gather(x_in, old_hyp_ids)
         x_out.set_shape(x_in.get_shape())
