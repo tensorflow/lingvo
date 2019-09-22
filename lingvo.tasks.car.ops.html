@@ -353,20 +353,43 @@ padding: A <code class="xref py py-obj docutils literal notranslate"><span class
 
 <dl class="function">
 <dt id="lingvo.tasks.car.ops.v">
-<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">*args</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>Decorator for marking endpoints deprecated.</p>
-<p>This decorator does not print deprecation messages.
-TODO(annarev): eventually start printing deprecation warnings when
-&#64;deprecation_endpoints decorator is added.</p>
+<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">iou_threshold</em>, <em class="sig-param">groundtruth_bbox</em>, <em class="sig-param">groundtruth_imageid</em>, <em class="sig-param">groundtruth_ignore</em>, <em class="sig-param">prediction_bbox</em>, <em class="sig-param">prediction_imageid</em>, <em class="sig-param">prediction_ignore</em>, <em class="sig-param">prediction_score</em>, <em class="sig-param">num_recall_points=1</em>, <em class="sig-param">algorithm='KITTI'</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes average precision for 3D bounding boxes.</p>
+<p>The output PR is sorted by recall in descending order. When there isn’t enough
+data for num_recall_points + 1 sample points, this tensor will be zero-padded.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>*args</strong> – Deprecated endpoint names.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>iou_threshold</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. IoU threshold.</p></li>
+<li><p><strong>groundtruth_bbox</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+[N, 7]. N ground truth bounding boxes.</p></li>
+<li><p><strong>groundtruth_imageid</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+[N]. N image ids for ground truth bounding boxes.</p></li>
+<li><p><strong>groundtruth_ignore</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+[N]. Valid values are 0 - Don’t ignore; 1 - Ignore the
+first match; 2 - Ignore all matches.</p></li>
+<li><p><strong>prediction_bbox</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+[M, 7]. M predicted bounding boxes.</p></li>
+<li><p><strong>prediction_imageid</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+[M]. M image ids for the predicted bounding boxes.</p></li>
+<li><p><strong>prediction_ignore</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+[N]. The ignore types for predictions. Currently only used by
+the KITTI AP. Valid values are 0 - Don’t ignore; 1 - Ignore the first match.</p></li>
+<li><p><strong>prediction_score</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+[M]. M scores for each predicted bounding box.</p></li>
+<li><p><strong>num_recall_points</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> that is <code class="xref py py-obj docutils literal notranslate"><span class="pre">&gt;=</span> <span class="pre">1</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+<li><p><strong>algorithm</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;KITTI&quot;</span></code>.
+string. One of [“KITTI”, “VOC”]. See this paper “Supervised
+learning and evaluation of KITTI’s cars detector with DPM”, Section III.A for
+the differences between KITTI AP and VOC AP.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A function that takes symbol as an argument and adds
-_tf_deprecated_api_names to that symbol.
-_tf_deprecated_api_names would be set to a list of deprecated
-endpoint names for the symbol.</p>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (average_precision, precision_recall).</p>
+<p>average_precision: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. A scalar. The AP metric.
+precision_recall: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [num_recall_points, 2]. List of PR points.</p>
+</p>
 </dd>
 </dl>
 </dd></dl>
