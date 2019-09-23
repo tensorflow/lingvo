@@ -351,53 +351,6 @@ padding: A <code class="xref py py-obj docutils literal notranslate"><span class
 </dl>
 </dd></dl>
 
-<dl class="function">
-<dt id="lingvo.tasks.car.ops.v">
-<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">bboxes</em>, <em class="sig-param">scores</em>, <em class="sig-param">nms_iou_threshold</em>, <em class="sig-param">score_threshold</em>, <em class="sig-param">max_boxes_per_class</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.v" title="Permalink to this definition">¶</a></dt>
-<dd><p>Greedily selects the top subset of 3D (7 DOF format) bounding boxes per class.</p>
-<p>This implementation is rotation and class aware, and for each class takes the
-best boxes that are above our score_threshold and also don’t overlap more than
-our nms_iou_threshold with any better scoring boxes.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>bboxes</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
-A tf.float32 Tensor of shape [num_bboxes, 7] where the box is of
-format [center_x, center_y, center_z, dim_x, dim_y, dim_z, heading].</p></li>
-<li><p><strong>scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
-A tf.float32 Tensor of shape [num_bboxes, num_classes] with a score
-per box for each class.</p></li>
-<li><p><strong>nms_iou_threshold</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
-A tf.float32 Tensor of shape [num_classes] specifying the
-max overlap between two boxes we allow before saying these boxes overlap,
-and suppressing one of them.</p></li>
-<li><p><strong>score_threshold</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
-A tf.float32 Tensor of shape [num_classes] specifying the
-minimum class score (per class) a box can have before it is removed.</p></li>
-<li><p><strong>max_boxes_per_class</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
-An integer specifying how many (at most) boxes to
-return for each class.</p></li>
-<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (bbox_indices, bbox_scores, valid_mask).</p>
-<dl class="simple">
-<dt>bbox_indices: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A tf.int32 Tensor of shape</dt><dd><p>[num_classes, max_boxes_per_class] with the indices of selected boxes
-for each class.</p>
-</dd>
-<dt>bbox_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. A tf.float32 Tensor of shape</dt><dd><p>[num_classes, max_boxes_per_class] with the score of selected boxes
-for each class.</p>
-</dd>
-<dt>valid_mask: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. A tf.float32 Tensor of shape</dt><dd><p>[num_classes, max_boxes_per_class] with a 1 for a valid box and a 0
-for invalid boxes for each class.</p>
-</dd>
-</dl>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
 </div>
 
 
