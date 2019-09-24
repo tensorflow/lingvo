@@ -4,7 +4,7 @@ package(
     default_visibility = ["//visibility:public"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 exports_files(["LICENSE"])
 
@@ -297,6 +297,7 @@ py_library(
         "//lingvo/core:cluster_factory",
         "//lingvo/core:inference_graph_exporter",
         "//lingvo/core:metrics",
+        "//lingvo/core:multitask_model",
         "//lingvo/core:program_lib",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.

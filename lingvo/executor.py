@@ -26,6 +26,7 @@ from lingvo import compat as tf
 from lingvo.core import base_model
 from lingvo.core import checkpointer
 from lingvo.core import cluster_factory
+from lingvo.core import multitask_model
 from lingvo.core import py_utils
 from lingvo.core import task_scheduler
 
@@ -133,6 +134,8 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     self.task_scheduler = None
 
+    self._variable_renaming_rules = []
+
     # If this is a multi-task model, grab the params for the TaskScheduler.
     if issubclass(train_cfg.cls, base_model.SingleTaskModel):
       tf.logging.info('single_task_model')
@@ -141,6 +144,10 @@ class ExecutorTpu(base_runner.BaseRunner):
       self._single_task_mode = True
     elif issubclass(train_cfg.cls, base_model.MultiTaskModel):
       tf.logging.info('multi_task_model')
+
+      if issubclass(train_cfg.cls, multitask_model.RegExSharedVariableModel):
+        self._variable_renaming_rules = train_cfg.variable_renaming_rules
+
       if train_cfg.task_schedule is None:
         task_schedule_params = task_scheduler.ConstantScheduler.Params()
         task_schedule_params.task_probs = sorted(
@@ -217,10 +224,11 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.job_spec.name):
-        for program in self._programs:
-          program.BuildTpuSubgraph()
-        self.initialize_tables = tf.tables_initializer()
-        self._initialize_local_vars = tf.local_variables_initializer()
+        with py_utils.VariableRenameScope(self._variable_renaming_rules):
+          for program in self._programs:
+            program.BuildTpuSubgraph()
+          self.initialize_tables = tf.tables_initializer()
+          self._initialize_local_vars = tf.local_variables_initializer()
 
         self._checkpoint_dir = os.path.join(logdir, 'train')
         self.save_only_checkpointer = checkpointer.Checkpointer(
