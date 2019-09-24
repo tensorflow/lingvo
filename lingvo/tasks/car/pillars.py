@@ -56,48 +56,82 @@ def SparseToDense(grid_shape, locations, feats):
   return tf.reshape(grid, [b, nx, ny, nz * fdims])
 
 
-def ProcessPillars(input_batch, num_laser_features, featurizer,
-                   theta_featurizer):
-  """Compute features for the pillars and convert them back to a dense grid.
+class PointsToGridFeaturizer(base_layer.BaseLayer):
+  """Layer for processing points to grid outputs."""
 
-  Args:
-    input_batch: A `.NestedMap` object containing input tensors.
-    num_laser_features: Number of laser features (excluding pillar features)
-    featurizer: The featurizer layer.
-    theta_featurizer: The weights for featurizer.
+  @classmethod
+  def Params(cls, num_laser_features):
+    p = super(PointsToGridFeaturizer, cls).Params()
+    p.Define('num_laser_features', num_laser_features,
+             'The number of (non-xyz) laser features of the input.')
 
-  Returns:
+    builder = Builder()
+    total_num_laser_features = 9 + num_laser_features
+    p.Define('featurizer',
+             builder.Featurizer('feat', [total_num_laser_features, 64]),
+             'Point cloud feature extractor.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(PointsToGridFeaturizer, self).__init__(params)
+    p = self.params
+    with tf.variable_scope(p.name):
+      self.CreateChild('featurizer', p.featurizer)
+
+  def FProp(self, theta, input_batch):
+    # pyformat: disable
+    """Compute features for the pillars and convert them back to a dense grid.
+
+    Args:
+      theta: A `.NestedMap` object containing variable values of this task.
+      input_batch: A `.NestedMap` object containing input tensors. Following
+        keys are required:
+
+        - grid_num_points: Integer tensor with shape [batch size, nx, ny, nz],
+          where nx, ny, nz corresponds to the grid sizes (i.e., number of voxels
+          in each axis dimension).
+        - pillar_points: Float tensor with shape [batch size, num_pillars,
+          num_points_per_pillar, 3 + num_laser_features]
+        - pillar_centers: Float tensor with shape [batch size, num_pillars,
+          num_points_per_pillar, 3]
+        - pillar_locations: Float tensor with shape [batch size, num_pillars, 3]
+
+    Returns:
       The dense features with shape [b, nx, ny, nz * fdims].
-  """
-  bs, nx, ny, nz = py_utils.GetShape(input_batch.grid_num_points, 4)
-  # Process points to concatenate a set of fixed features (e.g.,
-  # add means, centers, normalize points to means).
-  num_features = 3 + num_laser_features
-  pillar_points = py_utils.HasShape(input_batch.pillar_points,
-                                    [bs, -1, -1, num_features])
-  _, npillars, npoints, _ = py_utils.GetShape(pillar_points, 4)
-  pillar_xyz = pillar_points[..., :3]
-  pillar_means = tf.reduce_mean(pillar_xyz, axis=2, keep_dims=True)
-  pillar_feats = pillar_points[..., 3:]
-  pillar_centers = py_utils.HasShape(input_batch.pillar_centers, [bs, -1, 1, 3])
-  pillar_concat = tf.concat(
-      axis=3,
-      values=[
-          pillar_xyz - pillar_means, pillar_feats,
-          tf.tile(pillar_means, [1, 1, npoints, 1]),
-          tf.tile(pillar_centers, [1, 1, npoints, 1])
-      ])
-  # Featurize pillars.
-  pillar_features = featurizer.FProp(theta_featurizer, pillar_concat)
+    """
+    # pyformat: enable
+    p = self.params
+    bs, nx, ny, nz = py_utils.GetShape(input_batch.grid_num_points, 4)
+    # Process points to concatenate a set of fixed features (e.g.,
+    # add means, centers, normalize points to means).
+    num_features = 3 + p.num_laser_features
+    pillar_points = py_utils.HasShape(input_batch.pillar_points,
+                                      [bs, -1, -1, num_features])
+    _, npillars, npoints, _ = py_utils.GetShape(pillar_points, 4)
+    pillar_xyz = pillar_points[..., :3]
+    pillar_means = tf.reduce_mean(pillar_xyz, axis=2, keep_dims=True)
+    pillar_feats = pillar_points[..., 3:]
+    pillar_centers = py_utils.HasShape(input_batch.pillar_centers,
+                                       [bs, -1, 1, 3])
+    pillar_concat = tf.concat(
+        axis=3,
+        values=[
+            pillar_xyz - pillar_means, pillar_feats,
+            tf.tile(pillar_means, [1, 1, npoints, 1]),
+            tf.tile(pillar_centers, [1, 1, npoints, 1])
+        ])
+    # Featurize pillars.
+    pillar_features = self.featurizer.FProp(theta.featurizer, pillar_concat)
 
-  # Convert back to the dense grid.
-  pillar_locations = py_utils.HasShape(input_batch.pillar_locations,
-                                       [bs, npillars, 3])
-  dense_features = SparseToDense(
-      grid_shape=(nx, ny, nz),
-      locations=pillar_locations,
-      feats=pillar_features)
-  return dense_features
+    # Convert back to the dense grid.
+    pillar_locations = py_utils.HasShape(input_batch.pillar_locations,
+                                         [bs, npillars, 3])
+    dense_features = SparseToDense(
+        grid_shape=(nx, ny, nz),
+        locations=pillar_locations,
+        feats=pillar_features)
+    return dense_features
 
 
 # pyformat: disable
@@ -110,9 +144,9 @@ class Builder(builder_lib.ModelBuilderBase):
     self.linear_params_init = py_utils.WeightInit.KaimingUniformFanInRelu()
     self.bn_params_init = py_utils.WeightInit.UniformPositive()
 
-  def Featurizer(self, dims):
+  def Featurizer(self, name, dims):
     return self._Seq(
-        'feat',
+        name,
         self._MLP('mlp', dims),
         self._Max('max'))
 
@@ -217,24 +251,6 @@ class ModelV1(point_detector.PointDetectorBase):
 
   NUM_OUTPUT_CHANNELS = 128
 
-  NEEDED_INPUT_BATCH_FIELDS_FOR_TRAINING = {
-      'grid_num_points',
-      'pillar_points',
-      'pillar_locations',
-      'pillar_centers',
-      'anchor_bboxes',
-      'anchor_localization_residuals',
-      'assigned_gt_labels',
-      'assigned_cls_mask',
-      'assigned_reg_mask',
-      'assigned_gt_bbox',
-      'labels.bboxes_td',
-      'labels.bboxes_td_mask',
-      'labels.bboxes_3d_mask',
-      'labels.bboxes_3d_num_points',
-      'labels.bboxes_3d',
-  }
-
   @classmethod
   def Params(cls,
              grid_size_z=1,
@@ -246,12 +262,11 @@ class ModelV1(point_detector.PointDetectorBase):
     p.Define('num_anchors', num_anchors, 'The number of anchor boxes.')
     p.Define('num_laser_features', num_laser_features,
              'The number of (non-xyz) laser features of the input.')
-    builder = Builder()
-
-    total_num_laser_features = 9 + num_laser_features
-
-    p.Define('featurizer', builder.Featurizer([total_num_laser_features, 64]),
+    p.Define('input_featurizer',
+             PointsToGridFeaturizer.Params(num_laser_features),
              'Point cloud feature extractor.')
+
+    builder = Builder()
     p.Define('backbone', builder.Backbone(cls.NUM_OUTPUT_CHANNELS),
              'Dense features pyramid.')
     # Backbone() concatenates 3 different scales of features.
@@ -328,7 +343,7 @@ class ModelV1(point_detector.PointDetectorBase):
     self._utils = detection_3d_lib.Utils3D()
 
     with tf.variable_scope(p.name):
-      self.CreateChild('featurizer', p.featurizer)
+      self.CreateChild('input_featurizer', p.input_featurizer)
       self.CreateChild('backbone', p.backbone)
       self.CreateChild('class_detector', p.class_detector)
       self.CreateChild('regression_detector', p.regression_detector)
@@ -349,9 +364,10 @@ class ModelV1(point_detector.PointDetectorBase):
     p = self.params
     input_batch.Transform(lambda x: (x.shape, x.shape.num_elements())).VLog(
         0, 'input_batch shapes: ')
-    # Featurize pillars and convert back to dense grid.
-    dense_features = ProcessPillars(input_batch, p.num_laser_features,
-                                    self.featurizer, theta.featurizer)
+
+    # Make pillars representation from input_batch.
+    dense_features = self.input_featurizer.FProp(theta.input_featurizer,
+                                                 input_batch)
 
     # Backbone
     tf.logging.vlog(1, 'dense_features.shape = %s', dense_features.shape)
