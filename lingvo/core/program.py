@@ -115,15 +115,15 @@ class BaseProgram(object):
     Specific to TPU execution, this may involve a
     @tpu_function.on_device_training_loop etc.
     """
-    pass
+    raise NotImplementedError()
 
   def Run(self, sess):
     """Execute the program using the given session handle."""
-    pass
+    raise NotImplementedError()
 
   def RestoreIfNeeded(self, sess):
     """Restore from checkpoint if necessary."""
-    pass
+    raise NotImplementedError()
 
 
 class TrainProgram(BaseProgram):
@@ -382,9 +382,11 @@ class EvalProgram(BaseProgram):
 
       return self.tpu_ops
 
+  def RestoreIfNeeded(self, sess):
+    self._checkpointer.RestoreIfNeeded(sess)
+
   def Run(self, sess):
     tf.logging.info('Executing eval program for %s.', self._task_name)
-    self._checkpointer.RestoreIfNeeded(sess)
     gsteps = py_utils.GetGlobalStep()
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
@@ -441,9 +443,11 @@ class DecodeProgram(BaseProgram):
     self.metrics = self.metrics.Pack(batch_parallel_res)
     return None
 
+  def RestoreIfNeeded(self, sess):
+    self._checkpointer.RestoreIfNeeded(sess)
+
   def Run(self, sess):
     tf.logging.info('Executing decode program for %s.', self._task_name)
-    self._checkpointer.RestoreIfNeeded(sess)
     gsteps = py_utils.GetGlobalStep()
     global_step = sess.run(gsteps)
 
