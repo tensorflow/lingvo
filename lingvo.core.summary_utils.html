@@ -254,9 +254,13 @@
 source_len] where attention[i, j, k] is the probability for the i-th
 output attending to the k-th input for element j in the batch.</p></li>
 <li><p><strong>src_paddings</strong> – A tensor of binary paddings shaped [source_len, batch] for the
-source sequence.</p></li>
+source sequence. Or a list of tensors of the same length as
+attention_tensors with a separate paddings for each entry in
+attention_tensors.</p></li>
 <li><p><strong>tgt_paddings</strong> – A tensor of binary paddings shaped [target_len, batch] for the
-target sequence.</p></li>
+target sequence. Or a list of tensors of the same length as
+attention_tensors with a separate paddings for each entry in
+attention_tensors.</p></li>
 <li><p><strong>transcripts</strong> – Optional, transcripts shaped [batch, source_len] for the source
 sequence.</p></li>
 <li><p><strong>max_outputs</strong> – Integer maximum number of elements of the batch to plot.</p></li>
@@ -278,9 +282,13 @@ axis 0.</p>
 source_len] where attention[b, i, j] is the probability for the i-th
 output attending to the j-th input for element b in the batch.</p></li>
 <li><p><strong>src_paddings</strong> – A tensor of binary paddings shaped [batch, source_len] for the
-source sequence.</p></li>
+source sequence. Or a list of tensors of the same length as
+attention_tensors with a separate paddings for each entry in
+attention_tensors.</p></li>
 <li><p><strong>tgt_paddings</strong> – A tensor of binary paddings shaped [batch, target_len] for the
-target sequence.</p></li>
+target sequence. Or a list of tensors of the same length as
+attention_tensors with a separate paddings for each entry in
+attention_tensors.</p></li>
 <li><p><strong>transcripts</strong> – Optional, transcripts shaped [batch, source_len] for the source
 sequence.</p></li>
 <li><p><strong>max_outputs</strong> – Integer maximum number of elements of the batch to plot.</p></li>
