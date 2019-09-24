@@ -234,6 +234,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">io</span>
 <span class="kn">import</span> <span class="nn">os</span>
 
@@ -241,7 +242,6 @@
 <span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">flags</span>
 <span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">logging</span>
 
-<span class="kn">import</span> <span class="nn">contextlib2</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car.tools</span> <span class="k">import</span> <span class="n">kitti_data</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -384,7 +384,7 @@
       <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_shards</span><span class="p">)</span>
   <span class="p">]</span>
 
-  <span class="k">with</span> <span class="n">contextlib2</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">exit_stack</span><span class="p">:</span>
+  <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">exit_stack</span><span class="p">:</span>
     <span class="n">tf_record_writers</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">exit_stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">TFRecordWriter</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">tf_record_output_filenames</span>
