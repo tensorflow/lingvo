@@ -249,6 +249,7 @@ py_test(
         ":hyps_py_pb2",
         ":ops",
         # Implicit python proto dependency.
+        "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
@@ -273,6 +274,7 @@ py_test(
     ],
     deps = [
         ":ops",
+        "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         # Implicit tensorflow dependency.
@@ -293,6 +295,7 @@ py_test(
     srcs = ["functional_ops_test.py"],
     deps = [
         ":ops",
+        "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
@@ -312,6 +315,8 @@ py_test(
     name = "generic_input_op_test",
     srcs = ["generic_input_op_test.py"],
     deps = [
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -335,6 +340,7 @@ py_test(
     srcs = ["random_ops_test.py"],
     deps = [
         ":ops",
+        "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit six dependency.
         # Implicit tensorflow dependency.

@@ -176,7 +176,6 @@ py_library(
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
         # Implicit tensorflow grpc dependency.
     ],
 )
@@ -263,6 +262,7 @@ lingvo_py_binary(
     deps = [
         ":model_imports",  # build_cleaner: keep
         ":trainer_lib",  # build_cleaner: keep
+        # Implicit absl.app dependency.
         "//lingvo/core:predictor_lib",  # build_cleaner: keep
         "//lingvo/core/ops:hyps_py_pb2",  # build_cleaner: keep
     ],
@@ -287,23 +287,14 @@ py_library(
     srcs = ["executor.py"],
     deps = [
         ":base_runner",
-        ":base_trial",
-        ":model_imports_no_params",
-        ":model_registry",
+        ":compat",
         # Implicit network file system dependency.
-        # Implicit IPython dependency.
         "//lingvo/core:base_model",
-        "//lingvo/core:base_model_params",
+        "//lingvo/core:checkpointer_lib",
         "//lingvo/core:cluster_factory",
-        "//lingvo/core:inference_graph_exporter",
-        "//lingvo/core:metrics",
         "//lingvo/core:multitask_model",
-        "//lingvo/core:program_lib",
         "//lingvo/core:py_utils",
-        # Implicit numpy dependency.
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
-        # Implicit tensorflow py proto dependency.
+        "//lingvo/core:task_scheduler",
         # Implicit tensorflow grpc dependency.
     ],
 )

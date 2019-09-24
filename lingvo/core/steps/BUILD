@@ -13,10 +13,9 @@ py_library(
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
-        "//lingvo/core:builder_layers",
         "//lingvo/core:layers",
         "//lingvo/core:py_utils",
-        "//lingvo/core:rnn_cell",
+        "//lingvo/core:step",
     ],
 )
 
@@ -28,8 +27,6 @@ py_test(
         ":embedding_steps",
         "//lingvo:compat",
         "//lingvo/core:py_utils",
-        "//lingvo/core:recurrent",
-        "//lingvo/core:step",
         "//lingvo/core:test_utils",
     ],
 )
@@ -41,9 +38,9 @@ py_library(
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
-        "//lingvo/core:builder_layers",
         "//lingvo/core:py_utils",
         "//lingvo/core:rnn_cell",
+        "//lingvo/core:step",
     ],
 )
 
@@ -56,7 +53,6 @@ py_test(
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:recurrent",
-        "//lingvo/core:step",
         "//lingvo/core:test_utils",
     ],
 )

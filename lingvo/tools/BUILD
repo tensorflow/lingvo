@@ -111,6 +111,7 @@ py_test(
     data = ["//lingvo/tasks/mt/testdata:wmt14_ende_tfexample"],
     deps = [
         ":beam_utils",
+        # Implicit apache_beam dependency.
         "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",

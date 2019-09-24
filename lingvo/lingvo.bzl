@@ -72,7 +72,7 @@ def custom_kernel_library(name, op_def_lib, srcs, hdrs = [], deps = []):
         alwayslink = 1,
     )
 
-def gen_op_cclib(name, srcs, deps):
+def gen_op_cclib(name, srcs, deps = []):
     # TODO(drpng): gpu.
     native.cc_library(
         name = name,

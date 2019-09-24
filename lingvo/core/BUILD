@@ -164,7 +164,6 @@ py_library(
         ":cluster_factory",
         ":hyperparams",
         ":py_utils",
-        ":symbolic",
         "//lingvo:compat",
         # Implicit six dependency.
     ],
@@ -365,9 +364,7 @@ py_test(
     srcs = ["datasource_test.py"],
     deps = [
         ":datasource",
-        ":hyperparams",
-        ":test_helper",
-        ":test_utils",
+        ":py_utils",
         "//lingvo:compat",
     ],
 )
@@ -579,6 +576,7 @@ py_library(
         ":layers",
         ":py_utils",
         ":quant_utils",
+        ":symbolic",
         ":test_utils",
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
@@ -731,7 +729,6 @@ py_library(
         "//lingvo:compat",
         "//lingvo:model_imports_no_params",
         # Implicit six dependency.
-        # Implicit tensorflow py proto dependency.
     ],
 )
 
@@ -741,12 +738,11 @@ lingvo_py_binary(
     python_version = "PY3",
     srcs_version = "PY2AND3",
     deps = [
-        ":predictor_lib",
+        ":inference_graph_py_pb2",
         ":py_utils",
         "//lingvo:compat",
         "//lingvo:model_imports_no_params",
         # Implicit six dependency.
-        # Implicit tensorflow py proto dependency.
     ],
 )
 
@@ -812,6 +808,7 @@ py_test(
         "//lingvo:compat",
         "//lingvo:model_registry",
         "//lingvo/tasks/image/params:mnist",
+        # Implicit mock dependency.
         # Implicit numpy dependency.
         # Implicit six dependency.
     ],
@@ -938,6 +935,7 @@ py_test(
         ":layers",
         ":py_utils",
         ":test_utils",
+        ":tshape",
         "//lingvo:compat",
         # Implicit six dependency.
     ],
@@ -980,7 +978,6 @@ py_library(
         "//lingvo:compat",
         # Implicit numpy dependency.
         # Implicit six dependency.
-        # Implicit tensorflow python framework_for_generated_wrappers dependency.
     ],
 )
 
@@ -1122,6 +1119,7 @@ py_library(
     srcs = ["wpm_encoder.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":py_utils",
         "//lingvo:compat",
         "//lingvo/core/ops",
         # Implicit six dependency.
@@ -1232,7 +1230,6 @@ py_library(
     deps = [
         ":attention",
         ":base_layer",
-        ":hyperparams",
         ":layers",
         ":layers_with_attention",
         ":py_utils",
@@ -1383,7 +1380,7 @@ py_library(
     srcs = ["checkpointer.py"],
     deps = [
         ":py_utils",
-        # Implicit tensorflow dependency.
+        "//lingvo:compat",
     ],
 )
 
@@ -1394,8 +1391,9 @@ py_library(
         ":checkpointer_lib",
         ":hyperparams",
         ":metrics",
+        ":py_utils",
+        "//lingvo:compat",
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
         # Implicit tensorflow grpc dependency.
     ],
 )
@@ -1405,7 +1403,7 @@ py_library(
     srcs = ["model_pruning/hparam.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "//lingvo:compat",
+        # Implicit six dependency.
     ],
 )
 
@@ -1458,6 +1456,7 @@ py_test(
     deps = [
         ":pruning",
         "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
 
@@ -1469,7 +1468,6 @@ py_library(
         ":base_layer",
         ":builder_layers",
         ":py_utils",
-        ":rnn_cell",
         "//lingvo:compat",
     ],
 )
@@ -1479,7 +1477,9 @@ py_test(
     size = "small",
     srcs = ["step_test.py"],
     deps = [
+        ":base_layer",
         ":builder_layers",
+        ":py_utils",
         ":step",
         ":test_utils",
         "//lingvo:compat",

@@ -26,8 +26,8 @@ py_library(
     name = "kitti_data",
     srcs = ["kitti_data.py"],
     deps = [
+        "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 

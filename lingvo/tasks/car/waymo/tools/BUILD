@@ -10,7 +10,7 @@ py_library(
         "waymo_proto_to_tfe.py",
     ],
     deps = [
-        # Implicit Beam dependency.
+        # Implicit apache_beam dependency.
         "//lingvo:compat",
         "//lingvo/tasks/car:geometry",
         # Implicit numpy dependency.
@@ -30,7 +30,7 @@ py_binary(
         ":waymo_proto_to_tfe",
         # Implicit absl.app dependency.
         # Implicit absl.flags dependency.
-        # Implicit Beam dependency.
+        # Implicit apache_beam dependency.
         "//lingvo:compat",
         "//lingvo/tools:beam_utils",
         # Implicit Waymo Open Dataset proto dependency.

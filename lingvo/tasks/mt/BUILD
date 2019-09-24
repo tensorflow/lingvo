@@ -83,7 +83,6 @@ py_library(
         "//lingvo/core:attention",
         "//lingvo/core:base_decoder",
         "//lingvo/core:base_layer",
-        "//lingvo/core:insertion",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
         "//lingvo/core:model_helper",
@@ -94,7 +93,6 @@ py_library(
         "//lingvo/core:rnn_layers",
         "//lingvo/core:summary_utils",
         # Implicit six dependency.
-        # Implicit tensorflow python framework_for_generated_wrappers dependency.
     ],
 )
 
@@ -168,6 +166,7 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
+        "//lingvo/core:insertion",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         # Implicit six dependency.

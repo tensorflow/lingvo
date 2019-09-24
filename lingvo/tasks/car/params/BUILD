@@ -13,12 +13,14 @@ py_library(
         "//lingvo:model_registry",
         "//lingvo/core:base_model_params",
         "//lingvo/core:cluster_factory",
+        "//lingvo/core:datasource",
         "//lingvo/core:optimizer",
         "//lingvo/core:py_utils",
         "//lingvo/tasks/car:input_preprocessors",
         "//lingvo/tasks/car:kitti_input_generator",
         "//lingvo/tasks/car:lr_util",
         "//lingvo/tasks/car:starnet",
+        # Implicit numpy dependency.
     ],
 )
 

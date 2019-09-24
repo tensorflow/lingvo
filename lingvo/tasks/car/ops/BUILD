@@ -30,7 +30,6 @@ lingvo_cc_library(
 gen_op_cclib(
     name = "car_ops",
     srcs = ["car_ops.cc"],
-    deps = [],
 )
 
 gen_op_pylib(
@@ -80,8 +79,10 @@ py_test(
     srcs = ["sampling_ops_test.py"],
     deps = [
         ":ops",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
     ],
 )
 

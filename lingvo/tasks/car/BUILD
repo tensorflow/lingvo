@@ -48,7 +48,6 @@ py_test(
         ":detection_decoder",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
-        "//lingvo/tasks/car/ops",
     ],
 )
 
@@ -74,6 +73,7 @@ py_test(
     srcs = ["detection_3d_metrics_test.py"],
     deps = [
         ":detection_3d_metrics",
+        ":transform_util",
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -88,7 +88,6 @@ py_test(
         ":detection_3d_lib",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
-        "//lingvo/tasks/car/ops",
         # Implicit numpy dependency.
     ],
 )
@@ -225,7 +224,7 @@ py_test(
         ":input_extractor",
         ":input_preprocessors",
         "//lingvo:compat",
-        "//lingvo/core:py_utils",
+        "//lingvo/core:hyperparams",
         "//lingvo/core:test_utils",
     ],
 )
@@ -248,7 +247,9 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_layer",
+        "//lingvo/core:datasource",
         "//lingvo/core:generic_input",
+        "//lingvo/core:hyperparams",
         "//lingvo/core:py_utils",
     ],
 )
@@ -260,6 +261,8 @@ py_library(
     ],
     deps = [
         ":ap_metric",
+        "//lingvo:compat",
+        "//lingvo/core:py_utils",
         "//lingvo/tasks/car/ops",
         # Implicit numpy dependency.
     ],
@@ -485,6 +488,8 @@ py_library(
         ":input_preprocessors",
         ":kitti_metadata",
         "//lingvo:compat",
+        "//lingvo/core:datasource",
+        "//lingvo/core:hyperparams",
         "//lingvo/core:py_utils",
         "//lingvo/core/ops",
     ],

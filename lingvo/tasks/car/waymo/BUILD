@@ -14,7 +14,9 @@ py_test(
         ":waymo_ap_metric",
         ":waymo_metadata",
         "//lingvo:compat",
+        "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
         # Implicit Waymo Open Dataset label dependency.
         # Implicit Waymo Open Dataset metrics_proto dependency.
     ],
@@ -28,7 +30,6 @@ py_test(
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
-        "//lingvo/tasks/car/ops",
         # Implicit numpy dependency.
     ],
 )
@@ -39,6 +40,8 @@ py_library(
         "waymo_ap_metric.py",
     ],
     deps = [
+        "//lingvo:compat",
+        "//lingvo/core:py_utils",
         "//lingvo/tasks/car:ap_metric",
         # Implicit numpy dependency.
         # Implicit Waymo Open Dataset label dependency.
@@ -82,6 +85,8 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
+        "//lingvo/core:datasource",
+        "//lingvo/core:hyperparams",
         "//lingvo/core:py_utils",
         "//lingvo/tasks/car:input_extractor",
         "//lingvo/tasks/car:input_preprocessors",
