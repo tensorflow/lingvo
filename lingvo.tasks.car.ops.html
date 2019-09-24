@@ -351,6 +351,45 @@ padding: A <code class="xref py py-obj docutils literal notranslate"><span class
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.tasks.car.ops.v">
+<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">v</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">center_selector</em>, <em class="sig-param">neighbor_sampler</em>, <em class="sig-param">num_centers</em>, <em class="sig-param">center_z_min</em>, <em class="sig-param">center_z_max</em>, <em class="sig-param">num_neighbors</em>, <em class="sig-param">max_distance</em>, <em class="sig-param">random_seed=-1</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.v" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sample points among ‘points’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+[N, K]. N - the number of points; K - the number of dimensions
+of each point.</p></li>
+<li><p><strong>center_selector</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Valid options - ‘farthest’, ‘uniform’.</p></li>
+<li><p><strong>neighbor_sampler</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Valid options - ‘uniform’, ‘closest’.</p></li>
+<li><p><strong>num_centers</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. The number of centers to sample (M).</p></li>
+<li><p><strong>center_z_min</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
+Points with z less than center_z_min are not considered for
+center selection.</p></li>
+<li><p><strong>center_z_max</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
+Points with z greater than center_z_max are not considered
+for center selection.</p></li>
+<li><p><strong>num_neighbors</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+Sample these many points within the neighorhood (P).</p></li>
+<li><p><strong>max_distance</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
+Points with L2 distances from a center larger than this
+threshold are not considered to be in the neighborhood.</p></li>
+<li><p><strong>random_seed</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>. The random seed.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (center_padding, center, indices, padding).</p>
+<p>center_padding: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [M].
+center: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. [M]. the indices of selected centers.
+indices: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. [M, P]. the indices of selected points.
+padding: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [M, P]. 0/1 padding of indices.</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 
