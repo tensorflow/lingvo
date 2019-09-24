@@ -171,6 +171,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">checkpointer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">multitask_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">task_scheduler</span>
 
@@ -278,6 +279,8 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">task_scheduler</span> <span class="o">=</span> <span class="kc">None</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">_variable_renaming_rules</span> <span class="o">=</span> <span class="p">[]</span>
+
     <span class="c1"># If this is a multi-task model, grab the params for the TaskScheduler.</span>
     <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="p">):</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;single_task_model&#39;</span><span class="p">)</span>
@@ -286,6 +289,10 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_single_task_mode</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;multi_task_model&#39;</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">multitask_model</span><span class="o">.</span><span class="n">RegExSharedVariableModel</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_variable_renaming_rules</span> <span class="o">=</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">variable_renaming_rules</span>
+
       <span class="k">if</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">task_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">task_schedule_params</span> <span class="o">=</span> <span class="n">task_scheduler</span><span class="o">.</span><span class="n">ConstantScheduler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
         <span class="n">task_schedule_params</span><span class="o">.</span><span class="n">task_probs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
@@ -362,10 +369,11 @@
 
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
-          <span class="n">program</span><span class="o">.</span><span class="n">BuildTpuSubgraph</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_variable_renaming_rules</span><span class="p">):</span>
+          <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
+            <span class="n">program</span><span class="o">.</span><span class="n">BuildTpuSubgraph</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span>
