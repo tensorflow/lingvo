@@ -89,6 +89,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import contextlib
 import io
 import os
 
@@ -96,7 +97,6 @@ from absl import app
 from absl import flags
 from absl import logging
 
-import contextlib2
 from lingvo import compat as tf
 from lingvo.tasks.car.tools import kitti_data
 import numpy as np
@@ -239,7 +239,7 @@ def _ExportObjectDatasetToTFRecord(root_dir, split_file, tfrecord_path,
       for index in range(num_shards)
   ]
 
-  with contextlib2.ExitStack() as exit_stack:
+  with contextlib.ExitStack() as exit_stack:
     tf_record_writers = [
         exit_stack.enter_context(tf.io.TFRecordWriter(filename))
         for filename in tf_record_output_filenames

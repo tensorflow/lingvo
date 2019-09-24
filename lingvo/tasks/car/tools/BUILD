@@ -17,6 +17,8 @@ py_binary(
         # Implicit absl.app dependency.
         # Implicit absl.flags dependency.
         # Implicit absl.logging dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
 
