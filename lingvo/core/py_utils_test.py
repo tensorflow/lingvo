@@ -1414,6 +1414,13 @@ class LengthsFromPaddingsTest(test_utils.TestCase):
           tf.convert_to_tensor(paddings)).eval()
       self.assertAllEqual([6, 3, 5, 0], lengths)
 
+  def testZeroLength(self):
+    with self.session():
+      paddings = np.zeros([4, 0])
+      lengths = py_utils.LengthsFromPaddings(
+          tf.convert_to_tensor(paddings)).eval()
+      self.assertAllEqual([0, 0, 0, 0], lengths)
+
 
 class TrimTrailingPaddingsTest(test_utils.TestCase):
 

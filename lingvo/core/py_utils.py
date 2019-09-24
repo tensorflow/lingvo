@@ -2742,7 +2742,8 @@ def LengthsFromPaddings(paddings):
   # and so counting the number that differs gives us num_padded - 1.
   length = tf.reduce_sum(1 - tf.to_int32(same_as_last_element), axis=1) + 1
   # Special case for all 0 paddings.
-  return tf.where(tf.equal(cumsum[:, -1], 0.0), tf.zeros_like(length), length)
+  all_zero_paddings = tf.equal(tf.reduce_sum(1.0 - paddings, axis=1), 0.0)
+  return tf.where(all_zero_paddings, tf.zeros_like(length), length)
 
 
 def TrimTrailingPaddings(inputs, paddings):
