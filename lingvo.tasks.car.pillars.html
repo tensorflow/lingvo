@@ -189,23 +189,46 @@
 </dl>
 </dd></dl>
 
-<dl class="function">
-<dt id="lingvo.tasks.car.pillars.ProcessPillars">
-<code class="sig-prename descclassname">lingvo.tasks.car.pillars.</code><code class="sig-name descname">ProcessPillars</code><span class="sig-paren">(</span><em class="sig-param">input_batch</em>, <em class="sig-param">num_laser_features</em>, <em class="sig-param">featurizer</em>, <em class="sig-param">theta_featurizer</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#ProcessPillars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.ProcessPillars" title="Permalink to this definition">¶</a></dt>
+<dl class="class">
+<dt id="lingvo.tasks.car.pillars.PointsToGridFeaturizer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.pillars.</code><code class="sig-name descname">PointsToGridFeaturizer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#PointsToGridFeaturizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.PointsToGridFeaturizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Layer for processing points to grid outputs.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.pillars.PointsToGridFeaturizer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><em class="sig-param">num_laser_features</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#PointsToGridFeaturizer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.PointsToGridFeaturizer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.pillars.PointsToGridFeaturizer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#PointsToGridFeaturizer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.PointsToGridFeaturizer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute features for the pillars and convert them back to a dense grid.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors.</p></li>
-<li><p><strong>num_laser_features</strong> – Number of laser features (excluding pillar features)</p></li>
-<li><p><strong>featurizer</strong> – The featurizer layer.</p></li>
-<li><p><strong>theta_featurizer</strong> – The weights for featurizer.</p></li>
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</p></li>
+<li><p><strong>input_batch</strong> – <p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors. Following
+keys are required:</p>
+<ul>
+<li><p>grid_num_points: Integer tensor with shape [batch size, nx, ny, nz],
+where nx, ny, nz corresponds to the grid sizes (i.e., number of voxels
+in each axis dimension).</p></li>
+<li><p>pillar_points: Float tensor with shape [batch size, num_pillars,
+num_points_per_pillar, 3 + num_laser_features]</p></li>
+<li><p>pillar_centers: Float tensor with shape [batch size, num_pillars,
+num_points_per_pillar, 3]</p></li>
+<li><p>pillar_locations: Float tensor with shape [batch size, num_pillars, 3]</p></li>
+</ul>
+</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The dense features with shape [b, nx, ny, nz * fdims].</p>
 </dd>
 </dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -215,7 +238,7 @@
 <p>Builder for the Pillars model.</p>
 <dl class="method">
 <dt id="lingvo.tasks.car.pillars.Builder.Featurizer">
-<code class="sig-name descname">Featurizer</code><span class="sig-paren">(</span><em class="sig-param">dims</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#Builder.Featurizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.Builder.Featurizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Featurizer</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">dims</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#Builder.Featurizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.Builder.Featurizer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -293,11 +316,6 @@ overridden if desired.</p>
 <dl class="attribute">
 <dt id="lingvo.tasks.car.pillars.ModelV1.NUM_OUTPUT_CHANNELS">
 <code class="sig-name descname">NUM_OUTPUT_CHANNELS</code><em class="property"> = 128</em><a class="headerlink" href="#lingvo.tasks.car.pillars.ModelV1.NUM_OUTPUT_CHANNELS" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="lingvo.tasks.car.pillars.ModelV1.NEEDED_INPUT_BATCH_FIELDS_FOR_TRAINING">
-<code class="sig-name descname">NEEDED_INPUT_BATCH_FIELDS_FOR_TRAINING</code><em class="property"> = {'anchor_bboxes', 'anchor_localization_residuals', 'assigned_cls_mask', 'assigned_gt_bbox', 'assigned_gt_labels', 'assigned_reg_mask', 'grid_num_points', 'labels.bboxes_3d', 'labels.bboxes_3d_mask', 'labels.bboxes_3d_num_points', 'labels.bboxes_td', 'labels.bboxes_td_mask', 'pillar_centers', 'pillar_locations', 'pillar_points'}</em><a class="headerlink" href="#lingvo.tasks.car.pillars.ModelV1.NEEDED_INPUT_BATCH_FIELDS_FOR_TRAINING" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

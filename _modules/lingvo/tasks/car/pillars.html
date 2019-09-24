@@ -201,48 +201,82 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">*</span> <span class="n">fdims</span><span class="p">])</span></div>
 
 
-<div class="viewcode-block" id="ProcessPillars"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ProcessPillars">[docs]</a><span class="k">def</span> <span class="nf">ProcessPillars</span><span class="p">(</span><span class="n">input_batch</span><span class="p">,</span> <span class="n">num_laser_features</span><span class="p">,</span> <span class="n">featurizer</span><span class="p">,</span>
-                   <span class="n">theta_featurizer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Compute features for the pillars and convert them back to a dense grid.</span>
+<div class="viewcode-block" id="PointsToGridFeaturizer"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.PointsToGridFeaturizer">[docs]</a><span class="k">class</span> <span class="nc">PointsToGridFeaturizer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Layer for processing points to grid outputs.&quot;&quot;&quot;</span>
 
-<span class="sd">  Args:</span>
-<span class="sd">    input_batch: A `.NestedMap` object containing input tensors.</span>
-<span class="sd">    num_laser_features: Number of laser features (excluding pillar features)</span>
-<span class="sd">    featurizer: The featurizer layer.</span>
-<span class="sd">    theta_featurizer: The weights for featurizer.</span>
+<div class="viewcode-block" id="PointsToGridFeaturizer.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.PointsToGridFeaturizer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">num_laser_features</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PointsToGridFeaturizer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_laser_features&#39;</span><span class="p">,</span> <span class="n">num_laser_features</span><span class="p">,</span>
+             <span class="s1">&#39;The number of (non-xyz) laser features of the input.&#39;</span><span class="p">)</span>
 
-<span class="sd">  Returns:</span>
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">Builder</span><span class="p">()</span>
+    <span class="n">total_num_laser_features</span> <span class="o">=</span> <span class="mi">9</span> <span class="o">+</span> <span class="n">num_laser_features</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;featurizer&#39;</span><span class="p">,</span>
+             <span class="n">builder</span><span class="o">.</span><span class="n">Featurizer</span><span class="p">(</span><span class="s1">&#39;feat&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">total_num_laser_features</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
+             <span class="s1">&#39;Point cloud feature extractor.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">PointsToGridFeaturizer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;featurizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">featurizer</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PointsToGridFeaturizer.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.PointsToGridFeaturizer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="sd">&quot;&quot;&quot;Compute features for the pillars and convert them back to a dense grid.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: A `.NestedMap` object containing input tensors. Following</span>
+<span class="sd">        keys are required:</span>
+
+<span class="sd">        - grid_num_points: Integer tensor with shape [batch size, nx, ny, nz],</span>
+<span class="sd">          where nx, ny, nz corresponds to the grid sizes (i.e., number of voxels</span>
+<span class="sd">          in each axis dimension).</span>
+<span class="sd">        - pillar_points: Float tensor with shape [batch size, num_pillars,</span>
+<span class="sd">          num_points_per_pillar, 3 + num_laser_features]</span>
+<span class="sd">        - pillar_centers: Float tensor with shape [batch size, num_pillars,</span>
+<span class="sd">          num_points_per_pillar, 3]</span>
+<span class="sd">        - pillar_locations: Float tensor with shape [batch size, num_pillars, 3]</span>
+
+<span class="sd">    Returns:</span>
 <span class="sd">      The dense features with shape [b, nx, ny, nz * fdims].</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">grid_num_points</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-  <span class="c1"># Process points to concatenate a set of fixed features (e.g.,</span>
-  <span class="c1"># add means, centers, normalize points to means).</span>
-  <span class="n">num_features</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">num_laser_features</span>
-  <span class="n">pillar_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_points</span><span class="p">,</span>
-                                    <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_features</span><span class="p">])</span>
-  <span class="n">_</span><span class="p">,</span> <span class="n">npillars</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">pillar_points</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-  <span class="n">pillar_xyz</span> <span class="o">=</span> <span class="n">pillar_points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-  <span class="n">pillar_means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">pillar_xyz</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keep_dims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-  <span class="n">pillar_feats</span> <span class="o">=</span> <span class="n">pillar_points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:]</span>
-  <span class="n">pillar_centers</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_centers</span><span class="p">,</span> <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
-  <span class="n">pillar_concat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-      <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-      <span class="n">values</span><span class="o">=</span><span class="p">[</span>
-          <span class="n">pillar_xyz</span> <span class="o">-</span> <span class="n">pillar_means</span><span class="p">,</span> <span class="n">pillar_feats</span><span class="p">,</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pillar_means</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pillar_centers</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-      <span class="p">])</span>
-  <span class="c1"># Featurize pillars.</span>
-  <span class="n">pillar_features</span> <span class="o">=</span> <span class="n">featurizer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta_featurizer</span><span class="p">,</span> <span class="n">pillar_concat</span><span class="p">)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># pyformat: enable</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">grid_num_points</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="c1"># Process points to concatenate a set of fixed features (e.g.,</span>
+    <span class="c1"># add means, centers, normalize points to means).</span>
+    <span class="n">num_features</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_laser_features</span>
+    <span class="n">pillar_points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_points</span><span class="p">,</span>
+                                      <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_features</span><span class="p">])</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">npillars</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">pillar_points</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">pillar_xyz</span> <span class="o">=</span> <span class="n">pillar_points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">pillar_means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">pillar_xyz</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keep_dims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">pillar_feats</span> <span class="o">=</span> <span class="n">pillar_points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:]</span>
+    <span class="n">pillar_centers</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_centers</span><span class="p">,</span>
+                                       <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">pillar_concat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">values</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">pillar_xyz</span> <span class="o">-</span> <span class="n">pillar_means</span><span class="p">,</span> <span class="n">pillar_feats</span><span class="p">,</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pillar_means</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">pillar_centers</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npoints</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="p">])</span>
+    <span class="c1"># Featurize pillars.</span>
+    <span class="n">pillar_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">featurizer</span><span class="p">,</span> <span class="n">pillar_concat</span><span class="p">)</span>
 
-  <span class="c1"># Convert back to the dense grid.</span>
-  <span class="n">pillar_locations</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_locations</span><span class="p">,</span>
-                                       <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">npillars</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
-  <span class="n">dense_features</span> <span class="o">=</span> <span class="n">SparseToDense</span><span class="p">(</span>
-      <span class="n">grid_shape</span><span class="o">=</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">),</span>
-      <span class="n">locations</span><span class="o">=</span><span class="n">pillar_locations</span><span class="p">,</span>
-      <span class="n">feats</span><span class="o">=</span><span class="n">pillar_features</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">dense_features</span></div>
+    <span class="c1"># Convert back to the dense grid.</span>
+    <span class="n">pillar_locations</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">pillar_locations</span><span class="p">,</span>
+                                         <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">npillars</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">dense_features</span> <span class="o">=</span> <span class="n">SparseToDense</span><span class="p">(</span>
+        <span class="n">grid_shape</span><span class="o">=</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">),</span>
+        <span class="n">locations</span><span class="o">=</span><span class="n">pillar_locations</span><span class="p">,</span>
+        <span class="n">feats</span><span class="o">=</span><span class="n">pillar_features</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dense_features</span></div></div>
 
 
 <span class="c1"># pyformat: disable</span>
@@ -255,9 +289,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">linear_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">KaimingUniformFanInRelu</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">bn_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">UniformPositive</span><span class="p">()</span>
 
-<div class="viewcode-block" id="Builder.Featurizer"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder.Featurizer">[docs]</a>  <span class="k">def</span> <span class="nf">Featurizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder.Featurizer"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder.Featurizer">[docs]</a>  <span class="k">def</span> <span class="nf">Featurizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
-        <span class="s1">&#39;feat&#39;</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_MLP</span><span class="p">(</span><span class="s1">&#39;mlp&#39;</span><span class="p">,</span> <span class="n">dims</span><span class="p">),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_Max</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">))</span></div>
 
@@ -362,24 +396,6 @@
 
   <span class="n">NUM_OUTPUT_CHANNELS</span> <span class="o">=</span> <span class="mi">128</span>
 
-  <span class="n">NEEDED_INPUT_BATCH_FIELDS_FOR_TRAINING</span> <span class="o">=</span> <span class="p">{</span>
-      <span class="s1">&#39;grid_num_points&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;pillar_points&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;pillar_locations&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;pillar_centers&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;anchor_bboxes&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;anchor_localization_residuals&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;assigned_gt_labels&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;assigned_cls_mask&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;assigned_reg_mask&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;assigned_gt_bbox&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;labels.bboxes_td&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;labels.bboxes_td_mask&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;labels.bboxes_3d_mask&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;labels.bboxes_3d_num_points&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;labels.bboxes_3d&#39;</span><span class="p">,</span>
-  <span class="p">}</span>
-
 <div class="viewcode-block" id="ModelV1.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ModelV1.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
              <span class="n">grid_size_z</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -391,12 +407,11 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_anchors&#39;</span><span class="p">,</span> <span class="n">num_anchors</span><span class="p">,</span> <span class="s1">&#39;The number of anchor boxes.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_laser_features&#39;</span><span class="p">,</span> <span class="n">num_laser_features</span><span class="p">,</span>
              <span class="s1">&#39;The number of (non-xyz) laser features of the input.&#39;</span><span class="p">)</span>
-    <span class="n">builder</span> <span class="o">=</span> <span class="n">Builder</span><span class="p">()</span>
-
-    <span class="n">total_num_laser_features</span> <span class="o">=</span> <span class="mi">9</span> <span class="o">+</span> <span class="n">num_laser_features</span>
-
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;featurizer&#39;</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">Featurizer</span><span class="p">([</span><span class="n">total_num_laser_features</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_featurizer&#39;</span><span class="p">,</span>
+             <span class="n">PointsToGridFeaturizer</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">num_laser_features</span><span class="p">),</span>
              <span class="s1">&#39;Point cloud feature extractor.&#39;</span><span class="p">)</span>
+
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">Builder</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;backbone&#39;</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">Backbone</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">NUM_OUTPUT_CHANNELS</span><span class="p">),</span>
              <span class="s1">&#39;Dense features pyramid.&#39;</span><span class="p">)</span>
     <span class="c1"># Backbone() concatenates 3 different scales of features.</span>
@@ -473,7 +488,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span> <span class="o">=</span> <span class="n">detection_3d_lib</span><span class="o">.</span><span class="n">Utils3D</span><span class="p">()</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;featurizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">featurizer</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input_featurizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_featurizer</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;backbone&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">backbone</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;class_detector&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">class_detector</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;regression_detector&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">regression_detector</span><span class="p">)</span>
@@ -494,9 +509,10 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">input_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()))</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span>
         <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;input_batch shapes: &#39;</span><span class="p">)</span>
-    <span class="c1"># Featurize pillars and convert back to dense grid.</span>
-    <span class="n">dense_features</span> <span class="o">=</span> <span class="n">ProcessPillars</span><span class="p">(</span><span class="n">input_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_laser_features</span><span class="p">,</span>
-                                    <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">featurizer</span><span class="p">)</span>
+
+    <span class="c1"># Make pillars representation from input_batch.</span>
+    <span class="n">dense_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_featurizer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">input_featurizer</span><span class="p">,</span>
+                                                 <span class="n">input_batch</span><span class="p">)</span>
 
     <span class="c1"># Backbone</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;dense_features.shape = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dense_features</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
