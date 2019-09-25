@@ -169,222 +169,11 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
-<span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="k">import</span> <span class="n">text_format</span> <span class="k">as</span> <span class="n">_text_format</span>
-<span class="kn">from</span> <span class="nn">tensorflow.core.framework</span> <span class="k">import</span> <span class="n">op_def_pb2</span> <span class="k">as</span> <span class="n">_op_def_pb2</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">op_def_library</span> <span class="k">as</span> <span class="n">_op_def_library</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">op_def_registry</span> <span class="k">as</span> <span class="n">_op_def_registry</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">ops</span> <span class="k">as</span> <span class="n">_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">tensor_shape</span> <span class="k">as</span> <span class="n">_tensor_shape</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 
-
-<div class="viewcode-block" id="_Recv"><a class="viewcode-back" href="../../../lingvo.core.sendrecv.html#lingvo.core.sendrecv._Recv">[docs]</a><span class="k">def</span> <span class="nf">_Recv</span><span class="p">(</span><span class="n">tensor_type</span><span class="p">,</span> <span class="n">tensor_name</span><span class="p">,</span> <span class="n">send_device</span><span class="p">,</span> <span class="n">recv_device</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Receives the named tensor from send_device on recv_device.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    tensor_type: A `tf.DType`.</span>
-<span class="sd">    tensor_name: A `string`. The name of the tensor to receive.</span>
-<span class="sd">    send_device: A `string`. The name of the device sending the tensor.</span>
-<span class="sd">    recv_device: A `string`. The name of the device receiving the tensor.</span>
-<span class="sd">    name: A name for the operation (optional).</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    A `Tensor` of type `tensor_type`. The tensor to receive.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">result</span> <span class="o">=</span> <span class="n">_op_def_lib</span><span class="o">.</span><span class="n">apply_op</span><span class="p">(</span>
-      <span class="s2">&quot;_Recv&quot;</span><span class="p">,</span>
-      <span class="n">tensor_type</span><span class="o">=</span><span class="n">tensor_type</span><span class="p">,</span>
-      <span class="n">tensor_name</span><span class="o">=</span><span class="n">tensor_name</span><span class="p">,</span>
-      <span class="n">send_device</span><span class="o">=</span><span class="n">send_device</span><span class="p">,</span>
-      <span class="n">send_device_incarnation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-      <span class="n">recv_device</span><span class="o">=</span><span class="n">recv_device</span><span class="p">,</span>
-      <span class="n">client_terminated</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-      <span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="k">else</span> <span class="s2">&quot;Recv&quot;</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">result</span></div>
-
-
-<div class="viewcode-block" id="_Send"><a class="viewcode-back" href="../../../lingvo.core.sendrecv.html#lingvo.core.sendrecv._Send">[docs]</a><span class="k">def</span> <span class="nf">_Send</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">tensor_name</span><span class="p">,</span> <span class="n">send_device</span><span class="p">,</span> <span class="n">recv_device</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Sends the named tensor from send_device to recv_device.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    tensor: A `Tensor`. The tensor to send.</span>
-<span class="sd">    tensor_name: A `string`. The name of the tensor to send.</span>
-<span class="sd">    send_device: A `string`. The name of the device sending the tensor.</span>
-<span class="sd">    recv_device: A `string`. The name of the device receiving the tensor.</span>
-<span class="sd">    name: A name for the operation (optional).</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    The created Operation.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">result</span> <span class="o">=</span> <span class="n">_op_def_lib</span><span class="o">.</span><span class="n">apply_op</span><span class="p">(</span>
-      <span class="s2">&quot;_Send&quot;</span><span class="p">,</span>
-      <span class="n">tensor</span><span class="o">=</span><span class="n">tensor</span><span class="p">,</span>
-      <span class="n">tensor_name</span><span class="o">=</span><span class="n">tensor_name</span><span class="p">,</span>
-      <span class="n">send_device</span><span class="o">=</span><span class="n">send_device</span><span class="p">,</span>
-      <span class="n">send_device_incarnation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-      <span class="n">recv_device</span><span class="o">=</span><span class="n">recv_device</span><span class="p">,</span>
-      <span class="n">client_terminated</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-      <span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="k">else</span> <span class="s2">&quot;Send&quot;</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">result</span></div>
-
-
-<div class="viewcode-block" id="_XlaSend"><a class="viewcode-back" href="../../../lingvo.core.sendrecv.html#lingvo.core.sendrecv._XlaSend">[docs]</a><span class="k">def</span> <span class="nf">_XlaSend</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">tensor_name</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Sends the named tensor from send_device to recv_device.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    tensor: A `Tensor`. The tensor to send.</span>
-<span class="sd">    tensor_name: A `string`. The name of the tensor to send.</span>
-<span class="sd">    name: A name for the operation (optional).</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    The created Operation.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">result</span> <span class="o">=</span> <span class="n">_op_def_lib</span><span class="o">.</span><span class="n">apply_op</span><span class="p">(</span>
-      <span class="s2">&quot;XlaSend&quot;</span><span class="p">,</span>
-      <span class="n">tensor</span><span class="o">=</span><span class="n">tensor</span><span class="p">,</span>
-      <span class="n">tensor_name</span><span class="o">=</span><span class="n">tensor_name</span><span class="p">,</span>
-      <span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="k">else</span> <span class="s2">&quot;XlaSend&quot;</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">result</span></div>
-
-
-<div class="viewcode-block" id="_XlaRecv"><a class="viewcode-back" href="../../../lingvo.core.sendrecv.html#lingvo.core.sendrecv._XlaRecv">[docs]</a><span class="k">def</span> <span class="nf">_XlaRecv</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">tensor_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Sends the named tensor from send_device to recv_device.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    dtype: A `tf.DType`.</span>
-<span class="sd">    tensor_name: A `string`. The name of the tensor to receive.</span>
-<span class="sd">    shape: A `tf.TensorShape` or list of `ints`. The shape of the input tensor.</span>
-<span class="sd">    name: A name for the operation (optional).</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    The created Operation.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">result</span> <span class="o">=</span> <span class="n">_op_def_lib</span><span class="o">.</span><span class="n">apply_op</span><span class="p">(</span>
-      <span class="s2">&quot;XlaRecv&quot;</span><span class="p">,</span>
-      <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-      <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
-      <span class="n">tensor_name</span><span class="o">=</span><span class="n">tensor_name</span><span class="p">,</span>
-      <span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="k">else</span> <span class="s2">&quot;XlaRecv&quot;</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">result</span></div>
-
-
-<div class="viewcode-block" id="_InitOpDefLibrary"><a class="viewcode-back" href="../../../lingvo.core.sendrecv.html#lingvo.core.sendrecv._InitOpDefLibrary">[docs]</a><span class="k">def</span> <span class="nf">_InitOpDefLibrary</span><span class="p">():</span>
-  <span class="n">op_list</span> <span class="o">=</span> <span class="n">_op_def_pb2</span><span class="o">.</span><span class="n">OpList</span><span class="p">()</span>
-  <span class="n">_text_format</span><span class="o">.</span><span class="n">Merge</span><span class="p">(</span><span class="n">_InitOpDefLibrary</span><span class="o">.</span><span class="n">op_list_ascii</span><span class="p">,</span> <span class="n">op_list</span><span class="p">)</span>
-  <span class="n">_op_def_registry</span><span class="o">.</span><span class="n">register_op_list</span><span class="p">(</span><span class="n">op_list</span><span class="p">)</span>
-  <span class="n">op_def_lib</span> <span class="o">=</span> <span class="n">_op_def_library</span><span class="o">.</span><span class="n">OpDefLibrary</span><span class="p">()</span>
-  <span class="n">op_def_lib</span><span class="o">.</span><span class="n">add_op_list</span><span class="p">(</span><span class="n">op_list</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">op_def_lib</span></div>
-
-
-<span class="n">_InitOpDefLibrary</span><span class="o">.</span><span class="n">op_list_ascii</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;op {</span>
-<span class="s2">  name: &quot;_Recv&quot;</span>
-<span class="s2">  output_arg {</span>
-<span class="s2">    name: &quot;tensor&quot;</span>
-<span class="s2">    type_attr: &quot;tensor_type&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;tensor_type&quot;</span>
-<span class="s2">    type: &quot;type&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;tensor_name&quot;</span>
-<span class="s2">    type: &quot;string&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;send_device&quot;</span>
-<span class="s2">    type: &quot;string&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;send_device_incarnation&quot;</span>
-<span class="s2">    type: &quot;int&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;recv_device&quot;</span>
-<span class="s2">    type: &quot;string&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;client_terminated&quot;</span>
-<span class="s2">    type: &quot;bool&quot;</span>
-<span class="s2">    default_value {</span>
-<span class="s2">      b: false</span>
-<span class="s2">    }</span>
-<span class="s2">  }</span>
-<span class="s2">  is_stateful: true</span>
-<span class="s2">}</span>
-<span class="s2">op {</span>
-<span class="s2">  name: &quot;_Send&quot;</span>
-<span class="s2">  input_arg {</span>
-<span class="s2">    name: &quot;tensor&quot;</span>
-<span class="s2">    type_attr: &quot;T&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;T&quot;</span>
-<span class="s2">    type: &quot;type&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;tensor_name&quot;</span>
-<span class="s2">    type: &quot;string&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;send_device&quot;</span>
-<span class="s2">    type: &quot;string&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;send_device_incarnation&quot;</span>
-<span class="s2">    type: &quot;int&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;recv_device&quot;</span>
-<span class="s2">    type: &quot;string&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;client_terminated&quot;</span>
-<span class="s2">    type: &quot;bool&quot;</span>
-<span class="s2">    default_value {</span>
-<span class="s2">      b: false</span>
-<span class="s2">    }</span>
-<span class="s2">  }</span>
-<span class="s2">  is_stateful: true</span>
-<span class="s2">}</span>
-<span class="s2">op {</span>
-<span class="s2">  name: &quot;XlaRecv&quot;</span>
-<span class="s2">  output_arg {</span>
-<span class="s2">    name: &quot;tensor&quot;</span>
-<span class="s2">    type_attr: &quot;dtype&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;dtype&quot;</span>
-<span class="s2">    type: &quot;type&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;tensor_name&quot;</span>
-<span class="s2">    type: &quot;string&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;shape&quot;</span>
-<span class="s2">    type: &quot;shape&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  is_stateful: true</span>
-<span class="s2">}</span>
-<span class="s2">op {</span>
-<span class="s2">  name: &quot;XlaSend&quot;</span>
-<span class="s2">  input_arg {</span>
-<span class="s2">    name: &quot;tensor&quot;</span>
-<span class="s2">    type_attr: &quot;T&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;T&quot;</span>
-<span class="s2">    type: &quot;type&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  attr {</span>
-<span class="s2">    name: &quot;tensor_name&quot;</span>
-<span class="s2">    type: &quot;string&quot;</span>
-<span class="s2">  }</span>
-<span class="s2">  is_stateful: true</span>
-<span class="s2">}</span>
-<span class="s2">&quot;&quot;&quot;</span>
-
-<span class="n">_op_def_lib</span> <span class="o">=</span> <span class="n">_InitOpDefLibrary</span><span class="p">()</span>
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.compiler.tf2xla.python</span> <span class="k">import</span> <span class="n">xla</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
 <div class="viewcode-block" id="_TpuCore"><a class="viewcode-back" href="../../../lingvo.core.sendrecv.html#lingvo.core.sendrecv._TpuCore">[docs]</a><span class="k">def</span> <span class="nf">_TpuCore</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
@@ -409,7 +198,7 @@
 <span class="sd">      recv_device: A fully-specified tensorflow device.</span>
 <span class="sd">      name: A name for the channel (optional).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">current_graph</span> <span class="o">=</span> <span class="n">_ops</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+    <span class="n">current_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
     <span class="k">assert</span> <span class="n">current_graph</span><span class="p">,</span> <span class="s2">&quot;A channel is scoped within a tf.Graph&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">dtype</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_send_device</span> <span class="o">=</span> <span class="n">send_device</span>
@@ -417,7 +206,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">current_graph</span><span class="o">.</span><span class="n">unique_name</span><span class="p">(</span><span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="k">else</span> <span class="s2">&quot;channel&quot;</span><span class="p">)</span>
 
     <span class="k">assert</span> <span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="n">shape</span> <span class="o">=</span> <span class="n">_tensor_shape</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span> <span class="o">=</span> <span class="n">shape</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_send_tpu_core</span> <span class="o">=</span> <span class="n">_TpuCore</span><span class="p">(</span><span class="n">send_device</span><span class="p">)</span>
@@ -441,20 +230,29 @@
         <span class="s2">&quot;Send called multiple times for </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_send_called</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send_tpu_core</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">_Send</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send_device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recv_device</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">raw_ops</span><span class="o">.</span><span class="n">Send</span><span class="p">(</span>
+          <span class="n">tensor</span><span class="o">=</span><span class="n">tensor</span><span class="p">,</span>
+          <span class="n">tensor_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
+          <span class="n">send_device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_send_device</span><span class="p">,</span>
+          <span class="n">send_device_incarnation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+          <span class="n">recv_device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_recv_device</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">with</span> <span class="n">_ops</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_send_device</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">_XlaSend</span><span class="p">(</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_send_device</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">xla</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
             <span class="n">tensor</span><span class="p">,</span> <span class="n">tensor_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Send_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Channel.Recv"><a class="viewcode-back" href="../../../lingvo.core.sendrecv.html#lingvo.core.sendrecv.Channel.Recv">[docs]</a>  <span class="k">def</span> <span class="nf">Recv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Receives a tensor from the channel.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send_tpu_core</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">_Recv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
-                   <span class="bp">self</span><span class="o">.</span><span class="n">_send_device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recv_device</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">raw_ops</span><span class="o">.</span><span class="n">Recv</span><span class="p">(</span>
+          <span class="n">tensor_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">,</span>
+          <span class="n">tensor_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
+          <span class="n">send_device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_send_device</span><span class="p">,</span>
+          <span class="n">send_device_incarnation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+          <span class="n">recv_device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_recv_device</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">with</span> <span class="n">_ops</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recv_device</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">_XlaRecv</span><span class="p">(</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recv_device</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">xla</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">,</span>
             <span class="n">tensor_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
             <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span>
