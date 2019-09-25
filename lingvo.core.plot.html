@@ -424,6 +424,32 @@ figure, xlabel, xticks, etc.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.plot.AddMultiCurveSubplot">
+<code class="sig-prename descclassname">lingvo.core.plot.</code><code class="sig-name descname">AddMultiCurveSubplot</code><span class="sig-paren">(</span><em class="sig-param">fig</em>, <em class="sig-param">tensors</em>, <em class="sig-param">paddings</em>, <em class="sig-param">labels</em>, <em class="sig-param">xlabels=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/plot.html#AddMultiCurveSubplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.plot.AddMultiCurveSubplot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a multi curve subplot to Matplotlib figure.</p>
+<p>Plots one line for each entry in tensors and assigns a plot label legend.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> – The Matplotlib figure.</p></li>
+<li><p><strong>tensors</strong> – List of tensors of shape [batch, length]</p></li>
+<li><p><strong>paddings</strong> – Paddings for ‘tensors’ with shape [batch, length] with 0. in valid
+positions and 1. in invalid.</p></li>
+<li><p><strong>labels</strong> – A list of tensor names (strings) of the same length as ‘tensors’.</p></li>
+<li><p><strong>xlabels</strong> – A string tensor of shape [batch] with an xlabel per batch.</p></li>
+<li><p><strong>**kwargs</strong> – With optional, title, xlabel, ylabel, fontsize.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.plot._AddMultiCurveRowPlots">
+<code class="sig-prename descclassname">lingvo.core.plot.</code><code class="sig-name descname">_AddMultiCurveRowPlots</code><span class="sig-paren">(</span><em class="sig-param">fig</em>, <em class="sig-param">axes</em>, <em class="sig-param">data</em>, <em class="sig-param">length</em>, <em class="sig-param">x_label_override=None</em>, <em class="sig-param">row_labels=None</em>, <em class="sig-param">title=''</em>, <em class="sig-param">xlabel=''</em>, <em class="sig-param">ylabel=''</em>, <em class="sig-param">fontsize='small'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/plot.html#_AddMultiCurveRowPlots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.plot._AddMultiCurveRowPlots" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a plot per row in data and cut the plot by the length.</p>
+</dd></dl>
+
 </div>
 
 

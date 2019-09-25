@@ -169,6 +169,7 @@
 <span class="kn">import</span> <span class="nn">traceback</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">matplotlib.backends</span> <span class="k">import</span> <span class="n">backend_agg</span>
 <span class="kn">import</span> <span class="nn">matplotlib.gridspec</span> <span class="k">as</span> <span class="nn">gridspec</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
@@ -566,6 +567,67 @@
   <span class="k">if</span> <span class="n">setter</span><span class="p">:</span>
     <span class="n">setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AddMultiCurveSubplot"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.AddMultiCurveSubplot">[docs]</a><span class="k">def</span> <span class="nf">AddMultiCurveSubplot</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span>
+                         <span class="n">tensors</span><span class="p">,</span>
+                         <span class="n">paddings</span><span class="p">,</span>
+                         <span class="n">labels</span><span class="p">,</span>
+                         <span class="n">xlabels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Adds a multi curve subplot to Matplotlib figure.</span>
+
+<span class="sd">  Plots one line for each entry in tensors and assigns a plot label legend.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    fig: The Matplotlib figure.</span>
+<span class="sd">    tensors: List of tensors of shape [batch, length]</span>
+<span class="sd">    paddings: Paddings for &#39;tensors&#39; with shape [batch, length] with 0. in valid</span>
+<span class="sd">      positions and 1. in invalid.</span>
+<span class="sd">    labels: A list of tensor names (strings) of the same length as &#39;tensors&#39;.</span>
+<span class="sd">    xlabels: A string tensor of shape [batch] with an xlabel per batch.</span>
+<span class="sd">    **kwargs: With optional, title, xlabel, ylabel, fontsize.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">row_labels</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">t</span><span class="p">))</span>
+      <span class="n">row_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+  <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+
+  <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">LengthsFromPaddings</span><span class="p">(</span><span class="n">paddings</span><span class="p">)]</span>
+  <span class="k">if</span> <span class="n">xlabels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xlabels</span><span class="p">)</span>
+  <span class="n">fig</span><span class="o">.</span><span class="n">AddSubplot</span><span class="p">(</span>
+      <span class="n">args</span><span class="p">,</span> <span class="n">plot_func</span><span class="o">=</span><span class="n">_AddMultiCurveRowPlots</span><span class="p">,</span> <span class="n">row_labels</span><span class="o">=</span><span class="n">row_labels</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_AddMultiCurveRowPlots"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot._AddMultiCurveRowPlots">[docs]</a><span class="k">def</span> <span class="nf">_AddMultiCurveRowPlots</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span>
+                           <span class="n">axes</span><span class="p">,</span>
+                           <span class="n">data</span><span class="p">,</span>
+                           <span class="n">length</span><span class="p">,</span>
+                           <span class="n">x_label_override</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">row_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">title</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                           <span class="n">xlabel</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                           <span class="n">ylabel</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                           <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Add a plot per row in data and cut the plot by the length.&quot;&quot;&quot;</span>
+  <span class="k">del</span> <span class="n">fig</span>
+  <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="s1">&#39;g-&#39;</span><span class="p">,</span> <span class="s1">&#39;m-&#39;</span><span class="p">,</span> <span class="s1">&#39;y-&#39;</span><span class="p">]</span>
+  <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="n">row_labels</span><span class="p">[</span><span class="n">row</span><span class="p">]</span> <span class="k">if</span> <span class="n">row_labels</span> <span class="k">else</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="p">:</span><span class="n">length</span><span class="p">],</span> <span class="n">colors</span><span class="p">[</span><span class="n">row</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">colors</span><span class="p">)],</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="n">length</span><span class="p">])</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">title</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">x_label_override</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">x_label_override</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="s1">&#39;x-small&#39;</span><span class="p">,</span> <span class="n">wrap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">xlabel</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">ylabel</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
