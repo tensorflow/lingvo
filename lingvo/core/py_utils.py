@@ -1071,6 +1071,12 @@ def OpportunisticVariableReuseScope(enable_opportunistic_reuse=True):
   opportunistic_var_reuse[0] = old_val
 
 
+def GetOpportunisticVariableReuse():
+  """Get the current variable reuse setting."""
+  opportunistic_var_reuse = _get_opportunistic_variable_reuse()
+  return opportunistic_var_reuse[0]
+
+
 @contextlib.contextmanager
 def VariableRenameScope(renames):
   """Append the renaming rules to the stack of renames.

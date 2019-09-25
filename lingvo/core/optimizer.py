@@ -68,9 +68,12 @@ class Base(base_layer.BaseLayer):
       # Many optimizers, e.g., Adam, Adagrad, etc., create
       # variables. We need to ensure name scope and variable scope are
       # cleared. Otherwise, tpu.batch_parallel does not work.
+      var_reuse = False
+      if py_utils.GetOpportunisticVariableReuse():
+        var_reuse = tf.AUTO_REUSE
       with tf.name_scope(None):
         with tf.variable_scope(
-            tf.VariableScope(use_resource=True, reuse=False)):
+            tf.VariableScope(use_resource=True, reuse=var_reuse)):
           var_update_op = _Apply()
     self.AddSummary(lr, optimizer, var_grad)
     return var_update_op
