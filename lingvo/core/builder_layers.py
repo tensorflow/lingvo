@@ -218,6 +218,8 @@ class SoftCondLayer(base_layer.BaseLayer):
         'cond_dim', None,
         'This layer maintains a weight matrix of shape [cond_dim, num_experts] '
         'to map from inputs to the expert dimension.')
+    p.Define('nonzeros_mean', False, 'Whether to only use nonzero values for '
+             'calculating the mean.')
     return p
 
   @base_layer.initializer
@@ -247,8 +249,13 @@ class SoftCondLayer(base_layer.BaseLayer):
     """Get the task id from inputs tensors."""
     # TODO(huangyp): support the more general case when batch size is not 1.
     # Input shape can be either [batch, length, dim] or [length, batch, dim]
-    per_example_emb = tf.reduce_sum(
-        tf.reshape(inputs, [-1, self.params.cond_dim]), 0)
+    reshaped_inputs = tf.reshape(inputs, [-1, self.params.cond_dim])
+    if self.params.nonzeros_mean:
+      per_example_emb = tf.reduce_sum(reshaped_inputs, 0)
+      nonzeros = tf.cast(tf.count_nonzero(reshaped_inputs, 0), dtype=tf.float32)
+      per_example_emb /= (nonzeros + 1e-10)
+    else:
+      per_example_emb = tf.reduce_mean(reshaped_inputs, 0)
     expert_dist = tf.nn.sigmoid(tf.einsum('i,ij->j', per_example_emb, theta.w))
     return expert_dist
 

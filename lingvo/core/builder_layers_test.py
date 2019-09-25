@@ -395,13 +395,38 @@ class BuilderLayerTest(test_utils.TestCase):
       y = l.FPropDefaultTheta(x)
       tf.global_variables_initializer().run()
       x_val, y_val, vars_val = sess.run([x, y, l.vars])
+
+      p_nz = layers.SoftCondLayer.Params().Set(
+          name='soft_cond_nonzeros',
+          cond_dim=2,
+          num_experts=num_experts,
+          nonzeros_mean=True,
+          body=lingvo_layers.FCLayer.Params().Set(input_dim=2, output_dim=2))
+      l_nz = p_nz.Instantiate()
+      x_nz = tf.random_normal(shape=[1, 2, 2])
+      y_nz = l_nz.FPropDefaultTheta(x_nz)
+      tf.global_variables_initializer().run()
+      x_nz_val, y_nz_val, vars_nz_val = sess.run([x_nz, y_nz, l_nz.vars])
+
     np_val = x_val[0]
-    taks_weight = np.exp(-1.0 * np.dot(np.sum(np_val, 0), vars_val.w))
+    np_nz_val = x_nz_val[0]
+    taks_weight = np.exp(-1.0 * np.dot(np.mean(np_val, 0), vars_val.w))
     taks_weight = 1.0 / (1.0 + taks_weight)
+    nzs = np.count_nonzero(np_nz_val, 0).astype('float32') + 1e-10
+    taks_weight_nz = np.exp(-1.0 *
+                            np.dot(np.sum(np_nz_val, 0) / nzs, vars_nz_val.w))
+    taks_weight_nz = 1.0 / (1.0 + taks_weight_nz)
     weighted_weight = np.einsum('i,ijk->jk', taks_weight, vars_val.body.w)
+    weighted_weight_nz = np.einsum('i,ijk->jk', taks_weight_nz,
+                                   vars_nz_val.body.w)
     weighted_bias = np.einsum('i,ij->j', taks_weight, vars_val.body.b)
-    np_val = np.maximum(0, np.dot(np_val, weighted_weight) + weighted_bias)
-    self.assertAllClose(np_val, y_val[0])
+    weighted_bias_nz = np.einsum('i,ij->j', taks_weight_nz, vars_nz_val.body.b)
+    np_val_out = np.maximum(0, np.dot(np_val, weighted_weight) + weighted_bias)
+    np_val_out_nz = np.maximum(
+        0,
+        np.dot(np_nz_val, weighted_weight_nz) + weighted_bias_nz)
+    self.assertAllClose(np_val_out, y_val[0])
+    self.assertAllClose(np_val_out_nz, y_nz_val[0])
 
   def testRepeatLayer(self):
     repeat = 100
