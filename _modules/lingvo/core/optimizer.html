@@ -213,9 +213,12 @@
       <span class="c1"># Many optimizers, e.g., Adam, Adagrad, etc., create</span>
       <span class="c1"># variables. We need to ensure name scope and variable scope are</span>
       <span class="c1"># cleared. Otherwise, tpu.batch_parallel does not work.</span>
+      <span class="n">var_reuse</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOpportunisticVariableReuse</span><span class="p">():</span>
+        <span class="n">var_reuse</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span><span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="kc">False</span><span class="p">)):</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span><span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">var_reuse</span><span class="p">)):</span>
           <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">var_update_op</span></div>
