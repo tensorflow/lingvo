@@ -24,222 +24,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from google.protobuf import text_format as _text_format
-from tensorflow.core.framework import op_def_pb2 as _op_def_pb2
-from tensorflow.python.framework import op_def_library as _op_def_library
-from tensorflow.python.framework import op_def_registry as _op_def_registry
-from tensorflow.python.framework import ops as _ops
-from tensorflow.python.framework import tensor_shape as _tensor_shape
+from lingvo import compat as tf
 
-
-def _Recv(tensor_type, tensor_name, send_device, recv_device, name=None):
-  r"""Receives the named tensor from send_device on recv_device.
-
-  Args:
-    tensor_type: A `tf.DType`.
-    tensor_name: A `string`. The name of the tensor to receive.
-    send_device: A `string`. The name of the device sending the tensor.
-    recv_device: A `string`. The name of the device receiving the tensor.
-    name: A name for the operation (optional).
-
-  Returns:
-    A `Tensor` of type `tensor_type`. The tensor to receive.
-  """
-  result = _op_def_lib.apply_op(
-      "_Recv",
-      tensor_type=tensor_type,
-      tensor_name=tensor_name,
-      send_device=send_device,
-      send_device_incarnation=0,
-      recv_device=recv_device,
-      client_terminated=False,
-      name=name if name else "Recv")
-  return result
-
-
-def _Send(tensor, tensor_name, send_device, recv_device, name=None):
-  r"""Sends the named tensor from send_device to recv_device.
-
-  Args:
-    tensor: A `Tensor`. The tensor to send.
-    tensor_name: A `string`. The name of the tensor to send.
-    send_device: A `string`. The name of the device sending the tensor.
-    recv_device: A `string`. The name of the device receiving the tensor.
-    name: A name for the operation (optional).
-
-  Returns:
-    The created Operation.
-  """
-  result = _op_def_lib.apply_op(
-      "_Send",
-      tensor=tensor,
-      tensor_name=tensor_name,
-      send_device=send_device,
-      send_device_incarnation=0,
-      recv_device=recv_device,
-      client_terminated=False,
-      name=name if name else "Send")
-  return result
-
-
-def _XlaSend(tensor, tensor_name, name=None):
-  r"""Sends the named tensor from send_device to recv_device.
-
-  Args:
-    tensor: A `Tensor`. The tensor to send.
-    tensor_name: A `string`. The name of the tensor to send.
-    name: A name for the operation (optional).
-
-  Returns:
-    The created Operation.
-  """
-  result = _op_def_lib.apply_op(
-      "XlaSend",
-      tensor=tensor,
-      tensor_name=tensor_name,
-      name=name if name else "XlaSend")
-  return result
-
-
-def _XlaRecv(dtype, tensor_name, shape, name=None):
-  r"""Sends the named tensor from send_device to recv_device.
-
-  Args:
-    dtype: A `tf.DType`.
-    tensor_name: A `string`. The name of the tensor to receive.
-    shape: A `tf.TensorShape` or list of `ints`. The shape of the input tensor.
-    name: A name for the operation (optional).
-
-  Returns:
-    The created Operation.
-  """
-  result = _op_def_lib.apply_op(
-      "XlaRecv",
-      dtype=dtype,
-      shape=shape,
-      tensor_name=tensor_name,
-      name=name if name else "XlaRecv")
-  return result
-
-
-def _InitOpDefLibrary():
-  op_list = _op_def_pb2.OpList()
-  _text_format.Merge(_InitOpDefLibrary.op_list_ascii, op_list)
-  _op_def_registry.register_op_list(op_list)
-  op_def_lib = _op_def_library.OpDefLibrary()
-  op_def_lib.add_op_list(op_list)
-  return op_def_lib
-
-
-_InitOpDefLibrary.op_list_ascii = """op {
-  name: "_Recv"
-  output_arg {
-    name: "tensor"
-    type_attr: "tensor_type"
-  }
-  attr {
-    name: "tensor_type"
-    type: "type"
-  }
-  attr {
-    name: "tensor_name"
-    type: "string"
-  }
-  attr {
-    name: "send_device"
-    type: "string"
-  }
-  attr {
-    name: "send_device_incarnation"
-    type: "int"
-  }
-  attr {
-    name: "recv_device"
-    type: "string"
-  }
-  attr {
-    name: "client_terminated"
-    type: "bool"
-    default_value {
-      b: false
-    }
-  }
-  is_stateful: true
-}
-op {
-  name: "_Send"
-  input_arg {
-    name: "tensor"
-    type_attr: "T"
-  }
-  attr {
-    name: "T"
-    type: "type"
-  }
-  attr {
-    name: "tensor_name"
-    type: "string"
-  }
-  attr {
-    name: "send_device"
-    type: "string"
-  }
-  attr {
-    name: "send_device_incarnation"
-    type: "int"
-  }
-  attr {
-    name: "recv_device"
-    type: "string"
-  }
-  attr {
-    name: "client_terminated"
-    type: "bool"
-    default_value {
-      b: false
-    }
-  }
-  is_stateful: true
-}
-op {
-  name: "XlaRecv"
-  output_arg {
-    name: "tensor"
-    type_attr: "dtype"
-  }
-  attr {
-    name: "dtype"
-    type: "type"
-  }
-  attr {
-    name: "tensor_name"
-    type: "string"
-  }
-  attr {
-    name: "shape"
-    type: "shape"
-  }
-  is_stateful: true
-}
-op {
-  name: "XlaSend"
-  input_arg {
-    name: "tensor"
-    type_attr: "T"
-  }
-  attr {
-    name: "T"
-    type: "type"
-  }
-  attr {
-    name: "tensor_name"
-    type: "string"
-  }
-  is_stateful: true
-}
-"""
-
-_op_def_lib = _InitOpDefLibrary()
+# pylint: disable=g-direct-tensorflow-import
+from tensorflow.compiler.tf2xla.python import xla
+# pylint: enable=g-direct-tensorflow-import
 
 
 def _TpuCore(device):
@@ -264,7 +53,7 @@ class Channel(object):
       recv_device: A fully-specified tensorflow device.
       name: A name for the channel (optional).
     """
-    current_graph = _ops.get_default_graph()
+    current_graph = tf.get_default_graph()
     assert current_graph, "A channel is scoped within a tf.Graph"
     self._dtype = dtype
     self._send_device = send_device
@@ -272,7 +61,7 @@ class Channel(object):
     self._name = current_graph.unique_name(name if name else "channel")
 
     assert shape is not None
-    shape = _tensor_shape.TensorShape(shape)
+    shape = tf.TensorShape(shape)
 
     self._shape = shape
     self._send_tpu_core = _TpuCore(send_device)
@@ -296,20 +85,29 @@ class Channel(object):
         "Send called multiple times for %s" % self._name)
     self._send_called = True
     if self._send_tpu_core == -1:
-      return _Send(tensor, self._name, self._send_device, self._recv_device)
+      return tf.raw_ops.Send(
+          tensor=tensor,
+          tensor_name=self._name,
+          send_device=self._send_device,
+          send_device_incarnation=0,
+          recv_device=self._recv_device)
     else:
-      with _ops.device(self._send_device):
-        return _XlaSend(
+      with tf.device(self._send_device):
+        return xla.send(
             tensor, tensor_name=self._name, name="Send_" + self._name)
 
   def Recv(self):
     """Receives a tensor from the channel."""
     if self._send_tpu_core == -1:
-      return _Recv(self._dtype, self._name,
-                   self._send_device, self._recv_device)
+      return tf.raw_ops.Recv(
+          tensor_type=self._dtype,
+          tensor_name=self._name,
+          send_device=self._send_device,
+          send_device_incarnation=0,
+          recv_device=self._recv_device)
     else:
-      with _ops.device(self._recv_device):
-        return _XlaRecv(
+      with tf.device(self._recv_device):
+        return xla.recv(
             self._dtype,
             tensor_name=self._name,
             shape=self._shape,

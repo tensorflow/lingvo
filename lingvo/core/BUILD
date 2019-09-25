@@ -1017,8 +1017,8 @@ py_library(
     srcs = ["sendrecv.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # Implicit python proto dependency.
-        # Implicit tensorflow py proto dependency.
+        "//lingvo:compat",
+        # Implicit tensorflow dependency.
     ],
 )
 
