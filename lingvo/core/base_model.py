@@ -34,10 +34,10 @@ from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
-from lingvo.core.model_pruning import pruning
 import six
 from six.moves import range
 
+from model_pruning.python import pruning
 from lingvo.core import decoder_lib
 
 
@@ -164,7 +164,7 @@ class BaseTask(base_layer.BaseLayer):
         'model parameters from the checkpoint_path.')
     tp.Define(
         'pruning_hparams_dict', None, 'Pruning related hyperparameters. A dict '
-        'with hyperparameter: value pairs. See tf.contrib.model_pruning.')
+        'with hyperparameter: value pairs. See google-research.model_pruning.')
     tp.Define(
         'enqueue_max_steps', -1, 'Max enqueue steps. -1 meaning no limit.'
         ' This flag should be set for unit-test only.')

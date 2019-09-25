@@ -61,6 +61,7 @@ ARG pip_dependencies='contextlib2 \
       jupyter \
       jupyter_http_over_ws \
       matplotlib \
+      model-pruning-google-research \
       numpy \
       pandas \
       recommonmark \

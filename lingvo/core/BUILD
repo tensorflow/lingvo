@@ -216,12 +216,12 @@ py_library(
         ":hyperparams",
         ":learner",
         ":optimizer",
-        ":pruning",
         ":py_utils",
         ":schedule",
         ":summary_utils",
         ":task_scheduler",
         "//lingvo/core:decoder_lib",
+        # Implicit model_pruning.pruning dependency.
         "//lingvo:compat",
         # Implicit six dependency.
     ],
@@ -741,6 +741,7 @@ lingvo_py_binary(
     deps = [
         ":inference_graph_py_pb2",
         ":py_utils",
+        # Implicit python proto dependency.
         "//lingvo:compat",
         "//lingvo:model_imports_no_params",
         # Implicit six dependency.
@@ -780,10 +781,10 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":hyperparams",
-        ":pruning_utils",
         ":retry",
         ":symbolic",
         ":tshape",
+        # Implicit model_pruning.pruning dependency.
         "//lingvo:compat",
         "//lingvo/core/ops",
         # Implicit numpy dependency.
@@ -1396,68 +1397,6 @@ py_library(
         "//lingvo:compat",
         # Implicit six dependency.
         # Implicit tensorflow grpc dependency.
-    ],
-)
-
-py_library(
-    name = "hparam",
-    srcs = ["model_pruning/hparam.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        # Implicit six dependency.
-    ],
-)
-
-py_test(
-    name = "hparam_test",
-    srcs = ["model_pruning/hparam_test.py"],
-    deps = [
-        ":hparam",
-        "//lingvo:compat",
-    ],
-)
-
-py_library(
-    name = "pruning_utils",
-    srcs = ["model_pruning/pruning_utils.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//lingvo:compat",
-        # Implicit numpy dependency.
-    ],
-)
-
-py_test(
-    name = "pruning_utils_test",
-    size = "medium",
-    srcs = ["model_pruning/pruning_utils_test.py"],
-    deps = [
-        ":pruning_utils",
-        # Implicit absl.testing.parameterized dependency.
-        "//lingvo:compat",
-    ],
-)
-
-py_library(
-    name = "pruning",
-    srcs = ["model_pruning/pruning.py"],
-    srcs_version = "PY2AND3",
-    visibility = ["//visibility:public"],
-    deps = [
-        ":hparam",
-        ":pruning_utils",
-        "//lingvo:compat",
-    ],
-)
-
-py_test(
-    name = "pruning_test",
-    size = "small",
-    srcs = ["model_pruning/pruning_test.py"],
-    deps = [
-        ":pruning",
-        "//lingvo:compat",
-        # Implicit numpy dependency.
     ],
 )
 
