@@ -266,6 +266,30 @@ class MatplotlibFigureSummaryTest(test_utils.TestCase):
     summary = tf.summary.Summary.FromString(summary_str)
     self.assertEqual(len(summary.value), 1)
 
+  def testAddMultiCurveSubplot(self):
+    with self.session(graph=tf.Graph(), use_gpu=False) as sess:
+      fig = plot.MatplotlibFigureSummary('XXX')
+      batch_size = 2
+      tensor = tf.ones([batch_size, 3])
+      paddings = tf.constant([[0., 0., 0.], [0., 1., 1.]])
+      plot.AddMultiCurveSubplot(
+          fig, [tensor, tensor],
+          paddings,
+          labels=['label1', 'label2'],
+          xlabels=tf.constant(['a', 'b']),
+          title='Title',
+          ylabel='Ylabel')
+      summary_str = sess.run(fig.Finalize())
+
+    summary = tf.Summary.FromString(summary_str)
+    self.assertEqual(len(summary.value), batch_size)
+    for n, value in enumerate(summary.value):
+      self.assertEqual(value.tag, 'XXX/image/%d' % n)
+      self.assertGreater(value.image.width, 0)
+      self.assertGreater(value.image.height, 0)
+      self.assertNotEqual(value.image.encoded_image_string,
+                          self.default_encoded_image)
+
 
 if __name__ == '__main__':
   tf.test.main()

@@ -698,6 +698,7 @@ py_library(
     srcs = ["plot.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":py_utils",
         # Implicit Tkinter dependency.
         "//lingvo:compat",
         # Implicit matplotlib dependency.

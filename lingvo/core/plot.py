@@ -24,6 +24,7 @@ import functools
 import traceback
 
 import lingvo.compat as tf
+from lingvo.core import py_utils
 from matplotlib.backends import backend_agg
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
@@ -421,3 +422,64 @@ def Curve(name, figsize, xs, ys, setter=None, **kwargs):
   if setter:
     setter(fig, axes)
   return FigureToSummary(name, fig)
+
+
+def AddMultiCurveSubplot(fig,
+                         tensors,
+                         paddings,
+                         labels,
+                         xlabels=None,
+                         **kwargs):
+  """Adds a multi curve subplot to Matplotlib figure.
+
+  Plots one line for each entry in tensors and assigns a plot label legend.
+
+  Args:
+    fig: The Matplotlib figure.
+    tensors: List of tensors of shape [batch, length]
+    paddings: Paddings for 'tensors' with shape [batch, length] with 0. in valid
+      positions and 1. in invalid.
+    labels: A list of tensor names (strings) of the same length as 'tensors'.
+    xlabels: A string tensor of shape [batch] with an xlabel per batch.
+    **kwargs: With optional, title, xlabel, ylabel, fontsize.
+  """
+  data = []
+  row_labels = []
+  for t, l in zip(tensors, labels):
+    if t is not None:
+      data.append(py_utils.ApplyPadding(paddings, t))
+      row_labels.append(l)
+  shape = py_utils.GetShape(data[0], 2)
+  data = tf.reshape(tf.concat(data, -1), [shape[0], len(data), shape[1]])
+
+  args = [data, py_utils.LengthsFromPaddings(paddings)]
+  if xlabels is not None:
+    args.append(xlabels)
+  fig.AddSubplot(
+      args, plot_func=_AddMultiCurveRowPlots, row_labels=row_labels, **kwargs)
+
+
+def _AddMultiCurveRowPlots(fig,
+                           axes,
+                           data,
+                           length,
+                           x_label_override=None,
+                           row_labels=None,
+                           title=u'',
+                           xlabel=u'',
+                           ylabel=u'',
+                           fontsize='small'):
+  """Add a plot per row in data and cut the plot by the length."""
+  del fig
+  colors = ['b-', 'r-', 'g-', 'm-', 'y-']
+  for row in range(data.shape[0]):
+    label = row_labels[row] if row_labels else '{}'.format(row)
+    axes.plot(data[row, :length], colors[row % len(colors)], label=label)
+  axes.set_xlim([0, length])
+  axes.legend()
+  axes.set_title(ToUnicode(title), size=fontsize)
+  if x_label_override:
+    axes.set_xlabel(ToUnicode(x_label_override), size='x-small', wrap=True)
+  else:
+    axes.set_xlabel(ToUnicode(xlabel), size=fontsize)
+  axes.set_ylabel(ToUnicode(ylabel), size=fontsize)
