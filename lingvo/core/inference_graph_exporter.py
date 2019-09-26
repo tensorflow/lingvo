@@ -309,7 +309,8 @@ class InferenceGraphExporter(object):
              freeze_defaults=False,
              export_path=None,
              subgraph_filter=None,
-             random_seed=None):
+             random_seed=None,
+             disable_packed_input=True):
     """Exports a InferenceGraph proto with piecewise subgraphs.
 
     Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.
@@ -328,6 +329,7 @@ class InferenceGraphExporter(object):
       subgraph_filter: A list of subgraph names. If not None or empty, export
         only this list of inference subgraphs.
       random_seed: Fixes the random seed in the exported inference graph.
+      disable_packed_input: Disable packed input for inference writing purposes.
 
     Returns:
       InferenceGraph proto.
@@ -345,25 +347,26 @@ class InferenceGraphExporter(object):
     # cluster configuration.
     cls._SetClusterParams(model_cfg.cluster, device_options)
 
-    # Disable packed inputs for inference writing purposes.
-    def _DisablePackedInput(task):
-      if (_ParamExists(task, 'encoder') and
-          _ParamExists(task.encoder, 'packed_input')):
-        task.encoder.packed_input = False
-      if (_ParamExists(task, 'decoder') and
-          _ParamExists(task.decoder, 'packed_input')):
-        task.decoder.packed_input = False
-
     # Configure the model.
     model_cfg.random_seed = random_seed
     model_cfg.is_eval = True
     model_cfg.is_inference = True
 
-    if issubclass(model_cfg.cls, base_model.MultiTaskModel):
-      for _, task_param in model_cfg.task_params.IterParams():
-        _DisablePackedInput(task_param)
-    else:
-      _DisablePackedInput(model_cfg.task)
+    if disable_packed_input:
+
+      def _DisablePackedInput(task):
+        if (_ParamExists(task, 'encoder') and
+            _ParamExists(task.encoder, 'packed_input')):
+          task.encoder.packed_input = False
+        if (_ParamExists(task, 'decoder') and
+            _ParamExists(task.decoder, 'packed_input')):
+          task.decoder.packed_input = False
+
+      if issubclass(model_cfg.cls, base_model.MultiTaskModel):
+        for _, task_param in model_cfg.task_params.IterParams():
+          _DisablePackedInput(task_param)
+      else:
+        _DisablePackedInput(model_cfg.task)
 
     tf.logging.info('Model %s. Params: %s', model_cfg.name, model_cfg.ToText())
 
