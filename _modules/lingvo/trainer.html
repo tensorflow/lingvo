@@ -210,7 +210,7 @@
 <span class="c1"># pylint:enable=g-direct-tensorflow-import</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
-    <span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Name of the model class to train.&#39;</span>
+    <span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Name of the model class to train.&#39;</span>
     <span class="s1">&#39;Must be a model defined in the model_registry.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
     <span class="s1">&#39;model_task_name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;For multitask models: &#39;</span>
@@ -1947,11 +1947,11 @@
   <span class="c1"># pylint: disable=g-import-not-at-top</span>
   <span class="c1"># pylint: disable=unused-variable</span>
   <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_imports</span>
-  <span class="k">assert</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;--model not provided!&#39;</span>
   <span class="n">RunnerManager</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">Start</span><span class="p">()</span></div>
 
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">mark_flag_as_required</span><span class="p">(</span><span class="s1">&#39;model&#39;</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
 </pre></div>
 
