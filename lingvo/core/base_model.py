@@ -1245,6 +1245,11 @@ class MultiTaskModel(BaseModel):
         'task_global_step', False,
         'Whether or not to use task-specific global steps, which causes each '
         'task to use its own global_step instead of the true global_step.')
+    p.Define(
+        'task_name_var_scope', True,
+        'Whether or not to use the task name as a variable scope. Note that '
+        'this has been the default behavior for some time, but seems to be '
+        'redundant since the individual tasks scope by their `name`.')
     return p
 
   @base_layer.initializer
@@ -1278,11 +1283,15 @@ class MultiTaskModel(BaseModel):
             for task_name, task_params in p.task_params.IterParams())
         for task_name, task_params in sorted_task_params:
           if p.task_global_step:
-            assert task_name == task_params.name
+            assert task_name == task_params.name, (task_name, task_params.name)
             CreateTaskGlobalStep(task_name)
-          # Make sure each task is under its own variable scope.
-          with tf.variable_scope(task_name):
+
+          if p.task_name_var_scope:
+            with tf.variable_scope(task_name):
+              self.CreateChild(task_name, task_params)
+          else:
             self.CreateChild(task_name, task_params)
+
         self.CreateChild('task_schedule', p.task_schedule)
 
   @property
