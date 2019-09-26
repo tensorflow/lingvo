@@ -266,7 +266,7 @@
 <span class="sd">      max_ratio: Maximum portion of the entire range allowed to be masked.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      mask: a fixed size mask starting from a random position with shape</span>
+<span class="sd">      A fixed size mask starting from a random position with shape</span>
 <span class="sd">      [batch_size, seq_len].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -449,9 +449,8 @@
 <span class="sd">      domain_id_index: domain id index.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      output: Batch of output features of shape</span>
-<span class="sd">              (batch_size, time_length, num_freq, channels)</span>
-<span class="sd">              obtained by applying random augmentations to inputs.</span>
+<span class="sd">      Batch of output features of shape (batch_size, time_length, num_freq,</span>
+<span class="sd">      channels) obtained by applying random augmentations to inputs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
@@ -500,8 +499,10 @@
 <span class="sd">      domain_ids: input domain_ids of shape [batch, time].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      augmented_inputs: An tensor of shape [batch, time, freq, num_channels].</span>
-<span class="sd">      paddings: A 0/1 tensor of shape [batch, time].</span>
+<span class="sd">      A pair of 2 tensors:</span>
+
+<span class="sd">      - augmented_inputs: A tensor of shape [batch, time, freq, num_channels].</span>
+<span class="sd">      - paddings: A 0/1 tensor of shape [batch, time].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 

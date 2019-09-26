@@ -302,10 +302,11 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A NestedMap containing:</span>
-<span class="sd">        - encoded: The encoded features, a tensor of shape [time, batch, depth]</span>
-<span class="sd">        - padding: of shape [time, batch]</span>
-<span class="sd">        - segment_id: [time, batch] if packed inputs are supported by the model</span>
-<span class="sd">            (and all layers), or None otherwise.</span>
+
+<span class="sd">      - encoded: The encoded features, a tensor of shape [time, batch, depth]</span>
+<span class="sd">      - padding: of shape [time, batch]</span>
+<span class="sd">      - segment_id: [time, batch] if packed inputs are supported by the model</span>
+<span class="sd">        (and all layers), or None otherwise.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">src_segment_id</span> <span class="o">=</span> <span class="kc">None</span>
@@ -754,15 +755,16 @@
 <span class="sd">        - paddings: The paddings tensor. Expected shape [batch, time].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap containing:</span>
-<span class="sd">        - encoded: The encoded features, either a tensor of shape [time, batch,</span>
-<span class="sd">            depth], or a list of tensors if is_transparent is set in</span>
-<span class="sd">            transformer_stack.</span>
-<span class="sd">        - padding: of shape [time, batch]</span>
-<span class="sd">        - segment_id: [time, batch] if packed inputs are supported by the model</span>
-<span class="sd">            (and all layers), or None otherwise.</span>
-<span class="sd">        - embedded_inputs: [time, batch, depth] embedded inputs tokens without</span>
-<span class="sd">            positional encodings.</span>
+<span class="sd">      A NestedMap containing</span>
+
+<span class="sd">      - encoded: The encoded features, either a tensor of shape</span>
+<span class="sd">        [time, batch, depth], or a list of tensors if is_transparent is set in</span>
+<span class="sd">        transformer_stack.</span>
+<span class="sd">      - padding: of shape [time, batch]</span>
+<span class="sd">      - segment_id: [time, batch] if packed inputs are supported by the model</span>
+<span class="sd">        (and all layers), or None otherwise.</span>
+<span class="sd">      - embedded_inputs: [time, batch, depth] embedded inputs tokens without</span>
+<span class="sd">        positional encodings.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>

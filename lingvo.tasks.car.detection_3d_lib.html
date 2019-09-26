@@ -183,19 +183,19 @@ inference time by non-max suppression.</p>
 does not support a batch dimension.</p>
 <p>The following functions in this utility class helps with that:</p>
 <blockquote>
-<div><dl class="simple">
-<dt>CreateDenseCoordinates: Makes it easy to create a dense grid of coordinates</dt><dd><p>that would usually correspond to center locations.</p>
-</dd>
-<dt>MakeAnchorBoxes: Given a list of center coordinates, dimension priors, and</dt><dd><p>offset priors, this function creates actual anchor bbox parameters at each
-coordinate. More than one box can be at each center.</p>
-</dd>
-<dt>IOUAxisAlignedBoxes: This function computes the IOU between two lists of</dt><dd><p>boxes.</p>
-</dd>
-<dt>AssignAnchors: This function assigns each anchor a ground-truth bbox. Note</dt><dd><p>that one ground-truth bbox can be assigned to multiple anchors. The model
+<div><ul class="simple">
+<li><p>CreateDenseCoordinates: Makes it easy to create a dense grid of
+coordinates that would usually correspond to center locations.</p></li>
+<li><p>MakeAnchorBoxes: Given a list of center coordinates, dimension priors, and
+offset priors, this function creates actual anchor bbox parameters at each
+coordinate. More than one box can be at each center.</p></li>
+<li><p>IOUAxisAlignedBoxes: This function computes the IOU between two lists of
+boxes.</p></li>
+<li><p>AssignAnchors: This function assigns each anchor a ground-truth bbox. Note
+that one ground-truth bbox can be assigned to multiple anchors. The model
 is expected to regress the residuals each anchor and it’s corresponding
-ground-truth bbox parameters.</p>
-</dd>
-</dl>
+ground-truth bbox parameters.</p></li>
+</ul>
 </div></blockquote>
 <dl class="method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.ScaledHuberLoss">
@@ -204,10 +204,10 @@ ground-truth bbox parameters.</p>
 <p>This function wraps tf.losses.huber_loss to rescale it by 1 / delta, and
 uses Reduction.NONE.</p>
 <p>This scaling results in the following formulation instead:</p>
-<blockquote>
-<div><p>(1/d) * 0.5 * x^2       if |x| &lt;= d
-|x| - 0.5 * d           if |x| &gt; d</p>
-</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">d</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">x</span><span class="o">^</span><span class="mi">2</span>       <span class="k">if</span> \<span class="o">|</span><span class="n">x</span>\<span class="o">|</span> <span class="o">&lt;=</span> <span class="n">d</span>
+\<span class="o">|</span><span class="n">x</span>\<span class="o">|</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">d</span>         <span class="k">if</span> \<span class="o">|</span><span class="n">x</span>\<span class="o">|</span> <span class="o">&gt;</span> <span class="n">d</span>
+</pre></div>
+</div>
 <p>where x is labels - predictions.</p>
 <p>Hence, delta changes where the quadratic bowl is, but does not change the
 overall shape of the loss outside of delta.</p>
@@ -266,10 +266,8 @@ for the corresponding bbox.</p>
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.CreateDenseCoordinates">
 <code class="sig-name descname">CreateDenseCoordinates</code><span class="sig-paren">(</span><em class="sig-param">ranges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.CreateDenseCoordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.CreateDenseCoordinates" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a matrix of coordinate locations corresponding to a dense grid.</p>
-<dl class="simple">
-<dt>Example: To create (x, y) coordinates corresponding over a 10x10 grid with</dt><dd><p>step sizes 1, call CreateDenseCoordinates([(1, 10, 10), (1, 10, 10)]).</p>
-</dd>
-</dl>
+<p>Example: To create (x, y) coordinates corresponding over a 10x10 grid with
+step sizes 1, call <code class="docutils literal notranslate"><span class="pre">CreateDenseCoordinates([(1,</span> <span class="pre">10,</span> <span class="pre">10),</span> <span class="pre">(1,</span> <span class="pre">10,</span> <span class="pre">10)])</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>ranges</strong> – A list of 3-tuples, each tuple is expected to contain (min, max,
@@ -301,16 +299,10 @@ None, rotation will be set to 0.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>[num_anchors_center, num_boxes_per_center, 2 * dims + 1]</dt><dd><p>tensor. Usually dims=3 for 3D, where […, :dims] corresponds to
-location, […, dims:2*dims] corresponds to dimensions, and […, -1]
+<dd class="field-even"><p>A [num_anchors_center, num_boxes_per_center, 2 * dims + 1] tensor. Usually
+dims=3 for 3D, where <code class="docutils literal notranslate"><span class="pre">[...,</span> <span class="pre">:dims]</span></code> corresponds to location,
+<code class="docutils literal notranslate"><span class="pre">[...,</span> <span class="pre">dims:2*dims]</span></code> corresponds to dimensions, and <code class="docutils literal notranslate"><span class="pre">[...,</span> <span class="pre">-1]</span></code>
 corresponds to rotation.</p>
-</dd>
-</dl>
-</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>anchor_bboxes</p>
 </dd>
 </dl>
 </dd></dl>
@@ -344,27 +336,29 @@ during anchor assignment.</p>
 <dd><p>Assigns anchors to bboxes using a similarity function (SSD-based).</p>
 <p>Each anchor box is assigned to the top matching ground truth box.
 Ground truth boxes can be assigned to multiple anchor boxes.</p>
-<dl class="simple">
-<dt>Assignments can result in 3 outcomes:</dt><dd><dl class="simple">
-<dt>Positive assignment (if score &gt;= foreground_assignment_threshold):</dt><dd><p>assigned_gt_labels will reflect the assigned box label and
-assigned_cls_mask will be set to 1.0</p>
-</dd>
-<dt>Background assignment (if score &lt;= background_assignment_threshold):</dt><dd><p>assigned_gt_labels will be background_class_id and assigned_cls_mask
-will be set to 1.0</p>
-</dd>
-<dt>Ignore assignment (otherwise):</dt><dd><p>assigned_gt_labels will be background_class_id and assigned_cls_mask
-will be set to 0.0</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<p>Assignments can result in 3 outcomes:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Positive assignment (if score &gt;= foreground_assignment_threshold):
+assigned_gt_labels will reflect the assigned box label and
+assigned_cls_mask will be set to 1.0</p></li>
+<li><p>Background assignment (if score &lt;= background_assignment_threshold):
+assigned_gt_labels will be background_class_id and assigned_cls_mask
+will be set to 1.0</p></li>
+<li><p>Ignore assignment (otherwise):
+assigned_gt_labels will be background_class_id and assigned_cls_mask
+will be set to 0.0</p></li>
+</ul>
+</div></blockquote>
 <p>The detection loss function would usually:</p>
 <blockquote>
-<div><p>Use assigned_cls_mask for weighting the classification loss. The mask
-is set such that the loss applies to foreground and background assignments
-only - ignored anchors will be set to 0.</p>
-<p>Use assigned_reg_mask for weighting the regression loss. The mask is set
-such that the loss applies to foreground assignments only.</p>
+<div><ul class="simple">
+<li><p>Use assigned_cls_mask for weighting the classification loss. The mask
+is set such that the loss applies to foreground and background
+assignments only - ignored anchors will be set to 0.</p></li>
+<li><p>Use assigned_reg_mask for weighting the regression loss. The mask is set
+such that the loss applies to foreground assignments only.</p></li>
+</ul>
 </div></blockquote>
 <p>The thresholds (foreground_assignment_threshold and
 background_assignment_threshold) should be tuned per dataset.</p>
@@ -404,21 +398,21 @@ ignored. If set to None, the function will default to IOU2DRotatedBoxes.</p></li
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>assigned_gt_bbox: shape [A, 7] bbox parameters assigned to each anchor.</p>
-<p>assigned_gt_similarity_score: shape [A] (iou) score between the anchor
-and the gt bbox.</p>
-<p>assigned_gt_labels: shape [A] label assigned to bbox.</p>
-<p>assigned_cls_mask: shape [A] mask for classification loss per anchor.
+<dd class="field-even"><p><p>NestedMap with the following keys</p>
+<ul class="simple">
+<li><p>assigned_gt_bbox: shape [A, 7] bbox parameters assigned to each anchor.</p></li>
+<li><p>assigned_gt_similarity_score: shape [A] (iou) score between the anchor
+and the gt bbox.</p></li>
+<li><p>assigned_gt_labels: shape [A] label assigned to bbox.</p></li>
+<li><p>assigned_cls_mask: shape [A] mask for classification loss per anchor.
 This should be 1.0 if the anchor has a foreground or background
-assignment; otherwise, it will be assigned to 0.0.</p>
-<p>assigned_reg_mask: shape [A] mask for regression loss per anchor.
+assignment; otherwise, it will be assigned to 0.0.</p></li>
+<li><p>assigned_reg_mask: shape [A] mask for regression loss per anchor.
 This should be 1.0 if the anchor has a foreground assignment;
 otherwise, it will be assigned to 0.0.
-Note: background anchors do not have regression targets.</p>
+Note: background anchors do not have regression targets.</p></li>
+</ul>
 </p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>NestedMap with the following keys</p>
 </dd>
 </dl>
 </dd></dl>
@@ -429,19 +423,21 @@ Note: background anchors do not have regression targets.</p>
 <dd><p>Computes the anchor residuals for every bbox.</p>
 <p>For a given bbox, compute residuals in the following way:</p>
 <blockquote>
-<div><p>Let the anchor_bbox = (x_a, y_a, z_a, dx_a, dy_a, dz_a, phi_a)
-and the assigned_gt_bbox = (x_gt, y_gt, z_gt, dx_gt, dy_gt, dz_gt, phi_gt)</p>
-<p>Define diagonal_xy = sqrt(dx_a^2 + dy_a^2)</p>
+<div><p>Let <code class="docutils literal notranslate"><span class="pre">anchor_bbox</span> <span class="pre">=</span> <span class="pre">(x_a,</span> <span class="pre">y_a,</span> <span class="pre">z_a,</span> <span class="pre">dx_a,</span> <span class="pre">dy_a,</span> <span class="pre">dz_a,</span> <span class="pre">phi_a)</span></code>
+and <code class="docutils literal notranslate"><span class="pre">assigned_gt_bbox</span> <span class="pre">=</span> <span class="pre">(x_gt,</span> <span class="pre">y_gt,</span> <span class="pre">z_gt,</span> <span class="pre">dx_gt,</span> <span class="pre">dy_gt,</span> <span class="pre">dz_gt,</span> <span class="pre">phi_gt)</span></code></p>
+<p>Define <code class="docutils literal notranslate"><span class="pre">diagonal_xy</span> <span class="pre">=</span> <span class="pre">sqrt(dx_a^2</span> <span class="pre">+</span> <span class="pre">dy_a^2)</span></code></p>
 <p>Then the corresponding residuals are given by:</p>
-<blockquote>
-<div><p>x_residual = (x_gt - x_a) / (diagonal_xy)
-y_residual = (y_gt - y_a) / (diagonal_xy)
-z_residual = (z_gt - z_a) / (dz_a)</p>
-<p>dx_residual = log(dx_gt / dx_a)
-dy_residual = log(dy_gt / dy_a)
-dz_residual = log(dz_gt / dz_a)</p>
-<p>phi_residual = phi_gt - phi_a</p>
-</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x_residual</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_gt</span> <span class="o">-</span> <span class="n">x_a</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">diagonal_xy</span><span class="p">)</span>
+<span class="n">y_residual</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_gt</span> <span class="o">-</span> <span class="n">y_a</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">diagonal_xy</span><span class="p">)</span>
+<span class="n">z_residual</span> <span class="o">=</span> <span class="p">(</span><span class="n">z_gt</span> <span class="o">-</span> <span class="n">z_a</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">dz_a</span><span class="p">)</span>
+
+<span class="n">dx_residual</span> <span class="o">=</span> <span class="n">log</span><span class="p">(</span><span class="n">dx_gt</span> <span class="o">/</span> <span class="n">dx_a</span><span class="p">)</span>
+<span class="n">dy_residual</span> <span class="o">=</span> <span class="n">log</span><span class="p">(</span><span class="n">dy_gt</span> <span class="o">/</span> <span class="n">dy_a</span><span class="p">)</span>
+<span class="n">dz_residual</span> <span class="o">=</span> <span class="n">log</span><span class="p">(</span><span class="n">dz_gt</span> <span class="o">/</span> <span class="n">dz_a</span><span class="p">)</span>
+
+<span class="n">phi_residual</span> <span class="o">=</span> <span class="n">phi_gt</span> <span class="o">-</span> <span class="n">phi_a</span>
+</pre></div>
+</div>
 <p>The normalization for x and y residuals by the diagonal was first
 proposed by [1]. Intuitively, this reflects that objects can usually
 move freely in the x-y plane, including diagonally. On the other hand,
@@ -484,15 +480,17 @@ residuals for every corresponding bbox.</p>
 <code class="sig-name descname">ResidualsToBBoxes</code><span class="sig-paren">(</span><em class="sig-param">anchor_bboxes</em>, <em class="sig-param">residuals</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.ResidualsToBBoxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.ResidualsToBBoxes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts anchor_boxes and residuals to predicted bboxes.</p>
 <p>This converts predicted residuals into bboxes using the following formulae:</p>
-<blockquote>
-<div><p>x_predicted = x_a + x_residual * diagonal_xy
-y_predicted = y_a + y_residual * diagonal_xy
-z_predicted = z_a + z_residual * dz_a</p>
-<p>dx_predicted = dx_a * exp(dx_residual)
-dy_predicted = dy_a * exp(dy_residual)
-dz_predicted = dz_a * exp(dz_residual)</p>
-<p>phi_predicted = phi_a + phi_residual</p>
-</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x_predicted</span> <span class="o">=</span> <span class="n">x_a</span> <span class="o">+</span> <span class="n">x_residual</span> <span class="o">*</span> <span class="n">diagonal_xy</span>
+<span class="n">y_predicted</span> <span class="o">=</span> <span class="n">y_a</span> <span class="o">+</span> <span class="n">y_residual</span> <span class="o">*</span> <span class="n">diagonal_xy</span>
+<span class="n">z_predicted</span> <span class="o">=</span> <span class="n">z_a</span> <span class="o">+</span> <span class="n">z_residual</span> <span class="o">*</span> <span class="n">dz_a</span>
+
+<span class="n">dx_predicted</span> <span class="o">=</span> <span class="n">dx_a</span> <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="n">dx_residual</span><span class="p">)</span>
+<span class="n">dy_predicted</span> <span class="o">=</span> <span class="n">dy_a</span> <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="n">dy_residual</span><span class="p">)</span>
+<span class="n">dz_predicted</span> <span class="o">=</span> <span class="n">dz_a</span> <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="n">dz_residual</span><span class="p">)</span>
+
+<span class="n">phi_predicted</span> <span class="o">=</span> <span class="n">phi_a</span> <span class="o">+</span> <span class="n">phi_residual</span>
+</pre></div>
+</div>
 <p>These equations follow from those in LocalizationResiduals, where we solve
 for the *_gt variables.</p>
 <dl class="field-list simple">
@@ -555,11 +553,8 @@ this value is set to num_boxes from the shape of bboxes.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>The NMS indices and the mask of the padded indices for each example</dt><dd><p>in the batch.</p>
-</dd>
-</dl>
-</p>
+<dd class="field-even"><p>The NMS indices and the mask of the padded indices for each example
+in the batch.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -586,15 +581,17 @@ per example to emit per class.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>An int32 Tensor with the indices of the chosen boxes.
-Values are in sort order until the class_idx switches.</p>
-<p>bbox_scores: A float32 Tensor with the score for each box.</p>
-<p>valid_mask: A float32 Tensor with 1/0 values indicating the validity of
-each box. 1 indicates valid, and 0 invalid.</p>
+<dd class="field-even"><p><ul class="simple">
+<li><p>bbox_indices: An int32 Tensor with the indices of the chosen boxes.
+Values are in sort order until the class_idx switches.</p></li>
+<li><p>bbox_scores: A float32 Tensor with the score for each box.</p></li>
+<li><p>valid_mask: A float32 Tensor with 1/0 values indicating the validity of
+each box. 1 indicates valid, and 0 invalid.</p></li>
+</ul>
 </p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>bbox_indices</p>
+<dd class="field-odd"><p>A tuple of 3 tensors</p>
 </dd>
 </dl>
 </dd></dl>
@@ -614,11 +611,8 @@ last coordinate to recover 2D pixel locations.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>A [batch, num_boxes, 8, 2] floating point Tensor containing</dt><dd><p>the 3D bounding box corners projected to the image plane.</p>
-</dd>
-</dl>
-</p>
+<dd class="field-even"><p>A [batch, num_boxes, 8, 2] floating point Tensor containing the 3D
+bounding box corners projected to the image plane.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -645,16 +639,14 @@ tensors are expected to have the same first dimension.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>output_tensors: A list of padded or trimmed versions of our tensor_list</dt><dd><p>input tensors, all with the same first dimension.</p>
-</dd>
-<dt>padding: A tf.float32 tf.Tensor of shape [num_points_out] with 0 if the</dt><dd><p>point is real, 1 if it is padded.</p>
-</dd>
-</dl>
+<dd class="field-even"><p><p>A tuple of output_tensors and a padding indicator.</p>
+<ul class="simple">
+<li><p>output_tensors: A list of padded or trimmed versions of our tensor_list
+input tensors, all with the same first dimension.</p></li>
+<li><p>padding: A tf.float32 tf.Tensor of shape [num_points_out] with 0 if the
+point is real, 1 if it is padded.</p></li>
+</ul>
 </p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>A tuple of output_tensors and a padding indicator. The output tuple is</p>
 </dd>
 </dl>
 </dd></dl>

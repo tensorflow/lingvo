@@ -270,9 +270,11 @@
 <span class="sd">      classid: integer. Unused in this implementation.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      scalar_metrics: a dict mapping all the metric names to fetch tensors.</span>
-<span class="sd">      curves: a dict mapping all the curve names to fetch tensors.</span>
-<span class="sd">      feed_dict: a dict mapping all the tensors in feed_tensors to feed values.</span>
+<span class="sd">      A tuple of 3 dicts:</span>
+
+<span class="sd">      - scalar_metrics: a dict mapping all the metric names to fetch tensors.</span>
+<span class="sd">      - curves: a dict mapping all the curve names to fetch tensors.</span>
+<span class="sd">      - feed_dict: a dict mapping the tensors in feed_tensors to feed values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">feed_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">dummy_scalar</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>

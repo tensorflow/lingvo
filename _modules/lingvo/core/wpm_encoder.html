@@ -295,8 +295,8 @@
 <span class="sd">    Encoding includes prefixing the beginning-of-word token to each word.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      ids: the encoded integer ids.</span>
-<span class="sd">      tokens: the encoded string.</span>
+<span class="sd">      (ids, tokens) where ids is the encoded integer ids and tokens is the</span>
+<span class="sd">      encoded string.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">words</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">to_dense</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">split</span><span class="p">([</span><span class="n">text</span><span class="p">]),</span> <span class="n">default_value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">num_words</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">words</span><span class="p">)</span>

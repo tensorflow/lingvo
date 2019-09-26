@@ -450,12 +450,11 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of 3 elements.</span>
-<span class="sd">        The attention context vector:</span>
-<span class="sd">          [batch_size, context_dim]</span>
-<span class="sd">        The attention probability vector:</span>
-<span class="sd">          [batch_size, time]</span>
-<span class="sd">        The new attention mechanism state:</span>
-<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
+
+<span class="sd">      - The attention context vector: [batch_size, context_dim]</span>
+<span class="sd">      - The attention probability vector: [batch_size, time]</span>
+<span class="sd">      - The new attention mechanism state: possibly nested tuple of tensors</span>
+<span class="sd">        with dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span></div>
 
@@ -482,9 +481,9 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of 3 elements.</span>
 
-<span class="sd">      * The attention context vector.</span>
-<span class="sd">      * The attention probability vector.</span>
-<span class="sd">      * The new attention mechanism state: possibly nested tuple of tensors with</span>
+<span class="sd">      - The attention context vector.</span>
+<span class="sd">      - The attention probability vector.</span>
+<span class="sd">      - The new attention mechanism state: possibly nested tuple of tensors with</span>
 <span class="sd">        dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_init_done</span>
@@ -914,12 +913,11 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of 3 elements.</span>
-<span class="sd">        The attention context vector:</span>
-<span class="sd">          [batch_size, context_dim]</span>
-<span class="sd">        The attention probability vector:</span>
-<span class="sd">          [batch_size, time]</span>
-<span class="sd">        The new attention mechanism state:</span>
-<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
+
+<span class="sd">      - The attention context vector: [batch_size, context_dim]</span>
+<span class="sd">      - The attention probability vector: [batch_size, time]</span>
+<span class="sd">      - The new attention mechanism state: possibly nested tuple of tensors with</span>
+<span class="sd">        dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_vecs</span>
@@ -995,18 +993,6 @@
                    <span class="n">query_segment_id</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Main attention function.</span>
 
-<span class="sd">      Args:</span>
-<span class="sd">        per_dim_scale:            [source_dim], a vec to scale individual dims.</span>
-<span class="sd">        source_padding:           [time, source_batch].</span>
-<span class="sd">        concated_source_vecs:     [time, source_batch, source_dim].</span>
-<span class="sd">        query_vec:                [target_batch, source_dim].</span>
-<span class="sd">        per_step_source_padding:  [target_batch, source_length]</span>
-<span class="sd">        source_segment_id:        [time, source_batch].</span>
-<span class="sd">        query_segment_id:         [target_batch].</span>
-
-<span class="sd">      Returns:</span>
-<span class="sd">        logits: [target_batch, source_time].</span>
-
 <span class="sd">      target_batch = source_batch * n where n is an integer &gt;= 1.</span>
 <span class="sd">      In this case query_vec contains:</span>
 <span class="sd">              -------------------------</span>
@@ -1028,6 +1014,18 @@
 <span class="sd">              | instance source_batch |</span>
 <span class="sd">              -------------------------</span>
 <span class="sd">      One use case is beam search where n = beam size.</span>
+
+<span class="sd">      Args:</span>
+<span class="sd">        per_dim_scale:            [source_dim], a vec to scale individual dims.</span>
+<span class="sd">        source_padding:           [time, source_batch].</span>
+<span class="sd">        concated_source_vecs:     [time, source_batch, source_dim].</span>
+<span class="sd">        query_vec:                [target_batch, source_dim].</span>
+<span class="sd">        per_step_source_padding:  [target_batch, source_length]</span>
+<span class="sd">        source_segment_id:        [time, source_batch].</span>
+<span class="sd">        query_segment_id:         [target_batch].</span>
+
+<span class="sd">      Returns:</span>
+<span class="sd">        logits [target_batch, source_time].</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)</span>
       <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
@@ -1099,8 +1097,10 @@
 <span class="sd">        concated_source_vecs.</span>
 
 <span class="sd">      Returns:</span>
-<span class="sd">        context_vector: [target_batch, context_dim].</span>
-<span class="sd">        probs:          [target_batch, time].</span>
+<span class="sd">        Two tensors:</span>
+
+<span class="sd">        - context_vector: [target_batch, context_dim].</span>
+<span class="sd">        - probs:          [target_batch, time].</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">2</span><span class="p">]],</span>
                                   <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">1</span><span class="p">]])</span>
@@ -1161,7 +1161,6 @@
 <span class="sd">      hidden_dim], `concated_source_contexts` is a tensor of shape</span>
 <span class="sd">      [batch_size, time, some_dim] and `source_padding` is a tensor of shape</span>
 <span class="sd">      [time, batch_size].</span>
-
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">)</span>
     <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_contexts</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
@@ -1211,12 +1210,11 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of 3 elements.</span>
-<span class="sd">        The attention context vector:</span>
-<span class="sd">          [batch_size, context_dim]</span>
-<span class="sd">        The attention probability vector:</span>
-<span class="sd">          [batch_size, time]</span>
-<span class="sd">        The new attention mechanism state:</span>
-<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
+
+<span class="sd">      - The attention context vector: [batch_size, context_dim]</span>
+<span class="sd">      - The attention probability vector: [batch_size, time]</span>
+<span class="sd">      - The new attention mechanism state: possibly nested tuple of tensors</span>
+<span class="sd">        with dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_vecs</span>
     <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_contexts</span>
@@ -1665,12 +1663,11 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of 3 elements.</span>
-<span class="sd">        The attention context vector:</span>
-<span class="sd">          [batch_size, context_dim]</span>
-<span class="sd">        The attention probability vector:</span>
-<span class="sd">          [batch_size, time]</span>
-<span class="sd">        The new attention mechanism state:</span>
-<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
+
+<span class="sd">      - The attention context vector: [batch_size, context_dim]</span>
+<span class="sd">      - The attention probability vector: [batch_size, time]</span>
+<span class="sd">      - The new attention mechanism state: possibly nested tuple of tensors with</span>
+<span class="sd">        dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
@@ -1776,7 +1773,7 @@
 <span class="sd">        time].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      The attention context vector: [target_batch, source_dim]</span>
+<span class="sd">      The attention context vector shaped [target_batch, source_dim].</span>
 <span class="sd">      If p.enable_ctx_post_proj is false, source_dim = context_dim,</span>
 <span class="sd">      otherwise, source_dim = p.ctx_post_proj_dim.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1855,9 +1852,11 @@
 <span class="sd">      query_segment_id: a tensor of shape [target_batch].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      The attention context vector:     [target_batch, source_dim]</span>
-<span class="sd">      The attention probability vector: [target_batch, time]</span>
-<span class="sd">      The new attention mechanism state: possibly nested tuple of tensors with</span>
+<span class="sd">      A tuple of 3 tensors:</span>
+
+<span class="sd">      - The attention context vector: [target_batch, source_dim]</span>
+<span class="sd">      - The attention probability vector: [target_batch, time]</span>
+<span class="sd">      - The new attention mechanism state: possibly nested tuple of tensors with</span>
 <span class="sd">        dimensions [target_batch....]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
@@ -2275,12 +2274,11 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of 3 elements.</span>
-<span class="sd">        The attention context vector:</span>
-<span class="sd">          [batch_size, context_dim]</span>
-<span class="sd">        The attention probability vector:</span>
-<span class="sd">          [batch_size, time]</span>
-<span class="sd">        The new attention mechanism state:</span>
-<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
+
+<span class="sd">      - The attention context vector: [batch_size, context_dim]</span>
+<span class="sd">      - The attention probability vector: [batch_size, time]</span>
+<span class="sd">      - The new attention mechanism state: possibly nested tuple of tensors with</span>
+<span class="sd">        dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">query_segment_id</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -2538,7 +2536,7 @@
 <span class="sd">        hidden_b: [].</span>
 
 <span class="sd">      Returns:</span>
-<span class="sd">        logits: [tb, sl].</span>
+<span class="sd">        logits shaped [tb, sl].</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="c1"># Apply query matrix to query. Becomes [tb, hidden_dim].</span>
       <span class="n">query_vec_transformed</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
@@ -2630,12 +2628,10 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of 3 elements.</span>
-<span class="sd">        The attention context vector:</span>
-<span class="sd">          [batch_size, context_dim]</span>
-<span class="sd">        The attention probability vector:</span>
-<span class="sd">          [batch_size, time]</span>
-<span class="sd">        The attention probability vector:</span>
-<span class="sd">          (again, to be interpreted as state).</span>
+
+<span class="sd">      - The attention context vector: [batch_size, context_dim]</span>
+<span class="sd">      - The attention probability vector: [batch_size, time]</span>
+<span class="sd">      - The attention probability vector: (again, to be interpreted as state).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">query_segment_id</span>
     <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_vecs</span>
@@ -2728,7 +2724,7 @@
 <span class="sd">          variances: [multiplier, source_batch, num_mixtures]</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">          Calculated probabilities: [multiplier, source_batch, source_length]</span>
+<span class="sd">          Probabilities shaped [multiplier, source_batch, source_length].</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># [multiplier, source_batch, 1, num_mixtures]</span>
         <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -2764,9 +2760,10 @@
 <span class="sd">          per_step_source_padding: [target_batch, source_length]</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">          Following tensors:</span>
-<span class="sd">            context vector: [target_batch, context_dim]</span>
-<span class="sd">            attention probabilities: [target_batch, source_length]</span>
+<span class="sd">          Tuple(context vector, atten probs):</span>
+
+<span class="sd">          - context vector: [target_batch, context_dim]</span>
+<span class="sd">          - attention probabilities: [target_batch, source_length]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Note: shape [target_batch] can be converted to</span>
         <span class="c1"># [multiplier, source_batch], not [source_batch, multiplier].</span>
@@ -2901,9 +2898,10 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of 3 elements.</span>
-<span class="sd">        The attention context vector: [target_batch, context_dim]</span>
-<span class="sd">        The attention probability vector: [target_batch, source_length]</span>
-<span class="sd">        The new attention state vector: [target_batch, num_mixtures, 4]</span>
+
+<span class="sd">      - The attention context vector: [target_batch, context_dim]</span>
+<span class="sd">      - The attention probability vector: [target_batch, source_length]</span>
+<span class="sd">      - The new attention state vector: [target_batch, num_mixtures, 4]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">query_segment_id</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>

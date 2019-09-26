@@ -447,8 +447,8 @@
 <span class="sd">      created using _CarToImageTransform.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    transformed_boxes: np.array of shape (batch, nbboxes) containing the</span>
-<span class="sd">      bounding boxes in top down image space.</span>
+<span class="sd">    np.array of shape (batch, nbboxes) containing the bounding boxes in top down</span>
+<span class="sd">    image space.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">car_to_image_transform</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">car_to_image_transform</span> <span class="o">=</span> <span class="n">_CarToImageTransform</span><span class="p">()</span>
@@ -506,7 +506,7 @@
 <span class="sd">    groundtruth: Boolean indicating whether bounding boxes are ground truth.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    images: &#39;images&#39; with the bboxes drawn on top.</span>
+<span class="sd">    &#39;images&#39; with the bboxes drawn on top.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="c1"># Assert 4d shape.</span>
   <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">images</span><span class="p">))</span> <span class="o">==</span> <span class="mi">4</span>
@@ -596,7 +596,7 @@
 <span class="sd">    is_groundtruth: True if the scene is the groundtruth vs. the predicted.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    image: The updated image array.</span>
+<span class="sd">    The updated image array.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">(</span><span class="n">image</span><span class="p">))</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s1">&#39;RGB&#39;</span><span class="p">)</span>
   <span class="n">draw</span> <span class="o">=</span> <span class="n">ImageDraw</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>

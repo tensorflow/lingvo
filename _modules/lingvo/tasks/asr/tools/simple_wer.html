@@ -164,9 +164,8 @@
 
 <span class="sd">Example of Usage::</span>
 
-<span class="sd">`python simple_wer.py file_hypothesis file_reference`</span>
-<span class="sd">`python simple_wer.py file_hypothesis file_reference diagnosis_html`</span>
-
+<span class="sd">  python simple_wer.py file_hypothesis file_reference</span>
+<span class="sd">  python simple_wer.py file_hypothesis file_reference diagnosis_html</span>
 
 <span class="sd">where `file_hypothesis` is the file name for hypothesis text and</span>
 <span class="sd">`file_reference` is the file name for reference text.</span>
@@ -174,13 +173,13 @@
 
 <span class="sd">Or you can use this file as a library, and call either of the following:</span>
 
-<span class="sd">  - `ComputeWER(hyp, ref)`    compute WER for one pair of hypothesis/reference</span>
-<span class="sd">  - `AverageWERs(hyps, refs)` average WER for a list of hypotheses/references</span>
+<span class="sd">  - ``ComputeWER(hyp, ref)``    compute WER for one pair of hypothesis/reference</span>
+<span class="sd">  - ``AverageWERs(hyps, refs)`` average WER for a list of hypotheses/references</span>
 
 <span class="sd">Note to evaluate the ASR, we consider the following pre-processing:</span>
 
 <span class="sd">  - change transcripts to lower-case</span>
-<span class="sd">  - remove punctuation: `&quot; , . ! ? (  ) [ ]`</span>
+<span class="sd">  - remove punctuation: ``&quot; , . ! ? (  ) [ ]``</span>
 <span class="sd">  - remove extra empty spaces</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -304,8 +303,9 @@
 <span class="sd">    errs: dict of three types of errors. e.g. {&#39;sub&#39;:10, &#39;ins&#39;: 15, &#39;del&#39;: 3}</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    str1: string summarizing total error, total word, WER,</span>
-<span class="sd">    str2: string breaking down three errors: deleting, insertion, substitute</span>
+<span class="sd">    Two strings:</span>
+<span class="sd">    - string summarizing total error, total word, WER,</span>
+<span class="sd">    - string breaking down three errors: deleting, insertion, substitute</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="n">total_error</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">errs</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
@@ -328,9 +328,11 @@
 <span class="sd">    diagnosis (optional): whether to generate diagnosis str (in html format)</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    dict of three types of errors. e.g. {&#39;sub&#39;:0, &#39;ins&#39;: 0, &#39;del&#39;: 0}</span>
-<span class="sd">    num of reference words, integer</span>
-<span class="sd">    aligned html string for diagnois (empty if diagnosis = False)</span>
+<span class="sd">    A tuple of 3 elements:</span>
+
+<span class="sd">    - dict of three types of errors. e.g. ``{&#39;sub&#39;:0, &#39;ins&#39;: 0, &#39;del&#39;: 0}``</span>
+<span class="sd">    - num of reference words, integer</span>
+<span class="sd">    - aligned html string for diagnois (empty if diagnosis = False)</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="n">hyp</span> <span class="o">=</span> <span class="n">PreprocessTxtBeforeWER</span><span class="p">(</span><span class="n">hyp</span><span class="p">)</span>
@@ -411,9 +413,11 @@
 <span class="sd">    diagnosis (optional): whether to generate list of diagnosis html</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    dict of three types of errors. e.g. {&#39;sub&#39;:0, &#39;ins&#39;: 0, &#39;del&#39;: 0}</span>
-<span class="sd">    num of reference words, integer</span>
-<span class="sd">    list of aligned html string for diagnosis (empty if diagnosis = False)</span>
+<span class="sd">    A tuple of 3 elements:</span>
+
+<span class="sd">    - dict of three types of errors. e.g. ``{&#39;sub&#39;:0, &#39;ins&#39;: 0, &#39;del&#39;: 0}``</span>
+<span class="sd">    - num of reference words, integer</span>
+<span class="sd">    - list of aligned html string for diagnosis (empty if diagnosis = False)</span>
 
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">totalw</span> <span class="o">=</span> <span class="mi">0</span>

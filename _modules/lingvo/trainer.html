@@ -1490,8 +1490,10 @@
     <span class="sd">&quot;&quot;&quot;Get the params needed to instantiate the ExecutorTpu.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">       ps_params_dict: high_level task_name -&gt; ProgramScheduleParams</span>
-<span class="sd">       train_cfg: Either a SingleTaskModelParams or MultiTaskModelParams.</span>
+<span class="sd">       Tuple (dict, params):</span>
+
+<span class="sd">         - ps_params_dict: high_level task_name -&gt; ProgramScheduleParams</span>
+<span class="sd">         - train_cfg: Either a SingleTaskModelParams or MultiTaskModelParams.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">)</span>

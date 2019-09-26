@@ -252,12 +252,14 @@
 <span class="sd">    calib: a parsed calibration dictionary.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    location_camera: [N, 3]. [x, y, z] in camera0 coordinate.</span>
-<span class="sd">    dimension_camera: [N, 3]. The [height, width, length] of objects.</span>
-<span class="sd">    phi_camera: [N]. Rotation around y-axis in camera0 coodinate.</span>
-<span class="sd">    bboxes_2d: [N, 4]. The corresponding 2D bboxes in the image coordinate.</span>
-<span class="sd">    scores: [N]. Confidence scores for each box for the assigned class.</span>
-<span class="sd">    class_ids: [N]. The class id assigned to each box.</span>
+<span class="sd">    A tuple of 6 ndarrays:</span>
+
+<span class="sd">    - location_camera: [N, 3]. [x, y, z] in camera0 coordinate.</span>
+<span class="sd">    - dimension_camera: [N, 3]. The [height, width, length] of objects.</span>
+<span class="sd">    - phi_camera: [N]. Rotation around y-axis in camera0 coodinate.</span>
+<span class="sd">    - bboxes_2d: [N, 4]. The corresponding 2D bboxes in the image coordinate.</span>
+<span class="sd">    - scores: [N]. Confidence scores for each box for the assigned class.</span>
+<span class="sd">    - class_ids: [N]. The class id assigned to each box.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">bboxes</span> <span class="o">=</span> <span class="n">np_dict</span><span class="p">[</span><span class="s2">&quot;bboxes&quot;</span><span class="p">]</span>
   <span class="n">scores</span> <span class="o">=</span> <span class="n">np_dict</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span>

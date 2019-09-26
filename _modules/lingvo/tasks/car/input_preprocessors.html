@@ -917,9 +917,9 @@
 <span class="sd">      probs: A 1-D float tensor containing probabilities, summing to 1.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      transformed_logits: A 1-D float tensor of the same size of probs, with</span>
-<span class="sd">        gumbel noise added to log probabilities. Taking the top k elements from</span>
-<span class="sd">        this provides a multinomial sample without replacement.</span>
+<span class="sd">      A 1-D float tensor of the same size of probs, with gumbel noise added to</span>
+<span class="sd">      log probabilities. Taking the top k elements from this provides a</span>
+<span class="sd">      multinomial sample without replacement.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">log_prob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
@@ -1130,8 +1130,8 @@
 <span class="sd">        this function is called.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      centers: A tf.float32 Tensor of shape [p.num_cell_centers, 3] with</span>
-<span class="sd">        selected centers to use as anchors.</span>
+<span class="sd">      A tf.float32 Tensor of shape [p.num_cell_centers, 3] with selected centers</span>
+<span class="sd">      to use as anchors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">num_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -1166,8 +1166,8 @@
 <span class="sd">        this function is called.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      centers: A tf.float32 Tensor of shape [p.num_cell_centers, 3] with</span>
-<span class="sd">        selected centers to use as anchors.</span>
+<span class="sd">      A tf.float32 Tensor of shape [p.num_cell_centers, 3] with selected centers</span>
+<span class="sd">      to use as anchors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># We want the center Z value to be 0 so just exclude it</span>

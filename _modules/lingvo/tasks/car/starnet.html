@@ -416,8 +416,8 @@
 <span class="sd">        anchor had a positive assignment.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      error_metrics_dict: A metrics dict with mean bounding box errors for</span>
-<span class="sd">        all positive assigned anchor locations.</span>
+<span class="sd">      A metrics dict with mean bounding box errors for all positive assigned</span>
+<span class="sd">      anchor locations.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
     <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
@@ -467,9 +467,10 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Two dicts:</span>
-<span class="sd">        A dict containing str keys and (metric, weight) pairs as values, where</span>
+
+<span class="sd">      - A dict containing str keys and (metric, weight) pairs as values, where</span>
 <span class="sd">        one of the keys is expected to be &#39;loss&#39;.</span>
-<span class="sd">        A dict containing arbitrary tensors describing something about each</span>
+<span class="sd">      - A dict containing arbitrary tensors describing something about each</span>
 <span class="sd">        training example, where the first dimension of each tensor is the batch</span>
 <span class="sd">        index.</span>
 <span class="sd">    &quot;&quot;&quot;</span>

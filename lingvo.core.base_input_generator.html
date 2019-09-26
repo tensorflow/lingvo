@@ -307,18 +307,20 @@ batches will always contain the examples from the same source. Otherwise,
 examples from different sources may be mixed together.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>data: a tuple of tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of
-tf.Tensor same as <code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code>, source_selected: a
-tensor of size [batch_size, number of data sources] or None.
-selected_bprop: a tensor of size [number of data sources] or None.
-bprop_variable_filters: a list of bprop_variable filters for each source
-or None</p>
+<dd class="field-odd"><p><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing</p>
+<ul class="simple">
+<li><p>data: a tuple of tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of
+tf.Tensor same as <code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code></p></li>
+<li><p>source_selected: a tensor of size [batch_size, number of data sources]
+or None.</p></li>
+<li><p>selected_bprop: a tensor of size [number of data sources] or None.</p></li>
+<li><p>bprop_variable_filters: a list of bprop_variable filters for each source
+or None.</p></li>
+</ul>
+</p>
 </dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>A NestedMap containing</p>
-</dd>
-<dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p><strong>ValueError</strong> – If file_datasource is not set</p>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If file_datasource is not set</p>
 </dd>
 </dl>
 </dd></dl>

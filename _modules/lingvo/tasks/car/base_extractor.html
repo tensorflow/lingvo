@@ -298,8 +298,10 @@
 <span class="sd">      record: A tf.Example input to pass to tf.parse_single_example.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      bucket_id: A scalar int Tensor.</span>
-<span class="sd">      extracted: a NestedMap of Tensors extracted.</span>
+<span class="sd">      A tuple of tensors:</span>
+
+<span class="sd">      - bucket_id: A scalar int Tensor.</span>
+<span class="sd">      - extracted: a NestedMap of Tensors extracted.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">feature_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">FeatureMap</span><span class="p">()))</span>

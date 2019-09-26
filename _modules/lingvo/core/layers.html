@@ -1427,7 +1427,7 @@
 <span class="sd">      pad_value: the padding value for left/right context.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      out: [batch, ceil(time / stride), depth * stacking_window_length].</span>
+<span class="sd">      [batch, ceil(time / stride), depth * stacking_window_length] tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -2223,8 +2223,10 @@
 <span class="sd">        drets: A matrix of size (size of ids_vec, embedding dims).</span>
 
 <span class="sd">      Returns:</span>
-<span class="sd">        dembs: A matrix of the same shape of embs. Gradients for embs.</span>
-<span class="sd">        dids_vec: Zeros. Same shape as ids_vec.</span>
+<span class="sd">        Tuple(tensor, tensor):</span>
+
+<span class="sd">          - dembs: A matrix of the same shape of embs. Gradients for embs.</span>
+<span class="sd">          - dids_vec: Zeros. Same shape as ids_vec.</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="k">del</span> <span class="n">embs</span>
       <span class="n">num</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -2268,8 +2270,8 @@
 <span class="sd">        ids_vec: A vector of int32 embedding ids.</span>
 
 <span class="sd">      Returns:</span>
-<span class="sd">        rets: The result of embedding lookups. A matrix of shape</span>
-<span class="sd">          (num ids in ids_vec, embedding dims).</span>
+<span class="sd">        The result of embedding lookups. A matrix of shape</span>
+<span class="sd">        [num ids in ids_vec, embedding dims].</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="n">num</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">rets</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="n">num</span><span class="p">]</span> <span class="o">+</span> <span class="n">emb_shape_suf</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
@@ -4206,8 +4208,8 @@
 <span class="sd">        generally preferred.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      output: A tensor containing the adapted activations with shape</span>
-<span class="sd">        [time, batch, input_dim].</span>
+<span class="sd">      A tensor containing the adapted activations with shape</span>
+<span class="sd">      [time, batch, input_dim].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">inputs_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>

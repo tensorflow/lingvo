@@ -235,9 +235,6 @@ loss and metrics.</p></li>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A copy of the decoder theta.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>theta</p>
-</dd>
 </dl>
 </dd></dl>
 
@@ -278,14 +275,17 @@ used to compute final outputs, perhaps with sampling.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dict containing str keys and (metric, weight) pairs as values, where
-one of the keys is expected to be ‘loss’.
-A dict containing arbitrary tensors describing something about each
+<dd class="field-even"><p><ul class="simple">
+<li><p>A dict containing str keys and (metric, weight) pairs as values, where
+one of the keys is expected to be ‘loss’.</p></li>
+<li><p>A dict containing arbitrary tensors describing something about each
 training example, where the first dimension of each tensor is the batch
-index.</p>
+index.</p></li>
+</ul>
+</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Two dicts</p>
+<dd class="field-odd"><p>(<a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a>, <a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a>)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -411,13 +411,13 @@ object as created by <a class="reference internal" href="#lingvo.tasks.asr.model
 <dd><p>Constructs inference subgraphs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>(fetches, feeds)}. Each of
-fetches and feeds is itself a dictionary which maps a string name (which
-describes the tensor) to a corresponding tensor in the inference graph
-which should be fed/fetched from.</p>
+<dd class="field-odd"><p>A dictionary of the form <code class="docutils literal notranslate"><span class="pre">{'subgraph_name':</span> <span class="pre">(fetches,</span> <span class="pre">feeds)}</span></code>.
+Each of fetches and feeds is itself a dictionary which maps a string name
+(which describes the tensor) to a corresponding tensor in the inference
+graph which should be fed/fetched from.</p>
 </dd>
 <dt class="field-even">Return type</dt>
-<dd class="field-even"><p>A dictionary of the form {‘subgraph_name’</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></p>
 </dd>
 </dl>
 </dd></dl>

@@ -1187,9 +1187,10 @@
 <span class="sd">        predict. Each tensor in targets is of shape [batch, time].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      `.NestedMap` containing output of last decoder layer and attention probs:</span>
-<span class="sd">        softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</span>
-<span class="sd">        attention: `.NestedMap` of attention distributions of shape</span>
+<span class="sd">      A `.NestedMap` containing output of last decoder layer and attention probs</span>
+
+<span class="sd">      - softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</span>
+<span class="sd">      - attention: `.NestedMap` of attention distributions of shape</span>
 <span class="sd">        [batch, target_length, source_length].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1423,9 +1424,10 @@
 <span class="sd">        predict. Each tensor in targets is of shape [batch, time].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A `.NestedMap` containing utput of last decoder layer and attention probs:</span>
-<span class="sd">        softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</span>
-<span class="sd">        attention: `.NestedMap` of attention distributions of shape</span>
+<span class="sd">      A `.NestedMap` containing output of last decoder layer and attention probs</span>
+
+<span class="sd">      - softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</span>
+<span class="sd">      - attention: `.NestedMap` of attention distributions of shape</span>
 <span class="sd">        [batch, time, source_len].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></div>

@@ -189,7 +189,7 @@
 <span class="sd">    y: A matrix of shape [b, c].</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    z[..., c], where z[i..., :] = matmul(x[i..., :], y)</span>
+<span class="sd">    Tensor: ``z[..., c]``, where ``z[i..., :] = matmul(x[i..., :], y)``</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">y</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
   <span class="n">x_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
@@ -285,8 +285,7 @@
 <span class="sd">      pixel locations.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    points: A [N, 2] Floating point tensor containing points in</span>
-<span class="sd">      the image plane.</span>
+<span class="sd">    A [N, 2] Floating point tensor containing points in the image plane.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
   <span class="n">num_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">points</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -522,10 +521,11 @@
 <span class="sd">      given in counter-clockwise order.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    If pshape = tf.shape(points)[:-1] and bshape = tf.shape(bbox)[:-2],</span>
-<span class="sd">    a tensor of shape tf.concat(pshape, bshape), of booleans, where</span>
-<span class="sd">    each element is true if the point is inside to the corresponding box.</span>
-<span class="sd">    If a point falls exactly on an edge of the bbox, it is also true.</span>
+<span class="sd">    Tensor: If ``pshape = tf.shape(points)[:-1]`` and</span>
+<span class="sd">    ``bshape = tf.shape(bbox)[:-2]``, returns a boolean tensor of shape</span>
+<span class="sd">    ``tf.concat(pshape, bshape)``, where each element is true if the point is</span>
+<span class="sd">    inside to the corresponding box.  If a point falls exactly on an edge of the</span>
+<span class="sd">    bbox, it is also true.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">bshape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">bbox</span><span class="p">)[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
   <span class="n">pshape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">points</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>

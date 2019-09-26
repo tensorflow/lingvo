@@ -621,12 +621,15 @@
 <span class="sd">    examples from different sources may be mixed together.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap containing: data: a tuple of tf.Tensor or `.NestedMap` of</span>
-<span class="sd">      tf.Tensor same as `self._DataSourceFromFilePattern()`, source_selected: a</span>
-<span class="sd">      tensor of size [batch_size, number of data sources] or None.</span>
-<span class="sd">      selected_bprop: a tensor of size [number of data sources] or None.</span>
-<span class="sd">      bprop_variable_filters: a list of bprop_variable filters for each source</span>
-<span class="sd">      or None</span>
+<span class="sd">      A `.NestedMap` containing</span>
+
+<span class="sd">      - data: a tuple of tf.Tensor or `.NestedMap` of</span>
+<span class="sd">        tf.Tensor same as `self._DataSourceFromFilePattern()`</span>
+<span class="sd">      - source_selected: a tensor of size [batch_size, number of data sources]</span>
+<span class="sd">        or None.</span>
+<span class="sd">      - selected_bprop: a tensor of size [number of data sources] or None.</span>
+<span class="sd">      - bprop_variable_filters: a list of bprop_variable filters for each source</span>
+<span class="sd">        or None.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If file_datasource is not set</span>

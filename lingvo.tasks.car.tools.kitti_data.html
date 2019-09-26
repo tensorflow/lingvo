@@ -194,64 +194,61 @@ for clarity.</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 11%" />
-<col style="width: 15%" />
-<col style="width: 0%" />
-<col style="width: 74%" />
+<col style="width: 16%" />
+<col style="width: 73%" />
 </colgroup>
-<tbody>
-<tr class="row-odd"><td><p>Values</p></td>
-<td colspan="2"><p>Name</p></td>
-<td><p>Description</p></td>
+<thead>
+<tr class="row-odd"><th class="head"><p>Values</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
+</thead>
+<tbody>
 <tr class="row-even"><td><p>1</p></td>
-<td colspan="2"><p>type</p></td>
+<td><p>type</p></td>
 <td><p>Describes the type of object: ‘Car’, ‘Van’, ‘Truck’,
 ‘Pedestrian’, ‘Person_sitting’, ‘Cyclist’, ‘Tram’,
 ‘Misc’ or ‘DontCare’</p></td>
 </tr>
 <tr class="row-odd"><td><p>1</p></td>
-<td colspan="2"><p>truncated</p></td>
+<td><p>truncated</p></td>
 <td><p>Float from 0 (non-truncated) to 1 (truncated), where
 truncated refers to the object leaving image
 boundaries.</p></td>
 </tr>
 <tr class="row-even"><td><p>1</p></td>
-<td colspan="2"><p>occluded</p></td>
+<td><p>occluded</p></td>
 <td><p>Integer (0,1,2,3) indicating occlusion state:
 0 = fully visible, 1 = partly occluded
 2 = largely occluded, 3 = unknown</p></td>
 </tr>
 <tr class="row-odd"><td><p>1</p></td>
-<td colspan="2"><p>alpha</p></td>
+<td><p>alpha</p></td>
 <td><p>Observation angle of object, ranging [-pi..pi]</p></td>
 </tr>
 <tr class="row-even"><td><p>4</p></td>
-<td colspan="2"><p>bbox</p></td>
+<td><p>bbox</p></td>
 <td><p>2D bounding box of object in the image (0-based
 index): left, top, right, bottom pixel coordinates.</p></td>
 </tr>
 <tr class="row-odd"><td><p>3</p></td>
-<td colspan="2"><p>dimensions</p></td>
+<td><p>dimensions</p></td>
 <td><p>3D object dimensions: height, width, length (meters)</p></td>
 </tr>
 <tr class="row-even"><td><p>3</p></td>
-<td colspan="2"><p>location</p></td>
+<td><p>location</p></td>
 <td><p>3D object location x,y,z in camera coordinates
 (in meters)</p></td>
 </tr>
 <tr class="row-odd"><td><p>1</p></td>
-<td colspan="2"><p>rotation_y</p></td>
+<td><p>rotation_y</p></td>
 <td><p>Rotation ry around Y-axis in camera coordinates
 [-pi..pi]</p></td>
 </tr>
 <tr class="row-even"><td><p>1</p></td>
-<td colspan="3"><dl>
-<dt>score    | Only for results: Float, indicating confidence in</dt><dd><div class="line-block">
-<div class="line">detection, needed for p/r curves, higher is better.</div>
-</div>
-</dd>
-</dl>
-</td>
+<td><p>score</p></td>
+<td><p>Only for results: Float, indicating confidence in
+detection, needed for p/r curves, higher is better.</p></td>
 </tr>
 </tbody>
 </table>
@@ -260,13 +257,10 @@ index): left, top, right, bottom pixel coordinates.</p></td>
 <dd class="field-odd"><p><strong>filepath</strong> – Path to a raw KITTI label file.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>type,
+<dd class="field-even"><p>A list of dictionary with keys corresponding to the name column above. type,
 truncated, occluded, alpha, bbox, dimensions, location, rotation_y, score.
 Note that the order of the floats in bbox, dimensions, and location
 correspond to that in the doc-string above.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>A list of dictionary with keys corresponding to the name column above</p>
 </dd>
 </dl>
 </dd></dl>

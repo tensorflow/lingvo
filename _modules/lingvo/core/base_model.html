@@ -521,12 +521,13 @@
 <span class="sd">      input_batch: A `.NestedMap` object containing input tensors to this tower.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Two dicts:</span>
-<span class="sd">      A dict containing str keys and (metric, weight) pairs as values, where</span>
-<span class="sd">      one of the keys is expected to be &#39;loss&#39;.</span>
-<span class="sd">      A dict containing arbitrary tensors describing something about each</span>
-<span class="sd">      training example, where the first dimension of each tensor is the batch</span>
-<span class="sd">      index.</span>
+<span class="sd">      (dict, dict):</span>
+
+<span class="sd">      - A dict containing str keys and (metric, weight) pairs as values, where</span>
+<span class="sd">        one of the keys is expected to be &#39;loss&#39;.</span>
+<span class="sd">      - A dict containing arbitrary tensors describing something about each</span>
+<span class="sd">        training example, where the first dimension of each tensor is the batch</span>
+<span class="sd">        index.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
@@ -568,12 +569,13 @@
 <span class="sd">      input_batch: A `.NestedMap` object containing input tensors to this tower.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Two dicts:</span>
-<span class="sd">      A dict containing str keys and (metric, weight) pairs as values, where</span>
-<span class="sd">      one of the keys is expected to be &#39;loss&#39;.</span>
-<span class="sd">      A dict containing arbitrary tensors describing something about each</span>
-<span class="sd">      training example, where the first dimension of each tensor is the batch</span>
-<span class="sd">      index.</span>
+<span class="sd">      (dict, dict):</span>
+
+<span class="sd">      - A dict containing str keys and (metric, weight) pairs as values, where</span>
+<span class="sd">        one of the keys is expected to be &#39;loss&#39;.</span>
+<span class="sd">      - A dict containing arbitrary tensors describing something about each</span>
+<span class="sd">        training example, where the first dimension of each tensor is the batch</span>
+<span class="sd">        index.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span></div>
@@ -592,12 +594,13 @@
 <span class="sd">        spiltting is used, a list of `NestedMap`, one for each split.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Two dicts:</span>
-<span class="sd">      A dict containing str keys and (metric, weight) pairs as values, where</span>
-<span class="sd">      one of the keys is expected to be &#39;loss&#39;.</span>
-<span class="sd">      A dict containing arbitrary tensors describing something about each</span>
-<span class="sd">      training example, where the first dimension of each tensor is the batch</span>
-<span class="sd">      index.</span>
+<span class="sd">      (dict, dict):</span>
+
+<span class="sd">      - A dict containing str keys and (metric, weight) pairs as values, where</span>
+<span class="sd">        one of the keys is expected to be &#39;loss&#39;.</span>
+<span class="sd">      - A dict containing arbitrary tensors describing something about each</span>
+<span class="sd">        training example, where the first dimension of each tensor is the batch</span>
+<span class="sd">        index.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;fprop&#39;</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>

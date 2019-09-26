@@ -201,11 +201,8 @@ its children layers.</p></li>
 <dd class="field-even"><p><ul class="simple">
 <li><p>encoded: The encoded features, a tensor of shape [time, batch, depth]</p></li>
 <li><p>padding: of shape [time, batch]</p></li>
-<li><dl class="simple">
-<dt>segment_id: [time, batch] if packed inputs are supported by the model</dt><dd><p>(and all layers), or None otherwise.</p>
-</dd>
-</dl>
-</li>
+<li><p>segment_id: [time, batch] if packed inputs are supported by the model
+(and all layers), or None otherwise.</p></li>
 </ul>
 </p>
 </dd>
@@ -355,29 +352,18 @@ layer and its children layers.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><dl class="simple">
-<dt>encoded: The encoded features, either a tensor of shape [time, batch,</dt><dd><p>depth], or a list of tensors if is_transparent is set in
-transformer_stack.</p>
-</dd>
-</dl>
-</li>
+<dd class="field-even"><p><p>A NestedMap containing</p>
+<ul class="simple">
+<li><p>encoded: The encoded features, either a tensor of shape
+[time, batch, depth], or a list of tensors if is_transparent is set in
+transformer_stack.</p></li>
 <li><p>padding: of shape [time, batch]</p></li>
-<li><dl class="simple">
-<dt>segment_id: [time, batch] if packed inputs are supported by the model</dt><dd><p>(and all layers), or None otherwise.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>embedded_inputs: [time, batch, depth] embedded inputs tokens without</dt><dd><p>positional encodings.</p>
-</dd>
-</dl>
-</li>
+<li><p>segment_id: [time, batch] if packed inputs are supported by the model
+(and all layers), or None otherwise.</p></li>
+<li><p>embedded_inputs: [time, batch, depth] embedded inputs tokens without
+positional encodings.</p></li>
 </ul>
 </p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>A NestedMap containing</p>
 </dd>
 </dl>
 </dd></dl>

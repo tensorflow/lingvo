@@ -1027,9 +1027,11 @@
 <span class="sd">      segment_id: A tensor of [time, batch, 1].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      accumulated_state: a NestedMap of accumulated states from the recurrence.</span>
-<span class="sd">      final_state: final_state: The final recurrent state.</span>
-<span class="sd">      side_info: Nested map of intermediate results needed for post-processing</span>
+<span class="sd">      Tuple of 3 NestedMaps:</span>
+
+<span class="sd">      - accumulated_state: a NestedMap of accumulated states from recurrence.</span>
+<span class="sd">      - final_state: final_state: The final recurrent state.</span>
+<span class="sd">      - side_info: NestedMap of intermediate results needed for post-processing.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>

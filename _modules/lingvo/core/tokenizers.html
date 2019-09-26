@@ -412,12 +412,14 @@
 <span class="sd">      languages: A vector of strings with the same length as `strs`.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      token_ids: a tensor of sequences of WPM ids starting with SOS. Sequences</span>
+<span class="sd">      A tuple of 3 tensors:</span>
+
+<span class="sd">      - token_ids: a tensor of sequences of WPM ids starting with SOS. Sequences</span>
 <span class="sd">        always end with EOS unless the sequence exceeds the maximum length.</span>
 <span class="sd">        Always padded with EOS.</span>
-<span class="sd">      target_ids: a tensor of sequences of WPM ids not starting with SOS</span>
+<span class="sd">      - target_ids: a tensor of sequences of WPM ids not starting with SOS</span>
 <span class="sd">        but ending with EOS. Always padded with EOS.</span>
-<span class="sd">      paddings: a tensor of floats indicating, at each position, whether</span>
+<span class="sd">      - paddings: a tensor of floats indicating, at each position, whether</span>
 <span class="sd">        the corresponding position is padded.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>

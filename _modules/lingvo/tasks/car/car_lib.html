@@ -267,10 +267,11 @@
 <span class="sd">      max_distance is not used.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    indices: tensor of shape [N, P2, k].</span>
+<span class="sd">    A pair of tensors:</span>
 
-<span class="sd">    padding: tensor of shape [N, P2 ,k] where 1 represents a padded point, and 0</span>
-<span class="sd">    represents an unpadded (real) point.</span>
+<span class="sd">    - indices: tensor of shape [N, P2, k].</span>
+<span class="sd">    - padding: tensor of shape [N, P2 ,k] where 1 represents a padded point, and</span>
+<span class="sd">      0 represents an unpadded (real) point.</span>
 
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">p1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">points</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
@@ -318,10 +319,11 @@
 <span class="sd">      uniformly if they are within max distance.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    indices: tensor of shape [N, P2, k].</span>
+<span class="sd">    A pair of tensors:</span>
 
-<span class="sd">    padding: tensor of shape [N, P2, k] where 1 represents a padded point, and 0</span>
-<span class="sd">    represents an unpadded (real) point.</span>
+<span class="sd">    - indices: tensor of shape [N, P2, k].</span>
+<span class="sd">    - padding: tensor of shape [N, P2, k] where 1 represents a padded point, and</span>
+<span class="sd">      0 represents an unpadded (real) point.</span>
 
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">n</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -394,8 +396,7 @@
 <span class="sd">    indices: tensor of shape [N, P2, K]</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    target: tensor of shape [N, P2, K, C]</span>
-
+<span class="sd">    tensor of shape [N, P2, K, C]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">source</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
   <span class="n">n</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>

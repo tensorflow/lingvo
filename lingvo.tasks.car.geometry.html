@@ -184,10 +184,10 @@
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>] = matmul(x[i…, :], y)</p>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">z[...,</span> <span class="pre">c]</span></code>, where <code class="docutils literal notranslate"><span class="pre">z[i...,</span> <span class="pre">:]</span> <span class="pre">=</span> <span class="pre">matmul(x[i...,</span> <span class="pre">:],</span> <span class="pre">y)</span></code></p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>z[.., c], where z[i…,</p>
+<dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
 </dd></dl>
@@ -237,14 +237,7 @@ pixel locations.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>A [N, 2] Floating point tensor containing points in</dt><dd><p>the image plane.</p>
-</dd>
-</dl>
-</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>points</p>
+<dd class="field-even"><p>A [N, 2] Floating point tensor containing points in the image plane.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -384,13 +377,14 @@ given in counter-clockwise order.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>-1] and bshape = tf.shape(bbox)[:-2],
-a tensor of shape tf.concat(pshape, bshape), of booleans, where
-each element is true if the point is inside to the corresponding box.
-If a point falls exactly on an edge of the bbox, it is also true.</p>
+<dd class="field-even"><p>If <code class="docutils literal notranslate"><span class="pre">pshape</span> <span class="pre">=</span> <span class="pre">tf.shape(points)[:-1]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">bshape</span> <span class="pre">=</span> <span class="pre">tf.shape(bbox)[:-2]</span></code>, returns a boolean tensor of shape
+<code class="docutils literal notranslate"><span class="pre">tf.concat(pshape,</span> <span class="pre">bshape)</span></code>, where each element is true if the point is
+inside to the corresponding box.  If a point falls exactly on an edge of the
+bbox, it is also true.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>If pshape = tf.shape(points)[</p>
+<dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
 </dd></dl>

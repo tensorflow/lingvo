@@ -171,8 +171,8 @@
 <p>Stand-alone script to evalute the word error rate (WER) for ASR tasks.</p>
 <p>Tensorflow and Lingvo are not required to run this script.</p>
 <p>Example of Usage:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>`python simple_wer.py file_hypothesis file_reference`
-`python simple_wer.py file_hypothesis file_reference diagnosis_html`
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">simple_wer</span><span class="o">.</span><span class="n">py</span> <span class="n">file_hypothesis</span> <span class="n">file_reference</span>
+<span class="n">python</span> <span class="n">simple_wer</span><span class="o">.</span><span class="n">py</span> <span class="n">file_hypothesis</span> <span class="n">file_reference</span> <span class="n">diagnosis_html</span>
 </pre></div>
 </div>
 <p>where <code class="xref py py-obj docutils literal notranslate"><span class="pre">file_hypothesis</span></code> is the file name for hypothesis text and
@@ -181,15 +181,15 @@
 <p>Or you can use this file as a library, and call either of the following:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputeWER(hyp,</span> <span class="pre">ref)</span></code>    compute WER for one pair of hypothesis/reference</p></li>
-<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">AverageWERs(hyps,</span> <span class="pre">refs)</span></code> average WER for a list of hypotheses/references</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ComputeWER(hyp,</span> <span class="pre">ref)</span></code>    compute WER for one pair of hypothesis/reference</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AverageWERs(hyps,</span> <span class="pre">refs)</span></code> average WER for a list of hypotheses/references</p></li>
 </ul>
 </div></blockquote>
 <p>Note to evaluate the ASR, we consider the following pre-processing:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>change transcripts to lower-case</p></li>
-<li><p>remove punctuation: <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">,</span> <span class="pre">.</span> <span class="pre">!</span> <span class="pre">?</span> <span class="pre">(</span>&#160; <span class="pre">)</span> <span class="pre">[</span> <span class="pre">]</span></code></p></li>
+<li><p>remove punctuation: <code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">,</span> <span class="pre">.</span> <span class="pre">!</span> <span class="pre">?</span> <span class="pre">(</span>&#160; <span class="pre">)</span> <span class="pre">[</span> <span class="pre">]</span></code></p></li>
 <li><p>remove extra empty spaces</p></li>
 </ul>
 </div></blockquote>
@@ -254,11 +254,14 @@ index is the reference and the second index is the hypothesis.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>string summarizing total error, total word, WER,
-str2: string breaking down three errors: deleting, insertion, substitute</p>
+<dd class="field-even"><p><ul class="simple">
+<li><p>string summarizing total error, total word, WER,</p></li>
+<li><p>string breaking down three errors: deleting, insertion, substitute</p></li>
+</ul>
+</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>str1</p>
+<dd class="field-odd"><p>Two strings</p>
 </dd>
 </dl>
 </dd></dl>
@@ -276,12 +279,15 @@ str2: string breaking down three errors: deleting, insertion, substitute</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>0, ‘ins’: 0, ‘del’: 0}
-num of reference words, integer
-aligned html string for diagnois (empty if diagnosis = False)</p>
+<dd class="field-even"><p><ul class="simple">
+<li><p>dict of three types of errors. e.g. <code class="docutils literal notranslate"><span class="pre">{'sub':0,</span> <span class="pre">'ins':</span> <span class="pre">0,</span> <span class="pre">'del':</span> <span class="pre">0}</span></code></p></li>
+<li><p>num of reference words, integer</p></li>
+<li><p>aligned html string for diagnois (empty if diagnosis = False)</p></li>
+</ul>
+</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dict of three types of errors. e.g. {‘sub’</p>
+<dd class="field-odd"><p>A tuple of 3 elements</p>
 </dd>
 </dl>
 </dd></dl>
@@ -300,12 +306,15 @@ aligned html string for diagnois (empty if diagnosis = False)</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>0, ‘ins’: 0, ‘del’: 0}
-num of reference words, integer
-list of aligned html string for diagnosis (empty if diagnosis = False)</p>
+<dd class="field-even"><p><ul class="simple">
+<li><p>dict of three types of errors. e.g. <code class="docutils literal notranslate"><span class="pre">{'sub':0,</span> <span class="pre">'ins':</span> <span class="pre">0,</span> <span class="pre">'del':</span> <span class="pre">0}</span></code></p></li>
+<li><p>num of reference words, integer</p></li>
+<li><p>list of aligned html string for diagnosis (empty if diagnosis = False)</p></li>
+</ul>
+</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dict of three types of errors. e.g. {‘sub’</p>
+<dd class="field-odd"><p>A tuple of 3 elements</p>
 </dd>
 </dl>
 </dd></dl>
