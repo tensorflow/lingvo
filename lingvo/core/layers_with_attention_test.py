@@ -617,6 +617,64 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_layer_output, actual_layer_output)
       self.assertAllClose(expected_prob_output, actual_prob_output)
 
+  def testTransformerLayerFPropMultiPostProj(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(6348575)
+      depth = 4
+      p = layers_with_attention.TransformerLayer.Params()
+      p.name = 'transformer'
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.mask_self_atten = True
+      p.tr_fflayer_tpl.hidden_dim = 7
+      p.tr_atten_tpl.num_attention_heads = 2
+      p.num_aux_atten_post_proj = 2
+      transformer = layers_with_attention.TransformerLayer(p)
+
+      (source_vecs, source_padding, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
+
+      atten_idx = tf.constant([0, 1, 1, 0, 1], dtype=tf.int32)
+      h, probs = transformer.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings,
+          atten_idx=atten_idx)
+
+      tf.global_variables_initializer().run()
+      actual_layer_output, actual_prob_output = sess.run([h, probs])
+      tf.logging.info(np.array_repr(actual_layer_output))
+      tf.logging.info(np.array_repr(actual_prob_output))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_layer_output = [
+          [[-0.77411413,  0.86493313,  0.08914688,  1.4910977 ],
+           [-1.0093606 , -1.7337079 ,  1.2784883 ,  0.49974248]],
+          [[ 1.0396315 ,  2.902943  , -1.1812847 ,  0.19860795],
+           [-0.37676954, -0.79837584,  0.6419263 ,  0.45496815]],
+          [[ 1.0858665 , -0.6838142 , -1.2464247 ,  0.14764154],
+           [-0.45331526, -1.0229169 ,  1.0660815 , -0.06151289]],
+          [[-1.3433903 , -1.3154784 ,  1.1818855 ,  0.790216  ],
+           [ 1.8400799 , -1.5192697 ,  0.05896807, -1.94113   ]],
+          [[-0.11429042, -0.24730963,  0.06099784,  1.0156208 ],
+           [-1.9910344 , -0.5176018 ,  0.2490384 ,  1.3254449 ]]]
+      expected_prob_output = [
+          [[ 0.21795762,  0.,  0.26612395,  0.,  0.31251648, 0.,  0.20340192],
+           [ 0.,  0.2677784 ,  0.,  0.32895881,  0., 0.40326279,  0.]],
+          [[ 0.25721505,  0.,  0.24116731,  0.,  0.25138181, 0.,  0.2502358 ],
+           [ 0.,  0.25691482,  0.,  0.31076014,  0., 0.43232504,  0.]],
+          [[ 0.24550268,  0.,  0.25128055,  0.,  0.25109866, 0.,  0.25211811],
+           [ 0.,  0.26769161,  0.,  0.32481128,  0., 0.40749705,  0.]],
+          [[ 0.22675318,  0.,  0.26633731,  0.,  0.28919035, 0.,  0.21771915],
+           [ 0.,  0.35955882,  0.,  0.36869824,  0., 0.271743  ,  0.]],
+          [[ 0.21504655,  0.,  0.26958644,  0.,  0.30847484, 0.,  0.20689213],
+           [ 0.,  0.29516917,  0.,  0.29359812,  0., 0.41123265,  0.]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_layer_output, actual_layer_output)
+      self.assertAllClose(expected_prob_output, actual_prob_output)
+
   def testTransformerLayerWithInputPackingFProp(self):
     with self.session(use_gpu=True) as sess:
       with tf.variable_scope('transformer_packed_test', reuse=tf.AUTO_REUSE):

@@ -147,7 +147,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
             source_vecs=None,
             query_segment_id=None,
             source_segment_id=None,
-            context_vecs=None):
+            context_vecs=None,
+            **kwargs):
     """Transformer attention, residual and normalization layer.
 
     Args:
@@ -159,6 +160,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       query_segment_id: [target_time, target_batch]
       source_segment_id: [source_time, source_batch]
       context_vecs: [source_time, target_batch, dim]
+      **kwargs: Can be optional params for the attention layer, eg. attention
+        projection index tensor.
 
     Returns:
       (output, atten_probs). output is of shape [target_time, target_batch,
@@ -213,12 +216,15 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     if query_segment_id is not None:
       query_segment_id = tf.reshape(query_segment_id, [-1])
+
     ctx_vec, atten_prob, _ = self.atten.ComputeContextVectorWithSource(
         theta=theta.atten,
         packed_src=packed_src,
         query_vec=tf.reshape(query_vec, [-1, query_dim]),
         per_step_source_padding=causal_padding,
-        query_segment_id=query_segment_id)
+        query_segment_id=query_segment_id,
+        **kwargs)
+
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     input_to_add = (
         unnormalized_query_vec if p.add_unnormalized_input else query_vec)
@@ -464,6 +470,10 @@ class TransformerLayer(base_layer.BaseLayer):
     p.Define(
         'is_decoder', False, '(Deprecated) '
         'If true, forces both has_aux_atten and mask_self_atten to true.')
+    p.Define(
+        'num_aux_atten_post_proj', 1, 'Number of post projections for aux '
+        'attention. This is usually used in multi-task setting, in which '
+        'each task uses one dedicated projection layer.')
     return p
 
   @base_layer.initializer
@@ -496,6 +506,8 @@ class TransformerLayer(base_layer.BaseLayer):
         params.name = 'multihead_atten'
         params.source_dim = p.source_dim
         params.packed_input = p.packed_input
+        if hasattr(params.atten_tpl, 'num_post_proj'):
+          params.atten_tpl.num_post_proj = p.num_aux_atten_post_proj
         self.CreateChild('atten', params)
 
       # Initialize feed-forward layer
@@ -512,7 +524,8 @@ class TransformerLayer(base_layer.BaseLayer):
             aux_vecs=None,
             aux_paddings=None,
             source_segment_id=None,
-            aux_segment_id=None):
+            aux_segment_id=None,
+            **kwargs):
     """Transformer Layer.
 
     Transformer layer has the naming scheme as follows: `source_vecs` and
@@ -541,6 +554,8 @@ class TransformerLayer(base_layer.BaseLayer):
       aux_paddings: [aux_time, aux_batch]
       source_segment_id: [source_time, source_batch]
       aux_segment_id: [aux_time, aux_batch]
+      **kwargs: Can be optional params for the attention layer, eg. attention
+        projection index tensor.
 
     Returns:
       The attention context vector, [source_time, source_batch, dim].
@@ -567,9 +582,10 @@ class TransformerLayer(base_layer.BaseLayer):
 
     if p.has_aux_atten:
       with tf.name_scope('aux_atten'):
-        atten_vec, atten_prob = self.atten.FProp(
-            theta.atten, atten_vec, aux_paddings, aux_vecs, source_segment_id,
-            aux_segment_id)
+        atten_vec, atten_prob = self.atten.FProp(theta.atten, atten_vec,
+                                                 aux_paddings, aux_vecs,
+                                                 source_segment_id,
+                                                 aux_segment_id, **kwargs)
 
     h = self.fflayer.FProp(theta.fflayer, atten_vec, source_paddings)
     return h, atten_prob
@@ -580,7 +596,8 @@ class TransformerLayer(base_layer.BaseLayer):
                  prefix_states,
                  aux_vecs=None,
                  aux_paddings=None,
-                 t=None):
+                 t=None,
+                 **kwargs):
     """Transformer Layer, extend one step in decoding.
 
     This function is expected to be called during fast decoding of Transformer
@@ -595,6 +612,8 @@ class TransformerLayer(base_layer.BaseLayer):
       aux_vecs: [aux_time, aux_batch, dim]
       aux_paddings: [aux_time, aux_batch]
       t: a scalar, the current time step, 0-based.
+      **kwargs: Can be optional params for the attention layer, eg. attention
+        projection index tensor.
 
     Returns:
       The attention context vector, [target_batch, source_dim]
@@ -619,7 +638,7 @@ class TransformerLayer(base_layer.BaseLayer):
     # Next the source attention layer.
     if p.has_aux_atten:
       atten_vec, atten_prob = self.atten.FProp(theta.atten, atten_vec,
-                                               aux_paddings, aux_vecs)
+                                               aux_paddings, aux_vecs, **kwargs)
 
     # Finally, the feedforward layer.
     h = self.fflayer.FProp(

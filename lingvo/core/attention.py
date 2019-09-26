@@ -1156,6 +1156,15 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         'If True, computed context is post projected into'
         ' ctx_post_proj_dim.')
     p.Define('ctx_post_proj_dim', 0, 'Number of post projection nodes.')
+    p.Define(
+        'num_post_proj', 1, 'Number of post projections, usually the same as '
+        'number of tasks. Each task may choose to use one of the post '
+        'projection layers.')
+    p.Define(
+        'proj_init', 'default', 'Initialization approach for projection '
+        'layers:'
+        'uniform: Use uniform initialization. '
+        'default: Use use the default Xavier initialization.')
 
     # Often the attention context output needs to be concated
     # with tensors from another layer. This allows them to share
@@ -1185,16 +1194,29 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     self.TrackQTensor(
         'ctx_post_proj_matmul', 'ctx_post_proj_add', domain='atten_context')
 
+    if p.proj_init not in ('uniform', 'default'):
+      raise ValueError('Unknown proj_init: %s!' % p.proj_init)
+
+    def InitProj(layer_dim, bias=False):
+      if p.proj_init == 'uniform':
+        # Note we also initialize bias with uniform distribution here, following
+        # the default Pytorch implementation:
+        # https://pytorch.org/docs/stable/nn.html#linear
+        proj_init = py_utils.WeightInit.Uniform(scale=np.sqrt(1.0 / layer_dim))
+      elif p.proj_init == 'default':
+        proj_init = py_utils.WeightInit.Constant(0.0) if bias else p.params_init
+      return proj_init
+
     pc_bias = py_utils.WeightParams(
         shape=[p.hidden_dim],
-        init=py_utils.WeightInit.Constant(0.0),
+        init=InitProj(p.hidden_dim, bias=True),
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
     with tf.variable_scope(p.name):
       if p.enable_source_proj:
         pc = py_utils.WeightParams(
             shape=[p.source_dim, p.hidden_dim],
-            init=p.params_init,
+            init=InitProj(p.source_dim),
             dtype=p.dtype,
             collections=[self.__class__.__name__ + '_vars'])
         self.CreateVariable('source_proj', pc)
@@ -1205,7 +1227,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       if p.enable_query_proj:
         pc = py_utils.WeightParams(
             shape=[p.query_dim, p.hidden_dim],
-            init=p.params_init,
+            init=InitProj(p.query_dim),
             dtype=p.dtype,
             collections=[self.__class__.__name__ + '_vars'])
         self.CreateVariable('query_proj', pc)
@@ -1217,7 +1239,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         assert p.context_dim
         pc = py_utils.WeightParams(
             shape=[p.context_dim, p.hidden_dim],
-            init=p.params_init,
+            init=InitProj(p.context_dim),
             dtype=p.dtype,
             collections=[self.__class__.__name__ + '_vars'])
         self.CreateVariable('ctx_proj', pc)
@@ -1225,15 +1247,26 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
 
       if p.enable_ctx_post_proj:
         assert p.ctx_post_proj_dim
+        if p.num_post_proj == 1:
+          pc_shape = [p.hidden_dim, p.ctx_post_proj_dim]
+          pc_b_shape = [p.ctx_post_proj_dim]
+        elif p.num_post_proj > 1:
+          if p.packed_input:
+            raise ValueError('For now we do not support packed_input when '
+                             'num_post_proj > 1.')
+          pc_shape = [p.hidden_dim, p.ctx_post_proj_dim, p.num_post_proj]
+          pc_b_shape = [p.ctx_post_proj_dim, p.num_post_proj]
+        else:
+          raise ValueError('num_post_proj must > 0!')
         pc = py_utils.WeightParams(
-            shape=[p.hidden_dim, p.ctx_post_proj_dim],
-            init=p.params_init,
+            shape=pc_shape,
+            init=InitProj(p.hidden_dim),
             dtype=p.dtype,
             collections=[self.__class__.__name__ + '_vars'])
         self.CreateVariable('ctx_post_proj', pc)
         pc_bias_post_proj = py_utils.WeightParams(
-            shape=[p.ctx_post_proj_dim],
-            init=py_utils.WeightInit.Constant(0.0),
+            shape=pc_b_shape,
+            init=InitProj(p.ctx_post_proj_dim, bias=True),
             dtype=p.dtype,
             collections=[self.__class__.__name__ + '_vars'])
         self.CreateVariable('ctx_post_proj_b', pc_bias_post_proj)
@@ -1458,7 +1491,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
                                      query_vec,
                                      attention_state=None,
                                      per_step_source_padding=None,
-                                     query_segment_id=None):
+                                     query_segment_id=None,
+                                     atten_idx=None):
     """Computes the context vector given the current query output.
 
     Args:
@@ -1472,6 +1506,11 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       per_step_source_padding: Source sequence padding to apply at this step. If
         not None, it should be of shape [target_batch_size, source_length].
       query_segment_id: a tensor of shape [target_batch].
+      atten_idx: If not None, then apply a different attention projection for
+        different samples in a batch, each of which may come from different
+        tasks. This is usually used in multi-task setting. A tensor of shape
+        [source_batch], which will automatically be duplicated n times to match
+        target_batch size.
     Note: concated_source_vecs are the vectors that are used to compute the
       attention score between the query_vec and each concated_source_vec. The
       concated_source_contexts are the vectors that compose the result. The
@@ -1533,10 +1572,39 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         per_step_source_padding, query_segment_id)
     ctx_vec = tf.reshape(ctx_vec, [batch_size, -1])
     if p.enable_ctx_post_proj:
-      ctx_vec = fns.qbatchmatmul(
-          ctx_vec, fns.qweight(theta.ctx_post_proj), qt='ctx_post_proj_matmul')
-      ctx_vec = fns.qadd(
-          ctx_vec, fns.qweight(theta.ctx_post_proj_b), qt='ctx_post_proj_add')
+      if atten_idx is None:
+        assert p.num_post_proj == 1, (
+            'atten_idx is None, this means there is no need to select '
+            'different post projections, and p.num_post_proj is supposed to be '
+            '1. However you set p.num_post_proj=%s .' % p.num_post_proj)
+        ctx_vec = fns.qbatchmatmul(
+            ctx_vec,
+            fns.qweight(theta.ctx_post_proj),
+            qt='ctx_post_proj_matmul')
+        ctx_vec = fns.qadd(
+            ctx_vec, fns.qweight(theta.ctx_post_proj_b), qt='ctx_post_proj_add')
+      else:
+        assert p.num_post_proj > 1, (
+            'atten_idx is not None, this means there are multiple post '
+            'projections, and p.num_post_proj is supposed to be > 1. However '
+            'you set p.num_post_proj=%s .' % p.num_post_proj)
+        # TODO(yuancao): Current implementation based on einsum may result in
+        # deteorating performance when num_post_proj is large (eg. >10).
+        # Consider alternative implementation for performance optimization.
+        assert p.num_post_proj < 10, (
+            'Out of performance consideration currently we only consider cases '
+            'where num_post_proj is relatively small (eg. <10).')
+        bs_range = [tf.range(batch_size)]
+        num_blocks = batch_size // tf.shape(atten_idx)[0]
+        atten_idx = tf.tile(atten_idx, [num_blocks])
+        select = tf.transpose(tf.concat([bs_range, [atten_idx]], axis=0))
+        # => [batch, dim, num_langs]
+        ctx_vec = tf.einsum('ab,bcd->acd', ctx_vec, theta.ctx_post_proj)
+        ctx_vec += tf.expand_dims(theta.ctx_post_proj_b, 0)
+        # => [batch, num_langs, dim]
+        ctx_vec = tf.transpose(ctx_vec, [0, 2, 1])
+        # => [batch, dim]
+        ctx_vec = tf.gather_nd(ctx_vec, select)
 
     # explicitly name this tensor for potential future reference
     multi_headed_atten_prob = tf.reshape(

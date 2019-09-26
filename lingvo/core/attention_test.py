@@ -1059,6 +1059,49 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
         # Check to make sure prob exists only on valid timesteps.
         self.assertEqual(0.0, np.sum(padding_i * prob_i_out))
 
+  def testMultiHeadedAttentionDotProductMultiPostProj(self):
+    # Test for multiple attention post-projection.
+    # source_batch:3, target_batch:6. Test n = 2 case.
+    with self.session(use_gpu=True) as sess:
+      (source_vecs, source_contexts, source_padding, _, query_vec, _,
+       _) = self._MultiHeadedAttentionInputs()
+      iap = attention.DotProductAttention.Params()
+      iap.name = 'dot_atten'
+      params = attention.MultiHeadedAttention.Params().Set(
+          name='multihead_atten',
+          source_dim=4,
+          query_dim=4,
+          hidden_dim=4,
+          inner_atten_params=iap,
+          num_attention_heads=2,
+          use_source_vec_as_attention_value=False,
+          enable_ctx_pre_proj=True,
+          enable_ctx_post_proj=True,
+          ctx_post_proj_dim=6,
+          context_dim=6,
+          num_post_proj=2)
+      atten = params.Instantiate()
+      packed_src = atten.InitForSourcePacked(atten.theta, source_vecs,
+                                             source_contexts, source_padding)
+      atten_idx = tf.constant([0, 1, 1], dtype=tf.int32)
+      tf.global_variables_initializer().run()
+      atten_vec, atten_prob, _ = atten.ComputeContextVectorWithSource(
+          atten.theta, packed_src, query_vec, atten_idx=atten_idx)
+
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
+
+      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      self.assertAllClose([
+          0.66697717, 0.52266854, 0.7827165, 0.65693897, 0.51808167, 0.82977116
+      ], np.sum(atten_vec_out, axis=1))
+      print('atten_vec_out', atten_vec_out)
+      print('prob_out', prob_out)
+
   def _testMultiHeadedAttentionAdditiveHelper(self,
                                               source_dim,
                                               expected_vec,
