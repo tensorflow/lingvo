@@ -1301,6 +1301,15 @@
         <span class="s1">&#39;If True, computed context is post projected into&#39;</span>
         <span class="s1">&#39; ctx_post_proj_dim.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ctx_post_proj_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of post projection nodes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_post_proj&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of post projections, usually the same as &#39;</span>
+        <span class="s1">&#39;number of tasks. Each task may choose to use one of the post &#39;</span>
+        <span class="s1">&#39;projection layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;proj_init&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="s1">&#39;Initialization approach for projection &#39;</span>
+        <span class="s1">&#39;layers:&#39;</span>
+        <span class="s1">&#39;uniform: Use uniform initialization. &#39;</span>
+        <span class="s1">&#39;default: Use use the default Xavier initialization.&#39;</span><span class="p">)</span>
 
     <span class="c1"># Often the attention context output needs to be concated</span>
     <span class="c1"># with tensors from another layer. This allows them to share</span>
@@ -1330,16 +1339,29 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span>
         <span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;ctx_post_proj_add&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;atten_context&#39;</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_init</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown proj_init: </span><span class="si">%s</span><span class="s1">!&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_init</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">InitProj</span><span class="p">(</span><span class="n">layer_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_init</span> <span class="o">==</span> <span class="s1">&#39;uniform&#39;</span><span class="p">:</span>
+        <span class="c1"># Note we also initialize bias with uniform distribution here, following</span>
+        <span class="c1"># the default Pytorch implementation:</span>
+        <span class="c1"># https://pytorch.org/docs/stable/nn.html#linear</span>
+        <span class="n">proj_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">layer_dim</span><span class="p">))</span>
+      <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_init</span> <span class="o">==</span> <span class="s1">&#39;default&#39;</span><span class="p">:</span>
+        <span class="n">proj_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span> <span class="k">if</span> <span class="n">bias</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">params_init</span>
+      <span class="k">return</span> <span class="n">proj_init</span>
+
     <span class="n">pc_bias</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
-        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">InitProj</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_source_proj</span><span class="p">:</span>
         <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
             <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">InitProj</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;source_proj&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
@@ -1350,7 +1372,7 @@
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_query_proj</span><span class="p">:</span>
         <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
             <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">query_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">InitProj</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">query_dim</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;query_proj&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
@@ -1362,7 +1384,7 @@
         <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">context_dim</span>
         <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
             <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">context_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">InitProj</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">context_dim</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ctx_proj&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
@@ -1370,15 +1392,26 @@
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ctx_post_proj</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+          <span class="n">pc_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span><span class="p">]</span>
+          <span class="n">pc_b_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;For now we do not support packed_input when &#39;</span>
+                             <span class="s1">&#39;num_post_proj &gt; 1.&#39;</span><span class="p">)</span>
+          <span class="n">pc_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span><span class="p">]</span>
+          <span class="n">pc_b_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;num_post_proj must &gt; 0!&#39;</span><span class="p">)</span>
         <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">pc_shape</span><span class="p">,</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">InitProj</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ctx_post_proj&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
         <span class="n">pc_bias_post_proj</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">pc_b_shape</span><span class="p">,</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">InitProj</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ctx_post_proj_b&#39;</span><span class="p">,</span> <span class="n">pc_bias_post_proj</span><span class="p">)</span>
@@ -1603,7 +1636,8 @@
                                      <span class="n">query_vec</span><span class="p">,</span>
                                      <span class="n">attention_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                     <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                                     <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                     <span class="n">atten_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
 <span class="sd">    Args:</span>
@@ -1617,6 +1651,11 @@
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step. If</span>
 <span class="sd">        not None, it should be of shape [target_batch_size, source_length].</span>
 <span class="sd">      query_segment_id: a tensor of shape [target_batch].</span>
+<span class="sd">      atten_idx: If not None, then apply a different attention projection for</span>
+<span class="sd">        different samples in a batch, each of which may come from different</span>
+<span class="sd">        tasks. This is usually used in multi-task setting. A tensor of shape</span>
+<span class="sd">        [source_batch], which will automatically be duplicated n times to match</span>
+<span class="sd">        target_batch size.</span>
 <span class="sd">    Note: concated_source_vecs are the vectors that are used to compute the</span>
 <span class="sd">      attention score between the query_vec and each concated_source_vec. The</span>
 <span class="sd">      concated_source_contexts are the vectors that compose the result. The</span>
@@ -1678,10 +1717,39 @@
         <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span>
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ctx_post_proj</span><span class="p">:</span>
-      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
-          <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">)</span>
-      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
-          <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj_b</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_post_proj_add&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">atten_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s1">&#39;atten_idx is None, this means there is no need to select &#39;</span>
+            <span class="s1">&#39;different post projections, and p.num_post_proj is supposed to be &#39;</span>
+            <span class="s1">&#39;1. However you set p.num_post_proj=</span><span class="si">%s</span><span class="s1"> .&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span><span class="p">)</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
+            <span class="n">ctx_vec</span><span class="p">,</span>
+            <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj</span><span class="p">),</span>
+            <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">)</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
+            <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj_b</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_post_proj_add&#39;</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s1">&#39;atten_idx is not None, this means there are multiple post &#39;</span>
+            <span class="s1">&#39;projections, and p.num_post_proj is supposed to be &gt; 1. However &#39;</span>
+            <span class="s1">&#39;you set p.num_post_proj=</span><span class="si">%s</span><span class="s1"> .&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span><span class="p">)</span>
+        <span class="c1"># TODO(yuancao): Current implementation based on einsum may result in</span>
+        <span class="c1"># deteorating performance when num_post_proj is large (eg. &gt;10).</span>
+        <span class="c1"># Consider alternative implementation for performance optimization.</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s1">&#39;Out of performance consideration currently we only consider cases &#39;</span>
+            <span class="s1">&#39;where num_post_proj is relatively small (eg. &lt;10).&#39;</span><span class="p">)</span>
+        <span class="n">bs_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)]</span>
+        <span class="n">num_blocks</span> <span class="o">=</span> <span class="n">batch_size</span> <span class="o">//</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">atten_idx</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">atten_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">atten_idx</span><span class="p">,</span> <span class="p">[</span><span class="n">num_blocks</span><span class="p">])</span>
+        <span class="n">select</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bs_range</span><span class="p">,</span> <span class="p">[</span><span class="n">atten_idx</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="c1"># =&gt; [batch, dim, num_langs]</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ab,bcd-&gt;acd&#39;</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj</span><span class="p">)</span>
+        <span class="n">ctx_vec</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj_b</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># =&gt; [batch, num_langs, dim]</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># =&gt; [batch, dim]</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">select</span><span class="p">)</span>
 
     <span class="c1"># explicitly name this tensor for potential future reference</span>
     <span class="n">multi_headed_atten_prob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>

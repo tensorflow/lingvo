@@ -210,7 +210,7 @@ flag of this layer and setting <code class="xref py py-obj docutils literal notr
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">query_vec</em>, <em class="sig-param">source_paddings</em>, <em class="sig-param">source_vecs=None</em>, <em class="sig-param">query_segment_id=None</em>, <em class="sig-param">source_segment_id=None</em>, <em class="sig-param">context_vecs=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">query_vec</em>, <em class="sig-param">source_paddings</em>, <em class="sig-param">source_vecs=None</em>, <em class="sig-param">query_segment_id=None</em>, <em class="sig-param">source_segment_id=None</em>, <em class="sig-param">context_vecs=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer attention, residual and normalization layer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -223,6 +223,8 @@ its children layers.</p></li>
 <li><p><strong>query_segment_id</strong> – [target_time, target_batch]</p></li>
 <li><p><strong>source_segment_id</strong> – [source_time, source_batch]</p></li>
 <li><p><strong>context_vecs</strong> – [source_time, target_batch, dim]</p></li>
+<li><p><strong>**kwargs</strong> – Can be optional params for the attention layer, eg. attention
+projection index tensor.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -341,7 +343,7 @@ and from attention output (feed-forward input) to feed-forward output.</p>
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_attention.TransformerLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">source_vecs</em>, <em class="sig-param">source_paddings</em>, <em class="sig-param">aux_vecs=None</em>, <em class="sig-param">aux_paddings=None</em>, <em class="sig-param">source_segment_id=None</em>, <em class="sig-param">aux_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">source_vecs</em>, <em class="sig-param">source_paddings</em>, <em class="sig-param">aux_vecs=None</em>, <em class="sig-param">aux_paddings=None</em>, <em class="sig-param">source_segment_id=None</em>, <em class="sig-param">aux_segment_id=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Layer.</p>
 <p>Transformer layer has the naming scheme as follows: <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code> and
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_paddings</span></code> are all assumed to be coming from the activations of the
@@ -368,6 +370,8 @@ its children layers.</p></li>
 <li><p><strong>aux_paddings</strong> – [aux_time, aux_batch]</p></li>
 <li><p><strong>source_segment_id</strong> – [source_time, source_batch]</p></li>
 <li><p><strong>aux_segment_id</strong> – [aux_time, aux_batch]</p></li>
+<li><p><strong>**kwargs</strong> – Can be optional params for the attention layer, eg. attention
+projection index tensor.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -382,7 +386,7 @@ aux_time].</p>
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_attention.TransformerLayer.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">source_vecs</em>, <em class="sig-param">prefix_states</em>, <em class="sig-param">aux_vecs=None</em>, <em class="sig-param">aux_paddings=None</em>, <em class="sig-param">t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">source_vecs</em>, <em class="sig-param">prefix_states</em>, <em class="sig-param">aux_vecs=None</em>, <em class="sig-param">aux_paddings=None</em>, <em class="sig-param">t=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Layer, extend one step in decoding.</p>
 <p>This function is expected to be called during fast decoding of Transformer
 models.</p>
@@ -397,6 +401,8 @@ attentions, used for fast decoding.</p></li>
 <li><p><strong>aux_vecs</strong> – [aux_time, aux_batch, dim]</p></li>
 <li><p><strong>aux_paddings</strong> – [aux_time, aux_batch]</p></li>
 <li><p><strong>t</strong> – a scalar, the current time step, 0-based.</p></li>
+<li><p><strong>**kwargs</strong> – Can be optional params for the attention layer, eg. attention
+projection index tensor.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

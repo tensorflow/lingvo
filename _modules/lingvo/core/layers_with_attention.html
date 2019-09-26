@@ -292,7 +292,8 @@
             <span class="n">source_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">source_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">context_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">context_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transformer attention, residual and normalization layer.</span>
 
 <span class="sd">    Args:</span>
@@ -304,6 +305,8 @@
 <span class="sd">      query_segment_id: [target_time, target_batch]</span>
 <span class="sd">      source_segment_id: [source_time, source_batch]</span>
 <span class="sd">      context_vecs: [source_time, target_batch, dim]</span>
+<span class="sd">      **kwargs: Can be optional params for the attention layer, eg. attention</span>
+<span class="sd">        projection index tensor.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      (output, atten_probs). output is of shape [target_time, target_batch,</span>
@@ -358,12 +361,15 @@
 
     <span class="k">if</span> <span class="n">query_segment_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">query_segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">query_segment_id</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
     <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_prob</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
         <span class="n">packed_src</span><span class="o">=</span><span class="n">packed_src</span><span class="p">,</span>
         <span class="n">query_vec</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">query_dim</span><span class="p">]),</span>
         <span class="n">per_step_source_padding</span><span class="o">=</span><span class="n">causal_padding</span><span class="p">,</span>
-        <span class="n">query_segment_id</span><span class="o">=</span><span class="n">query_segment_id</span><span class="p">)</span>
+        <span class="n">query_segment_id</span><span class="o">=</span><span class="n">query_segment_id</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
     <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">unnormalized_query_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">query_vec</span><span class="p">)</span>
@@ -609,6 +615,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;is_decoder&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;(Deprecated) &#39;</span>
         <span class="s1">&#39;If true, forces both has_aux_atten and mask_self_atten to true.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_aux_atten_post_proj&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of post projections for aux &#39;</span>
+        <span class="s1">&#39;attention. This is usually used in multi-task setting, in which &#39;</span>
+        <span class="s1">&#39;each task uses one dedicated projection layer.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -641,6 +651,8 @@
         <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multihead_atten&#39;</span>
         <span class="n">params</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
         <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="s1">&#39;num_post_proj&#39;</span><span class="p">):</span>
+          <span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">num_post_proj</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_aux_atten_post_proj</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
       <span class="c1"># Initialize feed-forward layer</span>
@@ -657,7 +669,8 @@
             <span class="n">aux_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">aux_paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">source_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">aux_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">aux_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transformer Layer.</span>
 
 <span class="sd">    Transformer layer has the naming scheme as follows: `source_vecs` and</span>
@@ -686,6 +699,8 @@
 <span class="sd">      aux_paddings: [aux_time, aux_batch]</span>
 <span class="sd">      source_segment_id: [source_time, source_batch]</span>
 <span class="sd">      aux_segment_id: [aux_time, aux_batch]</span>
+<span class="sd">      **kwargs: Can be optional params for the attention layer, eg. attention</span>
+<span class="sd">        projection index tensor.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The attention context vector, [source_time, source_batch, dim].</span>
@@ -712,9 +727,10 @@
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;aux_atten&#39;</span><span class="p">):</span>
-        <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">aux_vecs</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
-            <span class="n">aux_segment_id</span><span class="p">)</span>
+        <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
+                                                 <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">aux_vecs</span><span class="p">,</span>
+                                                 <span class="n">source_segment_id</span><span class="p">,</span>
+                                                 <span class="n">aux_segment_id</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">atten_prob</span></div>
@@ -725,7 +741,8 @@
                  <span class="n">prefix_states</span><span class="p">,</span>
                  <span class="n">aux_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">aux_paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                 <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transformer Layer, extend one step in decoding.</span>
 
 <span class="sd">    This function is expected to be called during fast decoding of Transformer</span>
@@ -740,6 +757,8 @@
 <span class="sd">      aux_vecs: [aux_time, aux_batch, dim]</span>
 <span class="sd">      aux_paddings: [aux_time, aux_batch]</span>
 <span class="sd">      t: a scalar, the current time step, 0-based.</span>
+<span class="sd">      **kwargs: Can be optional params for the attention layer, eg. attention</span>
+<span class="sd">        projection index tensor.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The attention context vector, [target_batch, source_dim]</span>
@@ -764,7 +783,7 @@
     <span class="c1"># Next the source attention layer.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>
       <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
-                                               <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">aux_vecs</span><span class="p">)</span>
+                                               <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">aux_vecs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="c1"># Finally, the feedforward layer.</span>
     <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
