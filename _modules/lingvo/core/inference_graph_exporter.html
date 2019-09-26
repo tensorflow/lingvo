@@ -454,7 +454,8 @@
              <span class="n">freeze_defaults</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
              <span class="n">export_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="n">subgraph_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-             <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+             <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">disable_packed_input</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exports a InferenceGraph proto with piecewise subgraphs.</span>
 
 <span class="sd">    Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.</span>
@@ -473,6 +474,7 @@
 <span class="sd">      subgraph_filter: A list of subgraph names. If not None or empty, export</span>
 <span class="sd">        only this list of inference subgraphs.</span>
 <span class="sd">      random_seed: Fixes the random seed in the exported inference graph.</span>
+<span class="sd">      disable_packed_input: Disable packed input for inference writing purposes.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      InferenceGraph proto.</span>
@@ -490,25 +492,26 @@
     <span class="c1"># cluster configuration.</span>
     <span class="bp">cls</span><span class="o">.</span><span class="n">_SetClusterParams</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">cluster</span><span class="p">,</span> <span class="n">device_options</span><span class="p">)</span>
 
-    <span class="c1"># Disable packed inputs for inference writing purposes.</span>
-    <span class="k">def</span> <span class="nf">_DisablePackedInput</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s1">&#39;encoder&#39;</span><span class="p">)</span> <span class="ow">and</span>
-          <span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="s1">&#39;packed_input&#39;</span><span class="p">)):</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="kc">False</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s1">&#39;decoder&#39;</span><span class="p">)</span> <span class="ow">and</span>
-          <span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="s1">&#39;packed_input&#39;</span><span class="p">)):</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="kc">False</span>
-
     <span class="c1"># Configure the model.</span>
     <span class="n">model_cfg</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">random_seed</span>
     <span class="n">model_cfg</span><span class="o">.</span><span class="n">is_eval</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">model_cfg</span><span class="o">.</span><span class="n">is_inference</span> <span class="o">=</span> <span class="kc">True</span>
 
-    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">task_param</span> <span class="ow">in</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-        <span class="n">_DisablePackedInput</span><span class="p">(</span><span class="n">task_param</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">_DisablePackedInput</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">disable_packed_input</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">_DisablePackedInput</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s1">&#39;encoder&#39;</span><span class="p">)</span> <span class="ow">and</span>
+            <span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="s1">&#39;packed_input&#39;</span><span class="p">)):</span>
+          <span class="n">task</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s1">&#39;decoder&#39;</span><span class="p">)</span> <span class="ow">and</span>
+            <span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="s1">&#39;packed_input&#39;</span><span class="p">)):</span>
+          <span class="n">task</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="kc">False</span>
+
+      <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">task_param</span> <span class="ow">in</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+          <span class="n">_DisablePackedInput</span><span class="p">(</span><span class="n">task_param</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">_DisablePackedInput</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Model </span><span class="si">%s</span><span class="s1">. Params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
 
