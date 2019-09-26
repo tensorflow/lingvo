@@ -65,7 +65,7 @@ from tensorflow.python.tpu.ops import tpu_ops
 # pylint:enable=g-direct-tensorflow-import
 
 tf.flags.DEFINE_string(
-    'model', '', 'Name of the model class to train.'
+    'model', None, 'Name of the model class to train.'
     'Must be a model defined in the model_registry.')
 tf.flags.DEFINE_string(
     'model_task_name', '', 'For multitask models: '
@@ -1802,9 +1802,9 @@ def main(unused_argv):
   # pylint: disable=g-import-not-at-top
   # pylint: disable=unused-variable
   from lingvo import model_imports
-  assert FLAGS.model, '--model not provided!'
   RunnerManager(FLAGS.model).Start()
 
 
 if __name__ == '__main__':
+  tf.flags.mark_flag_as_required('model')
   tf.app.run(main)
