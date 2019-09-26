@@ -179,10 +179,10 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">task_scheduler</span>
-<span class="kn">from</span> <span class="nn">lingvo.core.model_pruning</span> <span class="k">import</span> <span class="n">pruning</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
 
+<span class="kn">from</span> <span class="nn">model_pruning.python</span> <span class="k">import</span> <span class="n">pruning</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">decoder_lib</span>
 
 
@@ -309,7 +309,7 @@
         <span class="s1">&#39;model parameters from the checkpoint_path.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;pruning_hparams_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Pruning related hyperparameters. A dict &#39;</span>
-        <span class="s1">&#39;with hyperparameter: value pairs. See tf.contrib.model_pruning.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;with hyperparameter: value pairs. See google-research.model_pruning.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;enqueue_max_steps&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Max enqueue steps. -1 meaning no limit.&#39;</span>
         <span class="s1">&#39; This flag should be set for unit-test only.&#39;</span><span class="p">)</span>
