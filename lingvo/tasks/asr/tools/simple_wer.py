@@ -19,9 +19,8 @@ Tensorflow and Lingvo are not required to run this script.
 
 Example of Usage::
 
-`python simple_wer.py file_hypothesis file_reference`
-`python simple_wer.py file_hypothesis file_reference diagnosis_html`
-
+  python simple_wer.py file_hypothesis file_reference
+  python simple_wer.py file_hypothesis file_reference diagnosis_html
 
 where `file_hypothesis` is the file name for hypothesis text and
 `file_reference` is the file name for reference text.
@@ -29,13 +28,13 @@ where `file_hypothesis` is the file name for hypothesis text and
 
 Or you can use this file as a library, and call either of the following:
 
-  - `ComputeWER(hyp, ref)`    compute WER for one pair of hypothesis/reference
-  - `AverageWERs(hyps, refs)` average WER for a list of hypotheses/references
+  - ``ComputeWER(hyp, ref)``    compute WER for one pair of hypothesis/reference
+  - ``AverageWERs(hyps, refs)`` average WER for a list of hypotheses/references
 
 Note to evaluate the ASR, we consider the following pre-processing:
 
   - change transcripts to lower-case
-  - remove punctuation: `" , . ! ? (  ) [ ]`
+  - remove punctuation: ``" , . ! ? (  ) [ ]``
   - remove extra empty spaces
 """
 
@@ -159,8 +158,9 @@ def GenerateSummaryFromErrs(nref, errs):
     errs: dict of three types of errors. e.g. {'sub':10, 'ins': 15, 'del': 3}
 
   Returns:
-    str1: string summarizing total error, total word, WER,
-    str2: string breaking down three errors: deleting, insertion, substitute
+    Two strings:
+    - string summarizing total error, total word, WER,
+    - string breaking down three errors: deleting, insertion, substitute
   """
 
   total_error = sum(errs.values())
@@ -183,9 +183,11 @@ def ComputeWER(hyp, ref, diagnosis=False):
     diagnosis (optional): whether to generate diagnosis str (in html format)
 
   Returns:
-    dict of three types of errors. e.g. {'sub':0, 'ins': 0, 'del': 0}
-    num of reference words, integer
-    aligned html string for diagnois (empty if diagnosis = False)
+    A tuple of 3 elements:
+
+    - dict of three types of errors. e.g. ``{'sub':0, 'ins': 0, 'del': 0}``
+    - num of reference words, integer
+    - aligned html string for diagnois (empty if diagnosis = False)
   """
 
   hyp = PreprocessTxtBeforeWER(hyp)
@@ -266,9 +268,11 @@ def AverageWERs(hyps, refs, verbose=True, diagnosis=False):
     diagnosis (optional): whether to generate list of diagnosis html
 
   Returns:
-    dict of three types of errors. e.g. {'sub':0, 'ins': 0, 'del': 0}
-    num of reference words, integer
-    list of aligned html string for diagnosis (empty if diagnosis = False)
+    A tuple of 3 elements:
+
+    - dict of three types of errors. e.g. ``{'sub':0, 'ins': 0, 'del': 0}``
+    - num of reference words, integer
+    - list of aligned html string for diagnosis (empty if diagnosis = False)
 
   """
   totalw = 0

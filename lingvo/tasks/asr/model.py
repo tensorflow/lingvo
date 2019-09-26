@@ -134,7 +134,7 @@ class AsrModel(base_model.BaseTask):
       here.
 
     Returns:
-      theta: A copy of the decoder theta.
+      A copy of the decoder theta.
     """
     del input_batch  # Unused
     return theta.decoder.DeepCopy()
@@ -426,10 +426,10 @@ class AsrModel(base_model.BaseTask):
     """Constructs inference subgraphs.
 
     Returns:
-      A dictionary of the form {'subgraph_name': (fetches, feeds)}. Each of
-      fetches and feeds is itself a dictionary which maps a string name (which
-      describes the tensor) to a corresponding tensor in the inference graph
-      which should be fed/fetched from.
+      dict: A dictionary of the form ``{'subgraph_name': (fetches, feeds)}``.
+      Each of fetches and feeds is itself a dictionary which maps a string name
+      (which describes the tensor) to a corresponding tensor in the inference
+      graph which should be fed/fetched from.
     """
     subgraphs = {}
     with tf.name_scope('inference'):

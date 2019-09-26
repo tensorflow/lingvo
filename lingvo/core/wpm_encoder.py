@@ -150,8 +150,8 @@ class WpmEncoder(object):
     Encoding includes prefixing the beginning-of-word token to each word.
 
     Returns:
-      ids: the encoded integer ids.
-      tokens: the encoded string.
+      (ids, tokens) where ids is the encoded integer ids and tokens is the
+      encoded string.
     """
     words = tf.sparse.to_dense(tf.strings.split([text]), default_value='')[0]
     num_words = tf.size(words)

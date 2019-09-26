@@ -1282,7 +1282,7 @@ class StackingOverTime(base_layer.BaseLayer):
       pad_value: the padding value for left/right context.
 
     Returns:
-      out: [batch, ceil(time / stride), depth * stacking_window_length].
+      [batch, ceil(time / stride), depth * stacking_window_length] tensor.
     """
     p = self.params
     if p.left_context == 0 and p.right_context == 0:
@@ -2078,8 +2078,10 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         drets: A matrix of size (size of ids_vec, embedding dims).
 
       Returns:
-        dembs: A matrix of the same shape of embs. Gradients for embs.
-        dids_vec: Zeros. Same shape as ids_vec.
+        Tuple(tensor, tensor):
+
+          - dembs: A matrix of the same shape of embs. Gradients for embs.
+          - dids_vec: Zeros. Same shape as ids_vec.
       """
       del embs
       num = tf.shape(ids_vec)[0]
@@ -2123,8 +2125,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         ids_vec: A vector of int32 embedding ids.
 
       Returns:
-        rets: The result of embedding lookups. A matrix of shape
-          (num ids in ids_vec, embedding dims).
+        The result of embedding lookups. A matrix of shape
+        [num ids in ids_vec, embedding dims].
       """
       num = tf.shape(ids_vec)[0]
       rets = inplace_ops.empty([num] + emb_shape_suf, p.dtype)
@@ -4061,8 +4063,8 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
         generally preferred.
 
     Returns:
-      output: A tensor containing the adapted activations with shape
-        [time, batch, input_dim].
+      A tensor containing the adapted activations with shape
+      [time, batch, input_dim].
     """
     p = self.params
     inputs_shape = tf.shape(inputs)

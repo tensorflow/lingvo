@@ -303,7 +303,7 @@ class AsrEncoder(base_layer.BaseLayer):
       state0: Recurrent input state. Not supported/ignored by this encoder.
 
     Returns:
-      A NestedMap containing:
+      A NestedMap containing
 
       - 'encoded': a feature tensor of shape [time, batch, depth]
       - 'padding': a 0/1 tensor of shape [time, batch]

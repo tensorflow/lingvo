@@ -30,7 +30,7 @@ class RNMTModel(mt_model.RNMTModel):
     """Constructs the inference subgraphs.
 
     Returns:
-      {'subgraph_name': (fetches, feeds)}
+      dict: ``{'subgraph_name': (fetches, feeds)}``
     """
     subgraphs = dict()
     with tf.name_scope('inference'):

@@ -376,12 +376,13 @@ class BaseTask(base_layer.BaseLayer):
       input_batch: A `.NestedMap` object containing input tensors to this tower.
 
     Returns:
-      Two dicts:
-      A dict containing str keys and (metric, weight) pairs as values, where
-      one of the keys is expected to be 'loss'.
-      A dict containing arbitrary tensors describing something about each
-      training example, where the first dimension of each tensor is the batch
-      index.
+      (dict, dict):
+
+      - A dict containing str keys and (metric, weight) pairs as values, where
+        one of the keys is expected to be 'loss'.
+      - A dict containing arbitrary tensors describing something about each
+        training example, where the first dimension of each tensor is the batch
+        index.
     """
     raise NotImplementedError('Abstract method')
 
@@ -423,12 +424,13 @@ class BaseTask(base_layer.BaseLayer):
       input_batch: A `.NestedMap` object containing input tensors to this tower.
 
     Returns:
-      Two dicts:
-      A dict containing str keys and (metric, weight) pairs as values, where
-      one of the keys is expected to be 'loss'.
-      A dict containing arbitrary tensors describing something about each
-      training example, where the first dimension of each tensor is the batch
-      index.
+      (dict, dict):
+
+      - A dict containing str keys and (metric, weight) pairs as values, where
+        one of the keys is expected to be 'loss'.
+      - A dict containing arbitrary tensors describing something about each
+        training example, where the first dimension of each tensor is the batch
+        index.
     """
     predictions = self.ComputePredictions(theta, input_batch)
     return self.ComputeLoss(theta, predictions, input_batch)
@@ -447,12 +449,13 @@ class BaseTask(base_layer.BaseLayer):
         spiltting is used, a list of `NestedMap`, one for each split.
 
     Returns:
-      Two dicts:
-      A dict containing str keys and (metric, weight) pairs as values, where
-      one of the keys is expected to be 'loss'.
-      A dict containing arbitrary tensors describing something about each
-      training example, where the first dimension of each tensor is the batch
-      index.
+      (dict, dict):
+
+      - A dict containing str keys and (metric, weight) pairs as values, where
+        one of the keys is expected to be 'loss'.
+      - A dict containing arbitrary tensors describing something about each
+        training example, where the first dimension of each tensor is the batch
+        index.
     """
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):

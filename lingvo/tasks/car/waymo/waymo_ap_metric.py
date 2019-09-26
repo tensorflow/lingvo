@@ -114,9 +114,11 @@ class WaymoAPMetrics(ap_metric.APMetrics):
       classid: integer.
 
     Returns:
-      scalar_metrics: a dict mapping all the metric names to fetch tensors.
-      curves: a dict mapping all the curve names to fetch tensors.
-      feed_dict: a dict mapping all the tensors in feed_tensors to feed values.
+      A tuple of 3 dicts:
+
+      - scalar_metrics: a dict mapping all the metric names to fetch tensors.
+      - curves: a dict mapping all the curve names to fetch tensors.
+      - feed_dict: a dict mapping the tensors in feed_tensors to feed values.
     """
 
     if feed_data is None:

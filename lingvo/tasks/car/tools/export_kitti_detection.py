@@ -107,12 +107,14 @@ def ExtractNpContent(np_dict, calib):
     calib: a parsed calibration dictionary.
 
   Returns:
-    location_camera: [N, 3]. [x, y, z] in camera0 coordinate.
-    dimension_camera: [N, 3]. The [height, width, length] of objects.
-    phi_camera: [N]. Rotation around y-axis in camera0 coodinate.
-    bboxes_2d: [N, 4]. The corresponding 2D bboxes in the image coordinate.
-    scores: [N]. Confidence scores for each box for the assigned class.
-    class_ids: [N]. The class id assigned to each box.
+    A tuple of 6 ndarrays:
+
+    - location_camera: [N, 3]. [x, y, z] in camera0 coordinate.
+    - dimension_camera: [N, 3]. The [height, width, length] of objects.
+    - phi_camera: [N]. Rotation around y-axis in camera0 coodinate.
+    - bboxes_2d: [N, 4]. The corresponding 2D bboxes in the image coordinate.
+    - scores: [N]. Confidence scores for each box for the assigned class.
+    - class_ids: [N]. The class id assigned to each box.
   """
   bboxes = np_dict["bboxes"]
   scores = np_dict["scores"]

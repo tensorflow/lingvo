@@ -1042,9 +1042,10 @@ class TransformerDecoder(MTBaseDecoder):
         predict. Each tensor in targets is of shape [batch, time].
 
     Returns:
-      `.NestedMap` containing output of last decoder layer and attention probs:
-        softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
-        attention: `.NestedMap` of attention distributions of shape
+      A `.NestedMap` containing output of last decoder layer and attention probs
+
+      - softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+      - attention: `.NestedMap` of attention distributions of shape
         [batch, target_length, source_length].
     """
     p = self.params
@@ -1278,9 +1279,10 @@ class TransformerDecoder(MTBaseDecoder):
         predict. Each tensor in targets is of shape [batch, time].
 
     Returns:
-      A `.NestedMap` containing utput of last decoder layer and attention probs:
-        softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
-        attention: `.NestedMap` of attention distributions of shape
+      A `.NestedMap` containing output of last decoder layer and attention probs
+
+      - softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+      - attention: `.NestedMap` of attention distributions of shape
         [batch, time, source_len].
     """
     return self._FProp(theta, encoder_outputs, targets)

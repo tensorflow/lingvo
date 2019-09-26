@@ -302,8 +302,8 @@ def TransformBBoxesToTopDown(bboxes, car_to_image_transform=None):
       created using _CarToImageTransform.
 
   Returns:
-    transformed_boxes: np.array of shape (batch, nbboxes) containing the
-      bounding boxes in top down image space.
+    np.array of shape (batch, nbboxes) containing the bounding boxes in top down
+    image space.
   """
   if car_to_image_transform is None:
     car_to_image_transform = _CarToImageTransform()
@@ -361,7 +361,7 @@ def DrawBBoxesOnImages(images, bboxes, box_weights, labels, class_id_to_name,
     groundtruth: Boolean indicating whether bounding boxes are ground truth.
 
   Returns:
-    images: 'images' with the bboxes drawn on top.
+    'images' with the bboxes drawn on top.
   """
   # Assert 4d shape.
   assert len(np.shape(images)) == 4
@@ -451,7 +451,7 @@ def DrawTrajectory(image, bboxes, masks, labels, is_groundtruth):
     is_groundtruth: True if the scene is the groundtruth vs. the predicted.
 
   Returns:
-    image: The updated image array.
+    The updated image array.
   """
   image = Image.fromarray(np.uint8(image)).convert('RGB')
   draw = ImageDraw.Draw(image)

@@ -882,9 +882,11 @@ class FRNNWithAttention(base_layer.BaseLayer):
       segment_id: A tensor of [time, batch, 1].
 
     Returns:
-      accumulated_state: a NestedMap of accumulated states from the recurrence.
-      final_state: final_state: The final recurrent state.
-      side_info: Nested map of intermediate results needed for post-processing
+      Tuple of 3 NestedMaps:
+
+      - accumulated_state: a NestedMap of accumulated states from recurrence.
+      - final_state: final_state: The final recurrent state.
+      - side_info: NestedMap of intermediate results needed for post-processing.
     """
     p = self.params
     dtype = p.dtype

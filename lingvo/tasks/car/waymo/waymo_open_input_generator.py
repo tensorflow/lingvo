@@ -734,7 +734,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
        frame_pose: [4, 4] matrix representing vehicle to world transformation.
 
     Returns:
-      lidar_image_xyz: [H, W, 3] range image cartesian coordinates.
+      [H, W, 3] range image cartesian coordinates.
     """
     height, width, channels = py_utils.GetShape(lidar_image, 3)
 

@@ -64,7 +64,7 @@ def WaymoValSpec(params):
     params: A Waymo open dataset input params.
 
   Returns:
-    p: An updated Waymo open dataset params with the validation spec.
+    An updated Waymo open dataset params with the validation spec.
   """
   p = params.Copy()
   p.file_datasource.base_datasource.file_pattern = 'valid.tfr-*-of-01000'

@@ -49,8 +49,7 @@ def convert_detections(table_path):
     table_path: Path to TFRecord file of decoder outputs.
 
   Returns:
-    preds: A metric_pb2.Objects() of all predictions.
-    gts: A metric_pb2.Objects() of all groundtruths.
+    (preds, gts): metric_pb2.Objects() of predictions and groundtruths.
   """
   img_ids = []
   img_id_dict = {}

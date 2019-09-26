@@ -766,7 +766,7 @@ class GraphSignature(object):
     """Parse the inputs signature string.
 
     Returns:
-      The parsed inputs structure, like {'a': ['b', 'c']}.
+      dict: The parsed inputs structure, like ``{'a': ['b', 'c']}``.
     """
     self._i = 0
     # The tokenization process adds fake '[' and ']' tokens so we can

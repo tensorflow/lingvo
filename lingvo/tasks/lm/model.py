@@ -161,7 +161,7 @@ class LanguageModel(base_model.BaseTask):
     """Constructs the inference subgraphs.
 
     Returns:
-      {'subgraph_name': (fetches, feeds)}
+      dict: ``{'subgraph_name': (fetches, feeds)}``
     """
     subgraphs = {}
     with tf.name_scope('inference'):
@@ -172,7 +172,7 @@ class LanguageModel(base_model.BaseTask):
     """Default inference subgraph.
 
     Returns:
-      (fetches, feeds), with:
+      (fetches, feeds):
 
       - fetches: A dictionary of fetches, containing:
 

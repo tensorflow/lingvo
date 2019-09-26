@@ -271,8 +271,8 @@ class ModelBase(point_detector.PointDetectorBase):
         anchor had a positive assignment.
 
     Returns:
-      error_metrics_dict: A metrics dict with mean bounding box errors for
-        all positive assigned anchor locations.
+      A metrics dict with mean bounding box errors for all positive assigned
+      anchor locations.
     """
     gt_bboxes = py_utils.HasShape(gt_bboxes, [-1, -1, -1, 7])
     batch_size, num_centers, num_anchors = py_utils.GetShape(gt_bboxes, 3)
@@ -322,9 +322,10 @@ class ModelBase(point_detector.PointDetectorBase):
 
     Returns:
       Two dicts:
-        A dict containing str keys and (metric, weight) pairs as values, where
+
+      - A dict containing str keys and (metric, weight) pairs as values, where
         one of the keys is expected to be 'loss'.
-        A dict containing arbitrary tensors describing something about each
+      - A dict containing arbitrary tensors describing something about each
         training example, where the first dimension of each tensor is the batch
         index.
     """

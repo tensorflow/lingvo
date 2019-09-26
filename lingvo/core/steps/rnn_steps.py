@@ -255,9 +255,10 @@ class RnnStackStep(step.Step):
       state0: The previous recurrent state.
 
     Returns:
-      output and state1:
-      output: A `.NestedMap` containing the output of the top-most step.
-      state1: The recurrent state to feed to the next invocation of this graph.
+      (output, state1):
+
+      - output: A `.NestedMap` containing the output of the top-most step.
+      - state1: The recurrent state to feed to next invocation of this graph.
     """
     return self.stack.FProp(theta.stack, external_inputs, step_inputs, padding,
                             state0)

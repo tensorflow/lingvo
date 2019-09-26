@@ -45,13 +45,12 @@ def hyperparams_text_diff(cfg1_text, cfg2_text):
     cfg2_text: A hyperparams.Params().ToText() of the second model config.
 
   Returns:
-    cfg1_not_cfg2: A list of keys in cfg1 but not cfg2.
+    A tuple of 3 elements:
 
-    cfg2_not_cfg1: A list of keys in cfg2 but not cfg1.
-
-    cfg1_and_cfg2_diff: A dictionary of common keys whose
-    config values differ: each value is a tuple of the config
-    values from cfg1 and cfg2 respectively.
+    - cfg1_not_cfg2: A list of keys in cfg1 but not cfg2.
+    - cfg2_not_cfg1: A list of keys in cfg2 but not cfg1.
+    - cfg1_and_cfg2_diff: A dict of common keys whose config values differ: each
+      value is a tuple of the config values from cfg1 and cfg2 respectively.
   """
   cfg1_dict = _hyperparams_text_to_dict(cfg1_text)
   cfg2_dict = _hyperparams_text_to_dict(cfg2_text)

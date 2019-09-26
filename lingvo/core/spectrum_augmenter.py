@@ -121,7 +121,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       max_ratio: Maximum portion of the entire range allowed to be masked.
 
     Returns:
-      mask: a fixed size mask starting from a random position with shape
+      A fixed size mask starting from a random position with shape
       [batch_size, seq_len].
     """
     p = self.params
@@ -304,9 +304,8 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       domain_id_index: domain id index.
 
     Returns:
-      output: Batch of output features of shape
-              (batch_size, time_length, num_freq, channels)
-              obtained by applying random augmentations to inputs.
+      Batch of output features of shape (batch_size, time_length, num_freq,
+      channels) obtained by applying random augmentations to inputs.
     """
     p = self.params
     dtype = p.dtype
@@ -355,8 +354,10 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       domain_ids: input domain_ids of shape [batch, time].
 
     Returns:
-      augmented_inputs: An tensor of shape [batch, time, freq, num_channels].
-      paddings: A 0/1 tensor of shape [batch, time].
+      A pair of 2 tensors:
+
+      - augmented_inputs: A tensor of shape [batch, time, freq, num_channels].
+      - paddings: A 0/1 tensor of shape [batch, time].
     """
     p = self.params
 

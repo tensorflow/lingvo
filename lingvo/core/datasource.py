@@ -50,12 +50,15 @@ class DataSource(object):
         string file_pattern.
 
     Returns:
-      A NestedMap containing: data: a tuple of tf.Tensor or `.NestedMap` of
-      tf.Tensor same as `BaseInputGeneratorFromFiles._DataSourceFromFilePattern(
-      file_pattern, input_source_weights=None)`, source_selected: a
-      tensor of size [batch_size, number of data sources], selected_bprop: a
-      tensor of size [number of data sources] bprop_variable_filters: containing
-      a list of bprop_variable filters for each source
+      A NestedMap containing
+
+      - data: a tuple of tf.Tensor or `.NestedMap` of tf.Tensor same as
+        ``BaseInputGeneratorFromFiles._DataSourceFromFilePattern(file_pattern,
+        input_source_weights=None)``
+      - source_selected: a tensor of size [batch_size, number of data sources]
+      - selected_bprop: a tensor of size [number of data sources]
+      - bprop_variable_filters: containing a list of bprop_variable filters for
+        each source.
     """
     raise NotImplementedError()
 
@@ -87,8 +90,8 @@ class SimpleDataSource(DataSource):
         argument and returns an input batch.
 
     Returns:
-      A NestedMap containing: data: a tuple of tf.Tensor or `.NestedMap` of
-      tf.Tensor.
+      A NestedMap containing `data`, which is a tuple of tf.Tensor or
+      `.NestedMap` of tf.Tensor.
     """
     p = self.params
     if not isinstance(p.file_pattern, six.string_types):
@@ -127,8 +130,8 @@ class ChainingDataSource(DataSource):
         argument and returns an input batch.
 
     Returns:
-      A NestedMap containing data: a tuple of tf.Tensor or `.NestedMap` of
-      tf.Tensor
+      A NestedMap containing `data`, which is a tuple of tf.Tensor or
+      `.NestedMap` of tf.Tensor.
 
     Raises:
       ValueError: If unknown token type.

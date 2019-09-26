@@ -42,8 +42,10 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
     model_registry: A ModelRegistry object.
 
   Returns:
-    ps_params_dict: High-level task name -> ProgramScheduleParams
-    train_cfg: A SingleTaskModelParams or MultiTaskModelParams.
+    A tuple (dict, Params):
+
+    - ps_params_dict: High-level task name -> ProgramScheduleParams
+    - train_cfg: A SingleTaskModelParams or MultiTaskModelParams.
   """
 
   ps_params_dict = {}

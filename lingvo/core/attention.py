@@ -305,12 +305,11 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
 
     Returns:
       A tuple of 3 elements.
-        The attention context vector:
-          [batch_size, context_dim]
-        The attention probability vector:
-          [batch_size, time]
-        The new attention mechanism state:
-          possibly nested tuple of tensors with dimensions [target_batch, ...]
+
+      - The attention context vector: [batch_size, context_dim]
+      - The attention probability vector: [batch_size, time]
+      - The new attention mechanism state: possibly nested tuple of tensors
+        with dimensions [target_batch, ...]
     """
     raise NotImplementedError('Abstract method.')
 
@@ -337,9 +336,9 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     Returns:
       A tuple of 3 elements.
 
-      * The attention context vector.
-      * The attention probability vector.
-      * The new attention mechanism state: possibly nested tuple of tensors with
+      - The attention context vector.
+      - The attention probability vector.
+      - The new attention mechanism state: possibly nested tuple of tensors with
         dimensions [target_batch, ...]
     """
     assert self._source_init_done
@@ -769,12 +768,11 @@ class AdditiveAttention(BaseAttentionLayer):
 
     Returns:
       A tuple of 3 elements.
-        The attention context vector:
-          [batch_size, context_dim]
-        The attention probability vector:
-          [batch_size, time]
-        The new attention mechanism state:
-          possibly nested tuple of tensors with dimensions [target_batch, ...]
+
+      - The attention context vector: [batch_size, context_dim]
+      - The attention probability vector: [batch_size, time]
+      - The new attention mechanism state: possibly nested tuple of tensors with
+        dimensions [target_batch, ...]
     """
     p = self.params
     concated_source_vecs = packed_src.source_vecs
@@ -850,18 +848,6 @@ class DotProductAttention(BaseAttentionLayer):
                    query_segment_id):
       """Main attention function.
 
-      Args:
-        per_dim_scale:            [source_dim], a vec to scale individual dims.
-        source_padding:           [time, source_batch].
-        concated_source_vecs:     [time, source_batch, source_dim].
-        query_vec:                [target_batch, source_dim].
-        per_step_source_padding:  [target_batch, source_length]
-        source_segment_id:        [time, source_batch].
-        query_segment_id:         [target_batch].
-
-      Returns:
-        logits: [target_batch, source_time].
-
       target_batch = source_batch * n where n is an integer >= 1.
       In this case query_vec contains:
               -------------------------
@@ -883,6 +869,18 @@ class DotProductAttention(BaseAttentionLayer):
               | instance source_batch |
               -------------------------
       One use case is beam search where n = beam size.
+
+      Args:
+        per_dim_scale:            [source_dim], a vec to scale individual dims.
+        source_padding:           [time, source_batch].
+        concated_source_vecs:     [time, source_batch, source_dim].
+        query_vec:                [target_batch, source_dim].
+        per_step_source_padding:  [target_batch, source_length]
+        source_segment_id:        [time, source_batch].
+        query_segment_id:         [target_batch].
+
+      Returns:
+        logits [target_batch, source_time].
       """
       source_padding = tf.transpose(source_padding)
       concated_source_vecs = tf.transpose(concated_source_vecs, [1, 0, 2])
@@ -954,8 +952,10 @@ class DotProductAttention(BaseAttentionLayer):
         concated_source_vecs.
 
       Returns:
-        context_vector: [target_batch, context_dim].
-        probs:          [target_batch, time].
+        Two tensors:
+
+        - context_vector: [target_batch, context_dim].
+        - probs:          [target_batch, time].
       """
       py_utils.assert_shape_match([tf.shape(concated_source_vecs)[2]],
                                   [tf.shape(query_vec)[1]])
@@ -1016,7 +1016,6 @@ class DotProductAttention(BaseAttentionLayer):
       hidden_dim], `concated_source_contexts` is a tensor of shape
       [batch_size, time, some_dim] and `source_padding` is a tensor of shape
       [time, batch_size].
-
     """
     concated_source_vecs = tf.identity(source_vecs)
     concated_source_contexts = tf.transpose(source_contexts, [1, 0, 2])
@@ -1066,12 +1065,11 @@ class DotProductAttention(BaseAttentionLayer):
 
     Returns:
       A tuple of 3 elements.
-        The attention context vector:
-          [batch_size, context_dim]
-        The attention probability vector:
-          [batch_size, time]
-        The new attention mechanism state:
-          possibly nested tuple of tensors with dimensions [target_batch, ...]
+
+      - The attention context vector: [batch_size, context_dim]
+      - The attention probability vector: [batch_size, time]
+      - The new attention mechanism state: possibly nested tuple of tensors
+        with dimensions [target_batch, ...]
     """
     concated_source_vecs = packed_src.source_vecs
     concated_source_contexts = packed_src.source_contexts
@@ -1520,12 +1518,11 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
 
     Returns:
       A tuple of 3 elements.
-        The attention context vector:
-          [batch_size, context_dim]
-        The attention probability vector:
-          [batch_size, time]
-        The new attention mechanism state:
-          possibly nested tuple of tensors with dimensions [target_batch, ...]
+
+      - The attention context vector: [batch_size, context_dim]
+      - The attention probability vector: [batch_size, time]
+      - The new attention mechanism state: possibly nested tuple of tensors with
+        dimensions [target_batch, ...]
     """
     p = self.params
     fns = self.fns
@@ -1631,7 +1628,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         time].
 
     Returns:
-      The attention context vector: [target_batch, source_dim]
+      The attention context vector shaped [target_batch, source_dim].
       If p.enable_ctx_post_proj is false, source_dim = context_dim,
       otherwise, source_dim = p.ctx_post_proj_dim.
     """
@@ -1710,9 +1707,11 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       query_segment_id: a tensor of shape [target_batch].
 
     Returns:
-      The attention context vector:     [target_batch, source_dim]
-      The attention probability vector: [target_batch, time]
-      The new attention mechanism state: possibly nested tuple of tensors with
+      A tuple of 3 tensors:
+
+      - The attention context vector: [target_batch, source_dim]
+      - The attention probability vector: [target_batch, time]
+      - The new attention mechanism state: possibly nested tuple of tensors with
         dimensions [target_batch....]
     """
     return self.ComputeContextVectorWithSource(
@@ -2130,12 +2129,11 @@ class LocationSensitiveAttention(BaseAttentionLayer):
 
     Returns:
       A tuple of 3 elements.
-        The attention context vector:
-          [batch_size, context_dim]
-        The attention probability vector:
-          [batch_size, time]
-        The new attention mechanism state:
-          possibly nested tuple of tensors with dimensions [target_batch, ...]
+
+      - The attention context vector: [batch_size, context_dim]
+      - The attention probability vector: [batch_size, time]
+      - The new attention mechanism state: possibly nested tuple of tensors with
+        dimensions [target_batch, ...]
     """
     del query_segment_id
     p = self.params
@@ -2393,7 +2391,7 @@ class MonotonicAttention(BaseAttentionLayer):
         hidden_b: [].
 
       Returns:
-        logits: [tb, sl].
+        logits shaped [tb, sl].
       """
       # Apply query matrix to query. Becomes [tb, hidden_dim].
       query_vec_transformed = py_utils.Matmul(
@@ -2485,12 +2483,10 @@ class MonotonicAttention(BaseAttentionLayer):
 
     Returns:
       A tuple of 3 elements.
-        The attention context vector:
-          [batch_size, context_dim]
-        The attention probability vector:
-          [batch_size, time]
-        The attention probability vector:
-          (again, to be interpreted as state).
+
+      - The attention context vector: [batch_size, context_dim]
+      - The attention probability vector: [batch_size, time]
+      - The attention probability vector: (again, to be interpreted as state).
     """
     del query_segment_id
     concated_source_vecs = packed_src.source_vecs
@@ -2583,7 +2579,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
           variances: [multiplier, source_batch, num_mixtures]
 
         Returns:
-          Calculated probabilities: [multiplier, source_batch, source_length]
+          Probabilities shaped [multiplier, source_batch, source_length].
         """
         # [multiplier, source_batch, 1, num_mixtures]
         priors = tf.expand_dims(priors, 2)
@@ -2619,9 +2615,10 @@ class GmmMonotonicAttention(BaseAttentionLayer):
           per_step_source_padding: [target_batch, source_length]
 
         Returns:
-          Following tensors:
-            context vector: [target_batch, context_dim]
-            attention probabilities: [target_batch, source_length]
+          Tuple(context vector, atten probs):
+
+          - context vector: [target_batch, context_dim]
+          - attention probabilities: [target_batch, source_length]
         """
         # Note: shape [target_batch] can be converted to
         # [multiplier, source_batch], not [source_batch, multiplier].
@@ -2756,9 +2753,10 @@ class GmmMonotonicAttention(BaseAttentionLayer):
 
     Returns:
       A tuple of 3 elements.
-        The attention context vector: [target_batch, context_dim]
-        The attention probability vector: [target_batch, source_length]
-        The new attention state vector: [target_batch, num_mixtures, 4]
+
+      - The attention context vector: [target_batch, context_dim]
+      - The attention probability vector: [target_batch, source_length]
+      - The new attention state vector: [target_batch, num_mixtures, 4]
     """
     del query_segment_id
     p = self.params

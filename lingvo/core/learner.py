@@ -213,8 +213,7 @@ class Learner(base_layer.BaseLayer):
         Inf in input gradients.
 
     Returns:
-      grad_scale: the gradient scale. 0 if gradient updates should be skipped
-        for the step.
+      The gradient scale. 0 if gradient updates should be skipped for the step.
     """
     p = self.params
     # Computes gradient's scale.
@@ -248,7 +247,8 @@ class Learner(base_layer.BaseLayer):
       gradient_adjuster: if not None, a function that mutates a given var_grads.
 
     Returns:
-      A `.NestedMap` containing:
+      A `.NestedMap` containing
+
       - has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN
         or Inf in input gradients.
       - final_var_grads: a `.NestedMap` whose values are (var, grad) pairs,

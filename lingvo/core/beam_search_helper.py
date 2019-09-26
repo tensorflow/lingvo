@@ -87,24 +87,26 @@ class BeamSearchHelper(base_layer.BaseLayer):
           num_hyps_per_beam: An int, number hyps to keep for source sentence.
 
         Returns:
-          initial_results: a `.NestedMap` of initial results. It must contain
-              the 'atten_probs' and 'log_probs' tensors. Optionally it may
-              contain 'step_ids'.
-              .log_probs: The initial log probs for each of the tokens in
-                  the target vocab, of shape [num_hyps_per_beam * src_batch,
-                  vocab_size]. src_batch "b" and hyp_per_beam "h" is
-                  represented at index (h * src_batch + b).
-              .atten_probs: The initial attention probs, of shape [
-                  num_hyps_per_beam * src_batch, src_len]. src_batch "b"
-                  and hyp_per_beam "h" is represented at index
-                  (h * src_batch + b).
-              .step_ids: Optional. The initial ids of shape [num_hyps_per_beam *
-                  src_batch, 1] for which to start the beam search. src_batch
-                  "b" and hyp_per_beam "h" is represented at index (h *
-                  src_batch + b).  If not specified, we default to a tensor
-                  filled with target_sos_id.
-          states: a `.NestedMap` of tensors representing states that the client
-              would like to keep track of for each hyp.
+          A tuple (initial_results, states):
+
+          - initial_results: a `.NestedMap` of initial results. It must contain
+            the 'atten_probs' and 'log_probs' tensors. Optionally it may
+            contain 'step_ids'.
+
+            - log_probs: The initial log probs for each of the tokens in the
+              target vocab of shape [num_hyps_per_beam * src_batch, vocab_size].
+              src_batch "b" and hyp_per_beam "h" is represented at index
+              ``(h * src_batch + b)``.
+            - atten_probs: The initial attention probs, of shape
+              [num_hyps_per_beam * src_batch, src_len]. src_batch "b" and
+              hyp_per_beam "h" is represented at index ``(h * src_batch + b)``.
+            - step_ids: Optional. The initial ids of shape [num_hyps_per_beam *
+              src_batch, 1] for which to start the beam search. src_batch "b"
+              hyp_per_beam "h" is represented at index ``(h * src_batch + b)``.
+              If not specified, defaults to a tensor filled with target_sos_id.
+
+          - states: a `.NestedMap` of tensors representing states that the
+            client would like to keep track of for each hyp.
 
   This callback is called once every decoding time step before beam_search_step
   is called:
@@ -125,22 +127,25 @@ class BeamSearchHelper(base_layer.BaseLayer):
             clients would like to keep track of for each of the active hyps.
 
         Returns:
-          results: A `.NestedMap` of beam search results. It should contain
-              the 'atten_probs' and 'log_probs' tensors at the minimal.
-              Optionally it may contain 'is_last_chunk' if it is decoding a
-              neural transducer model.
-              .atten_probs: The updated attention probs, of shape
-                  [num_hyps_per_beam * src_batch, src_len]. src_batch "b" and
-                  hyp_per_beam "h" is represented at index (h * src_batch + b).
-              .log_probs: Log prob for each of the tokens in the target vocab.
-                  This is of shape [num_hyps_per_beam * src_batch, vocab_size].
-                  src_batch "b" and hyp_per_beam "h" is represented at index
-                  (h * src_batch + b).
-              .is_last_chunk: Whether or not each of the hyp is at the end of a
-                  chunk. If non-empty, it is of shape
-                  [num_hyps_per_beam * src_batch, 1].
-          out_states: A `.NestedMap`. The updated states. This 'out_states'
-              should be of the exact same structure as 'in_states'
+          A tuple (results, out_states):
+
+          - results: A `.NestedMap` of beam search results. It should contain
+            the 'atten_probs' and 'log_probs' tensors at the minimal.
+            Optionally it may contain 'is_last_chunk' if it is decoding a
+            neural transducer model.
+
+            - atten_probs: The updated attention probs, of shape
+              [num_hyps_per_beam * src_batch, src_len]. src_batch "b" and
+              hyp_per_beam "h" is represented at index ``(h * src_batch + b)``.
+            - log_probs: Log prob for each of the tokens in the target vocab.
+              This is of shape [num_hyps_per_beam * src_batch, vocab_size].
+              src_batch "b" and hyp_per_beam "h" is represented at index
+              ``(h * src_batch + b)``.
+            - is_last_chunk: Whether each of the hyp is at the end of a chunk.
+              If non-empty, it has shape [num_hyps_per_beam * src_batch, 1].
+
+          - out_states: A `.NestedMap`. The updated states. This 'out_states'
+            should be of the exact same structure as 'in_states'
 
   This callback is called once every decoding time step after beam_search_step
   is called:

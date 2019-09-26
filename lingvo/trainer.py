@@ -1345,8 +1345,10 @@ class RunnerManager(object):
     """Get the params needed to instantiate the ExecutorTpu.
 
     Returns:
-       ps_params_dict: high_level task_name -> ProgramScheduleParams
-       train_cfg: Either a SingleTaskModelParams or MultiTaskModelParams.
+       Tuple (dict, params):
+
+         - ps_params_dict: high_level task_name -> ProgramScheduleParams
+         - train_cfg: Either a SingleTaskModelParams or MultiTaskModelParams.
     """
     cluster = cluster_factory.Current()
     self.UpdateClusterParamsFromFlags(cluster.params, 'executor_tpu')

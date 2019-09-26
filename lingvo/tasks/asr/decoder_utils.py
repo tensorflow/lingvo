@@ -96,10 +96,12 @@ def EditDistance(ref_str, hyp_str):
     hyp_str:   A string of one actual hyp.
 
   Returns:
-    ins:         number of insertions.
-    subs:        number of substitutions.
-    del:         number of deletions.
-    total:       total difference length.
+    (ins, subs, del, total):
+
+    - ins:         number of insertions.
+    - subs:        number of substitutions.
+    - del:         number of deletions.
+    - total:       total difference length.
   """
 
   class ErrorStats(object):

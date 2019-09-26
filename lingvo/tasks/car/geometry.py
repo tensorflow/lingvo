@@ -44,7 +44,7 @@ def _BroadcastMatmul(x, y):
     y: A matrix of shape [b, c].
 
   Returns:
-    z[..., c], where z[i..., :] = matmul(x[i..., :], y)
+    Tensor: ``z[..., c]``, where ``z[i..., :] = matmul(x[i..., :], y)``
   """
   y = py_utils.HasRank(y, 2)
   x_reshaped = tf.reshape(x, [-1, tf.shape(x)[-1]])
@@ -140,8 +140,7 @@ def PointsToImagePlane(points, velo_to_image_plane):
       pixel locations.
 
   Returns:
-    points: A [N, 2] Floating point tensor containing points in
-      the image plane.
+    A [N, 2] Floating point tensor containing points in the image plane.
   """
   points = py_utils.HasRank(points, 2)
   num_points = tf.shape(points)[0]
@@ -377,10 +376,11 @@ def IsWithinBBox(points, bbox):
       given in counter-clockwise order.
 
   Returns:
-    If pshape = tf.shape(points)[:-1] and bshape = tf.shape(bbox)[:-2],
-    a tensor of shape tf.concat(pshape, bshape), of booleans, where
-    each element is true if the point is inside to the corresponding box.
-    If a point falls exactly on an edge of the bbox, it is also true.
+    Tensor: If ``pshape = tf.shape(points)[:-1]`` and
+    ``bshape = tf.shape(bbox)[:-2]``, returns a boolean tensor of shape
+    ``tf.concat(pshape, bshape)``, where each element is true if the point is
+    inside to the corresponding box.  If a point falls exactly on an edge of the
+    bbox, it is also true.
   """
   bshape = py_utils.GetShape(bbox)[:-2]
   pshape = py_utils.GetShape(points)[:-1]

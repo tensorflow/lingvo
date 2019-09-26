@@ -74,7 +74,7 @@ class FusionBase(base_layer.BaseLayer):
         training.
 
     Returns:
-      (lm_output, state1), with:
+      (lm_output, state1):
 
       - lm_output: A NestedMap containing lm output. If 'ids' is 1-D, then
         lm_output should have shape [batch_size, dim]; if it is 2-D then the
@@ -120,7 +120,7 @@ class FusionBase(base_layer.BaseLayer):
         training.
 
     Returns:
-      (fused_output, state1), with:
+      (fused_output, state1):
 
       - fused_output: A tensor containing the fused result. If am_output is 2-D,
         then the fused_output should have shape [batch_size, dim]; if

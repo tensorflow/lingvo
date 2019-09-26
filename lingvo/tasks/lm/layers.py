@@ -168,7 +168,7 @@ class BaseLanguageModel(base_layer.BaseLayer):
       switch_cond: bool tensor of shape [batch] on which to switch.
 
     Returns:
-      state_combined: a NestedMap of states.
+      a NestedMap of states.
     """
     raise NotImplementedError('Abstract method')
 
@@ -225,7 +225,7 @@ class NullLm(BaseLanguageModel):
       switch_cond: bool tensor of shape [batch] on which to switch.
 
     Returns:
-      state_combined: a NestedMap of states.
+      a NestedMap of states.
     """
     return state0
 
@@ -466,7 +466,7 @@ class RnnLmNoEmbedding(BaseLanguageModel):
       switch_cond: bool tensor of shape [batch] on which to switch.
 
     Returns:
-      state_combined: a NestedMap of states.
+      a NestedMap of states.
     """
     updated_rnn_states = []
     for i in range(self.params.rnns.num_layers):

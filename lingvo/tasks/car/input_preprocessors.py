@@ -772,9 +772,9 @@ class GridToPillars(Preprocessor):
       probs: A 1-D float tensor containing probabilities, summing to 1.
 
     Returns:
-      transformed_logits: A 1-D float tensor of the same size of probs, with
-        gumbel noise added to log probabilities. Taking the top k elements from
-        this provides a multinomial sample without replacement.
+      A 1-D float tensor of the same size of probs, with gumbel noise added to
+      log probabilities. Taking the top k elements from this provides a
+      multinomial sample without replacement.
     """
     p = self.params
     log_prob = tf.log(probs)
@@ -985,8 +985,8 @@ class SparseCenterSelector(Preprocessor):
         this function is called.
 
     Returns:
-      centers: A tf.float32 Tensor of shape [p.num_cell_centers, 3] with
-        selected centers to use as anchors.
+      A tf.float32 Tensor of shape [p.num_cell_centers, 3] with selected centers
+      to use as anchors.
     """
     p = self.params
     num_points = tf.shape(points_xyz)[0]
@@ -1021,8 +1021,8 @@ class SparseCenterSelector(Preprocessor):
         this function is called.
 
     Returns:
-      centers: A tf.float32 Tensor of shape [p.num_cell_centers, 3] with
-        selected centers to use as anchors.
+      A tf.float32 Tensor of shape [p.num_cell_centers, 3] with selected centers
+      to use as anchors.
     """
     p = self.params
     # We want the center Z value to be 0 so just exclude it

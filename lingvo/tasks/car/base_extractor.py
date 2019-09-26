@@ -153,8 +153,10 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
       record: A tf.Example input to pass to tf.parse_single_example.
 
     Returns:
-      bucket_id: A scalar int Tensor.
-      extracted: a NestedMap of Tensors extracted.
+      A tuple of tensors:
+
+      - bucket_id: A scalar int Tensor.
+      - extracted: a NestedMap of Tensors extracted.
     """
     feature_map = {}
     self._extractors.Transform(lambda e: feature_map.update(e.FeatureMap()))

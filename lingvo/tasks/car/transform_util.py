@@ -137,7 +137,7 @@ def TransformHeading(transform, heading):
     heading: Floating point scalar heading.
 
   Returns:
-    new_heading: Heading in the transformed coordinate system.
+    Heading in the transformed coordinate system.
   """
   x1, y1 = np.cos(heading), np.sin(heading)
 

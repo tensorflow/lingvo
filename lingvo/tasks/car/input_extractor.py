@@ -97,7 +97,7 @@ class FieldsExtractor(base_layer.BaseLayer):
         extractors.
 
     Returns:
-      output: A NestedMap of output Tensors.
+      A NestedMap of output Tensors.
     """
     outputs = self._Extract(features)
     shapes = self.Shape()
@@ -138,8 +138,7 @@ class FieldsExtractor(base_layer.BaseLayer):
         extractors.
 
     Returns:
-      output: A NestedMap of output Tensors whose key names match self.Shape()'s
-         keys.
+      A NestedMap of output Tensors whose key names match self.Shape()'s keys.
     """
     raise NotImplementedError()
 

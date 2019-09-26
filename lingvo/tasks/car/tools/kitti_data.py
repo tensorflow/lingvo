@@ -52,7 +52,7 @@ def LoadLabelFile(filepath):
 
   +--------+------------+------------------------------------------------------+
   | Values |    Name    |  Description                                         |
-  +--------+------------+------------------------------------------------------+
+  +========+============+======================================================+
   |   1    |   type     | Describes the type of object: 'Car', 'Van', 'Truck', |
   |        |            | 'Pedestrian', 'Person_sitting', 'Cyclist', 'Tram',   |
   |        |            | 'Misc' or 'DontCare'                                 |
@@ -80,13 +80,13 @@ def LoadLabelFile(filepath):
   +--------+------------+------------------------------------------------------+
   |   1    |   score    | Only for results: Float, indicating confidence in    |
   |        |            | detection, needed for p/r curves, higher is better.  |
-  +--------+-----------+-------------------------------------------------------+
+  +--------+------------+------------------------------------------------------+
 
   Args:
     filepath: Path to a raw KITTI label file.
 
   Returns:
-    A list of dictionary with keys corresponding to the name column above: type,
+    A list of dictionary with keys corresponding to the name column above. type,
     truncated, occluded, alpha, bbox, dimensions, location, rotation_y, score.
     Note that the order of the floats in bbox, dimensions, and location
     correspond to that in the doc-string above.

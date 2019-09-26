@@ -267,12 +267,14 @@ class WpmTokenizer(BaseTokenizer):
       languages: A vector of strings with the same length as `strs`.
 
     Returns:
-      token_ids: a tensor of sequences of WPM ids starting with SOS. Sequences
+      A tuple of 3 tensors:
+
+      - token_ids: a tensor of sequences of WPM ids starting with SOS. Sequences
         always end with EOS unless the sequence exceeds the maximum length.
         Always padded with EOS.
-      target_ids: a tensor of sequences of WPM ids not starting with SOS
+      - target_ids: a tensor of sequences of WPM ids not starting with SOS
         but ending with EOS. Always padded with EOS.
-      paddings: a tensor of floats indicating, at each position, whether
+      - paddings: a tensor of floats indicating, at each position, whether
         the corresponding position is padded.
     """
     p = self.params

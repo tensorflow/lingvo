@@ -1622,9 +1622,10 @@ def StackedRecurrent(devices,
       except the last layer(_Output).
 
   Returns:
-    A tuple of:
-      The last layer's output (accumulated states).
-      The list of final state NestedMap. One for each layer.
+    Tuple (output, states):
+
+      - The last layer's output (accumulated states).
+      - The list of final state NestedMap. One for each layer.
   """
   num_layers = len(devices)
   assert num_layers

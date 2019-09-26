@@ -61,6 +61,7 @@ def GenericInput(processor, *args, **kwargs):
 
   Returns:
     A tuple of (outputs, bucket_keys):
+
     - outputs: a NestedMap or a list of tensors, similar to `processor`'s
       return,  except every tensor will have an additional dimension 0 that
       represents the batch dimension.

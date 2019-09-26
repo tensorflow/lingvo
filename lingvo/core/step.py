@@ -262,9 +262,10 @@ class StackStep(Step):
       state0: The previous recurrent state.
 
     Returns:
-      output and state1:
-      output: A `.NestedMap` containing the output of the top-most step.
-      state1: The recurrent state to feed to the next invocation of this graph.
+      A tuple (output, state1):
+
+      - output: A `.NestedMap` containing the output of the top-most step.
+      - state1: The recurrent state to feed to next invocation of this graph.
     """
     state1 = py_utils.NestedMap(sub=[])
     inputs = list(step_inputs.inputs)

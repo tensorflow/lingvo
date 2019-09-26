@@ -3264,8 +3264,10 @@ def RecordFormatFromFilePattern(file_pattern):
     file_pattern: String file pattern.
 
   Returns:
-    record_format: String record format, e.g., "tfrecord", etc.
-    file_pattern: The file pattern without any prefixes.
+    Tuple (string, string):
+
+      - record_format: String record format, e.g., "tfrecord", etc.
+      - file_pattern: The file pattern without any prefixes.
   """
   result = re.match(_RECORD_FORMAT_RE, file_pattern)
 

@@ -331,9 +331,11 @@ class APMetrics(BaseMetric):
         bounding box. If None is specified, all boxes are selected.
 
     Returns:
-      scalar_metrics: A list of C (number of clases) dicts mapping metric names
-        to scalar values.
-      curve_metrics: A list of C dicts mapping metrics names to np.float32
+      (dict, dict):
+
+      - scalar_metrics: A list of C (number of clases) dicts mapping metric
+        names to scalar values.
+      - curve_metrics: A list of C dicts mapping metrics names to np.float32
         arrays of shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last
         dimension, 0 indexes precision and 1 indexes recall.
     """

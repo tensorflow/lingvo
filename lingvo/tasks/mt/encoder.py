@@ -157,10 +157,11 @@ class MTEncoderV1(base_layer.BaseLayer):
 
     Returns:
       A NestedMap containing:
-        - encoded: The encoded features, a tensor of shape [time, batch, depth]
-        - padding: of shape [time, batch]
-        - segment_id: [time, batch] if packed inputs are supported by the model
-            (and all layers), or None otherwise.
+
+      - encoded: The encoded features, a tensor of shape [time, batch, depth]
+      - padding: of shape [time, batch]
+      - segment_id: [time, batch] if packed inputs are supported by the model
+        (and all layers), or None otherwise.
     """
     p = self.params
     src_segment_id = None
@@ -609,15 +610,16 @@ class TransformerEncoder(base_layer.BaseLayer):
         - paddings: The paddings tensor. Expected shape [batch, time].
 
     Returns:
-      A NestedMap containing:
-        - encoded: The encoded features, either a tensor of shape [time, batch,
-            depth], or a list of tensors if is_transparent is set in
-            transformer_stack.
-        - padding: of shape [time, batch]
-        - segment_id: [time, batch] if packed inputs are supported by the model
-            (and all layers), or None otherwise.
-        - embedded_inputs: [time, batch, depth] embedded inputs tokens without
-            positional encodings.
+      A NestedMap containing
+
+      - encoded: The encoded features, either a tensor of shape
+        [time, batch, depth], or a list of tensors if is_transparent is set in
+        transformer_stack.
+      - padding: of shape [time, batch]
+      - segment_id: [time, batch] if packed inputs are supported by the model
+        (and all layers), or None otherwise.
+      - embedded_inputs: [time, batch, depth] embedded inputs tokens without
+        positional encodings.
     """
 
     p = self.params

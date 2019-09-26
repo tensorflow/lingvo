@@ -52,12 +52,13 @@ class BaseDecoder(base_layer.BaseLayer):
       points_padding: [batch, num_points] float Tensor.
 
     Returns:
-      .NestedMap of:
-        - points_xyz: 0.0 or points_xyz float Tensor passthrough.
-        - points_padding: 0.0 or points_padding float Tensor passthrough.
-        - points_sampled: scalar bool Tensor if points were sampled.
-            If false, points_xyz and points_padding are scalar 0s to
-            reduce the amount of data transferred.
+      .NestedMap:
+
+      - points_xyz: 0.0 or points_xyz float Tensor passthrough.
+      - points_padding: 0.0 or points_padding float Tensor passthrough.
+      - points_sampled: scalar bool Tensor if points were sampled.
+        If false, points_xyz and points_padding are scalar 0s to
+        reduce the amount of data transferred.
     """
     p = self.params
     rand = tf.random.uniform(shape=(), minval=0, maxval=1, dtype=tf.float32)
@@ -71,14 +72,13 @@ class BaseDecoder(base_layer.BaseLayer):
     })
 
   def SaveTensors(self, tensor_map):
-    """Returns a serialized representation of the contents of 'tensor_map'.
+    """Returns a serialized representation of the contents of `tensor_map`.
 
     Args:
       tensor_map: A NestedMap of string keys to numpy arrays.
 
     Returns:
-      serialized: A serialized record_pb2.Record() of the contents of
-        'tensor_map'.
+      A serialized record_pb2.Record() of the contents of 'tensor_map'.
     """
 
     def AddKeyVals(**kwargs):

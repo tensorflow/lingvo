@@ -89,10 +89,11 @@ class PointDetectorBase(base_model.BaseTask):
       input_batch: The input batch from which to produce boxes and logits.
 
     Returns:
-      A .NestedMap containing:
-        - predicted_bboxes: A [batch_size, num_boxes, 7] floating point Tensor.
-        - classification_logits: A [batch_size, num_boxes, num_classes] floating
-          point Tensor.
+      A .NestedMap containing
+
+      - predicted_bboxes: A [batch_size, num_boxes, 7] floating point Tensor.
+      - classification_logits: A [batch_size, num_boxes, num_classes] floating
+        point Tensor.
     """
     raise NotImplementedError('_BoxesAndLogits method not implemented.')
 

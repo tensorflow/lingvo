@@ -122,10 +122,11 @@ def KnnIndices(points, query_points, k, valid_num=None, max_distance=None):
       max_distance is not used.
 
   Returns:
-    indices: tensor of shape [N, P2, k].
+    A pair of tensors:
 
-    padding: tensor of shape [N, P2 ,k] where 1 represents a padded point, and 0
-    represents an unpadded (real) point.
+    - indices: tensor of shape [N, P2, k].
+    - padding: tensor of shape [N, P2 ,k] where 1 represents a padded point, and
+      0 represents an unpadded (real) point.
 
   """
   p1 = tf.shape(points)[1]
@@ -173,10 +174,11 @@ def NeighborhoodIndices(points,
       uniformly if they are within max distance.
 
   Returns:
-    indices: tensor of shape [N, P2, k].
+    A pair of tensors:
 
-    padding: tensor of shape [N, P2, k] where 1 represents a padded point, and 0
-    represents an unpadded (real) point.
+    - indices: tensor of shape [N, P2, k].
+    - padding: tensor of shape [N, P2, k] where 1 represents a padded point, and
+      0 represents an unpadded (real) point.
 
   """
   n, p1 = py_utils.GetShape(points, 2)
@@ -249,8 +251,7 @@ def MatmulGather(source, indices):
     indices: tensor of shape [N, P2, K]
 
   Returns:
-    target: tensor of shape [N, P2, K, C]
-
+    tensor of shape [N, P2, K, C]
   """
   source = py_utils.HasRank(source, 3)
   n, p1, c = py_utils.GetShape(source)

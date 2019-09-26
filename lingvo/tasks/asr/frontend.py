@@ -456,7 +456,7 @@ class MelAsrFrontend(BaseAsrFrontend):
       signal: f32 Tensor, shaped [batch_size, num_samples]
 
     Returns:
-      features: f32 Tensor, shaped [batch_size, num_frames, mel_channels]
+      f32 features Tensor, shaped [batch_size, num_frames, mel_channels]
     """
     p = self.params
     # FFT.

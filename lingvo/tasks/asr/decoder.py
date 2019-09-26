@@ -669,7 +669,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       random_seed: a scalar int32 tensor representing the random seed.
 
     Returns:
-      A NestedMap containing the following tensors:
+      A NestedMap containing the following tensors
+
       - 'ids': [batch, max_target_length] of int32, representing the target
         sequence ids, not including target_sos_id, but maybe ending with
         target_eos_id if target_eos_id is sampled.
@@ -1316,7 +1317,7 @@ class AsrDecoder(AsrDecoderBase):
       query_segment_id: a tensor of shape [batch_size].
 
     Returns:
-      A 3-tuple:
+      A tuple of 3 tensors:
 
       - The attention context vector: shaped [batch_size, context_dim].
       - The attention probability vector: shaped [batch_size, seq_len]

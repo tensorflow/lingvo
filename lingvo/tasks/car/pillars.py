@@ -43,7 +43,7 @@ def SparseToDense(grid_shape, locations, feats):
     feats: [b, p, fdims]. Extracted features for pillars.
 
   Returns:
-    grid_feats: [b, nx, ny, nz * fdims].
+    grid_feats of shape [b, nx, ny, nz * fdims].
   """
   nx, ny, nz = grid_shape
   b, p, _ = py_utils.GetShape(locations, 3)

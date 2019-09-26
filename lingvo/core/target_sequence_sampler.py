@@ -71,7 +71,8 @@ class TargetSequenceSampler(base_layer.BaseLayer):
       post_step_callback: decoder._PostBeamSearchStepCallback.
 
     Returns:
-      A NestedMap containing the following tensors:
+      A NestedMap containing the following tensors
+
       - 'logits': [batch, max_target_length, vocab_size], representing the
         distribution from which target sequences are sampled.
       - 'ids': [batch, max_target_length] of int32, representing the target

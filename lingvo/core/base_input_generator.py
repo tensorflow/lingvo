@@ -476,12 +476,15 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     examples from different sources may be mixed together.
 
     Returns:
-      A NestedMap containing: data: a tuple of tf.Tensor or `.NestedMap` of
-      tf.Tensor same as `self._DataSourceFromFilePattern()`, source_selected: a
-      tensor of size [batch_size, number of data sources] or None.
-      selected_bprop: a tensor of size [number of data sources] or None.
-      bprop_variable_filters: a list of bprop_variable filters for each source
-      or None
+      A `.NestedMap` containing
+
+      - data: a tuple of tf.Tensor or `.NestedMap` of
+        tf.Tensor same as `self._DataSourceFromFilePattern()`
+      - source_selected: a tensor of size [batch_size, number of data sources]
+        or None.
+      - selected_bprop: a tensor of size [number of data sources] or None.
+      - bprop_variable_filters: a list of bprop_variable filters for each source
+        or None.
 
     Raises:
       ValueError: If file_datasource is not set

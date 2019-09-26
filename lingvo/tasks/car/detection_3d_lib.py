@@ -41,17 +41,17 @@ class Utils3D(object):
 
   The following functions in this utility class helps with that:
 
-    CreateDenseCoordinates: Makes it easy to create a dense grid of coordinates
-      that would usually correspond to center locations.
+    - CreateDenseCoordinates: Makes it easy to create a dense grid of
+      coordinates that would usually correspond to center locations.
 
-    MakeAnchorBoxes: Given a list of center coordinates, dimension priors, and
+    - MakeAnchorBoxes: Given a list of center coordinates, dimension priors, and
       offset priors, this function creates actual anchor bbox parameters at each
       coordinate. More than one box can be at each center.
 
-    IOUAxisAlignedBoxes: This function computes the IOU between two lists of
+    - IOUAxisAlignedBoxes: This function computes the IOU between two lists of
       boxes.
 
-    AssignAnchors: This function assigns each anchor a ground-truth bbox. Note
+    - AssignAnchors: This function assigns each anchor a ground-truth bbox. Note
       that one ground-truth bbox can be assigned to multiple anchors. The model
       is expected to regress the residuals each anchor and it's corresponding
       ground-truth bbox parameters.
@@ -63,10 +63,10 @@ class Utils3D(object):
     This function wraps tf.losses.huber_loss to rescale it by 1 / delta, and
     uses Reduction.NONE.
 
-    This scaling results in the following formulation instead:
+    This scaling results in the following formulation instead::
 
       (1/d) * 0.5 * x^2       if \|x\| <= d
-      \|x\| - 0.5 * d           if \|x\| > d
+      \|x\| - 0.5 * d         if \|x\| > d
 
     where x is labels - predictions.
 
@@ -158,7 +158,7 @@ class Utils3D(object):
     """Create a matrix of coordinate locations corresponding to a dense grid.
 
     Example: To create (x, y) coordinates corresponding over a 10x10 grid with
-      step sizes 1, call CreateDenseCoordinates([(1, 10, 10), (1, 10, 10)]).
+    step sizes 1, call ``CreateDenseCoordinates([(1, 10, 10), (1, 10, 10)])``.
 
     Args:
       ranges: A list of 3-tuples, each tuple is expected to contain (min, max,
@@ -201,10 +201,10 @@ class Utils3D(object):
         None, rotation will be set to 0.
 
     Returns:
-      anchor_bboxes: [num_anchors_center, num_boxes_per_center, 2 * dims + 1]
-        tensor. Usually dims=3 for 3D, where [..., :dims] corresponds to
-        location, [..., dims:2*dims] corresponds to dimensions, and [..., -1]
-        corresponds to rotation.
+      A [num_anchors_center, num_boxes_per_center, 2 * dims + 1] tensor. Usually
+      dims=3 for 3D, where ``[..., :dims]`` corresponds to location,
+      ``[..., dims:2*dims]`` corresponds to dimensions, and ``[..., -1]``
+      corresponds to rotation.
     """
     num_centers, dims = py_utils.GetShape(anchor_centers)
     num_box_per_center = py_utils.GetShape(anchor_box_dimensions, 1)[0]
@@ -277,24 +277,24 @@ class Utils3D(object):
     Ground truth boxes can be assigned to multiple anchor boxes.
 
     Assignments can result in 3 outcomes:
-      Positive assignment (if score >= foreground_assignment_threshold):
+
+      - Positive assignment (if score >= foreground_assignment_threshold):
         assigned_gt_labels will reflect the assigned box label and
         assigned_cls_mask will be set to 1.0
-      Background assignment (if score <= background_assignment_threshold):
+      - Background assignment (if score <= background_assignment_threshold):
         assigned_gt_labels will be background_class_id and assigned_cls_mask
         will be set to 1.0
-      Ignore assignment (otherwise):
+      - Ignore assignment (otherwise):
         assigned_gt_labels will be background_class_id and assigned_cls_mask
         will be set to 0.0
 
     The detection loss function would usually:
 
-      Use assigned_cls_mask for weighting the classification loss. The mask
-      is set such that the loss applies to foreground and background assignments
-      only - ignored anchors will be set to 0.
-
-      Use assigned_reg_mask for weighting the regression loss. The mask is set
-      such that the loss applies to foreground assignments only.
+      - Use assigned_cls_mask for weighting the classification loss. The mask
+        is set such that the loss applies to foreground and background
+        assignments only - ignored anchors will be set to 0.
+      - Use assigned_reg_mask for weighting the regression loss. The mask is set
+        such that the loss applies to foreground assignments only.
 
     The thresholds (foreground_assignment_threshold and
     background_assignment_threshold) should be tuned per dataset.
@@ -333,24 +333,19 @@ class Utils3D(object):
         ignored. If set to None, the function will default to IOU2DRotatedBoxes.
 
     Returns:
-      NestedMap with the following keys:
+      NestedMap with the following keys
 
-        assigned_gt_bbox: shape [A, 7] bbox parameters assigned to each anchor.
-
-        assigned_gt_similarity_score: shape [A] (iou) score between the anchor
+      - assigned_gt_bbox: shape [A, 7] bbox parameters assigned to each anchor.
+      - assigned_gt_similarity_score: shape [A] (iou) score between the anchor
         and the gt bbox.
-
-        assigned_gt_labels: shape [A] label assigned to bbox.
-
-        assigned_cls_mask: shape [A] mask for classification loss per anchor.
+      - assigned_gt_labels: shape [A] label assigned to bbox.
+      - assigned_cls_mask: shape [A] mask for classification loss per anchor.
         This should be 1.0 if the anchor has a foreground or background
         assignment; otherwise, it will be assigned to 0.0.
-
-        assigned_reg_mask: shape [A] mask for regression loss per anchor.
+      - assigned_reg_mask: shape [A] mask for regression loss per anchor.
         This should be 1.0 if the anchor has a foreground assignment;
         otherwise, it will be assigned to 0.0.
         Note: background anchors do not have regression targets.
-
     """
     if similarity_fn is None:
       similarity_fn = self.IOU2DRotatedBoxes
@@ -453,12 +448,12 @@ class Utils3D(object):
 
     For a given bbox, compute residuals in the following way:
 
-      Let the anchor_bbox = (x_a, y_a, z_a, dx_a, dy_a, dz_a, phi_a)
-      and the assigned_gt_bbox = (x_gt, y_gt, z_gt, dx_gt, dy_gt, dz_gt, phi_gt)
+      Let ``anchor_bbox = (x_a, y_a, z_a, dx_a, dy_a, dz_a, phi_a)``
+      and ``assigned_gt_bbox = (x_gt, y_gt, z_gt, dx_gt, dy_gt, dz_gt, phi_gt)``
 
-      Define diagonal_xy = sqrt(dx_a^2 + dy_a^2)
+      Define ``diagonal_xy = sqrt(dx_a^2 + dy_a^2)``
 
-      Then the corresponding residuals are given by:
+      Then the corresponding residuals are given by::
 
         x_residual = (x_gt - x_a) / (diagonal_xy)
         y_residual = (y_gt - y_a) / (diagonal_xy)
@@ -538,15 +533,15 @@ class Utils3D(object):
   def ResidualsToBBoxes(self, anchor_bboxes, residuals):
     r"""Converts anchor_boxes and residuals to predicted bboxes.
 
-    This converts predicted residuals into bboxes using the following formulae:
+    This converts predicted residuals into bboxes using the following formulae::
 
-      x_predicted = x_a + x_residual \* diagonal_xy
-      y_predicted = y_a + y_residual \* diagonal_xy
-      z_predicted = z_a + z_residual \* dz_a
+      x_predicted = x_a + x_residual * diagonal_xy
+      y_predicted = y_a + y_residual * diagonal_xy
+      z_predicted = z_a + z_residual * dz_a
 
-      dx_predicted = dx_a \* exp(dx_residual)
-      dy_predicted = dy_a \* exp(dy_residual)
-      dz_predicted = dz_a \* exp(dz_residual)
+      dx_predicted = dx_a * exp(dx_residual)
+      dy_predicted = dy_a * exp(dy_residual)
+      dz_predicted = dz_a * exp(dz_residual)
 
       phi_predicted = phi_a + phi_residual
 
@@ -671,7 +666,7 @@ class Utils3D(object):
 
     Returns:
       The NMS indices and the mask of the padded indices for each example
-        in the batch.
+      in the batch.
     """
     batch_size, num_boxes = py_utils.GetShape(bboxes, 2)
 
@@ -716,14 +711,13 @@ class Utils3D(object):
         per example to emit per class.
 
     Returns:
-      bbox_indices: An int32 Tensor with the indices of the chosen boxes.
-      Values are in sort order until the class_idx switches.
+      A tuple of 3 tensors:
 
-      bbox_scores: A float32 Tensor with the score for each box.
-
-      valid_mask: A float32 Tensor with 1/0 values indicating the validity of
-      each box. 1 indicates valid, and 0 invalid.
-
+      - bbox_indices: An int32 Tensor with the indices of the chosen boxes.
+        Values are in sort order until the class_idx switches.
+      - bbox_scores: A float32 Tensor with the score for each box.
+      - valid_mask: A float32 Tensor with 1/0 values indicating the validity of
+        each box. 1 indicates valid, and 0 invalid.
     """
     bboxes = py_utils.HasShape(bboxes, [-1, -1, 7])
     batch_size, num_boxes = py_utils.GetShape(bboxes, 2)
@@ -769,8 +763,8 @@ class Utils3D(object):
         last coordinate to recover 2D pixel locations.
 
     Returns:
-      A [batch, num_boxes, 8, 2] floating point Tensor containing
-        the 3D bounding box corners projected to the image plane.
+      A [batch, num_boxes, 8, 2] floating point Tensor containing the 3D
+      bounding box corners projected to the image plane.
     """
     batch_size, num_boxes, _, _ = py_utils.GetShape(corners, 4)
 
@@ -812,11 +806,12 @@ def RandomPadOrTrimTo(tensor_list, num_points_out, seed=None):
     seed: Random seed to use for random generators.
 
   Returns:
-    A tuple of output_tensors and a padding indicator. The output tuple is:
-      output_tensors: A list of padded or trimmed versions of our tensor_list
-        input tensors, all with the same first dimension.
-      padding: A tf.float32 tf.Tensor of shape [num_points_out] with 0 if the
-        point is real, 1 if it is padded.
+    A tuple of output_tensors and a padding indicator.
+
+    - output_tensors: A list of padded or trimmed versions of our tensor_list
+      input tensors, all with the same first dimension.
+    - padding: A tf.float32 tf.Tensor of shape [num_points_out] with 0 if the
+      point is real, 1 if it is padded.
   """
   actual_num = tf.shape(tensor_list[0])[0]
   point_idx = tf.range(num_points_out, dtype=tf.int32)
