@@ -160,6 +160,18 @@ class SchedulerTests(test_utils.TestCase):
       else:
         self.assertEqual('b', task)
 
+  def testRoundRobinSchedulerEvenStep(self):
+    """Should work regardless of step increment."""
+    p = task_scheduler.RoundRobinScheduler.Params()
+    p.tasks = ['a', 'b']
+
+    schedule = p.Instantiate()
+    tasks = []
+
+    for global_step in [0, 2, 10, 17]:
+      tasks.append(schedule.Sample(global_step))
+    self.assertEqual(['a', 'b', 'a', 'b'], tasks)
+
 
 if __name__ == '__main__':
   tf.test.main()

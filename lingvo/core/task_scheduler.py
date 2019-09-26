@@ -284,8 +284,10 @@ class RoundRobinScheduler(TaskScheduler):
     self.tasks = sorted(self.params.tasks)
     self.n_tasks = len(self.tasks)
     self.cur_probs = [1. / self.n_tasks] * self.n_tasks  # For summary
+    self.next_task_idx = 0
 
   def Sample(self, current_step):
     """Sample a task."""
-    sampled_task = self.tasks[current_step % self.n_tasks]
+    sampled_task = self.tasks[self.next_task_idx]
+    self.next_task_idx = (self.next_task_idx + 1) % self.n_tasks
     return sampled_task
