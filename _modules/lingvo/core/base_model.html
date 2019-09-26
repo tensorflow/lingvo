@@ -1390,6 +1390,11 @@
         <span class="s1">&#39;task_global_step&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Whether or not to use task-specific global steps, which causes each &#39;</span>
         <span class="s1">&#39;task to use its own global_step instead of the true global_step.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;task_name_var_scope&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Whether or not to use the task name as a variable scope. Note that &#39;</span>
+        <span class="s1">&#39;this has been the default behavior for some time, but seems to be &#39;</span>
+        <span class="s1">&#39;redundant since the individual tasks scope by their `name`.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1423,11 +1428,15 @@
             <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span>
         <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="n">sorted_task_params</span><span class="p">:</span>
           <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_global_step</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">task_name</span> <span class="o">==</span> <span class="n">task_params</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">assert</span> <span class="n">task_name</span> <span class="o">==</span> <span class="n">task_params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="n">CreateTaskGlobalStep</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
-          <span class="c1"># Make sure each task is under its own variable scope.</span>
-          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
+
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name_var_scope</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;task_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span><span class="p">)</span>
 
   <span class="nd">@property</span>
