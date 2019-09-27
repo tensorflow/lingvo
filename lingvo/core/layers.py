@@ -855,6 +855,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         'Defaults to None which means that it will be disabled by default '
         'and enabled when quantized training is enabled. Not compatible with '
         'affine_last=True')
+    p.Define('bn_params',
+             BatchNormLayer.Params().Set(decay=0.999),
+             'Default params for batch norm layer.')
     return p
 
   @base_layer.initializer
@@ -913,10 +916,10 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       self.TrackQTensor(self._pre_activation_qt_name)
 
     if p.batch_norm:
-      bn_params = BatchNormLayer.Params().Set(
-          dim=p.input_dim if p.affine_last else p.output_dim,
-          decay=0.999,
-          name=p.name)
+      bn_params = p.bn_params.Copy()
+      bn_params.name = p.name
+      bn_params.dim = p.input_dim if p.affine_last else p.output_dim
+
       self.CreateChild('bn', bn_params)
     # TODO(yonghui): implement the variational noise logic.
 

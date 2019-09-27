@@ -1442,7 +1442,9 @@ class ProjectionLayerTest(test_utils.TestCase):
                            bn_fold_weights=None,
                            expect_bn_fold_weights=None,
                            is_eval=False,
-                           layer_callback=None):
+                           layer_callback=None,
+                           bn_decay=0.999,
+                           bn_use_moving_avg_in_training=False):
     self._ClearCachedSession()
     tf.reset_default_graph()
     with self.session(use_gpu=True) as sess:
@@ -1461,6 +1463,8 @@ class ProjectionLayerTest(test_utils.TestCase):
       params.affine_last = affine_last
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.bn_fold_weights = bn_fold_weights
+      params.bn_params.decay = bn_decay
+      params.bn_params.use_moving_avg_in_training = bn_use_moving_avg_in_training
       if quantized:
         cc_schedule = quant_utils.FakeQuantizationSchedule.Params().Set(
             clip_end_step=1, quant_start_step=1)
@@ -1968,6 +1972,30 @@ class ProjectionLayerTest(test_utils.TestCase):
     self._testUnstack(params.Set(stride=2, right_context=3), inputs)
     self._testUnstack(params.Set(stride=3), inputs)
     self._testUnstack(params.Set(stride=4, right_context=3), inputs)
+
+  def testProjectionLayerFPropUsingMovingAvgInTraining(self):
+    # pylint: disable=bad-whitespace
+    # pyformat: disable
+    expected_output = [[[0.        , 0.03491905],
+                        [0.01192194, 0.09171353],
+                        [0.01156251, 0.        ],
+                        [0.        , 0.00982281]],
+                       [[0.02097072, 0.        ],
+                        [0.00650552, 0.        ],
+                        [0.        , 0.        ],
+                        [0.        , 0.13866161]]]
+    # pyformat: enable
+    # pylint: enable=bad-whitespace
+    for reshape_to_2d in (False, True):
+      actual = self._evalProjectionLayer(
+          reshape_to_2d=reshape_to_2d,
+          expect_bn_fold_weights=False,
+          bn_use_moving_avg_in_training=True)
+      if reshape_to_2d:
+        expected_output = np.reshape(np.array(expected_output), (-1, 2))
+      tf.logging.info('expected = %s', expected_output)
+      tf.logging.info('actual = %s', np.array_repr(actual))
+      self.assertAllClose(expected_output, actual)
 
 
 class EmbeddingLayerTest(test_utils.TestCase):

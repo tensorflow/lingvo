@@ -289,6 +289,7 @@ class AsrModelTest(test_utils.TestCase):
           'AsrDecoder',
           'AsrEncoder',
           'AsrModel',
+          'BatchNormLayer',
           'BeamSearchHelper',
           'TargetSequenceSampler',
           'ConvLSTMCell',
