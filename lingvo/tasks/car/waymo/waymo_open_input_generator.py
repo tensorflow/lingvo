@@ -381,13 +381,12 @@ class WaymoLaserExtractor(input_extractor.LaserExtractor):
                                             [p.max_num_points, p.num_features])
       points_padding = 1.0 - py_utils.PadOrTrimTo(
           tf.ones([npoints]), [p.max_num_points])
-    else:
-      points_padding = None
 
-    return py_utils.NestedMap(
-        points_xyz=points_xyz,
-        points_feature=points_feature,
-        points_padding=points_padding)
+    ret = py_utils.NestedMap(
+        points_xyz=points_xyz, points_feature=points_feature)
+    if p.max_num_points is not None:
+      ret.points_padding = points_padding
+    return ret
 
 
 class WaymoLabelExtractor(input_extractor.FieldsExtractor):

@@ -37,10 +37,18 @@ def _ParseSequenceExample(record, feature_map):
   return features
 
 
+def _TextInput(record, feature_map):
+  # record is a Tensor containing a string line.
+  if feature_map:
+    raise ValueError('For PlainText datasets, FeatureMap() must be empty.')
+  return {'line': record}
+
+
 # Supported raw record types and the corresponding parsing functions.
 _PARSING_FUNCTIONS = {
     'EXAMPLE': tf.parse_single_example,
     'SEQUENCE_EXAMPLE': _ParseSequenceExample,
+    'TEXT': _TextInput,
 }
 
 
@@ -115,6 +123,9 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
 
     dtypes = self.DType()
     shapes = self.Shape()
+    if not dtypes.IsCompatible(shapes):
+      raise ValueError('{} vs. {}'.format(dtypes.DebugString(),
+                                          shapes.DebugString()))
     dtypes.Pack(zip(dtypes.Flatten(), shapes.Flatten())).VLog(0, 'InpGen: ')
 
   def Shape(self):
@@ -181,13 +192,43 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
 
     # Return the maximum bucket id so that any extractor can decide whether
     # to filter the entire example.
+    max_bucket = tf.reduce_max(buckets.Flatten())
 
-    for key, preprocessor in zip(self.params.preprocessors_order,
-                                 self.preprocessors):
-      with tf.name_scope(key), tf.name_scope(preprocessor.params.name):
-        extracted = preprocessor.TransformFeatures(extracted)
+    def NullLike():
+      """A function to return the same Tensor signature as Preprocess.
 
-    return tf.reduce_max(buckets.Flatten()), extracted
+      This is necessary for the tf.cond() to avoid executing the preprocessor
+      for examples that are going to be dropped because it exceeds the bucket
+      limit; tf.cond() requires that the output of both branches yields the same
+      structure.
+
+      Returns:
+        A structure with the same Tensor dtype and shape as the output of
+        Preprocess.
+      """
+      shapes = self.Shape()
+      rets = [
+          tf.zeros(dtype=dtype, shape=shape)
+          for (dtype, shape) in zip(self.DType().Flatten(), shapes.Flatten())
+      ]
+      return shapes.Pack(rets)
+
+    def Preprocess(extracted):
+      for key, preprocessor in zip(self.params.preprocessors_order,
+                                   self.preprocessors):
+        with tf.name_scope(key), tf.name_scope(preprocessor.params.name):
+          extracted = preprocessor.TransformFeatures(extracted)
+      return extracted
+
+    # If the extractor wants to filter the example, don't run the preprocessor.
+    #
+    # Preprocessors can then assume that only examples that pass filtering will
+    # be executed.
+    final_output = tf.cond(
+        tf.less(max_bucket, BUCKET_UPPER_BOUND), lambda: Preprocess(extracted),
+        NullLike)
+
+    return max_bucket, final_output
 
   def InputBatch(self):
     batched_outputs, bucket_keys = self._BuildDataSource()
@@ -202,8 +243,6 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     shapes.VLog(0, 'input extractor shape: ')
     flatten_shapes = shapes.Flatten()
     dtypes = self.DType()
-    assert dtypes.IsCompatible(shapes), '{} vs. {}'.format(
-        dtypes.DebugString(), shapes.DebugString())
     flatten_dtypes = dtypes.FlattenItems()
     assert len(flatten_shapes) == len(outputs), '{} vs. {}'.format(
         len(flatten_shapes), len(outputs))

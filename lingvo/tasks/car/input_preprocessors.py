@@ -419,7 +419,7 @@ class CountNumberOfPointsInBoxes3D(Preprocessor):
 
   def TransformFeatures(self, features):
     points_xyz = features.lasers.points_xyz
-    if features.lasers.points_padding is not None:
+    if 'points_padding' in features.lasers:
       points_mask = 1 - features.lasers.points_padding
       points_xyz = tf.boolean_mask(points_xyz, points_mask)
 
@@ -1050,9 +1050,9 @@ class SparseCenterSelector(Preprocessor):
     for prep_layer in self.features_preparation_layers:
       prepared_features = prep_layer.FPropDefaultTheta(prepared_features)
     points_xyz = prepared_features.lasers.points_xyz
-    points_padding = prepared_features.lasers.points_padding
 
-    if points_padding is not None:
+    if 'points_padding' in prepared_features.lasers:
+      points_padding = prepared_features.lasers.points_padding
       points_mask = 1 - points_padding
       points_xyz = tf.boolean_mask(points_xyz, points_mask)
 
@@ -1117,7 +1117,7 @@ class SparseCellGatherFeatures(Preprocessor):
 
     points_xyz = features.lasers.points_xyz
     points_feature = features.lasers.points_feature
-    if features.lasers.points_padding is not None:
+    if 'points_padding' in features.lasers:
       points_mask = 1 - features.lasers.points_padding
       points_xyz = tf.boolean_mask(points_xyz, points_mask)
       points_feature = tf.boolean_mask(points_feature, points_mask)
@@ -1571,7 +1571,7 @@ class DropLaserPointsOutOfRange(Preprocessor):
     p = self.params
 
     points_xyz = features.lasers.points_xyz
-    if features.lasers.points_padding is not None:
+    if 'points_padding' in features.lasers:
       points_mask = tf.cast(1 - features.lasers.points_padding, tf.bool)
     else:
       # All points are real, we keep points unpadded by applying boolean_mask
@@ -1601,7 +1601,7 @@ class DropLaserPointsOutOfRange(Preprocessor):
     if max_z != np.inf:
       points_mask &= points_xyz[:, 2] <= max_z
 
-    if features.lasers.points_padding is not None:
+    if 'points_padding' in features.lasers:
       # Suffices to just update the padding.
       features.lasers.points_padding = 1. - tf.to_float(points_mask)
     else:
@@ -1641,7 +1641,7 @@ class KITTIDropPointsOutOfFrustum(Preprocessor):
     images = features.images
     front_indices = features.lasers.points_xyz[:, 0] >= 0
 
-    if features.lasers.points_padding is None:
+    if 'points_padding' not in features.lasers:
       # Keep tensors unpadded and small using boolean_mask.
       features.lasers.points_xyz = tf.boolean_mask(features.lasers.points_xyz,
                                                    front_indices)
@@ -1656,7 +1656,7 @@ class KITTIDropPointsOutOfFrustum(Preprocessor):
                       (points_image[:, 1] >= 0) &
                       (points_image[:, 1] <= tf.to_float(images.height)))
 
-    if features.lasers.points_padding is not None:
+    if 'points_padding' in features.lasers:
       # Update padding to only include front indices and in image plane.
       points_mask = tf.cast(1 - features.lasers.points_padding, tf.bool)
       points_mask &= front_indices
@@ -1777,7 +1777,7 @@ class DropPointsOutOfFrustum(Preprocessor):
   def TransformFeatures(self, features):
     p = self.params
 
-    if features.lasers.points_padding is not None:
+    if 'points_padding' in features.lasers:
       raise ValueError('DropPointsOutOfFrustum preprocessor does not support '
                        'padded lasers.')
 
@@ -1940,7 +1940,7 @@ class PadLaserFeatures(Preprocessor):
   def TransformFeatures(self, features):
     p = self.params
 
-    if features.lasers.points_padding is not None:
+    if 'points_padding' in features.lasers:
       points_mask = 1 - features.lasers.points_padding
       points_mask = tf.cast(points_mask, tf.bool)
       features.lasers = features.lasers.Transform(
@@ -1969,9 +1969,11 @@ class PadLaserFeatures(Preprocessor):
       return tf.TensorShape([p.max_num_points] + points_shape[1:].as_list())
 
     shapes.lasers = shapes.lasers.Transform(_TransformShape)
+    shapes.lasers.points_padding = tf.TensorShape([p.max_num_points])
     return shapes
 
   def TransformDTypes(self, dtypes):
+    dtypes.lasers.points_padding = tf.float32
     return dtypes
 
 
@@ -2052,7 +2054,7 @@ class RandomDropLaserPoints(Preprocessor):
     num_points, _ = py_utils.GetShape(features.lasers.points_xyz)
 
     # We assume that the lasers are not padded, and all points are real.
-    if features.lasers.points_padding is not None:
+    if 'points_padding' in features.lasers:
       raise ValueError('RandomDropLaserPoints preprocessor does not support '
                        'padded lasers.')
 
@@ -2440,7 +2442,7 @@ class RandomBBoxTransform(Preprocessor):
               out_bbox_mask)
 
     # Get the points and features that reside in boxes.
-    if features.lasers.points_padding is not None:
+    if 'points_padding' in features.lasers:
       points_mask = 1 - features.lasers.points_padding
       points_xyz = tf.boolean_mask(features.lasers.points_xyz, points_mask)
       points_feature = tf.boolean_mask(features.lasers.points_feature,
@@ -2501,7 +2503,7 @@ class RandomBBoxTransform(Preprocessor):
     #
     # TODO(vrv): Identify the source of this problem and then assert a shape
     # matching check.
-    if features.lasers.points_padding is not None:
+    if 'points_padding' in features.lasers:
       features.lasers.points_xyz = py_utils.PadOrTrimTo(
           all_points, tf.shape(features.lasers.points_xyz))
       features.lasers.points_feature = py_utils.PadOrTrimTo(
@@ -2840,7 +2842,7 @@ class GroundTruthAugmentor(Preprocessor):
     sampled_bboxes = tf.reshape(sampled_bboxes, [-1, 7])
 
     # Concatenate the samples with the ground truths.
-    if features.lasers.points_padding is not None:
+    if 'points_padding' in features.lasers:
       points_mask = tf.cast(1. - features.lasers.points_padding, tf.bool)
       # Densify the original points.
       dense_points_xyz = tf.boolean_mask(features.lasers.points_xyz,
@@ -2964,7 +2966,10 @@ class FrustumDropout(Preprocessor):
     p = self.params
     points_xyz = features.lasers.points_xyz
     points_feature = features.lasers.points_feature
-    points_padding = features.lasers.points_padding
+    if 'points_padding' in features.lasers:
+      points_padding = features.lasers.points_padding
+    else:
+      points_padding = None
 
     if points_padding is not None:
       points_mask = tf.cast(1 - points_padding, tf.bool)
@@ -3159,8 +3164,7 @@ class SparseSampler(Preprocessor):
     n, m = p.num_centers, p.num_neighbors
 
     points = py_utils.HasShape(features.lasers.points_xyz, [-1, 3])
-    if ('points_padding' in features.lasers) and (features.lasers.points_padding
-                                                  is not None):
+    if 'points_padding' in features.lasers:
       raise ValueError(
           'SparseSampler preprocessor does not support padded lasers.')
 

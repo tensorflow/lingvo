@@ -49,8 +49,9 @@ class FieldsExtractor(base_layer.BaseLayer):
 
   A descendant of this class will implement three functions:
 
-    1) FeatureMap(): returning a dictionary of field names
-       to field types, e.g., 'images' to tf.VarLenFeature(tf.string).
+    1) FeatureMap(): returning a dictionary of field names to field types, e.g.,
+       'images' to tf.VarLenFeature(tf.string).  For PlainTextIterator
+       datasets, FeatureMap() should be empty.
 
     2) _Extract(features): Given a 'features' dictionary containing the result
        from calling tf.parse_example or tf.parse_sequence_example on all
@@ -154,7 +155,8 @@ class LaserExtractor(FieldsExtractor):
 
     points_padding: [max_num_points]: Padding for points.  0 means the
       corresponding point is the original, and 1 means there is no point
-      (xyz or feature) present.
+      (xyz or feature) present.  Only present if max_num_points is not
+      None.
 
   """
 
@@ -167,13 +169,15 @@ class LaserExtractor(FieldsExtractor):
 
   def Shape(self):
     p = self.params
-    return py_utils.NestedMap(
+    ret = py_utils.NestedMap(
         points_xyz=tf.TensorShape([p.max_num_points, 3]),
-        points_feature=tf.TensorShape([p.max_num_points, p.num_features]),
-        points_padding=tf.TensorShape([p.max_num_points]))
+        points_feature=tf.TensorShape([p.max_num_points, p.num_features]))
+    if p.max_num_points is not None:
+      ret.points_padding = tf.TensorShape([p.max_num_points])
+    return ret
 
   def DType(self):
-    return py_utils.NestedMap(
-        points_xyz=tf.float32,
-        points_feature=tf.float32,
-        points_padding=tf.float32)
+    ret = py_utils.NestedMap(points_xyz=tf.float32, points_feature=tf.float32)
+    if self.params.max_num_points is not None:
+      ret.points_padding = tf.float32
+    return ret
