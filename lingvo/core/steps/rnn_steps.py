@@ -155,7 +155,7 @@ class RnnStackStep(step.Step):
         'Start residual connections from this layer. For this and higher '
         'layers, the layer output is the sum of the RNN cell output and '
         'input; if the layer also normalizes its output, then the '
-        'normalization is done over this sum. Set to 0 to disable '
+        'normalization is done over this sum. Set to -1 to disable '
         'residual connections.')
     p.Define('residual_stride', 1,
              'Number of lstm layers to skip per residual connection.')
