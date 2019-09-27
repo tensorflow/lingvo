@@ -25,6 +25,7 @@ import os
 import time
 import lingvo.compat as tf
 from lingvo.core import py_utils
+import six
 
 
 class Checkpointer(object):
@@ -183,7 +184,7 @@ class Checkpointer(object):
     """
     assert not self._save_only
     uninitialized_vars = sess.run(self._uninitialized_vars)
-    if 'global_step' not in uninitialized_vars:
+    if six.ensure_binary('global_step') not in uninitialized_vars:
       return
 
     with sess.graph.as_default():
