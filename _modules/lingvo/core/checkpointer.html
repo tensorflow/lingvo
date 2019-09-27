@@ -170,6 +170,7 @@
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">import</span> <span class="nn">six</span>
 
 
 <div class="viewcode-block" id="Checkpointer"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer">[docs]</a><span class="k">class</span> <span class="nc">Checkpointer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -328,7 +329,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span>
     <span class="n">uninitialized_vars</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span><span class="p">)</span>
-    <span class="k">if</span> <span class="s1">&#39;global_step&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">uninitialized_vars</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">uninitialized_vars</span><span class="p">:</span>
       <span class="k">return</span>
 
     <span class="k">with</span> <span class="n">sess</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
