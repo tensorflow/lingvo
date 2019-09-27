@@ -526,13 +526,12 @@
                                             <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_features</span><span class="p">])</span>
       <span class="n">points_padding</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">npoints</span><span class="p">]),</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">])</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">points_padding</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">points_xyz</span><span class="o">=</span><span class="n">points_xyz</span><span class="p">,</span>
-        <span class="n">points_feature</span><span class="o">=</span><span class="n">points_feature</span><span class="p">,</span>
-        <span class="n">points_padding</span><span class="o">=</span><span class="n">points_padding</span><span class="p">)</span></div></div>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">points_xyz</span><span class="o">=</span><span class="n">points_xyz</span><span class="p">,</span> <span class="n">points_feature</span><span class="o">=</span><span class="n">points_feature</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">points_padding</span> <span class="o">=</span> <span class="n">points_padding</span>
+    <span class="k">return</span> <span class="n">ret</span></div></div>
 
 
 <div class="viewcode-block" id="WaymoLabelExtractor"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLabelExtractor">[docs]</a><span class="k">class</span> <span class="nc">WaymoLabelExtractor</span><span class="p">(</span><span class="n">input_extractor</span><span class="o">.</span><span class="n">FieldsExtractor</span><span class="p">):</span>

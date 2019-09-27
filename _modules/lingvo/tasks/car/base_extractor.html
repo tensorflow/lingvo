@@ -182,10 +182,18 @@
   <span class="k">return</span> <span class="n">features</span></div>
 
 
+<div class="viewcode-block" id="_TextInput"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._TextInput">[docs]</a><span class="k">def</span> <span class="nf">_TextInput</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">):</span>
+  <span class="c1"># record is a Tensor containing a string line.</span>
+  <span class="k">if</span> <span class="n">feature_map</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;For PlainText datasets, FeatureMap() must be empty.&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;line&#39;</span><span class="p">:</span> <span class="n">record</span><span class="p">}</span></div>
+
+
 <span class="c1"># Supported raw record types and the corresponding parsing functions.</span>
 <span class="n">_PARSING_FUNCTIONS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;EXAMPLE&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">,</span>
     <span class="s1">&#39;SEQUENCE_EXAMPLE&#39;</span><span class="p">:</span> <span class="n">_ParseSequenceExample</span><span class="p">,</span>
+    <span class="s1">&#39;TEXT&#39;</span><span class="p">:</span> <span class="n">_TextInput</span><span class="p">,</span>
 <span class="p">}</span>
 
 
@@ -260,6 +268,9 @@
 
     <span class="n">dtypes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DType</span><span class="p">()</span>
     <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Shape</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">shapes</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dtypes</span><span class="o">.</span><span class="n">DebugString</span><span class="p">(),</span>
+                                          <span class="n">shapes</span><span class="o">.</span><span class="n">DebugString</span><span class="p">()))</span>
     <span class="n">dtypes</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">dtypes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()))</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;InpGen: &#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="_BaseExtractor.Shape"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -326,13 +337,43 @@
 
     <span class="c1"># Return the maximum bucket id so that any extractor can decide whether</span>
     <span class="c1"># to filter the entire example.</span>
+    <span class="n">max_bucket</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">buckets</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">preprocessor</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="p">,</span>
-                                 <span class="bp">self</span><span class="o">.</span><span class="n">preprocessors</span><span class="p">):</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-        <span class="n">extracted</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="o">.</span><span class="n">TransformFeatures</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">NullLike</span><span class="p">():</span>
+      <span class="sd">&quot;&quot;&quot;A function to return the same Tensor signature as Preprocess.</span>
 
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">buckets</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()),</span> <span class="n">extracted</span></div>
+<span class="sd">      This is necessary for the tf.cond() to avoid executing the preprocessor</span>
+<span class="sd">      for examples that are going to be dropped because it exceeds the bucket</span>
+<span class="sd">      limit; tf.cond() requires that the output of both branches yields the same</span>
+<span class="sd">      structure.</span>
+
+<span class="sd">      Returns:</span>
+<span class="sd">        A structure with the same Tensor dtype and shape as the output of</span>
+<span class="sd">        Preprocess.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Shape</span><span class="p">()</span>
+      <span class="n">rets</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+          <span class="k">for</span> <span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DType</span><span class="p">()</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+      <span class="p">]</span>
+      <span class="k">return</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">Preprocess</span><span class="p">(</span><span class="n">extracted</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">preprocessor</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="p">,</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">preprocessors</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+          <span class="n">extracted</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="o">.</span><span class="n">TransformFeatures</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">extracted</span>
+
+    <span class="c1"># If the extractor wants to filter the example, don&#39;t run the preprocessor.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Preprocessors can then assume that only examples that pass filtering will</span>
+    <span class="c1"># be executed.</span>
+    <span class="n">final_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">max_bucket</span><span class="p">,</span> <span class="n">BUCKET_UPPER_BOUND</span><span class="p">),</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">Preprocess</span><span class="p">(</span><span class="n">extracted</span><span class="p">),</span>
+        <span class="n">NullLike</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">max_bucket</span><span class="p">,</span> <span class="n">final_output</span></div>
 
 <div class="viewcode-block" id="_BaseExtractor.InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">batched_outputs</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSource</span><span class="p">()</span>
@@ -347,8 +388,6 @@
     <span class="n">shapes</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;input extractor shape: &#39;</span><span class="p">)</span>
     <span class="n">flatten_shapes</span> <span class="o">=</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
     <span class="n">dtypes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DType</span><span class="p">()</span>
-    <span class="k">assert</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">shapes</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-        <span class="n">dtypes</span><span class="o">.</span><span class="n">DebugString</span><span class="p">(),</span> <span class="n">shapes</span><span class="o">.</span><span class="n">DebugString</span><span class="p">())</span>
     <span class="n">flatten_dtypes</span> <span class="o">=</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">flatten_shapes</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
         <span class="nb">len</span><span class="p">(</span><span class="n">flatten_shapes</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">))</span>

@@ -194,8 +194,9 @@
 
 <span class="sd">  A descendant of this class will implement three functions:</span>
 
-<span class="sd">    1) FeatureMap(): returning a dictionary of field names</span>
-<span class="sd">       to field types, e.g., &#39;images&#39; to tf.VarLenFeature(tf.string).</span>
+<span class="sd">    1) FeatureMap(): returning a dictionary of field names to field types, e.g.,</span>
+<span class="sd">       &#39;images&#39; to tf.VarLenFeature(tf.string).  For PlainTextIterator</span>
+<span class="sd">       datasets, FeatureMap() should be empty.</span>
 
 <span class="sd">    2) _Extract(features): Given a &#39;features&#39; dictionary containing the result</span>
 <span class="sd">       from calling tf.parse_example or tf.parse_sequence_example on all</span>
@@ -299,7 +300,8 @@
 
 <span class="sd">    points_padding: [max_num_points]: Padding for points.  0 means the</span>
 <span class="sd">      corresponding point is the original, and 1 means there is no point</span>
-<span class="sd">      (xyz or feature) present.</span>
+<span class="sd">      (xyz or feature) present.  Only present if max_num_points is not</span>
+<span class="sd">      None.</span>
 
 <span class="sd">  &quot;&quot;&quot;</span>
 
@@ -312,16 +314,18 @@
 
 <div class="viewcode-block" id="LaserExtractor.Shape"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.LaserExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">points_xyz</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
-        <span class="n">points_feature</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_features</span><span class="p">]),</span>
-        <span class="n">points_padding</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">]))</span></div>
+        <span class="n">points_feature</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_features</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">points_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_num_points</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
 
 <div class="viewcode-block" id="LaserExtractor.DType"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.LaserExtractor.DType">[docs]</a>  <span class="k">def</span> <span class="nf">DType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">points_xyz</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-        <span class="n">points_feature</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-        <span class="n">points_padding</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span></div></div>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">points_xyz</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">points_feature</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">max_num_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">points_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="k">return</span> <span class="n">ret</span></div></div>
 </pre></div>
 
            </div>
