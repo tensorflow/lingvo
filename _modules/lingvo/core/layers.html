@@ -1000,6 +1000,9 @@
         <span class="s1">&#39;Defaults to None which means that it will be disabled by default &#39;</span>
         <span class="s1">&#39;and enabled when quantized training is enabled. Not compatible with &#39;</span>
         <span class="s1">&#39;affine_last=True&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bn_params&#39;</span><span class="p">,</span>
+             <span class="n">BatchNormLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">decay</span><span class="o">=</span><span class="mf">0.999</span><span class="p">),</span>
+             <span class="s1">&#39;Default params for batch norm layer.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1058,10 +1061,10 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
-      <span class="n">bn_params</span> <span class="o">=</span> <span class="n">BatchNormLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">affine_last</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span>
-          <span class="n">decay</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span>
-          <span class="n">name</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="n">bn_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bn_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">bn_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+      <span class="n">bn_params</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">affine_last</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span>
+
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">bn_params</span><span class="p">)</span>
     <span class="c1"># TODO(yonghui): implement the variational noise logic.</span>
 
