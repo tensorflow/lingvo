@@ -1652,8 +1652,7 @@
 <span class="sd">      atten_idx: If not None, then apply a different attention projection for</span>
 <span class="sd">        different samples in a batch, each of which may come from different</span>
 <span class="sd">        tasks. This is usually used in multi-task setting. A tensor of shape</span>
-<span class="sd">        [source_batch], which will automatically be duplicated n times to match</span>
-<span class="sd">        target_batch size.</span>
+<span class="sd">        [target_batch].</span>
 <span class="sd">    Note: concated_source_vecs are the vectors that are used to compute the</span>
 <span class="sd">      attention score between the query_vec and each concated_source_vec. The</span>
 <span class="sd">      concated_source_contexts are the vectors that compose the result. The</span>
@@ -1737,8 +1736,6 @@
             <span class="s1">&#39;Out of performance consideration currently we only consider cases &#39;</span>
             <span class="s1">&#39;where num_post_proj is relatively small (eg. &lt;10).&#39;</span><span class="p">)</span>
         <span class="n">bs_range</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)]</span>
-        <span class="n">num_blocks</span> <span class="o">=</span> <span class="n">batch_size</span> <span class="o">//</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">atten_idx</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">atten_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">atten_idx</span><span class="p">,</span> <span class="p">[</span><span class="n">num_blocks</span><span class="p">])</span>
         <span class="n">select</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bs_range</span><span class="p">,</span> <span class="p">[</span><span class="n">atten_idx</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
         <span class="c1"># =&gt; [batch, dim, num_langs]</span>
         <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ab,bcd-&gt;acd&#39;</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj</span><span class="p">)</span>

@@ -701,6 +701,14 @@
         <span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, encoder and all layers support &#39;</span>
         <span class="s1">&#39;multiple examples in a single sequence.&#39;</span><span class="p">)</span>
 
+    <span class="c1"># MASS pretraining related (https://github.com/microsoft/MASS).</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;apply_source_mask&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, apply source mask &#39;</span>
+        <span class="s1">&#39;(corresponding to those masked words) to encoder states.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;source_mask_id&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Id for masked words in source inputs. &#39;</span>
+        <span class="s1">&#39;Only needed when p.apply_source_mask is True.&#39;</span><span class="p">)</span>
+
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">=</span> <span class="mi">6</span>
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="mi">8</span>
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="mi">8192</span>
@@ -753,6 +761,8 @@
 
 <span class="sd">        - ids: The inputs tensor. It is expected to be of shape [batch, time].</span>
 <span class="sd">        - paddings: The paddings tensor. Expected shape [batch, time].</span>
+<span class="sd">        - task_ids: If p.task_emb is provided, must contain per-token task</span>
+<span class="sd">            ids of shape [batch, time].</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A NestedMap containing</span>
@@ -830,6 +840,17 @@
 
       <span class="c1"># [time, batch, dim]</span>
       <span class="n">transformer_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">input_embs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_source_mask</span><span class="p">:</span>
+      <span class="c1"># Augment padding for masked source word positions.</span>
+      <span class="n">dtype</span> <span class="o">=</span> <span class="n">paddings</span><span class="o">.</span><span class="n">dtype</span>
+      <span class="n">source_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_mask_id</span><span class="p">),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="c1"># Make sure padding is between 0 and 1.</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">paddings</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_mask</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span>
+                                  <span class="mf">1.0</span><span class="p">)</span>
 
     <span class="n">encoded</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">segment_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">transformer_stack</span><span class="p">,</span> <span class="n">transformer_input</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">src_segment_id</span><span class="p">)</span>

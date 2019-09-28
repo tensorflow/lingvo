@@ -1016,6 +1016,11 @@
     <span class="c1"># embedding fields.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;task_emb&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Task embedding layer params.&#39;</span><span class="p">)</span>
 
+    <span class="c1"># MASS pretraining related (https://github.com/microsoft/MASS)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_lang_dependent_atten&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, attention between &#39;</span>
+        <span class="s1">&#39;encoder and decoder is language dependent.&#39;</span><span class="p">)</span>
+
     <span class="c1"># Default config for the token embedding.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">32000</span>
     <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
@@ -1056,6 +1061,9 @@
       <span class="n">proj_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
       <span class="n">proj_p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb_proj&#39;</span><span class="p">,</span> <span class="n">proj_p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_lang_dependent_atten</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">num_aux_atten_post_proj</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">vocab_size</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;token_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="p">)</span>
@@ -1240,7 +1248,11 @@
       <span class="c1"># [time, batch, model_dim]</span>
       <span class="n">input_embs</span> <span class="o">=</span> <span class="n">token_embs</span> <span class="o">+</span> <span class="n">posit_embs</span>
 
+      <span class="n">atten_idx</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_lang_dependent_atten</span><span class="p">:</span>
+          <span class="n">atten_idx</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">task_ids</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+          <span class="n">atten_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ExpandToNumHyps</span><span class="p">(</span><span class="n">atten_idx</span><span class="p">,</span> <span class="n">target_time</span><span class="p">)</span>
         <span class="n">input_embs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">task_emb</span><span class="p">,</span> <span class="n">targets</span><span class="o">.</span><span class="n">task_ids</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">:</span>
@@ -1267,7 +1279,8 @@
             <span class="n">source_encs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
             <span class="n">source_paddings</span><span class="p">,</span>
             <span class="n">source_segment_id</span><span class="o">=</span><span class="n">target_segment_id</span><span class="p">,</span>
-            <span class="n">aux_segment_id</span><span class="o">=</span><span class="n">src_segment_id</span><span class="p">)</span>
+            <span class="n">aux_segment_id</span><span class="o">=</span><span class="n">src_segment_id</span><span class="p">,</span>
+            <span class="n">atten_idx</span><span class="o">=</span><span class="n">atten_idx</span><span class="p">)</span>
         <span class="n">layer_in</span> <span class="o">=</span> <span class="n">layer_out</span>
         <span class="n">pl_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
@@ -1360,11 +1373,13 @@
           <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">new_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
 
+      <span class="n">atten_idx</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
-        <span class="n">input_embs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">.</span><span class="n">task_emb</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_ExpandToNumHyps</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="o">.</span><span class="n">target_task_ids</span><span class="p">,</span>
-                                  <span class="n">num_hyps_per_beam</span><span class="p">))</span>
+        <span class="n">task_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ExpandToNumHyps</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="o">.</span><span class="n">target_task_ids</span><span class="p">,</span>
+                                         <span class="n">num_hyps_per_beam</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_lang_dependent_atten</span><span class="p">:</span>
+          <span class="n">atten_idx</span> <span class="o">=</span> <span class="n">task_ids</span>
+        <span class="n">input_embs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">task_emb</span><span class="p">,</span> <span class="n">task_ids</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">:</span>
         <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb_proj</span><span class="p">,</span> <span class="n">input_embs</span><span class="p">)</span>
@@ -1386,9 +1401,13 @@
         <span class="c1"># [time, batch, model_dim]</span>
         <span class="n">layer_prefix_states</span> <span class="o">=</span> <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%i</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span>
         <span class="n">layer_out</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">updated_prefix_states</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
-            <span class="n">layer_theta</span><span class="p">,</span> <span class="n">layer_in</span><span class="p">,</span> <span class="n">layer_prefix_states</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">layer_theta</span><span class="p">,</span>
+            <span class="n">layer_in</span><span class="p">,</span>
+            <span class="n">layer_prefix_states</span><span class="p">,</span>
+            <span class="n">source_encs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
             <span class="n">source_paddings</span><span class="p">,</span>
-            <span class="n">t</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;tpu_beam_search&#39;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">t</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;tpu_beam_search&#39;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">atten_idx</span><span class="o">=</span><span class="n">atten_idx</span><span class="p">)</span>
         <span class="n">out_prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%i</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">updated_prefix_states</span>
         <span class="n">layer_in</span> <span class="o">=</span> <span class="n">layer_out</span>
 
