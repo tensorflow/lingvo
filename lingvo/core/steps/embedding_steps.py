@@ -46,31 +46,6 @@ class EmbeddingStep(step.Step):
     with tf.variable_scope(p.name):
       self.CreateChild('emb', p.emb)
 
-  def PrepareExternalInputs(self, theta, external_inputs):
-    """External inputs are unused for EmbeddedStep.
-
-    Args:
-      theta: unused.
-      external_inputs: unused.
-
-    Returns:
-      an empty NestedMap.
-    """
-    return py_utils.NestedMap()
-
-  def ZeroState(self, theta, external_inputs, batch_size):
-    """EmbeddingStep has no state.
-
-    Args:
-      theta: unused.
-      external_inputs: unused.
-      batch_size: unused.
-
-    Returns:
-      an empty NestedMap.
-    """
-    return py_utils.NestedMap()
-
   def FProp(self, theta, external_inputs, step_inputs, padding, state0):
     """Looks up a list of embeddings from an EmbeddingLayer.
 

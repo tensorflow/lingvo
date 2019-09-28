@@ -1409,6 +1409,7 @@ py_library(
         ":builder_layers",
         ":py_utils",
         "//lingvo:compat",
+        # Implicit six dependency.
     ],
 )
 

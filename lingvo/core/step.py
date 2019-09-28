@@ -39,6 +39,7 @@ from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import builder_layers
 from lingvo.core import py_utils
+import six
 
 
 class Step(base_layer.BaseLayer):
@@ -49,7 +50,23 @@ class Step(base_layer.BaseLayer):
 
   def PrepareExternalInputs(self, theta, external_inputs):
     """Returns the prepared external inputs, e.g., packed_src for attention."""
-    raise NotImplementedError(type(self))
+    if not external_inputs:
+      external_inputs = py_utils.NestedMap()
+    packed = external_inputs.DeepCopy()
+    for name, child in six.iteritems(self.children):
+      child_external_inputs = external_inputs.get(name, py_utils.NestedMap())
+      if isinstance(child, (tuple, list)):
+        output = []
+        for i, sub in enumerate(child):
+          if isinstance(sub, Step):
+            output.append(
+                sub.PrepareExternalInputs(theta[name][i],
+                                          child_external_inputs))
+        packed[name] = type(child)(output)
+      elif isinstance(child, Step):
+        packed[name] = child.PrepareExternalInputs(theta[name],
+                                                   child_external_inputs)
+    return packed
 
   def ZeroState(self, theta, external_inputs, batch_size):
     """Returns the initial state given external inputs and batch size.
@@ -64,7 +81,20 @@ class Step(base_layer.BaseLayer):
       A `.NestedMap` representing the initial state, which can be passed to
       FProp() for processing the first time step.
     """
-    raise NotImplementedError(type(self))
+    state0 = py_utils.NestedMap()
+    for name, child in six.iteritems(self.children):
+      if isinstance(child, (tuple, list)):
+        output = []
+        for i, sub in enumerate(child):
+          if isinstance(sub, Step):
+            output.append(
+                sub.ZeroState(theta[name][i], external_inputs[name][i],
+                              batch_size))
+        state0[name] = type(child)(output)
+      elif isinstance(child, Step):
+        state0[name] = child.ZeroState(theta[name], external_inputs[name],
+                                       batch_size)
+    return state0
 
   def FProp(self, theta, external_inputs, step_inputs, padding, state0):
     """Forward function.
@@ -110,31 +140,6 @@ class StatelessLayerStep(Step):
     p = params
     with tf.variable_scope(p.name):
       self.CreateChild('layer', p.layer)
-
-  def PrepareExternalInputs(self, theta, external_inputs):
-    """Stateless layers do not use exernal inputs.
-
-    Args:
-      theta: unused.
-      external_inputs: unused.
-
-    Returns:
-      An empty NestedMap.
-    """
-    return py_utils.NestedMap()
-
-  def ZeroState(self, theta, external_inputs, batch_size):
-    """Stateless layers do not have state.
-
-    Args:
-      theta: unused.
-      external_inputs: unused.
-      batch_size: unused.
-
-    Returns:
-      An empty NestedMap.
-    """
-    return py_utils.NestedMap()
 
   def FProp(self, theta, external_inputs, step_inputs, padding, state0):
     """Perform inference on a stateless layer.
