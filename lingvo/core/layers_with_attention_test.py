@@ -634,7 +634,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
       (source_vecs, source_padding, aux_vecs, aux_paddings,
        _) = self._testTransformerAttentionLayerInputs(depth=depth)
 
-      atten_idx = tf.constant([0, 1, 1, 0, 1], dtype=tf.int32)
+      # Duplicate atten_idx n=2 times.
+      atten_idx = tf.constant([0, 1, 1, 0, 1] * 2, dtype=tf.int32)
       h, probs = transformer.FPropDefaultTheta(
           source_vecs,
           source_padding,

@@ -1083,7 +1083,8 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten = params.Instantiate()
       packed_src = atten.InitForSourcePacked(atten.theta, source_vecs,
                                              source_contexts, source_padding)
-      atten_idx = tf.constant([0, 1, 1], dtype=tf.int32)
+      # Duplicate atten_idx n=2 times.
+      atten_idx = tf.constant([0, 1, 1] * 2, dtype=tf.int32)
       tf.global_variables_initializer().run()
       atten_vec, atten_prob, _ = atten.ComputeContextVectorWithSource(
           atten.theta, packed_src, query_vec, atten_idx=atten_idx)

@@ -585,6 +585,19 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       actual_loss = loss.eval()
       CompareToGoldenSingleFloat(self, 15.657612, actual_loss)
 
+  def testDecoderFPropWithLangDepAtten(self, dtype=tf.float32):
+    with self.session(use_gpu=True):
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(dtype=dtype, use_task_emb=True)
+      # 4 tasks, 2 languages.
+      p.use_lang_dependent_atten = True
+      dec = decoder.TransformerDecoder(p)
+      encoder_outputs, targets, _ = self._Inputs(dtype=dtype, has_task_ids=True)
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
+      tf.global_variables_initializer().run()
+      actual_loss = loss.eval()
+      CompareToGoldenSingleFloat(self, 15.732864, actual_loss)
+
   def _testExtendStep(self, sess, dec, encoder_outputs, tgts, num_hyps):
     p = self._DecoderParams()
 

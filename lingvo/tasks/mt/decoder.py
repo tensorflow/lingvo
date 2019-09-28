@@ -871,6 +871,11 @@ class TransformerDecoder(MTBaseDecoder):
     # embedding fields.
     p.Define('task_emb', None, 'Task embedding layer params.')
 
+    # MASS pretraining related (https://github.com/microsoft/MASS)
+    p.Define(
+        'use_lang_dependent_atten', False, 'If True, attention between '
+        'encoder and decoder is language dependent.')
+
     # Default config for the token embedding.
     p.token_emb.vocab_size = 32000
     p.token_emb.embedding_dim = p.model_dim
@@ -911,6 +916,9 @@ class TransformerDecoder(MTBaseDecoder):
       proj_p.input_dim = p.token_emb.embedding_dim
       proj_p.output_dim = p.model_dim
       self.CreateChild('emb_proj', proj_p)
+
+    if p.use_lang_dependent_atten and p.task_emb:
+      p.trans_tpl.num_aux_atten_post_proj = p.task_emb.vocab_size
 
     with tf.variable_scope(p.name):
       self.CreateChild('token_emb', p.token_emb)
@@ -1095,7 +1103,11 @@ class TransformerDecoder(MTBaseDecoder):
       # [time, batch, model_dim]
       input_embs = token_embs + posit_embs
 
+      atten_idx = None
       if p.task_emb:
+        if p.use_lang_dependent_atten:
+          atten_idx = targets.task_ids[:, 0]
+          atten_idx = self._ExpandToNumHyps(atten_idx, target_time)
         input_embs += self.task_emb.EmbLookup(theta.task_emb, targets.task_ids)
 
       if p.model_dim != p.token_emb.embedding_dim:
@@ -1122,7 +1134,8 @@ class TransformerDecoder(MTBaseDecoder):
             source_encs[i],
             source_paddings,
             source_segment_id=target_segment_id,
-            aux_segment_id=src_segment_id)
+            aux_segment_id=src_segment_id,
+            atten_idx=atten_idx)
         layer_in = layer_out
         pl_probs = tf.transpose(probs, [1, 0, 2])
         if p.packed_input:
@@ -1215,11 +1228,13 @@ class TransformerDecoder(MTBaseDecoder):
           py_utils.GetShape(new_ids)[0],
           py_utils.GetShape(source_paddings)[1])
 
+      atten_idx = None
       if p.task_emb:
-        input_embs += self.task_emb.EmbLookup(
-            theta.task_emb,
-            self._ExpandToNumHyps(encoder_outputs.target_task_ids,
-                                  num_hyps_per_beam))
+        task_ids = self._ExpandToNumHyps(encoder_outputs.target_task_ids,
+                                         num_hyps_per_beam)
+        if p.use_lang_dependent_atten:
+          atten_idx = task_ids
+        input_embs += self.task_emb.EmbLookup(theta.task_emb, task_ids)
 
       if p.model_dim != p.token_emb.embedding_dim:
         input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)
@@ -1241,9 +1256,13 @@ class TransformerDecoder(MTBaseDecoder):
         # [time, batch, model_dim]
         layer_prefix_states = prefix_states['layer_%i' % i]
         layer_out, probs, updated_prefix_states = layer.ExtendStep(
-            layer_theta, layer_in, layer_prefix_states, source_encs[i],
+            layer_theta,
+            layer_in,
+            layer_prefix_states,
+            source_encs[i],
             source_paddings,
-            t if p.beam_search.name == 'tpu_beam_search' else None)
+            t if p.beam_search.name == 'tpu_beam_search' else None,
+            atten_idx=atten_idx)
         out_prefix_states['layer_%i' % i] = updated_prefix_states
         layer_in = layer_out
 

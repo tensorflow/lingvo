@@ -1507,8 +1507,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       atten_idx: If not None, then apply a different attention projection for
         different samples in a batch, each of which may come from different
         tasks. This is usually used in multi-task setting. A tensor of shape
-        [source_batch], which will automatically be duplicated n times to match
-        target_batch size.
+        [target_batch].
     Note: concated_source_vecs are the vectors that are used to compute the
       attention score between the query_vec and each concated_source_vec. The
       concated_source_contexts are the vectors that compose the result. The
@@ -1592,8 +1591,6 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             'Out of performance consideration currently we only consider cases '
             'where num_post_proj is relatively small (eg. <10).')
         bs_range = [tf.range(batch_size)]
-        num_blocks = batch_size // tf.shape(atten_idx)[0]
-        atten_idx = tf.tile(atten_idx, [num_blocks])
         select = tf.transpose(tf.concat([bs_range, [atten_idx]], axis=0))
         # => [batch, dim, num_langs]
         ctx_vec = tf.einsum('ab,bcd->acd', ctx_vec, theta.ctx_post_proj)

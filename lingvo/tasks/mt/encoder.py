@@ -556,6 +556,14 @@ class TransformerEncoder(base_layer.BaseLayer):
         'packed_input', False, 'If True, encoder and all layers support '
         'multiple examples in a single sequence.')
 
+    # MASS pretraining related (https://github.com/microsoft/MASS).
+    p.Define(
+        'apply_source_mask', False, 'If True, apply source mask '
+        '(corresponding to those masked words) to encoder states.')
+    p.Define(
+        'source_mask_id', 0, 'Id for masked words in source inputs. '
+        'Only needed when p.apply_source_mask is True.')
+
     p.transformer_stack.num_transformer_layers = 6
     p.transformer_stack.transformer_tpl.tr_atten_tpl.num_attention_heads = 8
     p.transformer_stack.transformer_tpl.tr_fflayer_tpl.hidden_dim = 8192
@@ -608,6 +616,8 @@ class TransformerEncoder(base_layer.BaseLayer):
 
         - ids: The inputs tensor. It is expected to be of shape [batch, time].
         - paddings: The paddings tensor. Expected shape [batch, time].
+        - task_ids: If p.task_emb is provided, must contain per-token task
+            ids of shape [batch, time].
 
     Returns:
       A NestedMap containing
@@ -685,6 +695,17 @@ class TransformerEncoder(base_layer.BaseLayer):
 
       # [time, batch, dim]
       transformer_input = tf.transpose(input_embs, [1, 0, 2])
+
+    if not p.is_eval and p.apply_source_mask:
+      # Augment padding for masked source word positions.
+      dtype = paddings.dtype
+      source_mask = tf.where(
+          tf.equal(input_ids, p.source_mask_id),
+          tf.ones_like(input_ids, dtype=dtype),
+          tf.zeros_like(input_ids, dtype=dtype))
+      # Make sure padding is between 0 and 1.
+      paddings = tf.clip_by_value(paddings + tf.transpose(source_mask), 0.0,
+                                  1.0)
 
     encoded, padding, segment_id = self.transformer_stack.FProp(
         theta.transformer_stack, transformer_input, paddings, src_segment_id)
