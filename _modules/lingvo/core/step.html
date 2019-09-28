@@ -184,6 +184,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">builder_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">import</span> <span class="nn">six</span>
 
 
 <div class="viewcode-block" id="Step"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.Step">[docs]</a><span class="k">class</span> <span class="nc">Step</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -194,7 +195,23 @@
 
 <div class="viewcode-block" id="Step.PrepareExternalInputs"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.Step.PrepareExternalInputs">[docs]</a>  <span class="k">def</span> <span class="nf">PrepareExternalInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the prepared external inputs, e.g., packed_src for attention.&quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">external_inputs</span><span class="p">:</span>
+      <span class="n">external_inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">packed</span> <span class="o">=</span> <span class="n">external_inputs</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">):</span>
+      <span class="n">child_external_inputs</span> <span class="o">=</span> <span class="n">external_inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">())</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sub</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">child</span><span class="p">):</span>
+          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">Step</span><span class="p">):</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">sub</span><span class="o">.</span><span class="n">PrepareExternalInputs</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                                          <span class="n">child_external_inputs</span><span class="p">))</span>
+        <span class="n">packed</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">child</span><span class="p">)(</span><span class="n">output</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">Step</span><span class="p">):</span>
+        <span class="n">packed</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">PrepareExternalInputs</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">],</span>
+                                                   <span class="n">child_external_inputs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">packed</span></div>
 
 <div class="viewcode-block" id="Step.ZeroState"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.Step.ZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the initial state given external inputs and batch size.</span>
@@ -209,7 +226,20 @@
 <span class="sd">      A `.NestedMap` representing the initial state, which can be passed to</span>
 <span class="sd">      FProp() for processing the first time step.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
+    <span class="n">state0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">):</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sub</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">child</span><span class="p">):</span>
+          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">Step</span><span class="p">):</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">sub</span><span class="o">.</span><span class="n">ZeroState</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="n">external_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                              <span class="n">batch_size</span><span class="p">))</span>
+        <span class="n">state0</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">child</span><span class="p">)(</span><span class="n">output</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">Step</span><span class="p">):</span>
+        <span class="n">state0</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">ZeroState</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">external_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span>
+                                       <span class="n">batch_size</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state0</span></div>
 
 <div class="viewcode-block" id="Step.FProp"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.Step.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Forward function.</span>
@@ -255,31 +285,6 @@
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>
-
-<div class="viewcode-block" id="StatelessLayerStep.PrepareExternalInputs"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.StatelessLayerStep.PrepareExternalInputs">[docs]</a>  <span class="k">def</span> <span class="nf">PrepareExternalInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Stateless layers do not use exernal inputs.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: unused.</span>
-<span class="sd">      external_inputs: unused.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      An empty NestedMap.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span></div>
-
-<div class="viewcode-block" id="StatelessLayerStep.ZeroState"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.StatelessLayerStep.ZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Stateless layers do not have state.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: unused.</span>
-<span class="sd">      external_inputs: unused.</span>
-<span class="sd">      batch_size: unused.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      An empty NestedMap.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="StatelessLayerStep.FProp"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.StatelessLayerStep.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Perform inference on a stateless layer.</span>
