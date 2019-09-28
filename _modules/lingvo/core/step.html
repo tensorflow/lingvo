@@ -623,6 +623,98 @@
     <span class="n">template</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_signature</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
     <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">graph_tensors</span><span class="o">.</span><span class="n">GetTensor</span><span class="p">)</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">output_tensors</span><span class="p">,</span> <span class="n">state1</span></div></div>
+
+
+<div class="viewcode-block" id="IteratorStep"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.IteratorStep">[docs]</a><span class="k">class</span> <span class="nc">IteratorStep</span><span class="p">(</span><span class="n">Step</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;An iterator over the time dimension of some tensors.</span>
+
+<span class="sd">  It&#39;s common to have a tensor of shape [batch, time, ...] or</span>
+<span class="sd">  [time, batch, ...]. This object will step through the time dimension,</span>
+<span class="sd">  producing tensors of shape [batch, ...] in succession.</span>
+
+<span class="sd">  The input tensors are passed to PrepareExternalInputs. The step_inputs</span>
+<span class="sd">  argument of FProp is unused.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="IteratorStep.Params"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.IteratorStep.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">IteratorStep</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;axis&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The time dimension of the tensors.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">IteratorStep</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="IteratorStep.PrepareExternalInputs"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.IteratorStep.PrepareExternalInputs">[docs]</a>  <span class="k">def</span> <span class="nf">PrepareExternalInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Prepares the input for iteration.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: unused.</span>
+<span class="sd">      external_inputs: A NestedMap containing tensors. The time axis of each</span>
+<span class="sd">        tensor should be params.axis.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A prepared NestedMap (current the same as the input).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">external_inputs</span></div>
+
+<div class="viewcode-block" id="IteratorStep.ZeroState"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.IteratorStep.ZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the initial iterator state.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: unused.</span>
+<span class="sd">      prepared_inputs: Output from a call to PrepareExternalInputs.</span>
+<span class="sd">      batch_size: The number of items in the batch that FProp will process.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      An initial state NestedMap.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="IteratorStep.FProp"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.IteratorStep.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a A single inference step for this step graph.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: unused.</span>
+<span class="sd">      prepared_inputs: Output from a call to PrepareExternalInputs.</span>
+<span class="sd">      step_inputs: unused.</span>
+<span class="sd">      padding: unused.</span>
+<span class="sd">      state0: A NestedMap of state variables produced by either ZeroState or a</span>
+<span class="sd">        previous invocation of this FProp step.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      (output, state1), both of which are NestedMaps.</span>
+<span class="sd">      output is implementation-dependent and is defined by the output_signature</span>
+<span class="sd">      parameter.</span>
+<span class="sd">      state1 is a NestedMap where the keys are names of sub-steps and the values</span>
+<span class="sd">      are state outputs from their FProp methods.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">theta</span>
+    <span class="k">del</span> <span class="n">step_inputs</span>
+    <span class="k">del</span> <span class="n">padding</span>
+
+    <span class="k">def</span> <span class="nf">_Slice</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Return a slice of this tensor at time=state0.t.&quot;&quot;&quot;</span>
+      <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
+      <span class="c1"># All zeros except for t in the time dimension.</span>
+      <span class="c1"># e.g. if params.axis=1, begin is [0, t, 0, 0, 0, ...]</span>
+      <span class="n">begin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span> <span class="n">on_value</span><span class="o">=</span><span class="n">state0</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
+      <span class="c1"># Same as shape, but with a 1 in the time dimension.</span>
+      <span class="c1"># e.g. if params.axis=1, shape is [shape[0], 1, shape[2], shape[3], ...]</span>
+      <span class="n">size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+          <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">axis</span><span class="p">],</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">axis</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+      <span class="p">],</span>
+                       <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="c1"># Make a slice where the time dimension is fixed at state0.t.</span>
+      <span class="n">time_slice</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">begin</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+      <span class="c1"># Remove the time dimension.</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">time_slice</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">axis</span><span class="p">)</span>
+
+    <span class="n">output</span> <span class="o">=</span> <span class="n">prepared_inputs</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">_Slice</span><span class="p">)</span>
+    <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">state0</span><span class="o">.</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">state1</span></div></div>
 </pre></div>
 
            </div>
