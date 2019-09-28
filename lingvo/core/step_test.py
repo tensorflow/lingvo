@@ -175,6 +175,34 @@ class StepTest(test_utils.TestCase):
                 ['text0in', 'text1in:ztext0', 'text2in:ztext0:ztext1in:ztext0']
         }, state1)
 
+  def testIteratorStep(self):
+    with self.session() as sess:
+      p = step.IteratorStep.Params()
+      p.name = 'iterator'
+      iterator = p.Instantiate()
+
+      prepared = iterator.PrepareExternalInputs(
+          iterator.theta,
+          py_utils.NestedMap(
+              a=tf.constant(
+                  [[[1, 2], [3, 4], [5, 6]], [[7, 8], [9, 1], [2, 3]]],
+                  dtype=tf.int32)))
+      state = iterator.ZeroState(iterator.theta, prepared, 2)
+
+      outputs = []
+      for _ in range(3):
+        out, state = iterator.FProp(iterator.theta, prepared,
+                                    py_utils.NestedMap(), None, state)
+        outputs.append(out)
+      outputs = sess.run(outputs)
+      self.assertAllClose([{
+          'a': [[1, 2], [7, 8]]
+      }, {
+          'a': [[3, 4], [9, 1]]
+      }, {
+          'a': [[5, 6], [2, 3]]
+      }], outputs)
+
 
 if __name__ == '__main__':
   tf.test.main()

@@ -478,3 +478,95 @@ class GraphStep(Step):
     template = py_utils.NestedMap(inputs=self.output_signature.inputs)
     output_tensors = template.Transform(graph_tensors.GetTensor).inputs[0]
     return output_tensors, state1
+
+
+class IteratorStep(Step):
+  """An iterator over the time dimension of some tensors.
+
+  It's common to have a tensor of shape [batch, time, ...] or
+  [time, batch, ...]. This object will step through the time dimension,
+  producing tensors of shape [batch, ...] in succession.
+
+  The input tensors are passed to PrepareExternalInputs. The step_inputs
+  argument of FProp is unused.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(IteratorStep, cls).Params()
+    p.Define('axis', 1, 'The time dimension of the tensors.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(IteratorStep, self).__init__(params)
+
+  def PrepareExternalInputs(self, theta, external_inputs):
+    """Prepares the input for iteration.
+
+    Args:
+      theta: unused.
+      external_inputs: A NestedMap containing tensors. The time axis of each
+        tensor should be params.axis.
+
+    Returns:
+      A prepared NestedMap (current the same as the input).
+    """
+    return external_inputs
+
+  def ZeroState(self, theta, prepared_inputs, batch_size):
+    """Returns the initial iterator state.
+
+    Args:
+      theta: unused.
+      prepared_inputs: Output from a call to PrepareExternalInputs.
+      batch_size: The number of items in the batch that FProp will process.
+
+    Returns:
+      An initial state NestedMap.
+    """
+    return py_utils.NestedMap(t=tf.constant(0, dtype=tf.int32))
+
+  def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
+    """Returns a A single inference step for this step graph.
+
+    Args:
+      theta: unused.
+      prepared_inputs: Output from a call to PrepareExternalInputs.
+      step_inputs: unused.
+      padding: unused.
+      state0: A NestedMap of state variables produced by either ZeroState or a
+        previous invocation of this FProp step.
+
+    Returns:
+      (output, state1), both of which are NestedMaps.
+      output is implementation-dependent and is defined by the output_signature
+      parameter.
+      state1 is a NestedMap where the keys are names of sub-steps and the values
+      are state outputs from their FProp methods.
+    """
+    del theta
+    del step_inputs
+    del padding
+
+    def _Slice(tensor):
+      """Return a slice of this tensor at time=state0.t."""
+      shape = py_utils.GetShape(tensor)
+      # All zeros except for t in the time dimension.
+      # e.g. if params.axis=1, begin is [0, t, 0, 0, 0, ...]
+      begin = tf.one_hot(self.params.axis, tf.rank(tensor), on_value=state0.t)
+      # Same as shape, but with a 1 in the time dimension.
+      # e.g. if params.axis=1, shape is [shape[0], 1, shape[2], shape[3], ...]
+      size = tf.concat([
+          shape[0:self.params.axis],
+          tf.constant([1], dtype=tf.int32), shape[self.params.axis + 1:]
+      ],
+                       axis=0)
+      # Make a slice where the time dimension is fixed at state0.t.
+      time_slice = tf.slice(tensor, begin, size)
+      # Remove the time dimension.
+      return tf.squeeze(time_slice, axis=self.params.axis)
+
+    output = prepared_inputs.Transform(_Slice)
+    state1 = py_utils.NestedMap(t=state0.t + 1)
+    return output, state1
