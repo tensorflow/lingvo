@@ -371,6 +371,8 @@ class AsrModel(base_model.BaseTask):
       ref_ids = GetRefIds(target_labels[i], target_paddings[i])
       hyp_index = i * p.decoder.beam_search.num_hyps_per_beam
       top_hyp_ids = topk_ids[hyp_index][:topk_lens[hyp_index]]
+      tf.logging.info('  ref_ids: %s', ref_ids)
+      tf.logging.info('  top_hyp_ids: %s', top_hyp_ids)
       total_ref_tokens += len(ref_ids)
       _, _, _, token_errs = decoder_utils.EditDistanceInIds(
           ref_ids, top_hyp_ids)
