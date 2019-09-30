@@ -1421,6 +1421,14 @@ class LengthsFromPaddingsTest(test_utils.TestCase):
           tf.convert_to_tensor(paddings)).eval()
       self.assertAllEqual([0, 0, 0, 0], lengths)
 
+  def testBFloat16(self):
+    with self.session():
+      actual_lengths = [1, 255, 256, 1024, 2048]
+      paddings = 1.0 - tf.sequence_mask(
+          actual_lengths, maxlen=actual_lengths[-1], dtype=tf.bfloat16)
+      lengths = py_utils.LengthsFromPaddings(paddings).eval()
+      self.assertAllEqual(actual_lengths, lengths)
+
 
 class TrimTrailingPaddingsTest(test_utils.TestCase):
 
