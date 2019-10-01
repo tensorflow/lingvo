@@ -95,7 +95,7 @@ class RecordBatcher {
 
   // Returns the a training batch in 'batch' and the batch comes out
   // from 'bucket_id'-th bucket.
-  void GetNext(int64* bucket_id, TensorVec* batch);
+  Status GetNext(int64* bucket_id, TensorVec* batch);
 
  private:
   typedef RecordBatcher ME;
@@ -104,6 +104,7 @@ class RecordBatcher {
     TensorVec sample;
   };
   typedef std::vector<Processed> Batch;
+
   // FlushList is a list of bucket id and one batch for that bucket.
   typedef std::vector<std::pair<int64, Batch>> FlushList;
 
@@ -113,17 +114,26 @@ class RecordBatcher {
   RecordProcessor* processor_ = nullptr;
   thread::ThreadPool* processor_thread_ = nullptr;
   thread::ThreadPool* merger_thread_ = nullptr;
-
   Mutex mu_;
   int64 curr_bucket_ GUARDED_BY(mu_) = -1;
   TensorVec curr_ GUARDED_BY(mu_);
+
+  // True if either the yielder hits EOF or the destructor triggers.
   bool stop_ GUARDED_BY(mu_) = false;
+
+  // Status is not OK when a yielder hits an EOF.
+  Status stop_status_ GUARDED_BY(mu_);
+
+  // True when the merger thread is finished.
+  bool merger_loop_done_ GUARDED_BY(mu_) = false;
+
   Condition curr_empty_;
   Condition curr_non_empty_;
   int64 records_yielded_ GUARDED_BY(mu_) = 0;
   int64 total_records_yielded_ GUARDED_BY(mu_) = 0;
   int64 total_records_skipped_ GUARDED_BY(mu_) = 0;
   std::vector<Batch> buckets_ GUARDED_BY(mu_);
+  int64 processor_loop_done_count_ GUARDED_BY(mu_) = 0;
   FlushList to_flush_ GUARDED_BY(mu_);
   Condition to_flush_empty_;
   Condition to_flush_non_empty_;
@@ -136,11 +146,13 @@ class RecordBatcher {
 
   // Conditions.
   bool CurrEmpty() const SHARED_LOCKS_REQUIRED(mu_) {
-    return stop_ || curr_.empty();
+    return ((stop_ && stop_status_.ok()) ||  // The object is being destroyed
+            curr_.empty());                  // We can push work onto curr_.
   }
 
   bool CurrNonEmpty() const SHARED_LOCKS_REQUIRED(mu_) {
-    return stop_ || !curr_.empty();
+    return (!curr_.empty() ||    // There is data to deliver to GetNext().
+            merger_loop_done_);  // There merger loop is done (no more data).
   }
 
   bool ToFlushEmpty() const SHARED_LOCKS_REQUIRED(mu_) {
@@ -148,7 +160,13 @@ class RecordBatcher {
   }
 
   bool ToFlushNonEmpty() const SHARED_LOCKS_REQUIRED(mu_) {
-    return stop_ || !to_flush_.empty();
+    return ((stop_ && stop_status_.ok()) ||  // The object is being destroyed.
+            !to_flush_.empty() ||            // There is work to flush.
+            ProcessorsDone());  // All processor threads have exited.
+  }
+
+  bool ProcessorsDone() const SHARED_LOCKS_REQUIRED(mu_) {
+    return processor_loop_done_count_ == opts_.num_threads;
   }
 
   void ProcessorLoop();

@@ -19,6 +19,7 @@ limitations under the License.
 #include "lingvo/core/ops/input_common.h"
 #include "lingvo/core/ops/sequential_record_yielder.h"
 #include "lingvo/core/ops/yielder_test_helper.h"
+#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/compression.h"
 #include "tensorflow/core/lib/io/path.h"
@@ -77,7 +78,8 @@ TEST(SequentialRecordYielderTest, SequentialRecordYielderBasicTest) {
   const string& file_pattern =
       strings::StrCat("text:", io::JoinPath("/tmp", "basic.*"));
 
-  SequentialRecordYielder* yielder = SequentialRecordYielder::New(file_pattern);
+  SequentialRecordYielder* yielder =
+      SequentialRecordYielder::New(file_pattern, -1);
   Rope v;
   for (int i = 0; i < N * M; ++i) {
     TF_CHECK_OK(yielder->Yield(&v, nullptr));
@@ -89,6 +91,35 @@ TEST(SequentialRecordYielderTest, SequentialRecordYielderBasicTest) {
     TF_CHECK_OK(yielder->Yield(&v, nullptr));
     ASSERT_EQ(string(v), strings::Printf("basic:%010d", i));
   }
+
+  yielder->Close();
+}
+
+TEST(SequentialRecordYielderTest, SequentialRecordYielderRepeatCount) {
+  const int N = 10;
+  const int M = 1000;
+  GeneratePlainTextTestData("basic", N, M);
+  const string& file_pattern =
+      strings::StrCat("text:", io::JoinPath("/tmp", "basic.*"));
+
+  // Yield two epochs.
+  SequentialRecordYielder* yielder =
+      SequentialRecordYielder::New(file_pattern, 2);
+  Rope v;
+  for (int i = 0; i < N * M; ++i) {
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    ASSERT_EQ(string(v), strings::Printf("basic:%010d", i));
+  }
+
+  // Iterate another epoch.
+  for (int i = 0; i < N * M; ++i) {
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    ASSERT_EQ(string(v), strings::Printf("basic:%010d", i));
+  }
+
+  // Trying to yield one more element should throw an out of range error.
+  Status s = yielder->Yield(&v, nullptr);
+  ASSERT_TRUE(errors::IsOutOfRange(s)) << s;
 
   yielder->Close();
 }

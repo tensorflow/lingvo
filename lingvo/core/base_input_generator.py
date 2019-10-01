@@ -331,6 +331,11 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         ' This is intended for unit tests. Setting this automatically disables '
         'file_random_seed, file_buffer_size, file_parallelism, '
         'num_batcher_threads, and requires a single file_pattern.')
+    p.Define(
+        'repeat_count', -1,
+        'Number of repetitions of a dataset before throwing OutOfRange error '
+        'when using require_sequential_order. Must only be set if '
+        'require_sequential_order is True.')
     # TODO(b/139345706) when file_pattern is deleted use_within_batch_mixing
     # will be specified by passing a WithinBatchMixingDataSource to
     # p.file_datasource and this param should be deleted as well.
@@ -436,6 +441,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'flush_every_n': p.flush_every_n,
         'num_threads': p.num_batcher_threads,
         'require_sequential_order': p.require_sequential_order,
+        'repeat_count': p.repeat_count,
         'use_chaining': p.use_chaining,
     })
     args.update(self._InputOpBucketingArgs())

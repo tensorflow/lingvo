@@ -32,7 +32,7 @@ RecordYielder* ConstructYielder(const string& file_pattern,
                                 int64 file_random_seed, int64 file_buffer_size,
                                 int64 file_parallelism,
                                 bool require_sequential_order,
-                                bool use_chaining);
+                                int64 repeat_count, bool use_chaining);
 
 // Base class for op kernels that emit training examples.
 template <class RecordProcessorClass>
@@ -59,6 +59,7 @@ class InputOp : public OpKernel {
     GETATTR(int64, flush_every_n);
     GETATTR(int64, num_threads);
     GETATTR(bool, require_sequential_order);
+    GETATTR(int64, repeat_count);
     GETATTR(bool, use_chaining);
 #undef GETATTR
     OP_REQUIRES(
@@ -70,9 +71,10 @@ class InputOp : public OpKernel {
     }
     LOG(INFO) << "Create RecordProcessor";
     processor_ = new RecordProcessorClass(ctx);
-    RecordYielder* yielder = CHECK_NOTNULL(ConstructYielder(
-        file_pattern, input_source_weights, file_random_seed, file_buffer_size,
-        file_parallelism, require_sequential_order, use_chaining));
+    RecordYielder* yielder = CHECK_NOTNULL(
+        ConstructYielder(file_pattern, input_source_weights, file_random_seed,
+                         file_buffer_size, file_parallelism,
+                         require_sequential_order, repeat_count, use_chaining));
     LOG(INFO) << "Create batcher";
     RecordBatcher::Options bopts;
     bopts.bucket_upper_bound = bucket_upper_bound;
@@ -88,7 +90,7 @@ class InputOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override {
     int64 bucket_id;
     TensorVec batch;
-    batcher_->GetNext(&bucket_id, &batch);
+    OP_REQUIRES_OK(ctx, batcher_->GetNext(&bucket_id, &batch));
     VLOG(1) << "Produce a batch from bucket : " << bucket_id;
     OP_REQUIRES(ctx, static_cast<int>(batch.size()) == ctx->num_outputs(),
                 errors::Internal("Unexpected batch: ", batch.size()));

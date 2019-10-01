@@ -64,6 +64,7 @@ limitations under the License.
 #include <utility>
 
 #include "lingvo/core/ops/mutex.h"
+#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/env.h"
@@ -95,10 +96,20 @@ RecordBatcher::RecordBatcher(const Options& opts, RecordYielder* yielder,
     MutexLock l(&mu_);
     last_log_update_time_ = start_time_;
   }
+
   for (int i = 0; i < opts_.num_threads; i++) {
-    processor_thread_->Schedule([this]() { ProcessorLoop(); });
+    processor_thread_->Schedule([this]() {
+      ProcessorLoop();
+      MutexLock l(&mu_);
+      processor_loop_done_count_++;
+    });
   }
-  merger_thread_->Schedule([this]() { MergerLoop(); });
+
+  merger_thread_->Schedule([this]() {
+    MergerLoop();
+    MutexLock l(&mu_);
+    merger_loop_done_ = true;
+  });
 }
 
 RecordBatcher::~RecordBatcher() {
@@ -112,14 +123,25 @@ RecordBatcher::~RecordBatcher() {
   delete processor_;
 }
 
-void RecordBatcher::GetNext(int64* bucket, TensorVec* batch) {
+Status RecordBatcher::GetNext(int64* bucket, TensorVec* batch) {
   MutexLock l(&mu_);
+  // Wait for either curr to be non-empty, or for the merger thread to be
+  // complete.
   WaitForCurrNonEmpty();
+
+  // If the buffer is still empty, it must be because the merger loop is done
+  // due to an EoF.
+  if (curr_.empty()) {
+    CHECK(merger_loop_done_);
+    return stop_status_;
+  }
+
   *bucket = curr_bucket_;
   curr_bucket_ = -1;
   using std::swap;
   swap(*(batch), curr_);
   curr_.clear();
+  return Status::OK();
 }
 
 void RecordBatcher::IncrementHistogram(int64 bucket) {
@@ -264,12 +286,24 @@ void RecordBatcher::ProcessorLoop() {
   while (true) {
     {
       MutexLock l(&mu_);
-      if (stop_) return;
+      if (stop_) {
+        return;
+      }
     }
 
     // Get the next record.
     Rope record;
     Status s = yielder_->Yield(&record, nullptr);
+
+    // If yielder returns OutOfRange, set
+    // the out status appropriately and return.
+    if (errors::IsOutOfRange(s)) {
+      MutexLock l(&mu_);
+      stop_status_ = s;
+      stop_ = true;
+      return;
+    }
+
     if (!s.ok()) {
       LOG(WARNING) << s;
       continue;
@@ -293,6 +327,9 @@ void RecordBatcher::ProcessorLoop() {
       } else if (errors::IsNotFound(s)) {
         // Terminates program if an unregistered custome op is used by
         // the processor.
+        //
+        // Consider setting *out_status with s and returning, instead
+        // of killing program?
         LOG(FATAL) << s;
       } else {
         LOG(WARNING) << s;
@@ -329,7 +366,9 @@ void RecordBatcher::ProcessorLoop() {
       const int64 batch_limit = opts_.bucket_batch_limit[id];
       if (buckets_[id].size() + 1 == batch_limit) {
         WaitForToFlushEmpty();
-        if (stop_) return;
+        if (stop_) {
+          return;
+        }
       }
       // Invariant is either we don't need to flush this bucket after adding a
       // new element to it, or to_flush_ is empty and we can flush this bucket.
@@ -371,11 +410,22 @@ void RecordBatcher::MergerLoop() {
   FlushList to_flush;
   std::vector<TensorVec> samples;
   TensorVec merged;
-  while (true) {
+  bool continue_loop = true;
+  while (continue_loop) {
     {
       MutexLock l(&mu_);
       WaitForToFlushNonEmpty();
-      if (stop_) return;
+      if (stop_ && stop_status_.ok()) {
+        // The object is being destroyed, just exit.
+        return;
+      } else if (ProcessorsDone()) {
+        // The yielder hit EOF and all processors are done.
+        // Flush all buckets, and then signal to exit the merger
+        // loop once all items are flushed to curr_.
+        FlushAllBuckets();
+        continue_loop = false;
+      }
+
       to_flush = std::move(to_flush_);
       to_flush_.clear();
     }
@@ -401,7 +451,12 @@ void RecordBatcher::MergerLoop() {
         merged.push_back(bucket_keys);
         MutexLock l(&mu_);
         WaitForCurrEmpty();
-        if (stop_) return;
+
+        // If stopped due to destructor, just exit, since there should be no
+        // further calls to GetNext().
+        if (stop_ && stop_status_.ok()) {
+          return;
+        }
         curr_bucket_ = id;
         curr_ = std::move(merged);
       }

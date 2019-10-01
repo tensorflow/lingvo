@@ -18,12 +18,19 @@ limitations under the License.
 #include <algorithm>
 
 #include "lingvo/core/ops/record_yielder.h"
+#include "tensorflow/core/lib/core/errors.h"
 
 namespace tensorflow {
 namespace lingvo {
 
-SequentialRecordYielder::SequentialRecordYielder(const string& file_pattern)
-    : file_type_(RecordIterator::GetFilePatternPrefix(file_pattern)) {
+namespace {
+constexpr int kInfinite = -1;
+}  // namespace
+
+SequentialRecordYielder::SequentialRecordYielder(const string& file_pattern,
+                                                 const int64_t repeat_count)
+    : file_type_(RecordIterator::GetFilePatternPrefix(file_pattern)),
+      repeat_count_(repeat_count) {
   LOG(INFO) << this << "Sequential record yielder start";
   string mutable_file_pattern(file_pattern);
   if (!file_type_.empty()) {
@@ -42,8 +49,8 @@ SequentialRecordYielder::SequentialRecordYielder(const string& file_pattern)
 }
 
 SequentialRecordYielder* SequentialRecordYielder::New(
-    const string& file_pattern) {
-  return new SequentialRecordYielder(file_pattern);
+    const string& file_pattern, const int64_t repeat_count) {
+  return new SequentialRecordYielder(file_pattern, repeat_count);
 }
 
 SequentialRecordYielder::~SequentialRecordYielder() {}
@@ -57,13 +64,22 @@ Status SequentialRecordYielder::Yield(Rope* value, int* source_id) {
   string key;
   if (record_iterator_->Next(&key, value)) {
     return Status::OK();
-  } else {
-    // No more records from current iterator, advance to next iterator.
-    cur_file_index_ = (cur_file_index_ + 1) % filenames_.size();
-    record_iterator_ = std::unique_ptr<RecordIterator>(
-        RecordIterator::New(file_type_, filenames_[cur_file_index_]));
-    return Yield(value, source_id);
   }
+
+  // No more records from current iterator, advance to next iterator.
+  cur_file_index_ = (cur_file_index_ + 1) % filenames_.size();
+  if (cur_file_index_ == 0) {
+    ++num_repeats_;
+    LOG(INFO) << "SequentialRecordYielder finished " << num_repeats_
+              << " repeats.";
+    if (repeat_count_ != kInfinite && num_repeats_ == repeat_count_) {
+      return errors::OutOfRange("SequentialRecordYielder reached ",
+                                repeat_count_, " repeats.");
+    }
+  }
+  record_iterator_ = std::unique_ptr<RecordIterator>(
+      RecordIterator::New(file_type_, filenames_[cur_file_index_]));
+  return Yield(value, source_id);
 }
 
 }  // namespace lingvo

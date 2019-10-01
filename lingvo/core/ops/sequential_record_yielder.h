@@ -30,16 +30,24 @@ class SequentialRecordYielder : public RecordYielder {
   // Returns a sequential record yielder. The caller is responsible for calling
   // Close when this yielder is no longer required. The caller shouldn't delete
   // the yielder.
-  static SequentialRecordYielder* New(const string& file_pattern);
+  static SequentialRecordYielder* New(const string& file_pattern,
+                                      const int64_t repeat_count);
 
  protected:
-  explicit SequentialRecordYielder(const string& file_pattern);
+  explicit SequentialRecordYielder(const string& file_pattern,
+                                   const int64_t repeat_count);
 
  private:
   const string file_type_;
+  // Target number of repetitions of the dataset.  -1 means to repeat
+  // forever.
+  const int64_t repeat_count_;
+
   std::vector<string> filenames_;
   int cur_file_index_ = 0;
   std::unique_ptr<RecordIterator> record_iterator_;
+  // Current number of repetitions of the dataset.
+  int64_t num_repeats_ = 0;
 };
 
 }  // namespace lingvo

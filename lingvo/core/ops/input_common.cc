@@ -27,7 +27,7 @@ RecordYielder* ConstructYielder(const string& file_pattern,
                                 int64 file_random_seed, int64 file_buffer_size,
                                 int64 file_parallelism,
                                 bool require_sequential_order,
-                                bool use_chaining) {
+                                int64 repeat_count, bool use_chaining) {
   std::vector<string> file_patterns;
   if (input_source_weights.empty()) {
     LOG(INFO) << "Input source weights are empty, fall back to legacy "
@@ -43,8 +43,11 @@ RecordYielder* ConstructYielder(const string& file_pattern,
   if (require_sequential_order) {
     CHECK_EQ(file_patterns.size(), 1)
         << "require_sequential_order does not support record mixing or "
-        <<"chaining.";
-    return SequentialRecordYielder::New(file_patterns.front());
+        << "chaining.";
+    return SequentialRecordYielder::New(file_patterns.front(), repeat_count);
+  } else {
+    CHECK_EQ(repeat_count, -1) << "Repeat count must not be set unless "
+                                  "require_sequential_order is true.";
   }
   std::vector<BasicRecordYielder::Options> yielder_options;
 

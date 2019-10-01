@@ -17,6 +17,8 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include "lingvo/core/ops/input_common.h"
+#include "lingvo/core/ops/sequential_record_yielder.h"
+#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/record_writer.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
@@ -87,7 +89,7 @@ TEST(RecordBatcher, Basic) {
   int64 bucket_id;
   TensorVec batch;
   for (int i = 0; i < 1000; ++i) {
-    batcher.GetNext(&bucket_id, &batch);
+    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
     ASSERT_LE(0, bucket_id);
     ASSERT_LT(bucket_id, bopts.bucket_upper_bound.size());
     const Tensor& t = batch[0];
@@ -125,7 +127,7 @@ TEST(RecordBatcher, BasicMultiThread) {
   int64 bucket_id;
   TensorVec batch;
   for (int i = 0; i < 1000; ++i) {
-    batcher.GetNext(&bucket_id, &batch);
+    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
     ASSERT_LE(0, bucket_id);
     ASSERT_LT(bucket_id, bopts.bucket_upper_bound.size());
     const Tensor& t = batch[0];
@@ -166,7 +168,7 @@ TEST(RecordBatcher, LearnBuckets) {
   // For the first 500 batches we just make sure the batches are the right
   // size.
   for (int i = 0; i < 500; ++i) {
-    batcher.GetNext(&bucket_id, &batch);
+    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
     ASSERT_LE(0, bucket_id);
     const Tensor& t = batch[0];
     ASSERT_EQ(8, t.dim_size(0));
@@ -178,7 +180,7 @@ TEST(RecordBatcher, LearnBuckets) {
   maxlens.resize(4, 0);
   batches.resize(4, 0);
   for (int i = 0; i < 1000; ++i) {
-    batcher.GetNext(&bucket_id, &batch);
+    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
     const Tensor& t = batch[0];
     int maxlen = 0;
     for (int j = 0; j < t.dim_size(0); ++j) {
@@ -225,7 +227,7 @@ TEST(RecordBatcher, FullEpoch) {
   TensorVec batch;
   std::vector<string> records;
   while (records.size() < N) {
-    batcher.GetNext(&bucket_id, &batch);
+    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
     const Tensor& t = batch[0];
     for (int j = 0; j < t.dim_size(0); ++j) {
       records.push_back(t.vec<string>()(j));
@@ -237,6 +239,64 @@ TEST(RecordBatcher, FullEpoch) {
   for (int i = 0; i < N; ++i) {
     EXPECT_EQ(strings::Printf("%010d", i), records[i]);
   }
+}
+
+TEST(RecordBatcher, CaptureYielderStatus) {
+  const int N = 50;
+  const string filename = io::JoinPath("/tmp", "full_epoch");
+  GenerateTestData(filename, N, false /* random_value */);
+
+  RecordBatcher::Options bopts;
+  bopts.bucket_upper_bound = {1000000000};
+  bopts.bucket_batch_limit = {1};
+  bopts.num_threads = 1;
+
+  const string file_pattern = strings::StrCat("tfrecord:", filename);
+  const int num_epochs = 2;
+  RecordBatcher batcher(bopts,
+                        SequentialRecordYielder::New(file_pattern, num_epochs),
+                        new TestRP());
+  int64 bucket_id;
+  TensorVec batch;
+  std::vector<string> records;
+  // Fetch N * num_epochs worth of data, which should all be there.
+  while (records.size() < num_epochs * N) {
+    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
+    for (int i = 0; i < batch.size(); ++i) {
+      const Tensor& t = batch[i];
+      if (t.dtype() == DT_STRING) {
+        for (int j = 0; j < t.dim_size(0); ++j) {
+          records.push_back(t.vec<string>()(j));
+        }
+      }
+    }
+  }
+
+  // With a sequential record yielder, the next call will exhaust the
+  // repeat count of the iterator, and so we should expect that no more
+  // data can be yielded.
+  Status s = batcher.GetNext(&bucket_id, &batch);
+  ASSERT_TRUE(errors::IsOutOfRange(s));
+}
+
+TEST(RecordBatcher, SequentialEoFImmediately) {
+  const string filename = io::JoinPath("/tmp", "full_epoch");
+  // Generate no data.
+  GenerateTestData(filename, 0, false /* random_value */);
+
+  RecordBatcher::Options bopts;
+  bopts.bucket_upper_bound = {1000000000};
+  bopts.bucket_batch_limit = {1};
+  bopts.num_threads = 1;
+  const string file_pattern = strings::StrCat("tfrecord:", filename);
+  const int num_epochs = 1;
+  RecordBatcher batcher(bopts,
+                        SequentialRecordYielder::New(file_pattern, num_epochs),
+                        new TestRP());
+  int64 bucket_id;
+  TensorVec batch;
+  Status s = batcher.GetNext(&bucket_id, &batch);
+  ASSERT_TRUE(errors::IsOutOfRange(s));
 }
 
 }  // namespace lingvo
