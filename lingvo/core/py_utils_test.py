@@ -1207,6 +1207,42 @@ class NestedMapTest(test_utils.TestCase):
     self.assertEqual('y', y.a)
     self.assertEqual('z', y.c.d)
 
+  def testAttrAccess(self):
+    a = py_utils.NestedMap()
+    a.a1 = 10
+    self.assertEqual(10, a.a1)
+    self.assertEqual(10, a['a1'])
+    self.assertEqual(10, a.get('a1'))
+    self.assertEqual(10, a.get(u'a1'))
+    self.assertEqual(10, getattr(a, 'a1'))
+
+    a[u'a1'] = 20
+    self.assertEqual(20, a.a1)
+    self.assertEqual(20, a['a1'])
+    self.assertEqual(20, a.get('a1'))
+    self.assertEqual(20, a.get(u'a1'))
+    self.assertEqual(20, getattr(a, 'a1'))
+
+    with self.assertRaisesRegex(AttributeError, 'available attributes'):
+      print(a.a2)
+    with self.assertRaises(KeyError):
+      print(a['a2'])
+
+    # 'get' is a reserved key.
+    with self.assertRaisesRegex(AssertionError, 'is a reserved key'):
+      a.get = 10
+    with self.assertRaisesRegex(AssertionError, 'is a reserved key'):
+      a['get'] = 10
+    with self.assertRaisesRegex(AssertionError, 'is a reserved key'):
+      _ = py_utils.NestedMap(get=2)
+
+    del a.a1
+    with self.assertRaisesRegex(AttributeError, 'available attributes'):
+      print(a.a1)
+
+    with self.assertRaisesRegex(AttributeError, 'available attributes'):
+      del a.a2
+
 
 class ReadOnlyAttrDictViewTest(test_utils.TestCase):
 

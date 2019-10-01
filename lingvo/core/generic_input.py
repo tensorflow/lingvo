@@ -21,7 +21,7 @@ from __future__ import print_function
 import lingvo.compat as tf
 from lingvo.core import ops
 from lingvo.core import py_utils
-from tensorflow.python.framework import function
+from tensorflow.python.framework import function  # pylint:disable=g-direct-tensorflow-import
 
 
 # TODO(zhifengc): Changes processor's requirement to return a
@@ -84,7 +84,7 @@ def GenericInput(processor, *args, **kwargs):
     bucketing_key = tf.to_int32(bucketing_key)
     tf.logging.debug('Processor outputs=%s bucketing_key=%s', output,
                      bucketing_key)
-    output_tmpl.values = output
+    output_tmpl.out_values = output
     flat_output_tmpl = output_tmpl.Flatten()
     tf.logging.debug('Processor flat outputs=%s', flat_output_tmpl)
     tf.logging.debug('extra_inputs=%s extra_args=%s extra_vars=%s',
@@ -105,6 +105,6 @@ def GenericInput(processor, *args, **kwargs):
       processor=proc_fn, out_types=out_types[:-1], *args, **kwargs)
   tf.logging.debug('x_ops.generic_input flat_outputs=%s', flat_outputs)
   # Pack flat_outputs to outputs.
-  outputs = output_tmpl.Pack(flat_outputs).values
+  outputs = output_tmpl.Pack(flat_outputs).out_values
   tf.logging.debug('x_ops.generic_input outputs=%s', outputs)
   return outputs, bucket_keys

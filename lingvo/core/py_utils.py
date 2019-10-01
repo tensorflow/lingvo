@@ -554,7 +554,11 @@ _NAME_PATTERN = re.compile('[A-Za-z_][A-Za-z0-9_]*')
 
 
 class NestedMap(dict):
-  """A simpler helper to maintain a dict.
+  """A simple helper to maintain a dict.
+
+  It is a sub-class of dict with the following extensions/restrictions:
+    - It supports attr access to its members (see examples below).
+    - Member keys have to be valid identifiers.
 
   E.g.::
 
@@ -566,22 +570,44 @@ class NestedMap(dict):
 
   # Disable pytype attribute checking.
   _HAS_DYNAMIC_ATTRIBUTES = True
+  # keys in this list are not allowed in a NestedMap.
+  _RESERVED_KEYS = set(dir(dict))
 
   def __init__(self, *args, **kwargs):
     super(NestedMap, self).__init__(*args, **kwargs)
-    self.__dict__ = self
+    for key in self.keys():
+      assert isinstance(key, six.string_types), (
+          'Key in a NestedMap has to be a six.string_types. Currently type: %s,'
+          ' value: %s' % (str(type(key)), str(key)))
+      NestedMap.CheckKey(key)
+      assert key not in NestedMap._RESERVED_KEYS, ('%s is a reserved key' % key)
 
   def __setitem__(self, key, value):
+    # Make sure key is a valid expression and is not one of the reserved
+    # attributes.
+    assert isinstance(key, six.string_types), (
+        'Key in a NestedMap has to be a six.string_types. Currently type: %s, '
+        'value: %s' % (str(type(key)), str(key)))
     NestedMap.CheckKey(key)
+    assert key not in NestedMap._RESERVED_KEYS, ('%s is a reserved key' % key)
     super(NestedMap, self).__setitem__(key, value)
 
-  def __getattribute__(self, key):
-    """Wrapper to help user know what available attributes are."""
+  def __setattr__(self, name, value):
+    self.__setitem__(name, value)
+
+  def __getattr__(self, name):
     try:
-      return super(NestedMap, self).__getattribute__(key)
-    except AttributeError as e:
+      return self[name]
+    except KeyError as e:
       raise AttributeError('%s; available attributes: %s' %
-                           (e, sorted(list(self.__dict__.keys()))))
+                           (e, sorted(list(self.keys()))))
+
+  def __delattr__(self, name):
+    try:
+      del self[name]
+    except KeyError as e:
+      raise AttributeError('%s; available attributes: %s' %
+                           (e, sorted(list(self.keys()))))
 
   def copy(self):  # Don't delegate w/ super: dict.copy() -> dict.
     return NestedMap(self)
