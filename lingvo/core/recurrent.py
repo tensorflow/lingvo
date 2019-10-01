@@ -48,6 +48,7 @@ import collections
 import zlib
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
+from lingvo.core import constants
 from lingvo.core import py_utils
 from lingvo.core import sendrecv
 from lingvo.core import symbolic
@@ -331,6 +332,7 @@ class _Recurrent(object):
                state0,
                inputs,
                extras,
+               cell_type=None,
                accumulator_layer=None,
                implicit_captures=None,
                unused_acc_state=None):
@@ -350,6 +352,7 @@ class _Recurrent(object):
       extras: A `.NestedMap` of Tensors. The 2nd return value of every
         invocation of cell_fn is a `.NestedMap` with matching keys and shapes
         of this 'extras'.
+      cell_type: Cell type used in this class.
       accumulator_layer: If provided, then accumulators on this layer will be
         managed such that they carry to the final state in `FProp` and are
         disabled for gradients. Uses the state key `accumulators`.
@@ -369,6 +372,10 @@ class _Recurrent(object):
     self._cell_grad = _DecorateCellGrad(cell_grad, accumulator_layer)
     self._stop_fn = stop_fn
     self._extras = extras
+    if cell_type is not None:
+      self._cell_type = cell_type
+    else:
+      self._cell_type = 'UnknownType'
     self._accumulator_layer = accumulator_layer
     self._implicit_captures = implicit_captures
     self._unused_acc_state = unused_acc_state
@@ -556,7 +563,12 @@ class _Recurrent(object):
     # time step of the recurrent net.
     forward_sig = [self._theta, self._state, self._inputs, self._extras]
 
-    @tf.Defun(*Dtypes(forward_sig), python_grad_func=Grad, noinline=noinline)
+    @tf.Defun(
+        *Dtypes(forward_sig),
+        python_grad_func=Grad,
+        noinline=noinline,
+        _implements=self._cell_type,
+        _reference=constants.REFERENCE_ANNOTATION)
     def Forward(*args):
       """Forward pass of the recurrent net."""
       theta, state0, inputs, extras = Pack(args, forward_sig)
@@ -1152,6 +1164,7 @@ def Recurrent(theta,
               inputs,
               cell_fn,
               cell_grad=None,
+              cell_type=None,
               stop_fn=None,
               extras=None,
               check_stateful_ops=False,
@@ -1202,6 +1215,7 @@ def Recurrent(theta,
       If there are no captured tensors in `cell_fn`, `dcaptured` can be returned
       as None. Captured tensors with custom `cell_grad` is currently unsupported
       so this return value is reserved for future expansion.
+    cell_type: Cell name to be used.
     stop_fn: If not None, a python function which computes::
 
         should_stop = stop_fn(t, theta, state0)
@@ -1270,6 +1284,7 @@ def Recurrent(theta,
   acc_state, final_state = _Recurrent(
       cell_fn=cell_fn,
       cell_grad=cell_grad,
+      cell_type=cell_type,
       stop_fn=stop_fn,
       theta=theta,
       state0=_AugmentState(state0.DeepCopy(), accumulator_layer),

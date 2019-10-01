@@ -438,6 +438,7 @@ class FRNN(base_layer.BaseLayer):
         state0=state0,
         inputs=inputs,
         cell_fn=rcell.FProp,
+        cell_type=rcell.layer_type,
         accumulator_layer=self,
         allow_implicit_capture=p.allow_implicit_capture)
 

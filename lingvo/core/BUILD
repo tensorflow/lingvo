@@ -102,6 +102,12 @@ py_test(
 )
 
 py_library(
+    name = "constants",
+    srcs = ["constants.py"],
+    srcs_version = "PY2AND3",
+)
+
+py_library(
     name = "target_sequence_sampler",
     srcs = [
         "target_sequence_sampler.py",
@@ -493,6 +499,7 @@ py_library(
         ":base_layer",
         ":bn_layers",
         ":computation_cost",
+        ":constants",
         ":conv_layers_with_time_padding",
         ":py_utils",
         ":quant_utils",
@@ -949,6 +956,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":cluster_factory",
+        ":constants",
         ":py_utils",
         ":sendrecv",
         ":symbolic",

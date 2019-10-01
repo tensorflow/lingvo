@@ -377,6 +377,11 @@ class BaseLayer(object):
       return self.params.name
 
   @property
+  def layer_type(self):
+    """Returns layer type prefixed with 'lingvo.'."""
+    return 'lingvo.' + self.__class__.__name__
+
+  @property
   def children(self):
     """Returns children layers of this layer in a `.NestedMap`."""
     return self._private_children
