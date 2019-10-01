@@ -476,6 +476,11 @@
         <span class="s1">&#39; This is intended for unit tests. Setting this automatically disables &#39;</span>
         <span class="s1">&#39;file_random_seed, file_buffer_size, file_parallelism, &#39;</span>
         <span class="s1">&#39;num_batcher_threads, and requires a single file_pattern.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;repeat_count&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;Number of repetitions of a dataset before throwing OutOfRange error &#39;</span>
+        <span class="s1">&#39;when using require_sequential_order. Must only be set if &#39;</span>
+        <span class="s1">&#39;require_sequential_order is True.&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(b/139345706) when file_pattern is deleted use_within_batch_mixing</span>
     <span class="c1"># will be specified by passing a WithinBatchMixingDataSource to</span>
     <span class="c1"># p.file_datasource and this param should be deleted as well.</span>
@@ -581,6 +586,7 @@
         <span class="s1">&#39;flush_every_n&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">flush_every_n</span><span class="p">,</span>
         <span class="s1">&#39;num_threads&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span><span class="p">,</span>
         <span class="s1">&#39;require_sequential_order&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">require_sequential_order</span><span class="p">,</span>
+        <span class="s1">&#39;repeat_count&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat_count</span><span class="p">,</span>
         <span class="s1">&#39;use_chaining&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span><span class="p">,</span>
     <span class="p">})</span>
     <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_InputOpBucketingArgs</span><span class="p">())</span>
