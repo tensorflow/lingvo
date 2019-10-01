@@ -193,6 +193,7 @@
 <span class="kn">import</span> <span class="nn">zlib</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">constants</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">sendrecv</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">symbolic</span>
@@ -476,6 +477,7 @@
                <span class="n">state0</span><span class="p">,</span>
                <span class="n">inputs</span><span class="p">,</span>
                <span class="n">extras</span><span class="p">,</span>
+               <span class="n">cell_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">accumulator_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">unused_acc_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -495,6 +497,7 @@
 <span class="sd">      extras: A `.NestedMap` of Tensors. The 2nd return value of every</span>
 <span class="sd">        invocation of cell_fn is a `.NestedMap` with matching keys and shapes</span>
 <span class="sd">        of this &#39;extras&#39;.</span>
+<span class="sd">      cell_type: Cell type used in this class.</span>
 <span class="sd">      accumulator_layer: If provided, then accumulators on this layer will be</span>
 <span class="sd">        managed such that they carry to the final state in `FProp` and are</span>
 <span class="sd">        disabled for gradients. Uses the state key `accumulators`.</span>
@@ -514,6 +517,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_cell_grad</span> <span class="o">=</span> <span class="n">_DecorateCellGrad</span><span class="p">(</span><span class="n">cell_grad</span><span class="p">,</span> <span class="n">accumulator_layer</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_stop_fn</span> <span class="o">=</span> <span class="n">stop_fn</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span> <span class="o">=</span> <span class="n">extras</span>
+    <span class="k">if</span> <span class="n">cell_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cell_type</span> <span class="o">=</span> <span class="n">cell_type</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cell_type</span> <span class="o">=</span> <span class="s1">&#39;UnknownType&#39;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_accumulator_layer</span> <span class="o">=</span> <span class="n">accumulator_layer</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span> <span class="o">=</span> <span class="n">implicit_captures</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span> <span class="o">=</span> <span class="n">unused_acc_state</span>
@@ -701,7 +708,12 @@
     <span class="c1"># time step of the recurrent net.</span>
     <span class="n">forward_sig</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">]</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">forward_sig</span><span class="p">),</span> <span class="n">python_grad_func</span><span class="o">=</span><span class="n">Grad</span><span class="p">,</span> <span class="n">noinline</span><span class="o">=</span><span class="n">noinline</span><span class="p">)</span>
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
+        <span class="o">*</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">forward_sig</span><span class="p">),</span>
+        <span class="n">python_grad_func</span><span class="o">=</span><span class="n">Grad</span><span class="p">,</span>
+        <span class="n">noinline</span><span class="o">=</span><span class="n">noinline</span><span class="p">,</span>
+        <span class="n">_implements</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cell_type</span><span class="p">,</span>
+        <span class="n">_reference</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">REFERENCE_ANNOTATION</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">Forward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Forward pass of the recurrent net.&quot;&quot;&quot;</span>
       <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">forward_sig</span><span class="p">)</span>
@@ -1297,6 +1309,7 @@
               <span class="n">inputs</span><span class="p">,</span>
               <span class="n">cell_fn</span><span class="p">,</span>
               <span class="n">cell_grad</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">cell_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">stop_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">extras</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">check_stateful_ops</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -1347,6 +1360,7 @@
 <span class="sd">      If there are no captured tensors in `cell_fn`, `dcaptured` can be returned</span>
 <span class="sd">      as None. Captured tensors with custom `cell_grad` is currently unsupported</span>
 <span class="sd">      so this return value is reserved for future expansion.</span>
+<span class="sd">    cell_type: Cell name to be used.</span>
 <span class="sd">    stop_fn: If not None, a python function which computes::</span>
 
 <span class="sd">        should_stop = stop_fn(t, theta, state0)</span>
@@ -1415,6 +1429,7 @@
   <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span> <span class="o">=</span> <span class="n">_Recurrent</span><span class="p">(</span>
       <span class="n">cell_fn</span><span class="o">=</span><span class="n">cell_fn</span><span class="p">,</span>
       <span class="n">cell_grad</span><span class="o">=</span><span class="n">cell_grad</span><span class="p">,</span>
+      <span class="n">cell_type</span><span class="o">=</span><span class="n">cell_type</span><span class="p">,</span>
       <span class="n">stop_fn</span><span class="o">=</span><span class="n">stop_fn</span><span class="p">,</span>
       <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
       <span class="n">state0</span><span class="o">=</span><span class="n">_AugmentState</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">(),</span> <span class="n">accumulator_layer</span><span class="p">),</span>
