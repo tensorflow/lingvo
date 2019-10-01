@@ -481,7 +481,14 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <dt id="lingvo.core.py_utils.NestedMap">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">NestedMap</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#dict" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
-<p>A simpler helper to maintain a dict.</p>
+<p>A simple helper to maintain a dict.</p>
+<dl class="simple">
+<dt>It is a sub-class of dict with the following extensions/restrictions:</dt><dd><ul class="simple">
+<li><p>It supports attr access to its members (see examples below).</p></li>
+<li><p>Member keys have to be valid identifiers.</p></li>
+</ul>
+</dd>
+</dl>
 <p>E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">foo</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">foo</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span>
@@ -492,6 +499,11 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <dl class="attribute">
 <dt id="lingvo.core.py_utils.NestedMap._HAS_DYNAMIC_ATTRIBUTES">
 <code class="sig-name descname">_HAS_DYNAMIC_ATTRIBUTES</code><em class="property"> = True</em><a class="headerlink" href="#lingvo.core.py_utils.NestedMap._HAS_DYNAMIC_ATTRIBUTES" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.py_utils.NestedMap._RESERVED_KEYS">
+<code class="sig-name descname">_RESERVED_KEYS</code><em class="property"> = {'__class__', '__contains__', '__delattr__', '__delitem__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__iter__', '__le__', '__len__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', 'clear', 'copy', 'fromkeys', 'get', 'items', 'keys', 'pop', 'popitem', 'setdefault', 'update', 'values'}</em><a class="headerlink" href="#lingvo.core.py_utils.NestedMap._RESERVED_KEYS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

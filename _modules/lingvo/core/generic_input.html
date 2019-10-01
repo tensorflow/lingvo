@@ -166,7 +166,7 @@
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 
 
 <span class="c1"># TODO(zhifengc): Changes processor&#39;s requirement to return a</span>
@@ -229,7 +229,7 @@
     <span class="n">bucketing_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">bucketing_key</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Processor outputs=</span><span class="si">%s</span><span class="s1"> bucketing_key=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span>
                      <span class="n">bucketing_key</span><span class="p">)</span>
-    <span class="n">output_tmpl</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">output</span>
+    <span class="n">output_tmpl</span><span class="o">.</span><span class="n">out_values</span> <span class="o">=</span> <span class="n">output</span>
     <span class="n">flat_output_tmpl</span> <span class="o">=</span> <span class="n">output_tmpl</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Processor flat outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">flat_output_tmpl</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;extra_inputs=</span><span class="si">%s</span><span class="s1"> extra_args=</span><span class="si">%s</span><span class="s1"> extra_vars=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
@@ -250,7 +250,7 @@
       <span class="n">processor</span><span class="o">=</span><span class="n">proc_fn</span><span class="p">,</span> <span class="n">out_types</span><span class="o">=</span><span class="n">out_types</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;x_ops.generic_input flat_outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">flat_outputs</span><span class="p">)</span>
   <span class="c1"># Pack flat_outputs to outputs.</span>
-  <span class="n">outputs</span> <span class="o">=</span> <span class="n">output_tmpl</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_outputs</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+  <span class="n">outputs</span> <span class="o">=</span> <span class="n">output_tmpl</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_outputs</span><span class="p">)</span><span class="o">.</span><span class="n">out_values</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;x_ops.generic_input outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">outputs</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">bucket_keys</span></div>
 </pre></div>

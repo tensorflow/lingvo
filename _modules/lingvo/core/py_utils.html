@@ -699,7 +699,11 @@
 
 
 <div class="viewcode-block" id="NestedMap"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap">[docs]</a><span class="k">class</span> <span class="nc">NestedMap</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A simpler helper to maintain a dict.</span>
+  <span class="sd">&quot;&quot;&quot;A simple helper to maintain a dict.</span>
+
+<span class="sd">  It is a sub-class of dict with the following extensions/restrictions:</span>
+<span class="sd">    - It supports attr access to its members (see examples below).</span>
+<span class="sd">    - Member keys have to be valid identifiers.</span>
 
 <span class="sd">  E.g.::</span>
 
@@ -711,22 +715,44 @@
 
   <span class="c1"># Disable pytype attribute checking.</span>
   <span class="n">_HAS_DYNAMIC_ATTRIBUTES</span> <span class="o">=</span> <span class="kc">True</span>
+  <span class="c1"># keys in this list are not allowed in a NestedMap.</span>
+  <span class="n">_RESERVED_KEYS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="nb">dict</span><span class="p">))</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">NestedMap</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">=</span> <span class="bp">self</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">),</span> <span class="p">(</span>
+          <span class="s1">&#39;Key in a NestedMap has to be a six.string_types. Currently type: </span><span class="si">%s</span><span class="s1">,&#39;</span>
+          <span class="s1">&#39; value: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">)),</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)))</span>
+      <span class="n">NestedMap</span><span class="o">.</span><span class="n">CheckKey</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">NestedMap</span><span class="o">.</span><span class="n">_RESERVED_KEYS</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is a reserved key&#39;</span> <span class="o">%</span> <span class="n">key</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="c1"># Make sure key is a valid expression and is not one of the reserved</span>
+    <span class="c1"># attributes.</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">),</span> <span class="p">(</span>
+        <span class="s1">&#39;Key in a NestedMap has to be a six.string_types. Currently type: </span><span class="si">%s</span><span class="s1">, &#39;</span>
+        <span class="s1">&#39;value: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">)),</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)))</span>
     <span class="n">NestedMap</span><span class="o">.</span><span class="n">CheckKey</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">NestedMap</span><span class="o">.</span><span class="n">_RESERVED_KEYS</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is a reserved key&#39;</span> <span class="o">%</span> <span class="n">key</span><span class="p">)</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">NestedMap</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Wrapper to help user know what available attributes are.&quot;&quot;&quot;</span>
+  <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="k">try</span><span class="p">:</span>
-      <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">NestedMap</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">; available attributes: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                           <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
+                           <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
+
+  <span class="k">def</span> <span class="nf">__delattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">; available attributes: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                           <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
 
 <div class="viewcode-block" id="NestedMap.copy"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.copy">[docs]</a>  <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># Don&#39;t delegate w/ super: dict.copy() -&gt; dict.</span>
     <span class="k">return</span> <span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
