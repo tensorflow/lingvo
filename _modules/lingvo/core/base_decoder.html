@@ -314,7 +314,29 @@
                                              <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
                                              <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span>
                                              <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span>
-                                             <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div></div>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseBeamSearchDecoder.SampleTargetSequences"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.SampleTargetSequences">[docs]</a>  <span class="k">def</span> <span class="nf">SampleTargetSequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">random_seed</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Performs target sequence sampling.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      encoder_outputs: a NestedMap computed by encoder.</span>
+<span class="sd">      random_seed: a scalar int32 tensor representing the random seed.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap containing the following tensors</span>
+
+<span class="sd">      - &#39;ids&#39;: [batch, max_target_length] of int32, representing the target</span>
+<span class="sd">        sequence ids, not including target_sos_id, but maybe ending with</span>
+<span class="sd">        target_eos_id if target_eos_id is sampled.</span>
+<span class="sd">      - &#39;paddings&#39;: [batch, max_target_length] of 0/1, where 1 represents</span>
+<span class="sd">        a padded timestep.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_sequence_sampler</span><span class="o">.</span><span class="n">Sample</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">random_seed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

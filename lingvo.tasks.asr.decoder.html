@@ -523,33 +523,6 @@ emitted.</p></li>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="lingvo.tasks.asr.decoder.AsrDecoderBase.SampleTargetSequences">
-<code class="sig-name descname">SampleTargetSequences</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">random_seed</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder.html#AsrDecoderBase.SampleTargetSequences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder.AsrDecoderBase.SampleTargetSequences" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs target sequence sampling.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
-children layers.</p></li>
-<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</p></li>
-<li><p><strong>random_seed</strong> – a scalar int32 tensor representing the random seed.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A NestedMap containing the following tensors</p>
-<ul class="simple">
-<li><p>’ids’: [batch, max_target_length] of int32, representing the target
-sequence ids, not including target_sos_id, but maybe ending with
-target_eos_id if target_eos_id is sampled.</p></li>
-<li><p>’paddings’: [batch, max_target_length] of 0/1, where 1 represents
-a padded timestep.</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
 <dt id="lingvo.tasks.asr.decoder.AsrDecoderBase._InitBeamSearchStateCallback">
 <code class="sig-name descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder.html#AsrDecoderBase._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder.AsrDecoderBase._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
