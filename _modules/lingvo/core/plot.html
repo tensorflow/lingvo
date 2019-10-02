@@ -223,10 +223,18 @@
              <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span>
              <span class="n">suppress_xticks</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
              <span class="n">suppress_yticks</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-             <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">):</span>
+             <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+             <span class="n">vmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">vmax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Convenience function to plot data as an image on the given axes.&quot;&quot;&quot;</span>
   <span class="n">image</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span>
-      <span class="n">data</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="n">origin</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="n">aspect</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span>
+      <span class="n">data</span><span class="p">,</span>
+      <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span>
+      <span class="n">origin</span><span class="o">=</span><span class="n">origin</span><span class="p">,</span>
+      <span class="n">aspect</span><span class="o">=</span><span class="n">aspect</span><span class="p">,</span>
+      <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span>
+      <span class="n">vmin</span><span class="o">=</span><span class="n">vmin</span><span class="p">,</span>
+      <span class="n">vmax</span><span class="o">=</span><span class="n">vmax</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">show_colorbar</span><span class="p">:</span>
     <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">clim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -504,7 +512,12 @@
   <span class="k">assert</span> <span class="n">image</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span>
   <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
   <span class="n">axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-  <span class="n">AddImage</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;upper&#39;</span><span class="p">,</span> <span class="n">show_colorbar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="c1"># Default show_colorbar to False if not explicitly specified.</span>
+  <span class="n">show_colorbar</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;show_colorbar&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+  <span class="c1"># Default origin to &#39;upper&#39; if not explicitly specified.</span>
+  <span class="n">origin</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;origin&#39;</span><span class="p">,</span> <span class="s1">&#39;upper&#39;</span><span class="p">)</span>
+  <span class="n">AddImage</span><span class="p">(</span>
+      <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="n">origin</span><span class="p">,</span> <span class="n">show_colorbar</span><span class="o">=</span><span class="n">show_colorbar</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">setter</span><span class="p">:</span>
     <span class="n">setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
