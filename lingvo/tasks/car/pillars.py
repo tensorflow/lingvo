@@ -110,7 +110,17 @@ class PointsToGridFeaturizer(base_layer.BaseLayer):
                                       [bs, -1, -1, num_features])
     _, npillars, npoints, _ = py_utils.GetShape(pillar_points, 4)
     pillar_xyz = pillar_points[..., :3]
-    pillar_means = tf.reduce_mean(pillar_xyz, axis=2, keep_dims=True)
+
+    # Compute number of points per pillar and prepare for broadcasting.
+    pillar_num_points = tf.gather_nd(
+        input_batch.grid_num_points, input_batch.pillar_locations, batch_dims=1)
+    pillar_num_points = pillar_num_points[..., tf.newaxis, tf.newaxis]
+
+    # Compute mean by computing sum and dividing by number of points. Clip the
+    # denominator by 1.0 to gracefully handle empty pillars.
+    pillar_sum = tf.reduce_sum(pillar_xyz, axis=2, keep_dims=True)
+    pillar_means = pillar_sum / tf.maximum(tf.to_float(pillar_num_points), 1.0)
+
     pillar_feats = pillar_points[..., 3:]
     pillar_centers = py_utils.HasShape(input_batch.pillar_centers,
                                        [bs, -1, 1, 3])
