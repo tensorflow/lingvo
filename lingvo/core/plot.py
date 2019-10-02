@@ -78,10 +78,18 @@ def AddImage(fig,
              origin='lower',
              suppress_xticks=False,
              suppress_yticks=False,
-             aspect='auto'):
+             aspect='auto',
+             vmin=None,
+             vmax=None):
   """Convenience function to plot data as an image on the given axes."""
   image = axes.imshow(
-      data, cmap=cmap, origin=origin, aspect=aspect, interpolation='nearest')
+      data,
+      cmap=cmap,
+      origin=origin,
+      aspect=aspect,
+      interpolation='nearest',
+      vmin=vmin,
+      vmax=vmax)
   if show_colorbar:
     fig.colorbar(image)
   if clim is not None:
@@ -359,7 +367,12 @@ def Image(name, figsize, image, setter=None, **kwargs):
   assert image.ndim in (2, 3), '%s' % image.shape
   fig = plt.Figure(figsize=figsize, dpi=100, facecolor='white')
   axes = fig.add_subplot(1, 1, 1)
-  AddImage(fig, axes, image, origin='upper', show_colorbar=False, **kwargs)
+  # Default show_colorbar to False if not explicitly specified.
+  show_colorbar = kwargs.pop('show_colorbar', False)
+  # Default origin to 'upper' if not explicitly specified.
+  origin = kwargs.pop('origin', 'upper')
+  AddImage(
+      fig, axes, image, origin=origin, show_colorbar=show_colorbar, **kwargs)
   if setter:
     setter(fig, axes)
   return FigureToSummary(name, fig)
