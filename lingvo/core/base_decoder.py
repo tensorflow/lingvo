@@ -170,3 +170,25 @@ class BaseBeamSearchDecoder(BaseDecoder):
                                              self._InitBeamSearchStateCallback,
                                              self._PreBeamSearchStepCallback,
                                              self._PostBeamSearchStepCallback)
+
+  def SampleTargetSequences(self, theta, encoder_outputs, random_seed):
+    """Performs target sequence sampling.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      encoder_outputs: a NestedMap computed by encoder.
+      random_seed: a scalar int32 tensor representing the random seed.
+
+    Returns:
+      A NestedMap containing the following tensors
+
+      - 'ids': [batch, max_target_length] of int32, representing the target
+        sequence ids, not including target_sos_id, but maybe ending with
+        target_eos_id if target_eos_id is sampled.
+      - 'paddings': [batch, max_target_length] of 0/1, where 1 represents
+        a padded timestep.
+    """
+    return self.target_sequence_sampler.Sample(
+        theta, encoder_outputs, random_seed, self._InitBeamSearchStateCallback,
+        self._PreBeamSearchStepCallback, self._PostBeamSearchStepCallback)
