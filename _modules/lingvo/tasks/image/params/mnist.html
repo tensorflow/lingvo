@@ -166,7 +166,6 @@
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_registry</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model_params</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">program</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.image</span> <span class="k">import</span> <span class="n">classifier</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.image</span> <span class="k">import</span> <span class="n">input_generator</span>
 
@@ -174,26 +173,22 @@
 <div class="viewcode-block" id="Base"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.Base">[docs]</a><span class="k">class</span> <span class="nc">Base</span><span class="p">(</span><span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Input params for MNIST.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Base._Path"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.Base._Path">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_Path</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="Base._Path"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.Base._Path">[docs]</a>  <span class="k">def</span> <span class="nf">_Path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Generated using lingvo/tools:keras2ckpt.</span>
     <span class="k">return</span> <span class="s1">&#39;/tmp/mnist/mnist&#39;</span></div>
 
-<div class="viewcode-block" id="Base.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.Base.Train">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="Base.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.Base.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">MnistTrainInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">ckpt</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_Path</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ckpt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Path</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Base.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.Base.Test">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="Base.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.Base.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">MnistTestInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">ckpt</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_Path</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ckpt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Path</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Base.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.Base.Dev">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Test</span><span class="p">()</span></div></div>
+<div class="viewcode-block" id="Base.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.Base.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Test</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="LeNet5"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.LeNet5">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
@@ -203,25 +198,15 @@
   <span class="n">BN</span> <span class="o">=</span> <span class="kc">False</span>
   <span class="n">DROP</span> <span class="o">=</span> <span class="mf">0.2</span>
 
-<div class="viewcode-block" id="LeNet5.ProgramSchedule"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.LeNet5.ProgramSchedule">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">ProgramSchedule</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">program</span><span class="o">.</span><span class="n">SimpleProgramScheduleForTask</span><span class="p">(</span>
-        <span class="n">train_dataset_name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span>
-        <span class="n">train_steps_per_loop</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">eval_dataset_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Test&#39;</span><span class="p">],</span>
-        <span class="n">eval_steps_per_loop</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-        <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="LeNet5.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.LeNet5.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="LeNet5.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.image.params.mnist.html#lingvo.tasks.image.params.mnist.LeNet5.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">ModelV1</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lenet5&#39;</span>
     <span class="c1"># Overall architecture:</span>
     <span class="c1">#   conv, maxpool, conv, maxpool, fc, softmax.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">filter_shapes</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">)]</span>
     <span class="n">p</span><span class="o">.</span><span class="n">window_shapes</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)]</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">BN</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">DROP</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BN</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DROP</span>
     <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="mi">300</span>
     <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="mi">10</span>
     <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_interval_seconds</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># More frequent checkpoints.</span>

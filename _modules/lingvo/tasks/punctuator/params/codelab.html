@@ -187,10 +187,9 @@
   <span class="c1"># with 16 shards.</span>
   <span class="n">_VOCAB_SIZE</span> <span class="o">=</span> <span class="mi">16000</span>
 
-<div class="viewcode-block" id="BrownCorpusWPM.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.BrownCorpusWPM.Train">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="BrownCorpusWPM.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.BrownCorpusWPM.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">PunctuatorInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_DATADIR</span><span class="p">,</span> <span class="s1">&#39;train.txt&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DATADIR</span><span class="p">,</span> <span class="s1">&#39;train.txt&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Do not use a fixed seed.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># We only have a single input file.</span>
 
@@ -208,8 +207,8 @@
     <span class="c1"># from more buckets.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">160</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">40</span><span class="p">]</span>
 
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_filepath</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_FILE</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_SIZE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_filepath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_VOCAB_FILE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_VOCAB_SIZE</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_to_max_length</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="c1"># Set the tokenizer max length slightly longer than the largest bucket to</span>
@@ -219,10 +218,9 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="c1"># There is also a Dev method for dev set params, but we don&#39;t have a dev set.</span>
-<div class="viewcode-block" id="BrownCorpusWPM.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.BrownCorpusWPM.Test">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="BrownCorpusWPM.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.BrownCorpusWPM.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">PunctuatorInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_DATADIR</span><span class="p">,</span> <span class="s1">&#39;test.txt&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DATADIR</span><span class="p">,</span> <span class="s1">&#39;test.txt&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">27182818</span>  <span class="c1"># Fix random seed for testing.</span>
     <span class="c1"># The following two parameters are important if there&#39;s more than one input</span>
     <span class="c1"># file. For this codelab it doesn&#39;t actually matter.</span>
@@ -234,8 +232,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">200</span><span class="p">]</span>
     <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
 
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_filepath</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_FILE</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_SIZE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_filepath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_VOCAB_FILE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_VOCAB_SIZE</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_to_max_length</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span>
@@ -250,12 +248,11 @@
 <span class="k">class</span> <span class="nc">RNMTModel</span><span class="p">(</span><span class="n">BrownCorpusWPM</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;RNMT+ Model.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="RNMTModel.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.RNMTModel.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="RNMTModel.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.RNMTModel.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">base_config</span><span class="o">.</span><span class="n">SetupRNMTParams</span><span class="p">(</span>
         <span class="n">model</span><span class="o">.</span><span class="n">RNMTModel</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;punctuator_rnmt&#39;</span><span class="p">,</span>
-        <span class="n">vocab_size</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_SIZE</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VOCAB_SIZE</span><span class="p">,</span>
         <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
         <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>

@@ -179,8 +179,7 @@
 <span class="k">class</span> <span class="nc">Librispeech960Base</span><span class="p">(</span><span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base parameters for Librispeech 960 hour task.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Librispeech960Base._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base._CommonInputParams">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
+<div class="viewcode-block" id="Librispeech960Base._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base._CommonInputParams">[docs]</a>  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Input generator params for Librispeech.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">AsrInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
 
@@ -212,54 +211,47 @@
 
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Librispeech960Base.SetBucketSizes"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.SetBucketSizes">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">SetBucketSizes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">bucket_upper_bound</span><span class="p">,</span> <span class="n">bucket_batch_limit</span><span class="p">):</span>
+<div class="viewcode-block" id="Librispeech960Base.SetBucketSizes"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.SetBucketSizes">[docs]</a>  <span class="k">def</span> <span class="nf">SetBucketSizes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">bucket_upper_bound</span><span class="p">,</span> <span class="n">bucket_batch_limit</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Sets bucket sizes for batches in params.&quot;&quot;&quot;</span>
     <span class="n">params</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="n">bucket_upper_bound</span>
     <span class="n">params</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="n">bucket_batch_limit</span>
     <span class="k">return</span> <span class="n">params</span></div>
 
-<div class="viewcode-block" id="Librispeech960Base.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Train">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class="viewcode-block" id="Librispeech960Base.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;train/train.tfrecords-*&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">281241</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Librispeech960Base.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Dev">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="Librispeech960Base.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/dev-clean.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2703</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Librispeech960Base.Devother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Devother">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Devother</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="Librispeech960Base.Devother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Devother">[docs]</a>  <span class="k">def</span> <span class="nf">Devother</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/dev-other.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2864</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Librispeech960Base.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Test">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="Librispeech960Base.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/test-clean.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2620</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Librispeech960Base.Testother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Testother">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Testother</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="Librispeech960Base.Testother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Testother">[docs]</a>  <span class="k">def</span> <span class="nf">Testother</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/test-other.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2939</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Librispeech960Base.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="Librispeech960Base.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">AsrModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;librispeech&#39;</span>
 
@@ -332,53 +324,46 @@
   <span class="n">GRAPHEME_TARGET_SEQUENCE_LENGTH</span> <span class="o">=</span> <span class="mi">620</span>
   <span class="n">GRAPHEME_VOCAB_SIZE</span> <span class="o">=</span> <span class="mi">76</span>
 
-<div class="viewcode-block" id="Librispeech960Grapheme.InitializeTokenizer"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.InitializeTokenizer">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">InitializeTokenizer</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<div class="viewcode-block" id="Librispeech960Grapheme.InitializeTokenizer"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.InitializeTokenizer">[docs]</a>  <span class="k">def</span> <span class="nf">InitializeTokenizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Initializes a grapheme tokenizer.&quot;&quot;&quot;</span>
     <span class="n">params</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">AsciiTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">tokp</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">tokenizer</span>
-    <span class="n">tokp</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GRAPHEME_VOCAB_SIZE</span>
+    <span class="n">tokp</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GRAPHEME_VOCAB_SIZE</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">append_eos</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">target_unk_id</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">target_sos_id</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">target_eos_id</span> <span class="o">=</span> <span class="mi">2</span>
 
-    <span class="n">params</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GRAPHEME_TARGET_SEQUENCE_LENGTH</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GRAPHEME_TARGET_SEQUENCE_LENGTH</span>
     <span class="k">return</span> <span class="n">params</span></div>
 
-<div class="viewcode-block" id="Librispeech960Grapheme.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Train">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Librispeech960Grapheme.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Librispeech960Grapheme.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Dev">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Dev</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Librispeech960Grapheme.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Dev</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Librispeech960Grapheme.Devother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Devother">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Devother</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Devother</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Librispeech960Grapheme.Devother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Devother">[docs]</a>  <span class="k">def</span> <span class="nf">Devother</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Devother</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Librispeech960Grapheme.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Test">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Test</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Librispeech960Grapheme.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Test</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Librispeech960Grapheme.Testother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Testother">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Testother</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Testother</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Librispeech960Grapheme.Testother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Testother">[docs]</a>  <span class="k">def</span> <span class="nf">Testother</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Testother</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Librispeech960Grapheme.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+<div class="viewcode-block" id="Librispeech960Grapheme.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Grapheme.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
     <span class="n">dp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span>
-    <span class="n">dp</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GRAPHEME_TARGET_SEQUENCE_LENGTH</span>
-    <span class="n">dp</span><span class="o">.</span><span class="n">emb_dim</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GRAPHEME_VOCAB_SIZE</span>
-    <span class="n">dp</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GRAPHEME_VOCAB_SIZE</span>
-    <span class="n">dp</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GRAPHEME_VOCAB_SIZE</span>
+    <span class="n">dp</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GRAPHEME_TARGET_SEQUENCE_LENGTH</span>
+    <span class="n">dp</span><span class="o">.</span><span class="n">emb_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GRAPHEME_VOCAB_SIZE</span>
+    <span class="n">dp</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GRAPHEME_VOCAB_SIZE</span>
+    <span class="n">dp</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GRAPHEME_VOCAB_SIZE</span>
     <span class="k">return</span> <span class="n">p</span></div></div>
 
 
@@ -386,19 +371,18 @@
 <span class="k">class</span> <span class="nc">Librispeech960GraphemeTpuV2</span><span class="p">(</span><span class="n">Librispeech960Grapheme</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Librispeech 960 grapheme model for training on TPU V2.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Librispeech960GraphemeTpuV2._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960GraphemeTpuV2._CommonInputParams">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960GraphemeTpuV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
+<div class="viewcode-block" id="Librispeech960GraphemeTpuV2._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960GraphemeTpuV2._CommonInputParams">[docs]</a>  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960GraphemeTpuV2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">48</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>\
 
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Librispeech960GraphemeTpuV2.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960GraphemeTpuV2.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960GraphemeTpuV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+<div class="viewcode-block" id="Librispeech960GraphemeTpuV2.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960GraphemeTpuV2.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960GraphemeTpuV2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">pad_steps</span> <span class="o">=</span> <span class="mi">0</span>
 
@@ -430,55 +414,48 @@
   <span class="n">EMBEDDING_DIMENSION</span> <span class="o">=</span> <span class="mi">96</span>
   <span class="n">NUM_TRAINING_WORKERS</span> <span class="o">=</span> <span class="mi">8</span>
 
-<div class="viewcode-block" id="Librispeech960Wpm.InitializeTokenizer"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.InitializeTokenizer">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">InitializeTokenizer</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<div class="viewcode-block" id="Librispeech960Wpm.InitializeTokenizer"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.InitializeTokenizer">[docs]</a>  <span class="k">def</span> <span class="nf">InitializeTokenizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Initializes a Word Piece Tokenizer.&quot;&quot;&quot;</span>
     <span class="n">params</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">WpmTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">tokp</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">tokenizer</span>
-    <span class="n">tokp</span><span class="o">.</span><span class="n">vocab_filepath</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">WPM_SYMBOL_TABLE_FILEPATH</span>
-    <span class="n">tokp</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">WPM_VOCAB_SIZE</span>
+    <span class="n">tokp</span><span class="o">.</span><span class="n">vocab_filepath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">WPM_SYMBOL_TABLE_FILEPATH</span>
+    <span class="n">tokp</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">WPM_VOCAB_SIZE</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">append_eos</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">target_unk_id</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">target_sos_id</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">target_eos_id</span> <span class="o">=</span> <span class="mi">2</span>
 
-    <span class="n">params</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">WPM_TARGET_SEQUENCE_LENGTH</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">WPM_TARGET_SEQUENCE_LENGTH</span>
     <span class="k">return</span> <span class="n">params</span></div>
 
-<div class="viewcode-block" id="Librispeech960Wpm.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Train">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Librispeech960Wpm.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Librispeech960Wpm.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Dev">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Dev</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Librispeech960Wpm.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Dev</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Librispeech960Wpm.Devother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Devother">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Devother</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Devother</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Librispeech960Wpm.Devother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Devother">[docs]</a>  <span class="k">def</span> <span class="nf">Devother</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Devother</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Librispeech960Wpm.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Test">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Test</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Librispeech960Wpm.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Test</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Librispeech960Wpm.Testother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Testother">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Testother</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Testother</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
+<div class="viewcode-block" id="Librispeech960Wpm.Testother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Testother">[docs]</a>  <span class="k">def</span> <span class="nf">Testother</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Testother</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitializeTokenizer</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">p</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Librispeech960Wpm.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+<div class="viewcode-block" id="Librispeech960Wpm.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Wpm.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
     <span class="n">dp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span>
-    <span class="n">dp</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">WPM_TARGET_SEQUENCE_LENGTH</span>
-    <span class="n">dp</span><span class="o">.</span><span class="n">emb_dim</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">EMBEDDING_DIMENSION</span>
-    <span class="n">dp</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">WPM_VOCAB_SIZE</span>
-    <span class="n">dp</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_TRAINING_WORKERS</span>  <span class="c1"># One shard per worker.</span>
-    <span class="n">dp</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">WPM_VOCAB_SIZE</span>
+    <span class="n">dp</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">WPM_TARGET_SEQUENCE_LENGTH</span>
+    <span class="n">dp</span><span class="o">.</span><span class="n">emb_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EMBEDDING_DIMENSION</span>
+    <span class="n">dp</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">WPM_VOCAB_SIZE</span>
+    <span class="n">dp</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">NUM_TRAINING_WORKERS</span>  <span class="c1"># One shard per worker.</span>
+    <span class="n">dp</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">WPM_VOCAB_SIZE</span>
 
     <span class="k">return</span> <span class="n">p</span></div></div>
 
@@ -487,9 +464,8 @@
 <span class="k">class</span> <span class="nc">Librispeech960WpmTpuV2</span><span class="p">(</span><span class="n">Librispeech960Wpm</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Librispeech 960 WPM model for training on TPU V2.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Librispeech960WpmTpuV2._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960WpmTpuV2._CommonInputParams">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960WpmTpuV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
+<div class="viewcode-block" id="Librispeech960WpmTpuV2._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960WpmTpuV2._CommonInputParams">[docs]</a>  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960WpmTpuV2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">48</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
@@ -497,9 +473,8 @@
 
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Librispeech960WpmTpuV2.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960WpmTpuV2.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960WpmTpuV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+<div class="viewcode-block" id="Librispeech960WpmTpuV2.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960WpmTpuV2.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960WpmTpuV2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">pad_steps</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>

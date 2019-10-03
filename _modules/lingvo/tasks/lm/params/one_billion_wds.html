@@ -197,72 +197,68 @@
   <span class="n">VOCAB_SIZE</span> <span class="o">=</span> <span class="mi">793472</span>  <span class="c1"># includes &lt;epsilon&gt;</span>
   <span class="n">WORD_VOCAB</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CORPUS_DIR</span><span class="p">,</span> <span class="s1">&#39;vocab.txt&#39;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="WordLevelOneBwdsBase.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Train">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="WordLevelOneBwdsBase.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">lm_inp</span><span class="o">.</span><span class="n">LmInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">1024</span><span class="p">]</span>
     <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">10000000</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">10</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">CORPUS_DIR</span><span class="p">,</span> <span class="s1">&#39;training-monolingual.tokenized.shuffled&#39;</span><span class="p">,</span> <span class="s1">&#39;news.en*&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CORPUS_DIR</span><span class="p">,</span> <span class="s1">&#39;training-monolingual.tokenized.shuffled&#39;</span><span class="p">,</span> <span class="s1">&#39;news.en*&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;1bwds_train_set&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">VocabFileTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">16</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">MAX_TOKENS</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MAX_TOKENS</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">target_sos_id</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">target_eos_id</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">target_unk_id</span> <span class="o">=</span> <span class="mi">3</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_vocab_filepath</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">WORD_VOCAB</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_SIZE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_vocab_filepath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">WORD_VOCAB</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">VOCAB_SIZE</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="WordLevelOneBwdsBase.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Dev">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
+<div class="viewcode-block" id="WordLevelOneBwdsBase.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
     <span class="c1"># Use small batches for eval.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">1024</span><span class="p">]</span>
     <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">CORPUS_DIR</span><span class="p">,</span> <span class="s1">&#39;heldout-monolingual.tokenized.shuffled&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CORPUS_DIR</span><span class="p">,</span> <span class="s1">&#39;heldout-monolingual.tokenized.shuffled&#39;</span><span class="p">,</span>
         <span class="s1">&#39;news.en.heldout-00001*&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;1bwds_dev_set&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">6206</span>  <span class="c1"># Number of sentences to evaluate on.</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="WordLevelOneBwdsBase.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Test">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Dev</span><span class="p">()</span>
+<div class="viewcode-block" id="WordLevelOneBwdsBase.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Dev</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">CORPUS_DIR</span><span class="p">,</span> <span class="s1">&#39;heldout-monolingual.tokenized.shuffled&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CORPUS_DIR</span><span class="p">,</span> <span class="s1">&#39;heldout-monolingual.tokenized.shuffled&#39;</span><span class="p">,</span>
         <span class="s1">&#39;news.en.heldout-00000*&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;1bwds_test_set&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">6075</span>  <span class="c1"># Number of sentences to evaluate on.</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="WordLevelOneBwdsBase.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="WordLevelOneBwdsBase.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">LanguageModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;1bwds_word_level_lm&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="mi">10000</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">lm</span> <span class="o">=</span> <span class="n">lm_layers</span><span class="o">.</span><span class="n">RnnLm</span><span class="o">.</span><span class="n">CommonParams</span><span class="p">(</span>
-        <span class="n">vocab_size</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_SIZE</span><span class="p">,</span>
-        <span class="n">emb_dim</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">VOCAB_SIZE</span><span class="p">,</span>
+        <span class="n">emb_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span><span class="p">,</span>
         <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
         <span class="n">residual_start</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>  <span class="c1"># disable residuals</span>
-        <span class="n">rnn_dims</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span><span class="p">,</span>
-        <span class="n">rnn_hidden_dims</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">RNN_STATE_DIM</span><span class="p">)</span>
+        <span class="n">rnn_dims</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span><span class="p">,</span>
+        <span class="n">rnn_hidden_dims</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">RNN_STATE_DIM</span><span class="p">)</span>
 
     <span class="c1"># Input embedding needs to be sharded.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_EMBEDDING_SHARDS</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">NUM_EMBEDDING_SHARDS</span>
     <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">embedding_dropout_keep_prob</span> <span class="o">=</span> <span class="mf">0.75</span>
     <span class="c1"># Match the initialization in github code.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">UniformUnitScaling</span><span class="p">(</span>
-        <span class="mf">1.0</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_EMBEDDING_SHARDS</span><span class="p">)</span>
+        <span class="mf">1.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">NUM_EMBEDDING_SHARDS</span><span class="p">)</span>
 
     <span class="c1"># We also want dropout after each of the RNN layers.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="mf">0.75</span>
@@ -292,18 +288,17 @@
 <span class="k">class</span> <span class="nc">WordLevelOneBwdsSimpleSampledSoftmax</span><span class="p">(</span><span class="n">WordLevelOneBwdsBase</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Use sampled soft-max in training.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="WordLevelOneBwdsSimpleSampledSoftmax.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WordLevelOneBwdsSimpleSampledSoftmax</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+<div class="viewcode-block" id="WordLevelOneBwdsSimpleSampledSoftmax.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WordLevelOneBwdsSimpleSampledSoftmax</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
     <span class="n">num_input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span>
     <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">SimpleFullSoftmax</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">num_input_dim</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_SIZE</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_sampled</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_SAMPLED</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_SOFTMAX_SHARDS</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">VOCAB_SIZE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_sampled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">NUM_SAMPLED</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">NUM_SOFTMAX_SHARDS</span>
     <span class="c1"># Match the initialization in github code.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">UniformUnitScaling</span><span class="p">(</span>
-        <span class="mf">1.0</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_SOFTMAX_SHARDS</span><span class="p">)</span>
+        <span class="mf">1.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">NUM_SOFTMAX_SHARDS</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">==</span> <span class="mi">0</span>
     <span class="k">return</span> <span class="n">p</span></div></div>
 
@@ -347,55 +342,51 @@
   <span class="c1"># Set NUM_MICRO_BATCHES &gt;= len(SPLITS) * 4 to minimize gpipe bubble.</span>
   <span class="n">NUM_MICRO_BATCHES</span> <span class="o">=</span> <span class="mi">32</span>
 
-<div class="viewcode-block" id="OneBWdsGPipeTransformerWPM.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Train">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">OneBWdsGPipeTransformerWPM</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
+<div class="viewcode-block" id="OneBWdsGPipeTransformerWPM.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">OneBWdsGPipeTransformerWPM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
     <span class="c1"># Replace it with your own wordpiece tokenizer.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">AsciiTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">MAX_TOKENS</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MAX_TOKENS</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">target_sos_id</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">target_eos_id</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">target_unk_id</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_SIZE</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">MAX_TOKENS</span><span class="p">]</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">BATCH_SIZE</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">VOCAB_SIZE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">MAX_TOKENS</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">BATCH_SIZE</span><span class="p">]</span>
     <span class="n">p</span><span class="o">.</span><span class="n">fixed_input_shape</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="OneBWdsGPipeTransformerWPM.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Dev">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
+<div class="viewcode-block" id="OneBWdsGPipeTransformerWPM.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">CORPUS_DIR</span><span class="p">,</span> <span class="s1">&#39;heldout-monolingual.tokenized.shuffled&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CORPUS_DIR</span><span class="p">,</span> <span class="s1">&#39;heldout-monolingual.tokenized.shuffled&#39;</span><span class="p">,</span>
         <span class="s1">&#39;news.en.heldout-00001*&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;1bwds_dev_set&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">6206</span>  <span class="c1"># Number of sentences to evaluate on.</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="OneBWdsGPipeTransformerWPM.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Test">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Dev</span><span class="p">()</span>
+<div class="viewcode-block" id="OneBWdsGPipeTransformerWPM.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Dev</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">CORPUS_DIR</span><span class="p">,</span> <span class="s1">&#39;heldout-monolingual.tokenized.shuffled&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CORPUS_DIR</span><span class="p">,</span> <span class="s1">&#39;heldout-monolingual.tokenized.shuffled&#39;</span><span class="p">,</span>
         <span class="s1">&#39;news.en.heldout-00000*&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;1bwds_test_set&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">6075</span>  <span class="c1"># Number of sentences to evaluate on.</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="OneBWdsGPipeTransformerWPM.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="OneBWdsGPipeTransformerWPM.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Language model on 1bw dataset using gpipe transformer.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">FixedShapeInputLanguageModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;1bwds_wpm_level_lm&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">lm</span> <span class="o">=</span> <span class="n">lm_layers</span><span class="o">.</span><span class="n">GPipeTransformerLm</span><span class="o">.</span><span class="n">CommonParams</span><span class="p">(</span>
-        <span class="n">model_dim</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span><span class="p">,</span>
-        <span class="n">vocab_size</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_SIZE</span><span class="p">,</span>
-        <span class="n">hidden_dim</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span>
-        <span class="n">num_layers</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">LAYERS</span><span class="p">,</span>
-        <span class="n">splits</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">SPLITS</span><span class="p">,</span>
-        <span class="n">num_micro_batches</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">NUM_MICRO_BATCHES</span><span class="p">,</span>
+        <span class="n">model_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">VOCAB_SIZE</span><span class="p">,</span>
+        <span class="n">hidden_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">LAYERS</span><span class="p">,</span>
+        <span class="n">splits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">SPLITS</span><span class="p">,</span>
+        <span class="n">num_micro_batches</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NUM_MICRO_BATCHES</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
         <span class="n">softmax_max_alloc</span><span class="o">=</span><span class="mi">128</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">20</span><span class="p">),</span>
         <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
@@ -407,7 +398,8 @@
         <span class="n">clip_gradient_norm_to_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="n">grad_norm_to_clip_to_zero</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="n">lr_schedule</span><span class="o">=</span><span class="n">schedule</span><span class="o">.</span><span class="n">TransformerLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">warmup_steps</span><span class="o">=</span><span class="mi">40000</span><span class="p">,</span> <span class="n">worker_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">model_dim</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span><span class="p">))</span>
+            <span class="n">warmup_steps</span><span class="o">=</span><span class="mi">40000</span><span class="p">,</span> <span class="n">worker_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">model_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">p</span></div></div>
 </pre></div>
 

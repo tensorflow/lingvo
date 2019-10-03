@@ -285,15 +285,20 @@
     <span class="c1"># When the python3 super() is used, it should be possible to return this</span>
     <span class="c1"># from the decorators too.</span>
 
+    <span class="n">registered_source_info</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_GetSourceInfo</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)</span>
+
     <span class="k">class</span> <span class="nc">Registered</span><span class="p">(</span><span class="n">src_cls</span><span class="p">):</span>
-      <span class="n">REGISTERED_SOURCE_INFO</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_GetSourceInfo</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)</span>
+      <span class="sd">&quot;&quot;&quot;Registered model wrapper.&quot;&quot;&quot;</span>
+
+      <span class="nd">@property</span>
+      <span class="k">def</span> <span class="nf">_registered_source_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">registered_source_info</span>
 
       <span class="c1"># Extend model to annotate source information.</span>
-      <span class="nd">@classmethod</span>
-      <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+      <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Wraps BaseTask params into SingleTaskModel params.&quot;&quot;&quot;</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Registered</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">REGISTERED_SOURCE_INFO</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Registered</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registered_source_info</span>
         <span class="k">return</span> <span class="n">p</span>
 
     <span class="c1"># So things show up in messages well.</span>
@@ -360,8 +365,9 @@
 <span class="sd">      Full `~.hyperparams.Params` for the model class.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">model_params_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="n">class_key</span><span class="p">)</span>
-    <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
+    <span class="n">model_params</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="p">()</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
 
     <span class="n">_MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">cfg</span></div>
@@ -376,7 +382,8 @@
 <span class="sd">      ProgramSchedule.Params()</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">model_params_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="n">class_key</span><span class="p">)</span>
-    <span class="n">program_schedule_cfg</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="o">.</span><span class="n">ProgramSchedule</span><span class="p">()</span>
+    <span class="n">model_params</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="p">()</span>
+    <span class="n">program_schedule_cfg</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">ProgramSchedule</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">program_schedule_cfg</span></div></div>
 
 <span class="c1"># pyformat: disable</span>
