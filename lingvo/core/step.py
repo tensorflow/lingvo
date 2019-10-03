@@ -62,7 +62,10 @@ class Step(base_layer.BaseLayer):
             output.append(
                 sub.PrepareExternalInputs(theta[name][i],
                                           child_external_inputs))
-        packed[name] = type(child)(output)
+        if output:
+          if len(output) != len(child):
+            raise ValueError('Expecting child list to be instances of Step.')
+          packed[name] = type(child)(output)
       elif isinstance(child, Step):
         packed[name] = child.PrepareExternalInputs(theta[name],
                                                    child_external_inputs)
@@ -90,7 +93,10 @@ class Step(base_layer.BaseLayer):
             output.append(
                 sub.ZeroState(theta[name][i], external_inputs[name][i],
                               batch_size))
-        state0[name] = type(child)(output)
+        if output:
+          if len(output) != len(child):
+            raise ValueError('Expecting child list to be instances of Step.')
+          state0[name] = type(child)(output)
       elif isinstance(child, Step):
         state0[name] = child.ZeroState(theta[name], external_inputs[name],
                                        batch_size)
