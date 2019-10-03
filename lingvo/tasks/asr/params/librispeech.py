@@ -151,8 +151,7 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
 
     return p
 
-  @classmethod
-  def ProgramSchedule(cls):
+  def ProgramSchedule(self):
     return program.SimpleProgramScheduleForTask(
         train_dataset_name='Train',
         train_steps_per_loop=50,
