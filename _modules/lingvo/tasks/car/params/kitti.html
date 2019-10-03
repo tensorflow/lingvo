@@ -347,28 +347,26 @@
 <div class="viewcode-block" id="StarNetCarsBase.AnchorBoxSettings"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase.AnchorBoxSettings">[docs]</a>  <span class="k">class</span> <span class="nc">AnchorBoxSettings</span><span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">SparseCarV1AnchorBoxSettings</span><span class="p">):</span>
     <span class="n">ROTATIONS</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">3.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="StarNetCarsBase._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase._configure_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetCarsBase._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase._configure_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base function managing the delegation of job specific input configs.&quot;&quot;&quot;</span>
-    <span class="bp">cls</span><span class="o">.</span><span class="n">_configure_generic_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_configure_generic_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
     <span class="n">job</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">job</span>
     <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">):</span>
-      <span class="bp">cls</span><span class="o">.</span><span class="n">_configure_trainer_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_configure_trainer_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">):</span>
-      <span class="bp">cls</span><span class="o">.</span><span class="n">_configure_decoder_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_configure_decoder_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;evaler&#39;</span><span class="p">):</span>
-      <span class="bp">cls</span><span class="o">.</span><span class="n">_configure_evaler_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_configure_evaler_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;There are no input configuration changes to for &#39;</span>
                       <span class="s1">&#39;job </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job</span><span class="p">))</span>
-    <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">RUN_LOCALLY</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">RUN_LOCALLY</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">1</span>
       <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">1</span>
       <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span></div>
 
-<div class="viewcode-block" id="StarNetCarsBase._configure_generic_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase._configure_generic_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_generic_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetCarsBase._configure_generic_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase._configure_generic_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_generic_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update input_config `p` for all jobs.&quot;&quot;&quot;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern_prefix</span> <span class="o">=</span> <span class="n">_KITTI_BASE</span>
 
@@ -392,16 +390,16 @@
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">gather_features</span><span class="o">.</span><span class="n">max_distance</span> <span class="o">=</span> <span class="mf">3.0</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">assign_anchors</span><span class="o">.</span><span class="n">foreground_assignment_threshold</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">FOREGROUND_ASSIGNMENT_THRESHOLD</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">FOREGROUND_ASSIGNMENT_THRESHOLD</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">assign_anchors</span><span class="o">.</span><span class="n">background_assignment_threshold</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">BACKGROUND_ASSIGNMENT_THRESHOLD</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">BACKGROUND_ASSIGNMENT_THRESHOLD</span><span class="p">)</span>
 
     <span class="c1"># Apply car anchor box settings.</span>
     <span class="n">tile_anchors_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">tile_anchors</span>
-    <span class="bp">cls</span><span class="o">.</span><span class="n">AnchorBoxSettings</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">tile_anchors</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">AnchorBoxSettings</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">tile_anchors</span><span class="p">)</span>
     <span class="n">num_anchor_configs</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_OFFSETS</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_ROTATIONS</span> <span class="o">*</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_DIMENSIONS</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_OFFSETS</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_ROTATIONS</span> <span class="o">*</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_DIMENSIONS</span><span class="p">)</span>
 
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tile_anchors_p</span><span class="o">.</span><span class="n">anchor_box_dimensions</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_anchor_configs</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tile_anchors_p</span><span class="o">.</span><span class="n">anchor_box_rotations</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_anchor_configs</span>
@@ -411,13 +409,12 @@
     <span class="k">if</span> <span class="s1">&#39;labels&#39;</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">extractors</span><span class="p">:</span>
       <span class="n">filtered_labels</span> <span class="o">=</span> <span class="p">[</span>
           <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">KITTI_CLASS_NAMES</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
-              <span class="n">class_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">INCLUDED_CLASSES</span>
+              <span class="n">class_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">INCLUDED_CLASSES</span>
       <span class="p">]</span>
       <span class="n">p</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">filter_labels</span> <span class="o">=</span> <span class="n">filtered_labels</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">AddLaserAndCamera</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="StarNetCarsBase._configure_trainer_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase._configure_trainer_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_trainer_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetCarsBase._configure_trainer_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase._configure_trainer_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_trainer_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update input_config `p` for jobs running training.&quot;&quot;&quot;</span>
     <span class="c1"># TODO(bencaine): Change the default in input_generator to be False</span>
     <span class="c1"># and only set this true in _configure_decoder_input</span>
@@ -451,7 +448,7 @@
     <span class="c1"># Add ground truth augmenter to before all preprocessors.</span>
     <span class="n">allowed_label_ids</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">KITTI_CLASS_NAMES</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
-            <span class="n">class_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">INCLUDED_CLASSES</span>
+            <span class="n">class_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">INCLUDED_CLASSES</span>
     <span class="p">]</span>
     <span class="n">groundtruth_db</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">PrefixedDataSourceWrapper</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">groundtruth_db</span><span class="o">.</span><span class="n">file_pattern_prefix</span> <span class="o">=</span> <span class="n">_KITTI_BASE</span>
@@ -479,16 +476,14 @@
     <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">64</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">64</span></div>
 
-<div class="viewcode-block" id="StarNetCarsBase._configure_decoder_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase._configure_decoder_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_decoder_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetCarsBase._configure_decoder_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase._configure_decoder_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_decoder_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update input_config `p` for jobs running decoding.&quot;&quot;&quot;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">8</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">8</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">500</span></div>
 
-<div class="viewcode-block" id="StarNetCarsBase._configure_evaler_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase._configure_evaler_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_evaler_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetCarsBase._configure_evaler_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase._configure_evaler_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_evaler_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update input_config `p` for jobs running evaluation.&quot;&quot;&quot;</span>
     <span class="c1"># TODO(bencaine): Change the default in input_generator to be False</span>
     <span class="c1"># and only set this true in _configure_decoder_input</span>
@@ -500,33 +495,29 @@
     <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">8</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">500</span></div>
 
-<div class="viewcode-block" id="StarNetCarsBase.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase.Train">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetCarsBase.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">KITTISparseLaserTrain</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="bp">cls</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StarNetCarsBase.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase.Test">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetCarsBase.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">KITTISparseLaserTest</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="bp">cls</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StarNetCarsBase.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase.Dev">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetCarsBase.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">KITTISparseLaserValidation</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="bp">cls</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StarNetCarsBase.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetCarsBase.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarsBase.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
         <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">KITTI_CLASS_NAMES</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">starnet</span><span class="o">.</span><span class="n">ModelV2</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
         <span class="n">num_classes</span><span class="p">,</span>
-        <span class="n">num_anchor_bboxes_offsets</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_OFFSETS</span><span class="p">,</span>
-        <span class="n">num_anchor_bboxes_rotations</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_ROTATIONS</span><span class="p">,</span>
-        <span class="n">num_anchor_bboxes_dimensions</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_DIMENSIONS</span><span class="p">)</span>
+        <span class="n">num_anchor_bboxes_offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_OFFSETS</span><span class="p">,</span>
+        <span class="n">num_anchor_bboxes_rotations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_ROTATIONS</span><span class="p">,</span>
+        <span class="n">num_anchor_bboxes_dimensions</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_DIMENSIONS</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sparse_detector&#39;</span>
 
@@ -546,7 +537,7 @@
     <span class="n">tp</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">0.001</span>
     <span class="n">lr_util</span><span class="o">.</span><span class="n">SetExponentialLR</span><span class="p">(</span>
         <span class="n">train_p</span><span class="o">=</span><span class="n">tp</span><span class="p">,</span>
-        <span class="n">train_input_p</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">Train</span><span class="p">(),</span>
+        <span class="n">train_input_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Train</span><span class="p">(),</span>
         <span class="n">exp_start_epoch</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span>
         <span class="n">total_epoch</span><span class="o">=</span><span class="mi">650</span><span class="p">)</span>
 
@@ -567,9 +558,8 @@
     <span class="n">CENTER_X_OFFSETS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.294</span><span class="p">,</span> <span class="mf">1.294</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
     <span class="n">CENTER_Y_OFFSETS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.294</span><span class="p">,</span> <span class="mf">1.294</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="StarNetCarModel0701._configure_generic_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarModel0701._configure_generic_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_generic_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetCarModel0701</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_generic_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+<div class="viewcode-block" id="StarNetCarModel0701._configure_generic_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarModel0701._configure_generic_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_generic_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetCarModel0701</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_generic_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="c1"># For selecting centers, drop points out of frustum and do approximate</span>
     <span class="c1"># ground removal.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">select_centers</span><span class="o">.</span><span class="n">features_preparation_layers</span> <span class="o">=</span> <span class="p">[</span>
@@ -603,9 +593,8 @@
             <span class="n">keep_z_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.4</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)),</span>
     <span class="p">]</span></div>
 
-<div class="viewcode-block" id="StarNetCarModel0701._configure_trainer_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarModel0701._configure_trainer_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_trainer_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetCarModel0701</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_trainer_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+<div class="viewcode-block" id="StarNetCarModel0701._configure_trainer_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarModel0701._configure_trainer_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_trainer_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetCarModel0701</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_trainer_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;global_loc_noise&#39;</span><span class="p">,</span>
@@ -614,9 +603,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span>
         <span class="n">p</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;world_scaling&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;global_loc_noise&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="StarNetCarModel0701.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarModel0701.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetCarModel0701</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+<div class="viewcode-block" id="StarNetCarModel0701.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetCarModel0701.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetCarModel0701</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
 
     <span class="c1"># Builder configuration.</span>
     <span class="n">builder</span> <span class="o">=</span> <span class="n">starnet</span><span class="o">.</span><span class="n">Builder</span><span class="p">()</span>
@@ -681,9 +669,8 @@
     <span class="n">CENTER_Y_OFFSETS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">0.31</span><span class="p">,</span> <span class="mf">0.31</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
     <span class="n">CENTER_Z_OFFSETS</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.6</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="StarNetPedCycModel0704._configure_generic_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_generic_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_generic_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_generic_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+<div class="viewcode-block" id="StarNetPedCycModel0704._configure_generic_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_generic_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_generic_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_generic_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="c1"># For selecting centers, drop points out of frustum and do approximate</span>
     <span class="c1"># ground removal.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">select_centers</span><span class="o">.</span><span class="n">features_preparation_layers</span> <span class="o">=</span> <span class="p">[</span>
@@ -710,13 +697,12 @@
 
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">gather_features</span><span class="o">.</span><span class="n">max_distance</span> <span class="o">=</span> <span class="mf">2.55</span></div>
 
-<div class="viewcode-block" id="StarNetPedCycModel0704._configure_trainer_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_trainer_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_trainer_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_trainer_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+<div class="viewcode-block" id="StarNetPedCycModel0704._configure_trainer_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_trainer_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_trainer_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_trainer_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
     <span class="n">allowed_label_ids</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">KITTI_CLASS_NAMES</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
-            <span class="n">class_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">INCLUDED_CLASSES</span>
+            <span class="n">class_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">INCLUDED_CLASSES</span>
     <span class="p">]</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">bbox_aug</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">num_db_objects</span><span class="o">=</span><span class="mi">19700</span><span class="p">,</span>
@@ -728,21 +714,18 @@
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">2</span></div>
 
-<div class="viewcode-block" id="StarNetPedCycModel0704._configure_decoder_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_decoder_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_decoder_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetPedCycModel0704._configure_decoder_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_decoder_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_decoder_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update input_config `p` for jobs running decoding.&quot;&quot;&quot;</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_decoder_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_decoder_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4</span></div>
 
-<div class="viewcode-block" id="StarNetPedCycModel0704._configure_evaler_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_evaler_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_evaler_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetPedCycModel0704._configure_evaler_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704._configure_evaler_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_evaler_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update input_config `p` for jobs running evaluation.&quot;&quot;&quot;</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_evaler_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_evaler_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4</span></div>
 
-<div class="viewcode-block" id="StarNetPedCycModel0704.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+<div class="viewcode-block" id="StarNetPedCycModel0704.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.StarNetPedCycModel0704.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedCycModel0704</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">7e-4</span>
 
     <span class="n">builder</span> <span class="o">=</span> <span class="n">starnet</span><span class="o">.</span><span class="n">Builder</span><span class="p">()</span>

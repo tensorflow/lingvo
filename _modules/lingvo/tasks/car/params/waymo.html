@@ -298,8 +298,7 @@
 <div class="viewcode-block" id="StarNetBase.AnchorBoxSettings"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.AnchorBoxSettings">[docs]</a>  <span class="k">class</span> <span class="nc">AnchorBoxSettings</span><span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">SparseCarV1AnchorBoxSettings</span><span class="p">):</span>
     <span class="n">ROTATIONS</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">3.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="StarNetBase._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase._configure_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetBase._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase._configure_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">):</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern_prefix</span> <span class="o">=</span> <span class="n">_WAYMO_BASE</span>
 
     <span class="n">job_type</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">job</span>
@@ -330,10 +329,10 @@
             <span class="n">max_num_points</span><span class="o">=</span><span class="n">max_num_points</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">viz_copy</span><span class="o">.</span><span class="n">pad_lasers</span><span class="o">.</span><span class="n">max_num_points</span> <span class="o">=</span> <span class="n">max_num_points</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">filter_groundtruth</span><span class="o">.</span><span class="n">min_num_points</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GT_MIN_NUM_POINTS</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">filter_groundtruth</span><span class="o">.</span><span class="n">min_num_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GT_MIN_NUM_POINTS</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">select_centers</span><span class="o">.</span><span class="n">num_cell_centers</span> <span class="o">=</span> <span class="mi">1024</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">gather_features</span><span class="o">.</span><span class="n">num_points_per_cell</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_POINTS_PER_CELL</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">gather_features</span><span class="o">.</span><span class="n">num_points_per_cell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">NUM_POINTS_PER_CELL</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">gather_features</span><span class="o">.</span><span class="n">sample_neighbors_uniformly</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">gather_features</span><span class="o">.</span><span class="n">max_distance</span> <span class="o">=</span> <span class="mf">2.75</span>
 
@@ -353,8 +352,8 @@
 
     <span class="c1"># Apply car anchor box settings.</span>
     <span class="n">tile_anchors_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">tile_anchors</span>
-    <span class="bp">cls</span><span class="o">.</span><span class="n">AnchorBoxSettings</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">tile_anchors</span><span class="p">)</span>
-    <span class="n">num_anchor_configs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">AnchorBoxSettings</span><span class="o">.</span><span class="n">NumAnchors</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">AnchorBoxSettings</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">tile_anchors</span><span class="p">)</span>
+    <span class="n">num_anchor_configs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AnchorBoxSettings</span><span class="o">.</span><span class="n">NumAnchors</span><span class="p">()</span>
 
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tile_anchors_p</span><span class="o">.</span><span class="n">anchor_box_dimensions</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_anchor_configs</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tile_anchors_p</span><span class="o">.</span><span class="n">anchor_box_rotations</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_anchor_configs</span>
@@ -371,7 +370,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">32</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">8</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">8</span>
-    <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">RUN_LOCALLY</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">RUN_LOCALLY</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">1</span>
       <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">1</span>
       <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>
@@ -385,48 +384,42 @@
       <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">16</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StarNetBase.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Train">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetBase.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">waymo_open_input_generator</span><span class="o">.</span><span class="n">WaymoSparseLaser</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">WaymoTrainSpec</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StarNetBase.Minitrain"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Minitrain">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Minitrain</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
+<div class="viewcode-block" id="StarNetBase.Minitrain"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Minitrain">[docs]</a>  <span class="k">def</span> <span class="nf">Minitrain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">WaymoMiniTrainSpec</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StarNetBase.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Test">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetBase.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">waymo_open_input_generator</span><span class="o">.</span><span class="n">WaymoSparseLaser</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">WaymoTestSpec</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StarNetBase.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Dev">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetBase.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">waymo_open_input_generator</span><span class="o">.</span><span class="n">WaymoSparseLaser</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">WaymoValSpec</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;Dev&#39;</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;Dev&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StarNetBase.Minidev"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Minidev">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Minidev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Dev</span><span class="p">()</span>
+<div class="viewcode-block" id="StarNetBase.Minidev"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Minidev">[docs]</a>  <span class="k">def</span> <span class="nf">Minidev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Dev</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">WaymoMinivalSpec</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StarNetBase.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="StarNetBase.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetBase.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">metadata</span> <span class="o">=</span> <span class="n">waymo_metadata</span><span class="o">.</span><span class="n">WaymoMetadata</span><span class="p">()</span>
     <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">())</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">starnet</span><span class="o">.</span><span class="n">ModelV2</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
         <span class="n">num_classes</span><span class="p">,</span>
-        <span class="n">num_anchor_bboxes_offsets</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_OFFSETS</span><span class="p">,</span>
-        <span class="n">num_anchor_bboxes_rotations</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_ROTATIONS</span><span class="p">,</span>
-        <span class="n">num_anchor_bboxes_dimensions</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_DIMENSIONS</span><span class="p">,</span>
+        <span class="n">num_anchor_bboxes_offsets</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_OFFSETS</span><span class="p">,</span>
+        <span class="n">num_anchor_bboxes_rotations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_ROTATIONS</span><span class="p">,</span>
+        <span class="n">num_anchor_bboxes_dimensions</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NUM_ANCHOR_BBOX_DIMENSIONS</span><span class="p">,</span>
         <span class="n">num_laser_features</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="c1"># Update the Point Cloud Featurizer architecture</span>
@@ -435,16 +428,16 @@
         <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">KaimingUniformFanInRelu</span><span class="p">())</span>
 
     <span class="n">gin_layers</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">GIN_HIDDEN_DIMS</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GIN_HIDDEN_DIMS</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GIN_HIDDEN_DIMS</span><span class="p">]</span>
-    <span class="p">]</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">NUM_GIN_LAYERS</span>  <span class="c1"># pyformat: disable</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">GIN_HIDDEN_DIMS</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">GIN_HIDDEN_DIMS</span><span class="o">*</span><span class="mi">4</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">GIN_HIDDEN_DIMS</span><span class="p">]</span>
+    <span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">NUM_GIN_LAYERS</span>  <span class="c1"># pyformat: disable</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">cell_featurizer</span> <span class="o">=</span> <span class="n">starnet_builder</span><span class="o">.</span><span class="n">GINFeaturizerV2</span><span class="p">(</span>
         <span class="s1">&#39;feat&#39;</span><span class="p">,</span>
         <span class="n">num_laser_features</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-        <span class="n">fc_dims</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">GIN_HIDDEN_DIMS</span><span class="p">,</span>
+        <span class="n">fc_dims</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">GIN_HIDDEN_DIMS</span><span class="p">,</span>
         <span class="n">mlp_dims</span><span class="o">=</span><span class="n">gin_layers</span><span class="p">,</span>
         <span class="n">fc_use_bn</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">cell_feature_dims</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GIN_HIDDEN_DIMS</span> <span class="o">*</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">NUM_GIN_LAYERS</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">cell_feature_dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GIN_HIDDEN_DIMS</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NUM_GIN_LAYERS</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">output_decoder</span> <span class="o">=</span> <span class="n">waymo_decoder</span><span class="o">.</span><span class="n">WaymoOpenDatasetDecoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">max_nms_boxes</span> <span class="o">=</span> <span class="mi">512</span>
@@ -484,7 +477,7 @@
 
     <span class="c1"># Set learning rate and schedule.</span>
     <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">train_cluster_p</span><span class="p">):</span>
-      <span class="n">train_input_p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
+      <span class="n">train_input_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
 
     <span class="c1"># Adapted from V1 tuning.</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">=</span> <span class="mf">0.99</span>
@@ -516,9 +509,8 @@
     <span class="n">CENTER_Y_OFFSETS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.294</span><span class="p">,</span> <span class="mf">1.294</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
     <span class="n">CENTER_Z_OFFSETS</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.819622</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="StarNetVehicle._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetVehicle._configure_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetVehicle</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">)</span>
+<div class="viewcode-block" id="StarNetVehicle._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetVehicle._configure_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetVehicle</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">)</span>
 
     <span class="c1"># Select points in approx z range, set using 10 and 90 percentile from</span>
     <span class="c1"># train data.</span>
@@ -530,9 +522,8 @@
     <span class="n">_FilterKeepLabels</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;Vehicle&#39;</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StarNetVehicle.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetVehicle.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetVehicle</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+<div class="viewcode-block" id="StarNetVehicle.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetVehicle.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetVehicle</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">l2_regularizer_weight</span> <span class="o">=</span> <span class="mf">3e-5</span>
 
     <span class="n">class_names</span> <span class="o">=</span> <span class="n">waymo_metadata</span><span class="o">.</span><span class="n">WaymoMetadata</span><span class="p">()</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span>
@@ -563,9 +554,8 @@
     <span class="n">CENTER_Y_OFFSETS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
     <span class="n">CENTER_Z_OFFSETS</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.819622</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="StarNetPed._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetPed._configure_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPed</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">)</span>
+<div class="viewcode-block" id="StarNetPed._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetPed._configure_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPed</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">)</span>
 
     <span class="c1"># Select points in approx z range, set using 10 and 90 percentile from</span>
     <span class="c1"># train data.</span>
@@ -577,9 +567,8 @@
     <span class="n">_FilterKeepLabels</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;Pedestrian&#39;</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StarNetPed.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetPed.Task">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPed</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+<div class="viewcode-block" id="StarNetPed.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetPed.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPed</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">l2_regularizer_weight</span> <span class="o">=</span> <span class="mf">3e-6</span>
 
     <span class="n">class_names</span> <span class="o">=</span> <span class="n">waymo_metadata</span><span class="o">.</span><span class="n">WaymoMetadata</span><span class="p">()</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span>
@@ -602,13 +591,12 @@
 <span class="k">class</span> <span class="nc">StarNetPedFused</span><span class="p">(</span><span class="n">StarNetPed</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;StarNet Pedestrian model with SparseSampler fused input preprocessor.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="StarNetPedFused._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetPedFused._configure_input">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedFused</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">)</span>
+<div class="viewcode-block" id="StarNetPedFused._configure_input"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.waymo.html#lingvo.tasks.car.params.waymo.StarNetPedFused._configure_input">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StarNetPedFused</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_configure_input</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">)</span>
 
     <span class="n">job_type</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">job</span>
 
-    <span class="k">if</span> <span class="n">job_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">RUN_LOCALLY</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">job_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">RUN_LOCALLY</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">48</span>
       <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">48</span>
       <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">=</span> <span class="mi">48</span>
