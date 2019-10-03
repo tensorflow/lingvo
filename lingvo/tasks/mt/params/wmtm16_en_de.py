@@ -37,11 +37,9 @@ class WmtCaptionEnDeTransformer(base_model_params.SingleTaskModelParams):
   VOCAB_SIZE = 2000
   VOCAB_FILE = 'wpm-ende-2k.voc'
 
-  @classmethod
-  def _CommonInputParams(cls, is_eval):
+  def _CommonInputParams(self, is_eval):
     """Input generator params for WMT'16 En->De."""
     p = input_generator.NmtInput.Params()
-
     if is_eval:
       p.file_random_seed = 27182818
       p.file_parallelism = 1
@@ -55,44 +53,35 @@ class WmtCaptionEnDeTransformer(base_model_params.SingleTaskModelParams):
       p.bucket_upper_bound = [14, 17, 20, 24, 29, 35, 45, 75]
       p.bucket_batch_limit = [292, 240, 204, 170, 141, 117, 91, 54]
 
-    p.tokenizer.vocab_size = cls.VOCAB_SIZE
-    p.tokenizer.token_vocab_filepath = os.path.join(cls.DATADIR, cls.VOCAB_FILE)
+    p.tokenizer.vocab_size = self.VOCAB_SIZE
+    p.tokenizer.token_vocab_filepath = os.path.join(self.DATADIR,
+                                                    self.VOCAB_FILE)
 
     return p
 
-  @classmethod
-  def Train(cls):
-    p = cls._CommonInputParams(is_eval=False)
-
-    p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR, 'train.tfrecords')
+  def Train(self):
+    p = self._CommonInputParams(is_eval=False)
+    p.file_pattern = 'tfrecord:' + os.path.join(self.DATADIR, 'train.tfrecords')
     p.num_samples = 29000
-
     return p
 
-  @classmethod
-  def Dev(cls):
+  def Dev(self):
     p = input_generator.NmtInput.Params()
-
-    p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR, 'val.tfrecords')
+    p.file_pattern = 'tfrecord:' + os.path.join(self.DATADIR, 'val.tfrecords')
     p.num_samples = 1014
-
     return p
 
-  @classmethod
-  def Test(cls):
+  def Test(self):
     p = input_generator.NmtInput.Params()
-
-    p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR, 'test.tfrecords')
+    p.file_pattern = 'tfrecord:' + os.path.join(self.DATADIR, 'test.tfrecords')
     p.num_samples = 1000
-
     return p
 
-  @classmethod
-  def Task(cls):
+  def Task(self):
     p = base_config.SetupTransformerParams(
         model.TransformerModel.Params(),
         name='wmt14_en_de_transformer_base',
-        vocab_size=cls.VOCAB_SIZE,
+        vocab_size=self.VOCAB_SIZE,
         model_dim=256,
         hidden_dim=512,
         num_heads=2,
@@ -111,10 +100,9 @@ class WmtCaptionEnDeTransformer(base_model_params.SingleTaskModelParams):
 class WmtCaptionEnDeTransformerCloudTpu(WmtCaptionEnDeTransformer):
   """Params for WMT'16 En->De Captions (ignoring the images) on TPU."""
 
-  @classmethod
-  def _CommonInputParams(cls, is_eval):
+  def _CommonInputParams(self, is_eval):
     p = super(WmtCaptionEnDeTransformerCloudTpu,
-              cls)._CommonInputParams(is_eval)
+              self)._CommonInputParams(is_eval)
 
     p.pad_to_max_seq_length = True
     p.source_max_length = p.bucket_upper_bound[-1]
@@ -122,9 +110,8 @@ class WmtCaptionEnDeTransformerCloudTpu(WmtCaptionEnDeTransformer):
 
     return p
 
-  @classmethod
-  def Task(cls):
-    p = super(WmtCaptionEnDeTransformerCloudTpu, cls).Task()
+  def Task(self):
+    p = super(WmtCaptionEnDeTransformerCloudTpu, self).Task()
 
     p.encoder.token_emb.max_num_shards = 1
     p.decoder.token_emb.max_num_shards = 1

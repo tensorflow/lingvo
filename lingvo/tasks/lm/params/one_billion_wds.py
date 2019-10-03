@@ -52,72 +52,68 @@ class WordLevelOneBwdsBase(base_model_params.SingleTaskModelParams):
   VOCAB_SIZE = 793472  # includes <epsilon>
   WORD_VOCAB = os.path.join(CORPUS_DIR, 'vocab.txt')
 
-  @classmethod
-  def Train(cls):
+  def Train(self):
     p = lm_inp.LmInput.Params()
     p.bucket_upper_bound = [10, 20, 30, 40, 50, 100, 256, 512, 1024]
     p.bucket_batch_limit = [1024, 512, 256, 256, 128, 128, 64, 32, 16]
     p.file_buffer_size = 10000000
     p.file_parallelism = 10
     p.file_pattern = 'text:' + os.path.join(
-        cls.CORPUS_DIR, 'training-monolingual.tokenized.shuffled', 'news.en*')
+        self.CORPUS_DIR, 'training-monolingual.tokenized.shuffled', 'news.en*')
     p.name = '1bwds_train_set'
     p.tokenizer = tokenizers.VocabFileTokenizer.Params()
     p.num_batcher_threads = 16
-    p.target_max_length = cls.MAX_TOKENS
+    p.target_max_length = self.MAX_TOKENS
     p.tokenizer.target_sos_id = 1
     p.tokenizer.target_eos_id = 2
     p.tokenizer.target_unk_id = 3
-    p.tokenizer.token_vocab_filepath = cls.WORD_VOCAB
-    p.tokenizer.vocab_size = cls.VOCAB_SIZE
+    p.tokenizer.token_vocab_filepath = self.WORD_VOCAB
+    p.tokenizer.vocab_size = self.VOCAB_SIZE
     return p
 
-  @classmethod
-  def Dev(cls):
-    p = cls.Train()
+  def Dev(self):
+    p = self.Train()
     # Use small batches for eval.
     p.bucket_upper_bound = [10, 20, 30, 40, 50, 100, 256, 512, 1024]
     p.bucket_batch_limit = [128, 64, 32, 32, 16, 16, 4, 2, 1]
     p.file_buffer_size = 1
     p.file_parallelism = 1
     p.file_pattern = 'text:' + os.path.join(
-        cls.CORPUS_DIR, 'heldout-monolingual.tokenized.shuffled',
+        self.CORPUS_DIR, 'heldout-monolingual.tokenized.shuffled',
         'news.en.heldout-00001*')
     p.name = '1bwds_dev_set'
     p.num_batcher_threads = 1
     p.num_samples = 6206  # Number of sentences to evaluate on.
     return p
 
-  @classmethod
-  def Test(cls):
-    p = cls.Dev()
+  def Test(self):
+    p = self.Dev()
     p.file_pattern = 'text:' + os.path.join(
-        cls.CORPUS_DIR, 'heldout-monolingual.tokenized.shuffled',
+        self.CORPUS_DIR, 'heldout-monolingual.tokenized.shuffled',
         'news.en.heldout-00000*')
     p.name = '1bwds_test_set'
     p.num_samples = 6075  # Number of sentences to evaluate on.
     return p
 
-  @classmethod
-  def Task(cls):
+  def Task(self):
     p = model.LanguageModel.Params()
     p.name = '1bwds_word_level_lm'
     p.eval.samples_per_summary = 10000
 
     p.lm = lm_layers.RnnLm.CommonParams(
-        vocab_size=cls.VOCAB_SIZE,
-        emb_dim=cls.EMBEDDING_DIM,
+        vocab_size=self.VOCAB_SIZE,
+        emb_dim=self.EMBEDDING_DIM,
         num_layers=2,
         residual_start=3,  # disable residuals
-        rnn_dims=cls.EMBEDDING_DIM,
-        rnn_hidden_dims=cls.RNN_STATE_DIM)
+        rnn_dims=self.EMBEDDING_DIM,
+        rnn_hidden_dims=self.RNN_STATE_DIM)
 
     # Input embedding needs to be sharded.
-    p.lm.emb.max_num_shards = cls.NUM_EMBEDDING_SHARDS
+    p.lm.emb.max_num_shards = self.NUM_EMBEDDING_SHARDS
     p.lm.embedding_dropout_keep_prob = 0.75
     # Match the initialization in github code.
     p.lm.emb.params_init = py_utils.WeightInit.UniformUnitScaling(
-        1.0 * cls.NUM_EMBEDDING_SHARDS)
+        1.0 * self.NUM_EMBEDDING_SHARDS)
 
     # We also want dropout after each of the RNN layers.
     p.lm.rnns.dropout.keep_prob = 0.75
@@ -147,18 +143,17 @@ class WordLevelOneBwdsBase(base_model_params.SingleTaskModelParams):
 class WordLevelOneBwdsSimpleSampledSoftmax(WordLevelOneBwdsBase):
   """Use sampled soft-max in training."""
 
-  @classmethod
-  def Task(cls):
-    p = super(WordLevelOneBwdsSimpleSampledSoftmax, cls).Task()
+  def Task(self):
+    p = super(WordLevelOneBwdsSimpleSampledSoftmax, self).Task()
     num_input_dim = p.lm.softmax.input_dim
     p.lm.softmax = layers.SimpleFullSoftmax.Params()
     p.lm.softmax.input_dim = num_input_dim
-    p.lm.softmax.num_classes = cls.VOCAB_SIZE
-    p.lm.softmax.num_sampled = cls.NUM_SAMPLED
-    p.lm.softmax.num_shards = cls.NUM_SOFTMAX_SHARDS
+    p.lm.softmax.num_classes = self.VOCAB_SIZE
+    p.lm.softmax.num_sampled = self.NUM_SAMPLED
+    p.lm.softmax.num_shards = self.NUM_SOFTMAX_SHARDS
     # Match the initialization in github code.
     p.lm.softmax.params_init = py_utils.WeightInit.UniformUnitScaling(
-        1.0 * cls.NUM_SOFTMAX_SHARDS)
+        1.0 * self.NUM_SOFTMAX_SHARDS)
     assert p.lm.softmax.num_classes % p.lm.softmax.num_shards == 0
     return p
 
@@ -202,55 +197,51 @@ class OneBWdsGPipeTransformerWPM(WordLevelOneBwdsBase):
   # Set NUM_MICRO_BATCHES >= len(SPLITS) * 4 to minimize gpipe bubble.
   NUM_MICRO_BATCHES = 32
 
-  @classmethod
-  def Train(cls):
-    p = super(OneBWdsGPipeTransformerWPM, cls).Train()
+  def Train(self):
+    p = super(OneBWdsGPipeTransformerWPM, self).Train()
     # Replace it with your own wordpiece tokenizer.
     p.tokenizer = tokenizers.AsciiTokenizer.Params()
-    p.target_max_length = cls.MAX_TOKENS
+    p.target_max_length = self.MAX_TOKENS
     p.tokenizer.target_sos_id = 1
     p.tokenizer.target_eos_id = 2
     p.tokenizer.target_unk_id = 0
-    p.tokenizer.vocab_size = cls.VOCAB_SIZE
-    p.bucket_upper_bound = [cls.MAX_TOKENS]
-    p.bucket_batch_limit = [cls.BATCH_SIZE]
+    p.tokenizer.vocab_size = self.VOCAB_SIZE
+    p.bucket_upper_bound = [self.MAX_TOKENS]
+    p.bucket_batch_limit = [self.BATCH_SIZE]
     p.fixed_input_shape = True
     return p
 
-  @classmethod
-  def Dev(cls):
-    p = cls.Train()
+  def Dev(self):
+    p = self.Train()
     p.file_pattern = 'text:' + os.path.join(
-        cls.CORPUS_DIR, 'heldout-monolingual.tokenized.shuffled',
+        self.CORPUS_DIR, 'heldout-monolingual.tokenized.shuffled',
         'news.en.heldout-00001*')
     p.name = '1bwds_dev_set'
     p.num_batcher_threads = 1
     p.num_samples = 6206  # Number of sentences to evaluate on.
     return p
 
-  @classmethod
-  def Test(cls):
-    p = cls.Dev()
+  def Test(self):
+    p = self.Dev()
     p.file_pattern = 'text:' + os.path.join(
-        cls.CORPUS_DIR, 'heldout-monolingual.tokenized.shuffled',
+        self.CORPUS_DIR, 'heldout-monolingual.tokenized.shuffled',
         'news.en.heldout-00000*')
     p.name = '1bwds_test_set'
     p.num_samples = 6075  # Number of sentences to evaluate on.
     return p
 
-  @classmethod
-  def Task(cls):
+  def Task(self):
     """Language model on 1bw dataset using gpipe transformer."""
     p = model.FixedShapeInputLanguageModel.Params()
     p.eval.samples_per_summary = 0
     p.name = '1bwds_wpm_level_lm'
     p.lm = lm_layers.GPipeTransformerLm.CommonParams(
-        model_dim=cls.EMBEDDING_DIM,
-        vocab_size=cls.VOCAB_SIZE,
-        hidden_dim=cls.EMBEDDING_DIM * 4,
-        num_layers=cls.LAYERS,
-        splits=cls.SPLITS,
-        num_micro_batches=cls.NUM_MICRO_BATCHES,
+        model_dim=self.EMBEDDING_DIM,
+        vocab_size=self.VOCAB_SIZE,
+        hidden_dim=self.EMBEDDING_DIM * 4,
+        num_layers=self.LAYERS,
+        splits=self.SPLITS,
+        num_micro_batches=self.NUM_MICRO_BATCHES,
         num_heads=16,
         softmax_max_alloc=128 * (2**20),
         atten_dropout_prob=0.1,
@@ -262,5 +253,6 @@ class OneBWdsGPipeTransformerWPM(WordLevelOneBwdsBase):
         clip_gradient_norm_to_value=0.0,
         grad_norm_to_clip_to_zero=0.0,
         lr_schedule=schedule.TransformerLearningRateSchedule.Params().Set(
-            warmup_steps=40000, worker_replicas=1, model_dim=cls.EMBEDDING_DIM))
+            warmup_steps=40000, worker_replicas=1,
+            model_dim=self.EMBEDDING_DIM))
     return p

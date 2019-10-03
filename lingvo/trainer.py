@@ -1695,13 +1695,14 @@ class RunnerManager(object):
   def InspectDecoder(self):
     """Prints out datasets configured for the decoder."""
     cls = self.model_registry.GetClass(self._model_name)
+    params = cls()
 
     has_decoder = False
     if issubclass(cls, base_model_params.SingleTaskModelParams):
-      has_decoder = cls.Task(
+      has_decoder = params.Task(
       ).cls.CreateDecoderMetrics != base_model.BaseTask.CreateDecoderMetrics
     else:
-      for _, task_param in cls.Model().task_params.IterParams():
+      for _, task_param in params.Model().task_params.IterParams():
         has_decoder |= (
             task_param.cls.CreateDecoderMetrics !=
             base_model.BaseTask.CreateDecoderMetrics)

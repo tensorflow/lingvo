@@ -42,10 +42,9 @@ class BrownCorpusWPM(base_model_params.SingleTaskModelParams):
   # with 16 shards.
   _VOCAB_SIZE = 16000
 
-  @classmethod
-  def Train(cls):
+  def Train(self):
     p = input_generator.PunctuatorInput.Params()
-    p.file_pattern = 'text:' + os.path.join(cls._DATADIR, 'train.txt')
+    p.file_pattern = 'text:' + os.path.join(self._DATADIR, 'train.txt')
     p.file_random_seed = 0  # Do not use a fixed seed.
     p.file_parallelism = 1  # We only have a single input file.
 
@@ -63,8 +62,8 @@ class BrownCorpusWPM(base_model_params.SingleTaskModelParams):
     # from more buckets.
     p.bucket_batch_limit = [512, 256, 160, 80, 40]
 
-    p.tokenizer.vocab_filepath = cls._VOCAB_FILE
-    p.tokenizer.vocab_size = cls._VOCAB_SIZE
+    p.tokenizer.vocab_filepath = self._VOCAB_FILE
+    p.tokenizer.vocab_size = self._VOCAB_SIZE
     p.tokenizer.pad_to_max_length = False
 
     # Set the tokenizer max length slightly longer than the largest bucket to
@@ -74,10 +73,9 @@ class BrownCorpusWPM(base_model_params.SingleTaskModelParams):
     return p
 
   # There is also a Dev method for dev set params, but we don't have a dev set.
-  @classmethod
-  def Test(cls):
+  def Test(self):
     p = input_generator.PunctuatorInput.Params()
-    p.file_pattern = 'text:' + os.path.join(cls._DATADIR, 'test.txt')
+    p.file_pattern = 'text:' + os.path.join(self._DATADIR, 'test.txt')
     p.file_random_seed = 27182818  # Fix random seed for testing.
     # The following two parameters are important if there's more than one input
     # file. For this codelab it doesn't actually matter.
@@ -89,8 +87,8 @@ class BrownCorpusWPM(base_model_params.SingleTaskModelParams):
     p.bucket_upper_bound = [10, 20, 30, 60, 120, 200]
     p.bucket_batch_limit = [16] * 4 + [4] * 2
 
-    p.tokenizer.vocab_filepath = cls._VOCAB_FILE
-    p.tokenizer.vocab_size = cls._VOCAB_SIZE
+    p.tokenizer.vocab_filepath = self._VOCAB_FILE
+    p.tokenizer.vocab_size = self._VOCAB_SIZE
     p.tokenizer.pad_to_max_length = False
 
     p.source_max_length = p.bucket_upper_bound[-1] + 2
@@ -105,12 +103,11 @@ class BrownCorpusWPM(base_model_params.SingleTaskModelParams):
 class RNMTModel(BrownCorpusWPM):
   """RNMT+ Model."""
 
-  @classmethod
-  def Task(cls):
+  def Task(self):
     p = base_config.SetupRNMTParams(
         model.RNMTModel.Params(),
         name='punctuator_rnmt',
-        vocab_size=cls._VOCAB_SIZE,
+        vocab_size=self._VOCAB_SIZE,
         embedding_dim=1024,
         hidden_dim=1024,
         num_heads=4,

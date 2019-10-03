@@ -26,7 +26,7 @@ from lingvo.core import test_utils
 class BaseModelParamsTest(test_utils.TestCase):
 
   def testGetDatasetParams_SingleTaskModelParams(self):
-    dummy_model = base_model_params.SingleTaskModelParams
+    dummy_model = base_model_params.SingleTaskModelParams()
     self.assertEqual(dummy_model.Train(), dummy_model.GetDatasetParams('Train'))
     self.assertEqual(dummy_model.Dev(), dummy_model.GetDatasetParams('Dev'))
     self.assertEqual(dummy_model.Test(), dummy_model.GetDatasetParams('Test'))
@@ -34,7 +34,7 @@ class BaseModelParamsTest(test_utils.TestCase):
       dummy_model.GetDatasetParams('Invalid')
 
   def testGetDatasetParams_MultiTaskModelParams(self):
-    dummy_model = base_model_params.MultiTaskModelParams
+    dummy_model = base_model_params.MultiTaskModelParams()
     self.assertEqual(dummy_model.Train(), dummy_model.GetDatasetParams('Train'))
     self.assertEqual(dummy_model.Dev(), dummy_model.GetDatasetParams('Dev'))
     self.assertEqual(dummy_model.Test(), dummy_model.GetDatasetParams('Test'))

@@ -140,15 +140,20 @@ class _ModelRegistryHelper(object):
     # When the python3 super() is used, it should be possible to return this
     # from the decorators too.
 
+    registered_source_info = cls._GetSourceInfo(src_cls)
+
     class Registered(src_cls):
-      REGISTERED_SOURCE_INFO = cls._GetSourceInfo(src_cls)
+      """Registered model wrapper."""
+
+      @property
+      def _registered_source_info(self):
+        return registered_source_info
 
       # Extend model to annotate source information.
-      @classmethod
-      def Model(cls):
+      def Model(self):
         """Wraps BaseTask params into SingleTaskModel params."""
-        p = super(Registered, cls).Model()
-        p.model = cls.REGISTERED_SOURCE_INFO
+        p = super(Registered, self).Model()
+        p.model = self._registered_source_info
         return p
 
     # So things show up in messages well.
@@ -215,8 +220,9 @@ class _ModelRegistryHelper(object):
       Full `~.hyperparams.Params` for the model class.
     """
     model_params_cls = cls.GetClass(class_key)
-    cfg = model_params_cls.Model()
-    cfg.input = model_params_cls.GetDatasetParams(dataset_name)
+    model_params = model_params_cls()
+    cfg = model_params.Model()
+    cfg.input = model_params.GetDatasetParams(dataset_name)
 
     _MaybeUpdateParamsFromFlags(cfg)
     return cfg
@@ -231,7 +237,8 @@ class _ModelRegistryHelper(object):
       ProgramSchedule.Params()
     """
     model_params_cls = cls.GetClass(class_key)
-    program_schedule_cfg = model_params_cls.ProgramSchedule()
+    model_params = model_params_cls()
+    program_schedule_cfg = model_params.ProgramSchedule()
     return program_schedule_cfg
 
 # pyformat: disable

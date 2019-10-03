@@ -62,7 +62,7 @@ class MultiTaskModelTest(test_utils.TestCase):
     p1 = MultiTaskModelTest._TestTask.Params()
     p1.encoder = None
 
-    p.input = base_model_params.MultiTaskModelParams.Train()
+    p.input = base_model_params.MultiTaskModelParams().Train()
     p.input.Define('p0', base_input_generator.BaseInputGenerator.Params(), '')
     p.input.Define('p1', base_input_generator.BaseInputGenerator.Params(), '')
     p.task_params = hyperparams.Params()
@@ -86,7 +86,7 @@ class MultiTaskModelTest(test_utils.TestCase):
     p1.encoder = None
     p1.decoder = None
 
-    p.input = base_model_params.MultiTaskModelParams.Train()
+    p.input = base_model_params.MultiTaskModelParams().Train()
     p.input.Define('p0', base_input_generator.BaseInputGenerator.Params(), '')
     p.input.Define('p1', base_input_generator.BaseInputGenerator.Params(), '')
     p.task_params = hyperparams.Params()
@@ -122,7 +122,7 @@ class MultiTaskModelTest(test_utils.TestCase):
     p0 = MultiTaskModelTest._TestTaskWithVars.Params()
     p1 = MultiTaskModelTest._TestTaskWithVars.Params()
 
-    p.input = base_model_params.MultiTaskModelParams.Train()
+    p.input = base_model_params.MultiTaskModelParams().Train()
     p.input.Define('p0', base_input_generator.BaseInputGenerator.Params(), '')
     p.input.Define('p1', base_input_generator.BaseInputGenerator.Params(), '')
 

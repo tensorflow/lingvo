@@ -34,8 +34,7 @@ from lingvo.tasks.asr import model
 class Librispeech960Base(base_model_params.SingleTaskModelParams):
   """Base parameters for Librispeech 960 hour task."""
 
-  @classmethod
-  def _CommonInputParams(cls, is_eval):
+  def _CommonInputParams(self, is_eval):
     """Input generator params for Librispeech."""
     p = input_generator.AsrInput.Params()
 
@@ -67,54 +66,47 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
 
     return p
 
-  @classmethod
-  def SetBucketSizes(cls, params, bucket_upper_bound, bucket_batch_limit):
+  def SetBucketSizes(self, params, bucket_upper_bound, bucket_batch_limit):
     """Sets bucket sizes for batches in params."""
     params.bucket_upper_bound = bucket_upper_bound
     params.bucket_batch_limit = bucket_batch_limit
     return params
 
-  @classmethod
-  def Train(cls):
-    p = cls._CommonInputParams(is_eval=False)
+  def Train(self):
+    p = self._CommonInputParams(is_eval=False)
     p.file_datasource.base_datasource.file_pattern = 'train/train.tfrecords-*'
     p.num_samples = 281241
     return p
 
-  @classmethod
-  def Dev(cls):
-    p = cls._CommonInputParams(is_eval=True)
+  def Dev(self):
+    p = self._CommonInputParams(is_eval=True)
     p.file_datasource.base_datasource.file_pattern = (
         'devtest/dev-clean.tfrecords-00000-of-00001')
     p.num_samples = 2703
     return p
 
-  @classmethod
-  def Devother(cls):
-    p = cls._CommonInputParams(is_eval=True)
+  def Devother(self):
+    p = self._CommonInputParams(is_eval=True)
     p.file_datasource.base_datasource.file_pattern = (
         'devtest/dev-other.tfrecords-00000-of-00001')
     p.num_samples = 2864
     return p
 
-  @classmethod
-  def Test(cls):
-    p = cls._CommonInputParams(is_eval=True)
+  def Test(self):
+    p = self._CommonInputParams(is_eval=True)
     p.file_datasource.base_datasource.file_pattern = (
         'devtest/test-clean.tfrecords-00000-of-00001')
     p.num_samples = 2620
     return p
 
-  @classmethod
-  def Testother(cls):
-    p = cls._CommonInputParams(is_eval=True)
+  def Testother(self):
+    p = self._CommonInputParams(is_eval=True)
     p.file_datasource.base_datasource.file_pattern = (
         'devtest/test-other.tfrecords-00000-of-00001')
     p.num_samples = 2939
     return p
 
-  @classmethod
-  def Task(cls):
+  def Task(self):
     p = model.AsrModel.Params()
     p.name = 'librispeech'
 
@@ -187,53 +179,46 @@ class Librispeech960Grapheme(Librispeech960Base):
   GRAPHEME_TARGET_SEQUENCE_LENGTH = 620
   GRAPHEME_VOCAB_SIZE = 76
 
-  @classmethod
-  def InitializeTokenizer(cls, params):
+  def InitializeTokenizer(self, params):
     """Initializes a grapheme tokenizer."""
     params.tokenizer = tokenizers.AsciiTokenizer.Params()
     tokp = params.tokenizer
-    tokp.vocab_size = cls.GRAPHEME_VOCAB_SIZE
+    tokp.vocab_size = self.GRAPHEME_VOCAB_SIZE
     tokp.append_eos = True
     tokp.target_unk_id = 0
     tokp.target_sos_id = 1
     tokp.target_eos_id = 2
 
-    params.target_max_length = cls.GRAPHEME_TARGET_SEQUENCE_LENGTH
+    params.target_max_length = self.GRAPHEME_TARGET_SEQUENCE_LENGTH
     return params
 
-  @classmethod
-  def Train(cls):
-    p = super(Librispeech960Grapheme, cls).Train()
-    return cls.InitializeTokenizer(params=p)
+  def Train(self):
+    p = super(Librispeech960Grapheme, self).Train()
+    return self.InitializeTokenizer(params=p)
 
-  @classmethod
-  def Dev(cls):
-    p = super(Librispeech960Grapheme, cls).Dev()
-    return cls.InitializeTokenizer(params=p)
+  def Dev(self):
+    p = super(Librispeech960Grapheme, self).Dev()
+    return self.InitializeTokenizer(params=p)
 
-  @classmethod
-  def Devother(cls):
-    p = super(Librispeech960Grapheme, cls).Devother()
-    return cls.InitializeTokenizer(params=p)
+  def Devother(self):
+    p = super(Librispeech960Grapheme, self).Devother()
+    return self.InitializeTokenizer(params=p)
 
-  @classmethod
-  def Test(cls):
-    p = super(Librispeech960Grapheme, cls).Test()
-    return cls.InitializeTokenizer(params=p)
+  def Test(self):
+    p = super(Librispeech960Grapheme, self).Test()
+    return self.InitializeTokenizer(params=p)
 
-  @classmethod
-  def Testother(cls):
-    p = super(Librispeech960Grapheme, cls).Testother()
-    return cls.InitializeTokenizer(params=p)
+  def Testother(self):
+    p = super(Librispeech960Grapheme, self).Testother()
+    return self.InitializeTokenizer(params=p)
 
-  @classmethod
-  def Task(cls):
-    p = super(Librispeech960Grapheme, cls).Task()
+  def Task(self):
+    p = super(Librispeech960Grapheme, self).Task()
     dp = p.decoder
-    dp.target_seq_len = cls.GRAPHEME_TARGET_SEQUENCE_LENGTH
-    dp.emb_dim = cls.GRAPHEME_VOCAB_SIZE
-    dp.emb.vocab_size = cls.GRAPHEME_VOCAB_SIZE
-    dp.softmax.num_classes = cls.GRAPHEME_VOCAB_SIZE
+    dp.target_seq_len = self.GRAPHEME_TARGET_SEQUENCE_LENGTH
+    dp.emb_dim = self.GRAPHEME_VOCAB_SIZE
+    dp.emb.vocab_size = self.GRAPHEME_VOCAB_SIZE
+    dp.softmax.num_classes = self.GRAPHEME_VOCAB_SIZE
     return p
 
 
@@ -241,19 +226,18 @@ class Librispeech960Grapheme(Librispeech960Base):
 class Librispeech960GraphemeTpuV2(Librispeech960Grapheme):
   """Librispeech 960 grapheme model for training on TPU V2."""
 
-  @classmethod
-  def _CommonInputParams(cls, is_eval):
-    p = super(Librispeech960GraphemeTpuV2, cls)._CommonInputParams(is_eval)
+  def _CommonInputParams(self, is_eval):
+    p = super(Librispeech960GraphemeTpuV2, self)._CommonInputParams(is_eval)
 
     p.pad_to_max_seq_length = True
     p.bucket_batch_limit = [48] * len(p.bucket_upper_bound)
-    p.source_max_length = p.bucket_upper_bound[-1]
+
+    p.source_max_length = p.bucket_upper_bound[-1]\
 
     return p
 
-  @classmethod
-  def Task(cls):
-    p = super(Librispeech960GraphemeTpuV2, cls).Task()
+  def Task(self):
+    p = super(Librispeech960GraphemeTpuV2, self).Task()
 
     p.encoder.pad_steps = 0
 
@@ -285,55 +269,48 @@ class Librispeech960Wpm(Librispeech960Base):
   EMBEDDING_DIMENSION = 96
   NUM_TRAINING_WORKERS = 8
 
-  @classmethod
-  def InitializeTokenizer(cls, params):
+  def InitializeTokenizer(self, params):
     """Initializes a Word Piece Tokenizer."""
     params.tokenizer = tokenizers.WpmTokenizer.Params()
     tokp = params.tokenizer
-    tokp.vocab_filepath = cls.WPM_SYMBOL_TABLE_FILEPATH
-    tokp.vocab_size = cls.WPM_VOCAB_SIZE
+    tokp.vocab_filepath = self.WPM_SYMBOL_TABLE_FILEPATH
+    tokp.vocab_size = self.WPM_VOCAB_SIZE
     tokp.append_eos = True
     tokp.target_unk_id = 0
     tokp.target_sos_id = 1
     tokp.target_eos_id = 2
 
-    params.target_max_length = cls.WPM_TARGET_SEQUENCE_LENGTH
+    params.target_max_length = self.WPM_TARGET_SEQUENCE_LENGTH
     return params
 
-  @classmethod
-  def Train(cls):
-    p = super(Librispeech960Wpm, cls).Train()
-    return cls.InitializeTokenizer(params=p)
+  def Train(self):
+    p = super(Librispeech960Wpm, self).Train()
+    return self.InitializeTokenizer(params=p)
 
-  @classmethod
-  def Dev(cls):
-    p = super(Librispeech960Wpm, cls).Dev()
-    return cls.InitializeTokenizer(params=p)
+  def Dev(self):
+    p = super(Librispeech960Wpm, self).Dev()
+    return self.InitializeTokenizer(params=p)
 
-  @classmethod
-  def Devother(cls):
-    p = super(Librispeech960Wpm, cls).Devother()
-    return cls.InitializeTokenizer(params=p)
+  def Devother(self):
+    p = super(Librispeech960Wpm, self).Devother()
+    return self.InitializeTokenizer(params=p)
 
-  @classmethod
-  def Test(cls):
-    p = super(Librispeech960Wpm, cls).Test()
-    return cls.InitializeTokenizer(params=p)
+  def Test(self):
+    p = super(Librispeech960Wpm, self).Test()
+    return self.InitializeTokenizer(params=p)
 
-  @classmethod
-  def Testother(cls):
-    p = super(Librispeech960Wpm, cls).Testother()
-    return cls.InitializeTokenizer(params=p)
+  def Testother(self):
+    p = super(Librispeech960Wpm, self).Testother()
+    return self.InitializeTokenizer(params=p)
 
-  @classmethod
-  def Task(cls):
-    p = super(Librispeech960Wpm, cls).Task()
+  def Task(self):
+    p = super(Librispeech960Wpm, self).Task()
     dp = p.decoder
-    dp.target_seq_len = cls.WPM_TARGET_SEQUENCE_LENGTH
-    dp.emb_dim = cls.EMBEDDING_DIMENSION
-    dp.emb.vocab_size = cls.WPM_VOCAB_SIZE
-    dp.emb.max_num_shards = cls.NUM_TRAINING_WORKERS  # One shard per worker.
-    dp.softmax.num_classes = cls.WPM_VOCAB_SIZE
+    dp.target_seq_len = self.WPM_TARGET_SEQUENCE_LENGTH
+    dp.emb_dim = self.EMBEDDING_DIMENSION
+    dp.emb.vocab_size = self.WPM_VOCAB_SIZE
+    dp.emb.max_num_shards = self.NUM_TRAINING_WORKERS  # One shard per worker.
+    dp.softmax.num_classes = self.WPM_VOCAB_SIZE
 
     return p
 
@@ -342,9 +319,8 @@ class Librispeech960Wpm(Librispeech960Base):
 class Librispeech960WpmTpuV2(Librispeech960Wpm):
   """Librispeech 960 WPM model for training on TPU V2."""
 
-  @classmethod
-  def _CommonInputParams(cls, is_eval):
-    p = super(Librispeech960WpmTpuV2, cls)._CommonInputParams(is_eval)
+  def _CommonInputParams(self, is_eval):
+    p = super(Librispeech960WpmTpuV2, self)._CommonInputParams(is_eval)
 
     p.pad_to_max_seq_length = True
     p.bucket_batch_limit = [48] * len(p.bucket_upper_bound)
@@ -352,9 +328,8 @@ class Librispeech960WpmTpuV2(Librispeech960Wpm):
 
     return p
 
-  @classmethod
-  def Task(cls):
-    p = super(Librispeech960WpmTpuV2, cls).Task()
+  def Task(self):
+    p = super(Librispeech960WpmTpuV2, self).Task()
 
     p.encoder.pad_steps = 0
     p.decoder.emb.max_num_shards = 1

@@ -64,7 +64,8 @@ class ModelRegistryTest(test_utils.TestCase):
 
   def testGetClass(self):
 
-    mp = model_registry.GetClass('test.DummyModel')
+    mp_cls = model_registry.GetClass('test.DummyModel')
+    mp = mp_cls()
     self.assertEqual('Train', mp.Train().name)
     self.assertEqual('Dev', mp.Dev().name)
     self.assertEqual('Test', mp.Test().name)
@@ -78,11 +79,11 @@ class ModelRegistryTest(test_utils.TestCase):
   def testGetParams(self):
     cfg = model_registry.GetParams('test.DummyModel', 'Test')
     self.assertIsNotNone(cfg)
-    self.assertEqual(DummyModel.Test(), cfg.input)
+    self.assertEqual(DummyModel().Test(), cfg.input)
     cfg.input = None
     # Registered version adds model source info but direct does not.
     cfg.model = None
-    self.assertEqual(DummyModel.Model(), cfg)
+    self.assertEqual(DummyModel().Model(), cfg)
 
     with self.assertRaises(LookupError):
       # Not yet registered.

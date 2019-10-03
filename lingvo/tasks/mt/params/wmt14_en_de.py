@@ -35,12 +35,11 @@ class WmtEnDeTransformerBase(base_model_params.SingleTaskModelParams):
   DATADIR = '/tmp/wmt14/wpm/'
   VOCAB_SIZE = 32000
 
-  @classmethod
-  def _CommonInputParams(cls, is_eval):
+  def _CommonInputParams(self, is_eval):
     """Input generator params for WMT'14 En->De."""
     p = input_generator.NmtInput.Params()
 
-    p.tokenizer.vocab_size = cls.VOCAB_SIZE
+    p.tokenizer.vocab_size = self.VOCAB_SIZE
 
     if is_eval:
       p.file_random_seed = 27182818
@@ -59,43 +58,37 @@ class WmtEnDeTransformerBase(base_model_params.SingleTaskModelParams):
 
     return p
 
-  @classmethod
-  def Train(cls):
-    p = cls._CommonInputParams(is_eval=False)
+  def Train(self):
+    p = self._CommonInputParams(is_eval=False)
 
-    p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR,
+    p.file_pattern = 'tfrecord:' + os.path.join(self.DATADIR,
                                                 'train.tfrecords-*')
-    p.tokenizer.token_vocab_filepath = os.path.join(cls.DATADIR, 'wpm-ende.voc')
+    p.tokenizer.token_vocab_filepath = os.path.join(self.DATADIR,
+                                                    'wpm-ende.voc')
     p.num_samples = 4492447
-
     return p
 
-  @classmethod
-  def Dev(cls):
-    p = cls._CommonInputParams(is_eval=True)
-
-    p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR, 'dev.tfrecords')
-    p.tokenizer.token_vocab_filepath = os.path.join(cls.DATADIR, 'wpm-ende.voc')
+  def Dev(self):
+    p = self._CommonInputParams(is_eval=True)
+    p.file_pattern = 'tfrecord:' + os.path.join(self.DATADIR, 'dev.tfrecords')
+    p.tokenizer.token_vocab_filepath = os.path.join(self.DATADIR,
+                                                    'wpm-ende.voc')
     p.num_samples = 3000
-
     return p
 
-  @classmethod
-  def Test(cls):
-    p = cls._CommonInputParams(is_eval=True)
-
-    p.file_pattern = 'tfrecord:' + os.path.join(cls.DATADIR, 'test.tfrecords')
-    p.tokenizer.token_vocab_filepath = os.path.join(cls.DATADIR, 'wpm-ende.voc')
+  def Test(self):
+    p = self._CommonInputParams(is_eval=True)
+    p.file_pattern = 'tfrecord:' + os.path.join(self.DATADIR, 'test.tfrecords')
+    p.tokenizer.token_vocab_filepath = os.path.join(self.DATADIR,
+                                                    'wpm-ende.voc')
     p.num_samples = 2737
-
     return p
 
-  @classmethod
-  def Task(cls):
+  def Task(self):
     p = base_config.SetupTransformerParams(
         model.TransformerModel.Params(),
         name='wmt14_en_de_transformer_base',
-        vocab_size=cls.VOCAB_SIZE,
+        vocab_size=self.VOCAB_SIZE,
         model_dim=512,
         hidden_dim=2048,
         num_heads=8,
@@ -112,12 +105,11 @@ class WmtEnDeTransformerBase(base_model_params.SingleTaskModelParams):
 class WmtEnDeTransformerSmall(WmtEnDeTransformerBase):
   """Small Transformer Params for WMT'14 En->De."""
 
-  @classmethod
-  def Task(cls):
+  def Task(self):
     p = base_config.SetupTransformerParams(
         model.TransformerModel.Params(),
         name='wmt14_en_de_transformer_small',
-        vocab_size=cls.VOCAB_SIZE,
+        vocab_size=self.VOCAB_SIZE,
         model_dim=64,
         hidden_dim=128,
         num_heads=2,
@@ -134,23 +126,19 @@ class WmtEnDeTransformerSmall(WmtEnDeTransformerBase):
 class WmtEnDeTransformerSmallCloudTpu(WmtEnDeTransformerSmall):
   """Small Transformer Params for WMT'14 En->De on TPU."""
 
-  @classmethod
-  def _CommonInputParams(cls, is_eval):
-    p = super(WmtEnDeTransformerSmallCloudTpu, cls)._CommonInputParams(is_eval)
+  def _CommonInputParams(self, is_eval):
+    p = super(WmtEnDeTransformerSmallCloudTpu, self)._CommonInputParams(is_eval)
 
     p.pad_to_max_seq_length = True
     p.source_max_length = p.bucket_upper_bound[-1]
     p.bucket_batch_limit = [64] * len(p.bucket_upper_bound)
-
     return p
 
-  @classmethod
-  def Task(cls):
-    p = super(WmtEnDeTransformerSmallCloudTpu, cls).Task()
+  def Task(self):
+    p = super(WmtEnDeTransformerSmallCloudTpu, self).Task()
 
     p.decoder.token_emb.max_num_shards = 1
     p.encoder.token_emb.max_num_shards = 1
-
     return p
 
 
@@ -158,9 +146,8 @@ class WmtEnDeTransformerSmallCloudTpu(WmtEnDeTransformerSmall):
 class WmtEnDeRNMT(WmtEnDeTransformerBase):
   """Params for WMT'14 En->De in sync training."""
 
-  @classmethod
-  def _CommonInputParams(cls, is_eval):
-    p = super(WmtEnDeRNMT, cls)._CommonInputParams(is_eval)
+  def _CommonInputParams(self, is_eval):
+    p = super(WmtEnDeRNMT, self)._CommonInputParams(is_eval)
 
     if is_eval:
       p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 200]
@@ -171,12 +158,11 @@ class WmtEnDeRNMT(WmtEnDeTransformerBase):
 
     return p
 
-  @classmethod
-  def Task(cls):
+  def Task(self):
     p = base_config.SetupRNMTParams(
         model.RNMTModel.Params(),
         name='wmt14_en_de_rnmtplus_base',
-        vocab_size=cls.VOCAB_SIZE,
+        vocab_size=self.VOCAB_SIZE,
         embedding_dim=1024,
         hidden_dim=1024,
         num_heads=4,
@@ -202,9 +188,8 @@ class WmtEnDeRNMT(WmtEnDeTransformerBase):
 class WmtEnDeRNMTCloudTpu(WmtEnDeRNMT):
   """Params for WMT'14 En->De in sync training on TPU."""
 
-  @classmethod
-  def _CommonInputParams(cls, is_eval):
-    p = super(WmtEnDeRNMTCloudTpu, cls)._CommonInputParams(is_eval)
+  def _CommonInputParams(self, is_eval):
+    p = super(WmtEnDeRNMTCloudTpu, self)._CommonInputParams(is_eval)
 
     p.pad_to_max_seq_length = True
     p.source_max_length = p.bucket_upper_bound[-1]
@@ -212,9 +197,8 @@ class WmtEnDeRNMTCloudTpu(WmtEnDeRNMT):
 
     return p
 
-  @classmethod
-  def Task(cls):
-    p = super(WmtEnDeRNMTCloudTpu, cls).Task()
+  def Task(self):
+    p = super(WmtEnDeRNMTCloudTpu, self).Task()
 
     p.encoder.emb.max_num_shards = 1
     p.decoder.emb.max_num_shards = 1
