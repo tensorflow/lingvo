@@ -361,14 +361,17 @@ class WaymoLaserExtractor(input_extractor.LaserExtractor):
     p = self.params
     all_xyzs = []
     all_laser_features = []
-    for feature_name in self.FeatureMap():
-      laser_data = tf.reshape(
-          _Dense(features[feature_name]), [-1, 3 + p.num_features])
-      points_xyz = laser_data[..., 0:3]
-      points_feature = laser_data[..., 3:]
 
-      all_xyzs += [points_xyz]
-      all_laser_features += [points_feature]
+    for lidar in p.lidar_names:
+      for ri in ['ri1', 'ri2']:
+        feature_name = 'laser_%s_%s' % (lidar, ri)
+        laser_data = tf.reshape(
+            _Dense(features[feature_name]), [-1, 3 + p.num_features])
+        points_xyz = laser_data[..., 0:3]
+        points_feature = laser_data[..., 3:]
+
+        all_xyzs += [points_xyz]
+        all_laser_features += [points_feature]
 
     # Stack all of the points along the major dimension
     points_xyz = tf.concat(all_xyzs, axis=0)
@@ -885,9 +888,9 @@ class FilterNLZPoints(input_preprocessors.Preprocessor):
       raise ValueError('FilterNLZPoints preprocessor does not support '
                        'padded lasers.')
 
-    # The last feature in the laser is 1.0 for points in a no-label-zone
+    # The 3rd feature in the laser is 1.0 for points in a no-label-zone
     # and -1. for normal points.
-    is_not_nlz = tf.not_equal(features.lasers.points_feature[:, -1], 1.0)
+    is_not_nlz = tf.not_equal(features.lasers.points_feature[:, 2], 1.0)
     features.lasers.points_xyz = tf.boolean_mask(features.lasers.points_xyz,
                                                  is_not_nlz)
     features.lasers.points_feature = tf.boolean_mask(

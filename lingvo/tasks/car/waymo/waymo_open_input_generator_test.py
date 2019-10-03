@@ -32,10 +32,10 @@ class WaymoOpenInputGeneratorTest(test_utils.TestCase):
 
   def testFilterNLZ(self):
     num_points = 32
-    num_features = 4
+    num_features = 3
     points_feature = np.random.rand(num_points, num_features).astype(np.float32)
     # Mark one point as being in nlz.
-    points_feature[-1, -1] = 1.
+    points_feature[-1, 2] = 1.
     lasers_np = py_utils.NestedMap(
         points_xyz=np.random.rand(num_points, 3).astype(np.float32),
         points_feature=points_feature)
