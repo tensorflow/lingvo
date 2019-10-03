@@ -153,8 +153,7 @@ class StarNetBase(base_model_params.SingleTaskModelParams):
   class AnchorBoxSettings(input_preprocessors.SparseCarV1AnchorBoxSettings):
     ROTATIONS = [0, np.pi / 2, 3. * np.pi / 4, np.pi / 4]
 
-  @classmethod
-  def _configure_input(cls, p, split):
+  def _configure_input(self, p, split):
     p.file_datasource.file_pattern_prefix = _WAYMO_BASE
 
     job_type = cluster_factory.Current().job
@@ -185,10 +184,10 @@ class StarNetBase(base_model_params.SingleTaskModelParams):
             max_num_points=max_num_points), '')
 
     p.preprocessors.viz_copy.pad_lasers.max_num_points = max_num_points
-    p.preprocessors.filter_groundtruth.min_num_points = cls.GT_MIN_NUM_POINTS
+    p.preprocessors.filter_groundtruth.min_num_points = self.GT_MIN_NUM_POINTS
 
     p.preprocessors.select_centers.num_cell_centers = 1024
-    p.preprocessors.gather_features.num_points_per_cell = cls.NUM_POINTS_PER_CELL
+    p.preprocessors.gather_features.num_points_per_cell = self.NUM_POINTS_PER_CELL
     p.preprocessors.gather_features.sample_neighbors_uniformly = True
     p.preprocessors.gather_features.max_distance = 2.75
 
@@ -208,8 +207,8 @@ class StarNetBase(base_model_params.SingleTaskModelParams):
 
     # Apply car anchor box settings.
     tile_anchors_p = p.preprocessors.tile_anchors
-    cls.AnchorBoxSettings.Update(p.preprocessors.tile_anchors)
-    num_anchor_configs = cls.AnchorBoxSettings.NumAnchors()
+    self.AnchorBoxSettings.Update(p.preprocessors.tile_anchors)
+    num_anchor_configs = self.AnchorBoxSettings.NumAnchors()
 
     assert len(tile_anchors_p.anchor_box_dimensions) == num_anchor_configs
     assert len(tile_anchors_p.anchor_box_rotations) == num_anchor_configs
@@ -226,7 +225,7 @@ class StarNetBase(base_model_params.SingleTaskModelParams):
     p.file_buffer_size = 32
     p.file_parallelism = 8
     p.num_batcher_threads = 8
-    if cls.RUN_LOCALLY:
+    if self.RUN_LOCALLY:
       p.num_batcher_threads = 1
       p.file_buffer_size = 1
       p.file_parallelism = 1
@@ -240,48 +239,42 @@ class StarNetBase(base_model_params.SingleTaskModelParams):
       p.num_batcher_threads = 16
     return p
 
-  @classmethod
-  def Train(cls):
+  def Train(self):
     p = waymo_open_input_generator.WaymoSparseLaser.Params()
     p = WaymoTrainSpec(p)
-    p = cls._configure_input(p, 'Train')
+    p = self._configure_input(p, 'Train')
     return p
 
-  @classmethod
-  def Minitrain(cls):
-    p = cls.Train()
+  def Minitrain(self):
+    p = self.Train()
     p = WaymoMiniTrainSpec(p)
     return p
 
-  @classmethod
-  def Test(cls):
+  def Test(self):
     p = waymo_open_input_generator.WaymoSparseLaser.Params()
     p = WaymoTestSpec(p)
-    p = cls._configure_input(p, 'Test')
+    p = self._configure_input(p, 'Test')
     return p
 
-  @classmethod
-  def Dev(cls):
+  def Dev(self):
     p = waymo_open_input_generator.WaymoSparseLaser.Params()
     p = WaymoValSpec(p)
-    p = cls._configure_input(p, 'Dev')
+    p = self._configure_input(p, 'Dev')
     return p
 
-  @classmethod
-  def Minidev(cls):
-    p = cls.Dev()
+  def Minidev(self):
+    p = self.Dev()
     p = WaymoMinivalSpec(p)
     return p
 
-  @classmethod
-  def Task(cls):
+  def Task(self):
     metadata = waymo_metadata.WaymoMetadata()
     num_classes = len(metadata.ClassNames())
     p = starnet.ModelV2.Params(
         num_classes,
-        num_anchor_bboxes_offsets=cls.NUM_ANCHOR_BBOX_OFFSETS,
-        num_anchor_bboxes_rotations=cls.NUM_ANCHOR_BBOX_ROTATIONS,
-        num_anchor_bboxes_dimensions=cls.NUM_ANCHOR_BBOX_DIMENSIONS,
+        num_anchor_bboxes_offsets=self.NUM_ANCHOR_BBOX_OFFSETS,
+        num_anchor_bboxes_rotations=self.NUM_ANCHOR_BBOX_ROTATIONS,
+        num_anchor_bboxes_dimensions=self.NUM_ANCHOR_BBOX_DIMENSIONS,
         num_laser_features=3)
 
     # Update the Point Cloud Featurizer architecture
@@ -290,16 +283,16 @@ class StarNetBase(base_model_params.SingleTaskModelParams):
         py_utils.WeightInit.KaimingUniformFanInRelu())
 
     gin_layers = [
-        [cls.GIN_HIDDEN_DIMS * 2, cls.GIN_HIDDEN_DIMS * 4, cls.GIN_HIDDEN_DIMS]
-    ] * cls.NUM_GIN_LAYERS  # pyformat: disable
+        [self.GIN_HIDDEN_DIMS*2, self.GIN_HIDDEN_DIMS*4, self.GIN_HIDDEN_DIMS]
+    ] * self.NUM_GIN_LAYERS  # pyformat: disable
 
     p.cell_featurizer = starnet_builder.GINFeaturizerV2(
         'feat',
         num_laser_features=3,
-        fc_dims=cls.GIN_HIDDEN_DIMS,
+        fc_dims=self.GIN_HIDDEN_DIMS,
         mlp_dims=gin_layers,
         fc_use_bn=False)
-    p.cell_feature_dims = cls.GIN_HIDDEN_DIMS * (cls.NUM_GIN_LAYERS + 1)
+    p.cell_feature_dims = self.GIN_HIDDEN_DIMS * (self.NUM_GIN_LAYERS + 1)
 
     p.output_decoder = waymo_decoder.WaymoOpenDatasetDecoder.Params()
     p.max_nms_boxes = 512
@@ -339,7 +332,7 @@ class StarNetBase(base_model_params.SingleTaskModelParams):
 
     # Set learning rate and schedule.
     with cluster_factory.Cluster(train_cluster_p):
-      train_input_p = cls.Train()
+      train_input_p = self.Train()
 
     # Adapted from V1 tuning.
     tp.ema_decay = 0.99
@@ -371,9 +364,8 @@ class StarNetVehicle(StarNetBase):
     CENTER_Y_OFFSETS = np.linspace(-1.294, 1.294, 5)
     CENTER_Z_OFFSETS = [0.819622]
 
-  @classmethod
-  def _configure_input(cls, p, split):
-    p = super(StarNetVehicle, cls)._configure_input(p, split)
+  def _configure_input(self, p, split):
+    p = super(StarNetVehicle, self)._configure_input(p, split)
 
     # Select points in approx z range, set using 10 and 90 percentile from
     # train data.
@@ -385,9 +377,8 @@ class StarNetVehicle(StarNetBase):
     _FilterKeepLabels(p, ['Vehicle'])
     return p
 
-  @classmethod
-  def Task(cls):
-    p = super(StarNetVehicle, cls).Task()
+  def Task(self):
+    p = super(StarNetVehicle, self).Task()
     p.train.l2_regularizer_weight = 3e-5
 
     class_names = waymo_metadata.WaymoMetadata().ClassNames()
@@ -418,9 +409,8 @@ class StarNetPed(StarNetBase):
     CENTER_Y_OFFSETS = np.linspace(-0.6, 0.6, 5)
     CENTER_Z_OFFSETS = [0.819622]
 
-  @classmethod
-  def _configure_input(cls, p, split):
-    p = super(StarNetPed, cls)._configure_input(p, split)
+  def _configure_input(self, p, split):
+    p = super(StarNetPed, self)._configure_input(p, split)
 
     # Select points in approx z range, set using 10 and 90 percentile from
     # train data.
@@ -432,9 +422,8 @@ class StarNetPed(StarNetBase):
     _FilterKeepLabels(p, ['Pedestrian'])
     return p
 
-  @classmethod
-  def Task(cls):
-    p = super(StarNetPed, cls).Task()
+  def Task(self):
+    p = super(StarNetPed, self).Task()
     p.train.l2_regularizer_weight = 3e-6
 
     class_names = waymo_metadata.WaymoMetadata().ClassNames()
@@ -457,13 +446,12 @@ class StarNetPed(StarNetBase):
 class StarNetPedFused(StarNetPed):
   """StarNet Pedestrian model with SparseSampler fused input preprocessor."""
 
-  @classmethod
-  def _configure_input(cls, p, split):
-    p = super(StarNetPedFused, cls)._configure_input(p, split)
+  def _configure_input(self, p, split):
+    p = super(StarNetPedFused, self)._configure_input(p, split)
 
     job_type = cluster_factory.Current().job
 
-    if job_type.startswith('trainer') and not cls.RUN_LOCALLY:
+    if job_type.startswith('trainer') and not self.RUN_LOCALLY:
       p.file_buffer_size = 48
       p.file_parallelism = 48
       p.num_batcher_threads = 48

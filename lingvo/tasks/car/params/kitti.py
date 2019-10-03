@@ -202,28 +202,26 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
   class AnchorBoxSettings(input_preprocessors.SparseCarV1AnchorBoxSettings):
     ROTATIONS = [0, np.pi / 2, 3. * np.pi / 4, np.pi / 4]
 
-  @classmethod
-  def _configure_input(cls, p):
+  def _configure_input(self, p):
     """Base function managing the delegation of job specific input configs."""
-    cls._configure_generic_input(p)
+    self._configure_generic_input(p)
     cluster = cluster_factory.Current()
     job = cluster.job
     if job.startswith('trainer'):
-      cls._configure_trainer_input(p)
+      self._configure_trainer_input(p)
     elif job.startswith('decoder'):
-      cls._configure_decoder_input(p)
+      self._configure_decoder_input(p)
     elif job.startswith('evaler'):
-      cls._configure_evaler_input(p)
+      self._configure_evaler_input(p)
     else:
       tf.logging.info('There are no input configuration changes to for '
                       'job {}.'.format(job))
-    if cls.RUN_LOCALLY:
+    if self.RUN_LOCALLY:
       p.num_batcher_threads = 1
       p.file_buffer_size = 1
       p.file_parallelism = 1
 
-  @classmethod
-  def _configure_generic_input(cls, p):
+  def _configure_generic_input(self, p):
     """Update input_config `p` for all jobs."""
     p.file_datasource.file_pattern_prefix = _KITTI_BASE
 
@@ -247,16 +245,16 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
     p.preprocessors.gather_features.max_distance = 3.0
 
     p.preprocessors.assign_anchors.foreground_assignment_threshold = (
-        cls.FOREGROUND_ASSIGNMENT_THRESHOLD)
+        self.FOREGROUND_ASSIGNMENT_THRESHOLD)
     p.preprocessors.assign_anchors.background_assignment_threshold = (
-        cls.BACKGROUND_ASSIGNMENT_THRESHOLD)
+        self.BACKGROUND_ASSIGNMENT_THRESHOLD)
 
     # Apply car anchor box settings.
     tile_anchors_p = p.preprocessors.tile_anchors
-    cls.AnchorBoxSettings.Update(p.preprocessors.tile_anchors)
+    self.AnchorBoxSettings.Update(p.preprocessors.tile_anchors)
     num_anchor_configs = (
-        cls.NUM_ANCHOR_BBOX_OFFSETS * cls.NUM_ANCHOR_BBOX_ROTATIONS *
-        cls.NUM_ANCHOR_BBOX_DIMENSIONS)
+        self.NUM_ANCHOR_BBOX_OFFSETS * self.NUM_ANCHOR_BBOX_ROTATIONS *
+        self.NUM_ANCHOR_BBOX_DIMENSIONS)
 
     assert len(tile_anchors_p.anchor_box_dimensions) == num_anchor_configs
     assert len(tile_anchors_p.anchor_box_rotations) == num_anchor_configs
@@ -266,13 +264,12 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
     if 'labels' in p.extractors:
       filtered_labels = [
           kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES.index(
-              class_name) for class_name in cls.INCLUDED_CLASSES
+              class_name) for class_name in self.INCLUDED_CLASSES
       ]
       p.extractors.labels.filter_labels = filtered_labels
     p = AddLaserAndCamera(p)
 
-  @classmethod
-  def _configure_trainer_input(cls, p):
+  def _configure_trainer_input(self, p):
     """Update input_config `p` for jobs running training."""
     # TODO(bencaine): Change the default in input_generator to be False
     # and only set this true in _configure_decoder_input
@@ -306,7 +303,7 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
     # Add ground truth augmenter to before all preprocessors.
     allowed_label_ids = [
         kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES.index(
-            class_name) for class_name in cls.INCLUDED_CLASSES
+            class_name) for class_name in self.INCLUDED_CLASSES
     ]
     groundtruth_db = datasource.PrefixedDataSourceWrapper.Params()
     groundtruth_db.file_pattern_prefix = _KITTI_BASE
@@ -334,16 +331,14 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
     p.file_parallelism = 64
     p.num_batcher_threads = 64
 
-  @classmethod
-  def _configure_decoder_input(cls, p):
+  def _configure_decoder_input(self, p):
     """Update input_config `p` for jobs running decoding."""
     p.batch_size = 4
     p.file_parallelism = 8
     p.num_batcher_threads = 8
     p.file_buffer_size = 500
 
-  @classmethod
-  def _configure_evaler_input(cls, p):
+  def _configure_evaler_input(self, p):
     """Update input_config `p` for jobs running evaluation."""
     # TODO(bencaine): Change the default in input_generator to be False
     # and only set this true in _configure_decoder_input
@@ -355,33 +350,29 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
     p.num_batcher_threads = 8
     p.file_buffer_size = 500
 
-  @classmethod
-  def Train(cls):
+  def Train(self):
     p = KITTISparseLaserTrain.Params()
-    cls._configure_input(p)
+    self._configure_input(p)
     return p
 
-  @classmethod
-  def Test(cls):
+  def Test(self):
     p = KITTISparseLaserTest.Params()
-    cls._configure_input(p)
+    self._configure_input(p)
     return p
 
-  @classmethod
-  def Dev(cls):
+  def Dev(self):
     p = KITTISparseLaserValidation.Params()
-    cls._configure_input(p)
+    self._configure_input(p)
     return p
 
-  @classmethod
-  def Task(cls):
+  def Task(self):
     num_classes = len(
         kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES)
     p = starnet.ModelV2.Params(
         num_classes,
-        num_anchor_bboxes_offsets=cls.NUM_ANCHOR_BBOX_OFFSETS,
-        num_anchor_bboxes_rotations=cls.NUM_ANCHOR_BBOX_ROTATIONS,
-        num_anchor_bboxes_dimensions=cls.NUM_ANCHOR_BBOX_DIMENSIONS)
+        num_anchor_bboxes_offsets=self.NUM_ANCHOR_BBOX_OFFSETS,
+        num_anchor_bboxes_rotations=self.NUM_ANCHOR_BBOX_ROTATIONS,
+        num_anchor_bboxes_dimensions=self.NUM_ANCHOR_BBOX_DIMENSIONS)
 
     p.name = 'sparse_detector'
 
@@ -401,7 +392,7 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
     tp.learning_rate = 0.001
     lr_util.SetExponentialLR(
         train_p=tp,
-        train_input_p=cls.Train(),
+        train_input_p=self.Train(),
         exp_start_epoch=150,
         total_epoch=650)
 
@@ -422,9 +413,8 @@ class StarNetCarModel0701(StarNetCarsBase):
     CENTER_X_OFFSETS = np.linspace(-1.294, 1.294, 5)
     CENTER_Y_OFFSETS = np.linspace(-1.294, 1.294, 5)
 
-  @classmethod
-  def _configure_generic_input(cls, p):
-    super(StarNetCarModel0701, cls)._configure_generic_input(p)
+  def _configure_generic_input(self, p):
+    super(StarNetCarModel0701, self)._configure_generic_input(p)
     # For selecting centers, drop points out of frustum and do approximate
     # ground removal.
     p.preprocessors.select_centers.features_preparation_layers = [
@@ -458,9 +448,8 @@ class StarNetCarModel0701(StarNetCarsBase):
             keep_z_range=(-1.4, np.inf)),
     ]
 
-  @classmethod
-  def _configure_trainer_input(cls, p):
-    super(StarNetCarModel0701, cls)._configure_trainer_input(p)
+  def _configure_trainer_input(self, p):
+    super(StarNetCarModel0701, self)._configure_trainer_input(p)
 
     p.preprocessors.Define(
         'global_loc_noise',
@@ -469,9 +458,8 @@ class StarNetCarModel0701(StarNetCarsBase):
     p.preprocessors_order.insert(
         p.preprocessors_order.index('world_scaling') + 1, 'global_loc_noise')
 
-  @classmethod
-  def Task(cls):
-    p = super(StarNetCarModel0701, cls).Task()
+  def Task(self):
+    p = super(StarNetCarModel0701, self).Task()
 
     # Builder configuration.
     builder = starnet.Builder()
@@ -536,9 +524,8 @@ class StarNetPedCycModel0704(StarNetCarsBase):
     CENTER_Y_OFFSETS = np.linspace(-0.31, 0.31, 3)
     CENTER_Z_OFFSETS = [-0.6]
 
-  @classmethod
-  def _configure_generic_input(cls, p):
-    super(StarNetPedCycModel0704, cls)._configure_generic_input(p)
+  def _configure_generic_input(self, p):
+    super(StarNetPedCycModel0704, self)._configure_generic_input(p)
     # For selecting centers, drop points out of frustum and do approximate
     # ground removal.
     p.preprocessors.select_centers.features_preparation_layers = [
@@ -565,13 +552,12 @@ class StarNetPedCycModel0704(StarNetCarsBase):
 
     p.preprocessors.gather_features.max_distance = 2.55
 
-  @classmethod
-  def _configure_trainer_input(cls, p):
-    super(StarNetPedCycModel0704, cls)._configure_trainer_input(p)
+  def _configure_trainer_input(self, p):
+    super(StarNetPedCycModel0704, self)._configure_trainer_input(p)
 
     allowed_label_ids = [
         kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES.index(
-            class_name) for class_name in cls.INCLUDED_CLASSES
+            class_name) for class_name in self.INCLUDED_CLASSES
     ]
     p.preprocessors.bbox_aug.Set(
         num_db_objects=19700,
@@ -583,21 +569,18 @@ class StarNetPedCycModel0704(StarNetCarsBase):
     )
     p.batch_size = 2
 
-  @classmethod
-  def _configure_decoder_input(cls, p):
+  def _configure_decoder_input(self, p):
     """Update input_config `p` for jobs running decoding."""
-    super(StarNetPedCycModel0704, cls)._configure_decoder_input(p)
+    super(StarNetPedCycModel0704, self)._configure_decoder_input(p)
     p.batch_size = 4
 
-  @classmethod
-  def _configure_evaler_input(cls, p):
+  def _configure_evaler_input(self, p):
     """Update input_config `p` for jobs running evaluation."""
-    super(StarNetPedCycModel0704, cls)._configure_evaler_input(p)
+    super(StarNetPedCycModel0704, self)._configure_evaler_input(p)
     p.batch_size = 4
 
-  @classmethod
-  def Task(cls):
-    p = super(StarNetPedCycModel0704, cls).Task()
+  def Task(self):
+    p = super(StarNetPedCycModel0704, self).Task()
     p.train.learning_rate = 7e-4
 
     builder = starnet.Builder()
