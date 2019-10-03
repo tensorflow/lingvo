@@ -506,14 +506,17 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">all_xyzs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">all_laser_features</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">feature_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">FeatureMap</span><span class="p">():</span>
-      <span class="n">laser_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="n">feature_name</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_features</span><span class="p">])</span>
-      <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">laser_data</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-      <span class="n">points_feature</span> <span class="o">=</span> <span class="n">laser_data</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:]</span>
 
-      <span class="n">all_xyzs</span> <span class="o">+=</span> <span class="p">[</span><span class="n">points_xyz</span><span class="p">]</span>
-      <span class="n">all_laser_features</span> <span class="o">+=</span> <span class="p">[</span><span class="n">points_feature</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">lidar</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">lidar_names</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">ri</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ri1&#39;</span><span class="p">,</span> <span class="s1">&#39;ri2&#39;</span><span class="p">]:</span>
+        <span class="n">feature_name</span> <span class="o">=</span> <span class="s1">&#39;laser_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">lidar</span><span class="p">,</span> <span class="n">ri</span><span class="p">)</span>
+        <span class="n">laser_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="n">feature_name</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_features</span><span class="p">])</span>
+        <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">laser_data</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">points_feature</span> <span class="o">=</span> <span class="n">laser_data</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:]</span>
+
+        <span class="n">all_xyzs</span> <span class="o">+=</span> <span class="p">[</span><span class="n">points_xyz</span><span class="p">]</span>
+        <span class="n">all_laser_features</span> <span class="o">+=</span> <span class="p">[</span><span class="n">points_feature</span><span class="p">]</span>
 
     <span class="c1"># Stack all of the points along the major dimension</span>
     <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_xyzs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -1030,9 +1033,9 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;FilterNLZPoints preprocessor does not support &#39;</span>
                        <span class="s1">&#39;padded lasers.&#39;</span><span class="p">)</span>
 
-    <span class="c1"># The last feature in the laser is 1.0 for points in a no-label-zone</span>
+    <span class="c1"># The 3rd feature in the laser is 1.0 for points in a no-label-zone</span>
     <span class="c1"># and -1. for normal points.</span>
-    <span class="n">is_not_nlz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">is_not_nlz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">)</span>
     <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_xyz</span><span class="p">,</span>
                                                  <span class="n">is_not_nlz</span><span class="p">)</span>
     <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span>
