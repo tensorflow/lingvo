@@ -290,10 +290,9 @@ def Dtypes(nmap_list):
   flatten = []
   for x in nmap_list:
     for k, v in x.FlattenItems():
-      assert isinstance(
-          v, (tf.Tensor, tf.Variable)), ('Non-tensor entry: %s=%s' % (k, v))
+      assert hasattr(v, 'dtype'), 'Non-tensor entry: %s=%s' % (k, v)
     flatten += x.Flatten()
-  return [x.dtype for x in flatten]
+  return [v.dtype for v in flatten]
 
 
 def _ConvertNoneGradientToZeros(xs, dxs):
