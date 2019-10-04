@@ -28,18 +28,19 @@ from lingvo.tasks.image import input_generator
 class Base(base_model_params.SingleTaskModelParams):
   """Input params for MNIST."""
 
-  def _Path(self):
+  @property
+  def path(self):
     # Generated using lingvo/tools:keras2ckpt.
     return '/tmp/mnist/mnist'
 
   def Train(self):
     p = input_generator.MnistTrainInput.Params()
-    p.ckpt = self._Path()
+    p.ckpt = self.path
     return p
 
   def Test(self):
     p = input_generator.MnistTestInput.Params()
-    p.ckpt = self._Path()
+    p.ckpt = self.path
     return p
 
   def Dev(self):
