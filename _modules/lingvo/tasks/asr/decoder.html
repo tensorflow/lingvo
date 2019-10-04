@@ -372,6 +372,10 @@
         <span class="s1">&#39;Use per-token average loss when set to True (default); when set &#39;</span>
         <span class="s1">&#39;to False use sequence average loss (sum logP across tokens in an &#39;</span>
         <span class="s1">&#39;output sequence) and average across all sequences in the batch.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;token_normalized_per_seq_loss&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether or not to normalize the per-sequence loss by the sequence &#39;</span>
+        <span class="s1">&#39;length.&#39;</span><span class="p">)</span>
     <span class="c1"># Configs for scheduled sampling.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;min_ground_truth_prob&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
@@ -771,6 +775,10 @@
         <span class="n">gamma</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_gamma</span><span class="p">)</span>
 
     <span class="n">per_sequence_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_example_loss</span> <span class="o">*</span> <span class="n">target_weights</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">token_normalized_per_seq_loss</span><span class="p">:</span>
+      <span class="n">per_seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">target_weights</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="c1"># +0.001 to avoid possible divide by 0.</span>
+      <span class="n">per_sequence_loss</span> <span class="o">/=</span> <span class="p">(</span><span class="n">per_seq_length</span> <span class="o">+</span> <span class="mf">0.001</span><span class="p">)</span>
     <span class="n">per_token_avg_loss</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_sequence_loss</span><span class="p">)</span> <span class="o">/</span> <span class="n">target_weights_sum_eps</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_token_avg_loss</span><span class="p">:</span>
@@ -788,7 +796,6 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
       <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">accuracy</span><span class="p">,</span>
                                                         <span class="n">target_weights_sum</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_sequence_loss</span></div>
 
 <div class="viewcode-block" id="AsrDecoderBase.InitDecoder"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.InitDecoder">[docs]</a>  <span class="k">def</span> <span class="nf">InitDecoder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">dec_bs</span><span class="p">):</span>
