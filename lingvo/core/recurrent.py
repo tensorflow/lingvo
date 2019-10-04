@@ -111,11 +111,12 @@ def _Update(nmap_acc, nmap_x, t):
         ret[key][t, :] = nmap_x[key]
   """
   acc_lst = nmap_acc.Flatten()
-  x_lst = nmap_x.Flatten()
+  kx_lst = nmap_x.FlattenItems()
   t = tf.to_int32([t])  # tf.to_int32 casts on-device tensors.
   lst = []
-  for acc, x in zip(acc_lst, x_lst):
-    lst += [inplace_ops.alias_inplace_update(acc, t, tf.expand_dims(x, 0))]
+  for acc, (key, x) in zip(acc_lst, kx_lst):
+    with tf.name_scope('update_%s' % key):
+      lst += [inplace_ops.alias_inplace_update(acc, t, tf.expand_dims(x, 0))]
   return nmap_acc.Pack(lst)
 
 
@@ -288,6 +289,9 @@ def Dtypes(nmap_list):
   """Returns all tensors' data types in a list."""
   flatten = []
   for x in nmap_list:
+    for k, v in x.FlattenItems():
+      assert isinstance(
+          v, (tf.Tensor, tf.Variable)), ('Non-tensor entry: %s=%s' % (k, v))
     flatten += x.Flatten()
   return [x.dtype for x in flatten]
 
