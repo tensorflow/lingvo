@@ -227,6 +227,10 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         'Use per-token average loss when set to True (default); when set '
         'to False use sequence average loss (sum logP across tokens in an '
         'output sequence) and average across all sequences in the batch.')
+    p.Define(
+        'token_normalized_per_seq_loss', False,
+        'Whether or not to normalize the per-sequence loss by the sequence '
+        'length.')
     # Configs for scheduled sampling.
     p.Define(
         'min_ground_truth_prob', 1.0,
@@ -626,6 +630,10 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         gamma=p.focal_loss_gamma)
 
     per_sequence_loss = tf.reduce_sum(per_example_loss * target_weights, 1)
+    if p.token_normalized_per_seq_loss:
+      per_seq_length = tf.reduce_sum(target_weights, 1)
+      # +0.001 to avoid possible divide by 0.
+      per_sequence_loss /= (per_seq_length + 0.001)
     per_token_avg_loss = (
         tf.reduce_sum(per_sequence_loss) / target_weights_sum_eps)
     if p.per_token_avg_loss:
@@ -643,7 +651,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     if not py_utils.use_tpu():
       metrics['fraction_of_correct_next_step_preds'] = (accuracy,
                                                         target_weights_sum)
-
     return metrics, per_sequence_loss
 
   def InitDecoder(self, theta, encoder_outputs, dec_bs):
