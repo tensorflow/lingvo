@@ -228,14 +228,19 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">temperature</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Remove None values, which are not supported by recurrent.</span>
+      <span class="k">del</span> <span class="n">encoder_outputs</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">]</span>
+    <span class="c1"># init_state_callback may modify &#39;encoder_outputs&#39;, e.g., by inserting</span>
+    <span class="c1"># &#39;packed_src&#39;.</span>
+    <span class="n">bs_result</span><span class="p">,</span> <span class="n">bs_state</span> <span class="o">=</span> <span class="n">init_state_callback</span><span class="p">(</span>
+        <span class="n">decoder_theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="c1"># &#39;recurrent_theta&#39; represents all cross-timestep information used by the</span>
     <span class="c1"># recurrent loop below, including layer theta and encoder outputs.</span>
     <span class="n">recurrent_theta</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">=</span><span class="n">decoder_theta</span><span class="p">,</span>
         <span class="n">random_seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">,</span>
         <span class="n">encoder_outputs</span><span class="o">=</span><span class="n">encoder_outputs</span><span class="p">)</span>
-    <span class="n">bs_result</span><span class="p">,</span> <span class="n">bs_state</span> <span class="o">=</span> <span class="n">init_state_callback</span><span class="p">(</span>
-        <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bs_result</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">recurrent_state0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">timestep</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>

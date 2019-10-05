@@ -762,7 +762,8 @@
 <span class="sd">          beam search, equal to beam_size * num_hyps_per_beam.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Tuple of initial model states.</span>
+<span class="sd">      Tuple of initial model states. Also inserts &#39;packed_src&#39; to</span>
+<span class="sd">      &#39;encoder_outputs&#39;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">source_paddings</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">padding</span>
@@ -777,23 +778,26 @@
       <span class="n">rnn_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">rnn_cell</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">layer_theta</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_zero_atten_state</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">InitForSourcePacked</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span>
-                                      <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">)</span>
+      <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">packed_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">InitForSourcePacked</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span>
+          <span class="n">source_paddings</span><span class="p">)</span>
       <span class="n">s_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_encs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">atten_context</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
           <span class="p">[</span><span class="n">num_hyps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">source_encs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">atten_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">ZeroAttentionState</span><span class="p">(</span><span class="n">s_seq_len</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">)</span>
       <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="n">s_seq_len</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">source_encs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">InitForSourcePacked</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span>
-                                      <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">)</span>
+      <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">packed_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">InitForSourcePacked</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span>
+          <span class="n">source_paddings</span><span class="p">)</span>
 
       <span class="n">src_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_encs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">zero_atten_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">ZeroAttentionState</span><span class="p">(</span><span class="n">src_seq_len</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">)</span>
 
       <span class="p">(</span><span class="n">atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span>
-       <span class="n">atten_states</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">ComputeContextVector</span><span class="p">(</span>
+       <span class="n">atten_states</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
            <span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
+           <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">packed_src</span><span class="p">,</span>
            <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
            <span class="n">attention_state</span><span class="o">=</span><span class="n">zero_atten_state</span><span class="p">)</span>
 
@@ -801,8 +805,8 @@
     <span class="k">return</span> <span class="n">rnn_states</span><span class="p">,</span> <span class="n">atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">atten_states</span>
 
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MTDecoderV1/DecodeStep&#39;</span><span class="p">)</span>
-  <span class="k">def</span> <span class="nf">_DecodeStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">embs</span><span class="p">,</span> <span class="n">step_paddings</span><span class="p">,</span> <span class="n">prev_atten_context</span><span class="p">,</span>
-                  <span class="n">rnn_states</span><span class="p">,</span> <span class="n">prev_atten_states</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">_DecodeStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">embs</span><span class="p">,</span> <span class="n">step_paddings</span><span class="p">,</span>
+                  <span class="n">prev_atten_context</span><span class="p">,</span> <span class="n">rnn_states</span><span class="p">,</span> <span class="n">prev_atten_states</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decode one step.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">new_rnn_states</span> <span class="o">=</span> <span class="p">[]</span>
@@ -815,8 +819,9 @@
     <span class="n">new_rnn_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_rnn_states_0</span><span class="p">)</span>
     <span class="n">rnn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">GetOutput</span><span class="p">(</span><span class="n">new_rnn_states_0</span><span class="p">)</span>
     <span class="n">cur_atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">atten_states</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">ComputeContextVector</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
+            <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">packed_src</span><span class="p">,</span>
             <span class="n">rnn_out</span><span class="p">,</span>
             <span class="n">attention_state</span><span class="o">=</span><span class="n">prev_atten_states</span><span class="p">))</span>
     <span class="k">assert</span> <span class="n">atten_states</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -947,8 +952,9 @@
     <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
     <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">embs</span><span class="p">)</span>
     <span class="n">atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">rnn_states</span><span class="p">,</span> <span class="n">step_out</span><span class="p">,</span> <span class="n">atten_states</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_DecodeStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">embs</span><span class="p">,</span> <span class="n">step_paddings</span><span class="p">,</span> <span class="n">prev_atten_context</span><span class="p">,</span>
-                         <span class="n">prev_rnn_states</span><span class="p">,</span> <span class="n">prev_atten_states</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DecodeStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">embs</span><span class="p">,</span> <span class="n">step_paddings</span><span class="p">,</span>
+                         <span class="n">prev_atten_context</span><span class="p">,</span> <span class="n">prev_rnn_states</span><span class="p">,</span>
+                         <span class="n">prev_atten_states</span><span class="p">))</span>
     <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">prev_atten_probs</span><span class="p">))</span>
 
     <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="p">[</span><span class="n">step_out</span><span class="p">])</span>
