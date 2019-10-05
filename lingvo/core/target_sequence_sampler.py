@@ -83,14 +83,19 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     """
     p = self.params
     assert p.temperature > 0
+    if getattr(encoder_outputs, 'segment_id', 1) is None:
+      # Remove None values, which are not supported by recurrent.
+      del encoder_outputs['segment_id']
+    # init_state_callback may modify 'encoder_outputs', e.g., by inserting
+    # 'packed_src'.
+    bs_result, bs_state = init_state_callback(
+        decoder_theta, encoder_outputs, num_hyps_per_beam=1)
     # 'recurrent_theta' represents all cross-timestep information used by the
     # recurrent loop below, including layer theta and encoder outputs.
     recurrent_theta = py_utils.NestedMap(
         theta=decoder_theta,
         random_seed=random_seed,
         encoder_outputs=encoder_outputs)
-    bs_result, bs_state = init_state_callback(
-        recurrent_theta.theta, encoder_outputs, num_hyps_per_beam=1)
     batch = tf.shape(bs_result.log_probs)[0]
     recurrent_state0 = py_utils.NestedMap(
         timestep=tf.zeros(shape=[], dtype=tf.int32),

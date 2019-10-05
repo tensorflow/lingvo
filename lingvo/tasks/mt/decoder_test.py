@@ -295,6 +295,32 @@ class DecoderTest(DecoderTestCaseBase):
     self.assertAllClose(expected_topk_scores,
                         actual_decode_feeding_att_context.topk_scores)
 
+  def testSampleTargetSequences(self, dtype=tf.float32):
+    tf.set_random_seed(_TF_RANDOM_SEED)
+    src_batch = 2
+    p = self._DecoderParams(dtype=dtype)
+    if p.cls != decoder.MTDecoderV1:
+      tf.logging.info('Skipping testSampleTargetSequences for %s', p.cls)
+      return
+    p.is_eval = True
+    p.rnn_cell_dim = 32
+    dec = p.Instantiate()
+    encoder_outputs, _ = self._Inputs(dtype=dtype)
+    sample = dec.SampleTargetSequences(
+        dec.theta, encoder_outputs, random_seed=tf.constant(1, dtype=tf.int32))
+
+    with self.session(use_gpu=True) as sess:
+      tf.global_variables_initializer().run()
+      actual_sample = sess.run(sample)
+
+    self.assertTupleEqual((src_batch, p.target_seq_len),
+                          actual_sample.ids.shape)
+    self.assertTupleEqual((src_batch, p.target_seq_len),
+                          actual_sample.paddings.shape)
+
+    expected_ids = [[0, 12, 12, 13, 5], [12, 10, 15, 1, 2]]
+    self.assertAllEqual(expected_ids, actual_sample.ids)
+
 
 class TransformerDecoderTestCaseBase(test_utils.TestCase):
 
