@@ -47,14 +47,18 @@ class TestRP : public RecordProcessor {
 
   ~TestRP() override {}
 
-  Status Process(const Rope& record, int64* bucket_key,
+  Status Process(const int source_id, const Rope& record, int64* bucket_key,
                  TensorVec* sample) override {
     const string val = string(record);
     *bucket_key = val.size();
     Tensor t(DT_STRING, {});
     record.AppendTo(&t.scalar<string>()());
+    Tensor ids(DT_STRING, {1});
+    auto lab = ids.flat<tensorflow::tstring>();
+    lab(0) = absl::StrCat(source_id);
     sample->clear();
     sample->push_back(std::move(t));
+    sample->push_back(std::move(ids));
     return Status::OK();
   }
 
@@ -62,11 +66,14 @@ class TestRP : public RecordProcessor {
                TensorVec* batch) override {
     const int64 n = samples.size();
     Tensor t(DT_STRING, {n});
+    Tensor source_ids(DT_STRING, {n});
     for (int i = 0; i < samples.size(); ++i) {
-      t.flat<string>()(i) = std::move(samples[i][0].scalar<string>()());
+      t.flat<string>()(i) = samples[i][0].scalar<string>()();
+      source_ids.flat<string>()(i) = samples[i][1].scalar<string>()();
     }
     batch->clear();
     batch->push_back(std::move(t));
+    batch->push_back(std::move(source_ids));
     return Status::OK();
   }
 };
@@ -95,6 +102,9 @@ TEST(RecordBatcher, Basic) {
     const Tensor& t = batch[0];
     ASSERT_EQ(t.dims(), 1);
     ASSERT_LE(t.dim_size(0), bopts.bucket_batch_limit[bucket_id]);
+    const Tensor& source_ids = batch[1];
+    ASSERT_EQ(source_ids.dims(), 1);
+    ASSERT_LE(source_ids.dim_size(0), bopts.bucket_batch_limit[bucket_id]);
     int maxlen = 0;
     for (int j = 0; j < t.dim_size(0); ++j) {
       auto len = t.vec<string>()(j).size();
@@ -103,6 +113,7 @@ TEST(RecordBatcher, Basic) {
         EXPECT_LT(bopts.bucket_upper_bound[bucket_id - 1], len);
       }
       maxlen = std::max<int>(maxlen, len);
+      ASSERT_EQ(source_ids.vec<string>()(j), "0");
     }
     VLOG(1) << bucket_id << " " << t.dim_size(0) << " " << maxlen;
   }
@@ -260,7 +271,9 @@ TEST(RecordBatcher, CaptureYielderStatus) {
   TensorVec batch;
   std::vector<string> records;
   // Fetch N * num_epochs worth of data, which should all be there.
-  while (records.size() < num_epochs * N) {
+  // Note that when there are multiple streams, we need repeat it
+  // (batch.size() - 1) times.
+  while (records.size() < num_epochs * N * (batch.size() - 1)) {
     TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
     for (int i = 0; i < batch.size(); ++i) {
       const Tensor& t = batch[i];

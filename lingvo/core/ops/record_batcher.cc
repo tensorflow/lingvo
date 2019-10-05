@@ -293,8 +293,8 @@ void RecordBatcher::ProcessorLoop() {
 
     // Get the next record.
     Rope record;
-    Status s = yielder_->Yield(&record, nullptr);
-
+    int source_id = 0;
+    Status s = yielder_->Yield(&record, &source_id);
     // If yielder returns OutOfRange, set
     // the out status appropriately and return.
     if (errors::IsOutOfRange(s)) {
@@ -312,7 +312,7 @@ void RecordBatcher::ProcessorLoop() {
     // Parse the record.
     int64 bucket;
     TensorVec sample;
-    s = processor_->Process(record, &bucket, &sample);
+    s = processor_->Process(source_id, record, &bucket, &sample);
     if (!s.ok()) {
       // Print error message. Some example processors use CANCELLED for data
       // that are filtered out. Print only first 10 such errors.

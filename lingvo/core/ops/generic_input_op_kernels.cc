@@ -95,7 +95,7 @@ class GenericInputProcessor : public RecordProcessor {
 
   ~GenericInputProcessor() { delete merger_; }
 
-  Status Process(const Rope& record, int64* bucket_key,
+  Status Process(const int source_id, const Rope& record, int64* bucket_key,
                  TensorVec* sample) override {
     // We expect that this input processor is used in conjunction with
     // RecordBatcher, which uses multiple threads to call this input
