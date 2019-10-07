@@ -441,6 +441,15 @@ escaping_single : 'In "quotes"'
         deserialized.FromTextWithTypes(x)
         self.assertEqual(p, deserialized)
 
+  def testToStr(self):
+    p = _params.Params()
+    p.Define('str', '', '')
+    p.str = 'test'
+    str_value = str(p)
+    self.assertEqual(str_value, """{
+  str: "test"
+}""")
+
 
 if __name__ == '__main__':
   tf.test.main()

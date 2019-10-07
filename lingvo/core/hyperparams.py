@@ -130,7 +130,7 @@ class _Param(object):
       # pylint: disable=protected-access
       value_str = self._value._ToString(nested_depth)
     elif isinstance(self._value, six.string_types):
-      return '"%s"' % self._value
+      return '%s%s: "%s"' % (nested_indent, self._name, self._value)
     else:
       value_str = str(GetRepr(self._value))
     return '%s%s: %s' % (nested_indent, self._name, value_str)
