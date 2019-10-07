@@ -329,7 +329,8 @@ class TransformerDecoderTestCaseBase(test_utils.TestCase):
                      is_transparent=False,
                      dtype=tf.float32,
                      fprop_dtype=None,
-                     use_task_emb=False):
+                     use_task_emb=False,
+                     init_step_ids=False):
     p = decoder.TransformerDecoder.Params()
     p.name = 'decoder'
     p.source_dim = 4
@@ -346,6 +347,7 @@ class TransformerDecoderTestCaseBase(test_utils.TestCase):
       p.task_emb = p.token_emb.Copy()
       p.task_emb.vocab_size = 4
     p.trans_tpl.vn = disable_vn
+    p.init_step_ids = init_step_ids
     p.trans_tpl.source_dim = 4
     p.trans_tpl.tr_atten_tpl.source_dim = 4
     p.trans_tpl.tr_atten_tpl.num_attention_heads = 2
@@ -370,7 +372,7 @@ class TransformerDecoderTestCaseBase(test_utils.TestCase):
 
     return p
 
-  def _Inputs(self, dtype=tf.float32, has_task_ids=False):
+  def _Inputs(self, dtype=tf.float32, has_task_ids=False, init_step_ids=False):
     np.random.seed(_NUMPY_RANDOM_SEED)
     src_time = 5
     src_batch = 4
@@ -404,7 +406,10 @@ class TransformerDecoderTestCaseBase(test_utils.TestCase):
       tgts['task_ids'] = tf.tile(
           tf.expand_dims(tf.tile(task_ids, [num_hyps]), 1), [1, tgt_time])
       encoder_outputs['target_task_ids'] = task_ids
-
+    if init_step_ids:
+      tgt_prefix = tf.constant(
+          np.random.randint(4, size=[src_batch]), dtype=tf.int32)
+      encoder_outputs['init_step_ids'] = tgt_prefix
     return (encoder_outputs, tgts, num_hyps)
 
   def _InputsForAttentionTest(self, dtype=tf.float32, has_task_ids=False):
@@ -757,16 +762,21 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       self.assertAlmostEqual(
           actual_loss, np.mean([actual_loss1, actual_loss2]), delta=0.0001)
 
-  def testBeamSearchDecode(self, dtype=tf.float32):
+  def _testBeamSearch(self,
+                      expected_values,
+                      dtype=tf.float32,
+                      init_step_ids=False,
+                      has_task_ids=False):
     tf.set_random_seed(_TF_RANDOM_SEED)
     src_batch = 4
     src_time = 5
-    p = self._DecoderParams(dtype=dtype)
+    p = self._DecoderParams(dtype=dtype, init_step_ids=init_step_ids)
     p.beam_search.num_hyps_per_beam = 2
     p.beam_search.coverage_penalty = 0.0
     p.beam_search.length_normalization = 0
     dec = decoder.TransformerDecoder(p)
-    encoder_outputs, _, _ = self._Inputs(dtype=dtype)
+    encoder_outputs, _, _ = self._Inputs(
+        dtype=dtype, has_task_ids=has_task_ids, init_step_ids=init_step_ids)
     decode = dec.BeamSearchDecode(encoder_outputs)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
     # sess.run(decode).
@@ -792,17 +802,11 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
         (src_batch, p.beam_search.num_hyps_per_beam),
         actual_decode.topk_scores.shape)
 
-    expected_topk_ids = [[2, 0, 0, 0, 0], [6, 2, 0, 0, 0], [14, 2, 0, 0, 0],
-                         [14, 14, 2, 0, 0], [2, 0, 0, 0, 0], [19, 2, 0, 0, 0],
-                         [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
-    expected_topk_lens = [1, 2, 2, 3, 1, 2, 0, 0]
-    expected_topk_scores = [[-2.059117, -4.157316], [-4.449532, -6.390632],
-                            [-2.486378, -4.982234], [0., 0.]]
-
     # Assert expected IDs etc
-    self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
-    self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
-    self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
+    self.assertAllEqual(expected_values['topk_ids'], actual_decode.topk_ids)
+    self.assertAllEqual(expected_values['topk_lens'], actual_decode.topk_lens)
+    self.assertAllClose(expected_values['topk_scores'],
+                        actual_decode.topk_scores)
 
     # Assert expected attention probs.
     hypstr = actual_decode.topk_hyps.flatten()[1]
@@ -813,14 +817,58 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     atten_vec_0 = list(np.expand_dims(np.array(hyp.atten_vecs[0].prob), 0)[0])
     atten_vec_1 = list(np.expand_dims(np.array(hyp.atten_vecs[1].prob), 0)[0])
 
-    expected_atten_vec_0 = [0.221406, 0.346385, 0.22003, 0.212177, 0.]
-    expected_atten_vec_1 = [0.216729, 0.332198, 0.23248, 0.218592, 0.]
-
-    self.assertAllClose(atten_vec_0, expected_atten_vec_0)
-    self.assertAllClose(atten_vec_1, expected_atten_vec_1)
+    self.assertAllClose(atten_vec_0, expected_values['atten_vec_0'])
+    self.assertAllClose(atten_vec_1, expected_values['atten_vec_1'])
 
     # Test normalized scores of hypotheses.
-    CompareToGoldenSingleFloat(self, -4.157315, hyp.normalized_score)
+    CompareToGoldenSingleFloat(self, expected_values['normalized_score'],
+                               hyp.normalized_score)
+
+  def testBeamSearchDecode(self, dtype=tf.float32):
+    expected_values = {}
+    expected_values['topk_ids'] = [[2, 0, 0, 0, 0], [6, 2, 0, 0, 0],
+                                   [14, 2, 0, 0, 0], [14, 14, 2, 0, 0],
+                                   [2, 0, 0, 0, 0], [19, 2, 0, 0, 0],
+                                   [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
+    expected_values['topk_lens'] = [1, 2, 2, 3, 1, 2, 0, 0]
+    expected_values['topk_scores'] = [[-2.059117, -4.157316],
+                                      [-4.449532, -6.390632],
+                                      [-2.486378, -4.982234], [0., 0.]]
+
+    expected_values['atten_vec_0'] = [0.221406, 0.346385, 0.22003, 0.212177, 0.]
+    expected_values['atten_vec_1'] = [0.216729, 0.332198, 0.23248, 0.218592, 0.]
+    expected_values['normalized_score'] = -4.157315
+
+    self._testBeamSearch(
+        expected_values=expected_values,
+        dtype=dtype,
+        init_step_ids=False,
+        has_task_ids=False)
+
+  def testBeamSearchDecodeTgtPrefix(self, dtype=tf.float32):
+    expected_values = {}
+    expected_values['topk_ids'] = [[2, 0, 0, 0, 0], [6, 2, 0, 0, 0],
+                                   [2, 0, 0, 0, 0], [14, 2, 0, 0, 0],
+                                   [15, 2, 0, 0, 0], [15, 6, 2, 0, 0],
+                                   [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
+    expected_values['topk_lens'] = [1, 2, 1, 2, 2, 3, 0, 0]
+    expected_values['topk_scores'] = [[-2.2137618, -4.269911],
+                                      [-2.1830645, -4.233546],
+                                      [-5.1078215, -7.622547], [0., 0.]]
+
+    expected_values['atten_vec_0'] = [
+        0.257150, 0.334206, 0.212230, 0.196411, 0.0
+    ]
+    expected_values['atten_vec_1'] = [
+        0.227123, 0.334039, 0.227740, 0.211095, 0.0
+    ]
+    expected_values['normalized_score'] = -4.2699108
+
+    self._testBeamSearch(
+        expected_values=expected_values,
+        dtype=dtype,
+        init_step_ids=True,
+        has_task_ids=False)
 
 
 class InsertionDecoderTest(TransformerDecoderTestCaseBase):

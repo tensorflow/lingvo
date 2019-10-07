@@ -876,7 +876,8 @@ class TransformerDecoder(MTBaseDecoder):
     # TODO(miachen): Extend this to more general logic of adding multiple
     # embedding fields.
     p.Define('task_emb', None, 'Task embedding layer params.')
-
+    p.Define('init_step_ids', False,
+             'Initializes beam search with first target id instead of <s>.')
     # MASS pretraining related (https://github.com/microsoft/MASS)
     p.Define(
         'use_lang_dependent_atten', False, 'If True, attention between '
@@ -1178,6 +1179,8 @@ class TransformerDecoder(MTBaseDecoder):
     p = self.params
     if p.task_emb:
       encoder_outputs['target_task_ids'] = targets.task_ids[:, 0]
+    if p.init_step_ids:
+      encoder_outputs['init_step_ids'] = targets.ids[:, 0]
     return encoder_outputs
 
   def ExtendStep(self, theta, encoder_outputs, new_ids, t, prefix_states):
@@ -1346,6 +1349,11 @@ class TransformerDecoder(MTBaseDecoder):
         log_probs=tf.zeros([num_hyps, p.softmax.num_classes],
                            dtype=py_utils.FPropDtype(p)),
         atten_probs=atten_probs)
+
+    if p.init_step_ids:
+      initial_results['step_ids'] = tf.expand_dims(
+          self._ExpandToNumHyps(encoder_outputs.init_step_ids,
+                                num_hyps_per_beam), 1)
 
     batch_size = num_hyps
     if isinstance(p.trans_tpl, list):
