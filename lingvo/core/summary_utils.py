@@ -242,3 +242,46 @@ def CollectVarHistogram(vs_gs):
 
     histogram('var_hist/' + name, var)
     histogram('grad_hist/' + name, grad)
+
+
+def PrepareSequenceForPlot(tensor, padding, name):
+  """Prepares a sequence feature for plotting.
+
+  The sequence feature is transposed and channels are flattened.
+
+  Args:
+    tensor: A n-D Tensor of shape [batch, time, ...].
+    padding: A Tensor of shape [batch, time].
+    name: A string as the name of the reshaped Tensor, which will be used as the
+      subcaption for plotting.
+
+  Returns:
+    A tuple of:
+      reshaped_tensor: A 3-D Tensor of shape [batch, dim, time].
+      sequence_length: A 1-D Tensor of shape [batch].
+  """
+  # Flatten any dimensions beyond the third into the third.
+  batch_size, max_len = py_utils.GetShape(tensor, 2)
+  plot_tensor = tf.reshape(tensor, [batch_size, max_len, -1])
+  plot_tensor = tf.transpose(plot_tensor, [0, 2, 1], name=name)
+  return (plot_tensor, SequenceLength(padding))
+
+
+def PlotSequenceFeatures(plots, name, **kwargs):
+  """Plots a stack of sequence features.
+
+  Args:
+    plots: A list of tuple (tensor, seq_len), as returned by
+      PrepareSequenceForPlot().
+    name: A string for the caption of the plot.
+    **kwargs: Keyword arguments passed to AddSubplot().
+  """
+  if not _ShouldAddSummary():
+    return
+
+  with plot.MatplotlibFigureSummary(name, figsize=(8, len(plots) * 3.5)) as fig:
+    for tensor, seq_len in plots:
+      fig.AddSubplot([tensor, seq_len],
+                     TrimPaddingAndPlotSequence,
+                     title=tensor.name,
+                     **kwargs)

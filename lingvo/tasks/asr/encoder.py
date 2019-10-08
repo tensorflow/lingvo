@@ -23,7 +23,6 @@ import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import model_helper
-from lingvo.core import plot
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
@@ -336,17 +335,8 @@ class AsrEncoder(base_layer.BaseLayer):
         inputs = tf.concat([inputs, inputs_pad], 1, name='inputs')
         paddings = tf.concat([paddings, paddings_pad], 1)
 
-      def ReshapeForPlot(tensor, padding, name):
-        """Transposes and flattens channels to [batch, dim, seq_len] shape."""
-        # Flatten any dimensions beyond the third into the third.
-        batch_size = tf.shape(tensor)[0]
-        max_len = tf.shape(tensor)[1]
-        plot_tensor = tf.reshape(tensor, [batch_size, max_len, -1])
-        plot_tensor = tf.transpose(plot_tensor, [0, 2, 1], name=name)
-        return (plot_tensor, summary_utils.SequenceLength(padding))
-
       plots = [
-          ReshapeForPlot(
+          summary_utils.PrepareSequenceForPlot(
               tf.transpose(inputs, [0, 1, 3, 2]), paddings, 'inputs')
       ]
 
@@ -361,7 +351,7 @@ class AsrEncoder(base_layer.BaseLayer):
               encoded=tf.transpose(conv_out, [1, 0, 2, 3]),  # to [t, b, d, c]
               padding=tf.transpose(out_padding))
         plots.append(
-            ReshapeForPlot(
+            summary_utils.PrepareSequenceForPlot(
                 tf.transpose(conv_out, [0, 1, 3, 2]), out_padding,
                 'conv_%d_out' % i))
 
@@ -401,8 +391,9 @@ class AsrEncoder(base_layer.BaseLayer):
                                    [1, 0, 2, 3]),  # to [t, b, d, c]
               padding=tf.transpose(conv_lstm_out_padding))
         plots.append(
-            ReshapeForPlot(conv_lstm_out, conv_lstm_out_padding,
-                           'conv_lstm_%d_out' % i))
+            summary_utils.PrepareSequenceForPlot(conv_lstm_out,
+                                                 conv_lstm_out_padding,
+                                                 'conv_lstm_%d_out' % i))
 
       # Need to do a reshape before starting the rnn layers.
       conv_lstm_out = py_utils.HasRank(conv_lstm_out, 4)
@@ -460,22 +451,14 @@ class AsrEncoder(base_layer.BaseLayer):
           rnn_padding = tf.transpose(rnn_padding, [1, 0, 2])
 
         plots.append(
-            ReshapeForPlot(
+            summary_utils.PrepareSequenceForPlot(
                 tf.transpose(rnn_out, [1, 0, 2]),
                 tf.transpose(rnn_padding, [1, 0, 2]), 'rnn_%d_out' % i))
         rnn_in = rnn_out
       final_out = rnn_in
 
-      if self.cluster.add_summary:
-        with plot.MatplotlibFigureSummary(
-            'encoder_example', figsize=(8, len(plots) * 3.5)) as fig:
-          # Order layers from bottom to top.
-          plots.reverse()
-          for tensor, seq_len in plots:
-            fig.AddSubplot([tensor, seq_len],
-                           summary_utils.TrimPaddingAndPlotSequence,
-                           title=tensor.name,
-                           xlabel='Time')
+      summary_utils.PlotSequenceFeatures(
+          list(reversed(plots)), 'encoder_example', xlabel='Time')
 
       outputs['encoded'] = final_out
       outputs['padding'] = tf.squeeze(rnn_padding, [2])
