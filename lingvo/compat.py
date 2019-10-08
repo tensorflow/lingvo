@@ -28,7 +28,7 @@ from absl import logging
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.compat import v2_compat
 
-from tensorflow.python.framework import function
+from tensorflow.python.framework import function as _function_lib
 
 # The following imports are needed to expose private _Send/_Recv ops
 # on TensorFlow 1.X. The could be removed once support for 1.X is dropped.
@@ -39,7 +39,7 @@ from tensorflow.python.framework import op_def_registry as _op_def_registry
 # pylint: enable=g-direct-tensorflow-import
 
 v2_compat.disable_v2_behavior()
-Defun = function.Defun
+Defun = _function_lib.Defun
 
 
 # TODO(slebedev): Remove after there is no need to support 1.X.
