@@ -348,11 +348,11 @@ class FilterGroundTruthByNumPoints(Preprocessor):
   """Removes ground truth boxes with less than params.min_num_points points.
 
   This preprocessor expects features to contain the following keys::
-    labels.labels of shape [L]
-    labels.bboxes_3d of shape [L, 7]
-    labels.bboxes_3d_mask of shape [L]
-    labels.unfiltered_bboxes_3d_mask of shape [L]
-    labels.bboxes_3d_num_points of shape [L].
+    labels.labels of shape [..., L]
+    labels.bboxes_3d of shape [..., L, 7]
+    labels.bboxes_3d_mask of shape [..., L]
+    labels.unfiltered_bboxes_3d_mask of shape [..., L]
+    labels.bboxes_3d_num_points of shape [..., L].
 
   Modifies the bounding box data to turn off ground truth objects that don't
   meet the params.min_num_points point filter:
@@ -384,7 +384,7 @@ class FilterGroundTruthByNumPoints(Preprocessor):
                                      p.min_num_points)
     features.labels.labels = tf.where(
         bbox_is_valid, features.labels.labels,
-        tf.broadcast_to([p.background_id], features.labels.labels.shape))
+        p.background_id * tf.ones_like(features.labels.labels))
     features.labels.bboxes_3d_mask *= tf.cast(bbox_is_valid, tf.float32)
     # TODO(bencaine): When we properly implement Waymo difficulty levels
     # we should consider removing this as the difficulty classes will remove
