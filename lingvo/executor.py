@@ -60,10 +60,9 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
       for k, _ in multi_task_train_cfg.task_params.IterParams():
         single_task_params = base_model.SingleTaskModel.Params()
         single_task_params.cluster = multi_task_train_cfg.cluster
-        single_task_params.train = multi_task_train_cfg.train
         single_task_params.input = multi_task_train_cfg.input.Get(k)
-
         single_task_params.task = multi_task_train_cfg.task_params.Get(k)
+        single_task_params.train = single_task_params.task.train
         if k not in ps_cfg.program_schedule_dict:
           tf.logging.fatal(
               'Could not find %s in ps_cfg.program_schedule_dict: %s', k,
