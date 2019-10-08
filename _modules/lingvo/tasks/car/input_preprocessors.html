@@ -493,11 +493,11 @@
   <span class="sd">&quot;&quot;&quot;Removes ground truth boxes with less than params.min_num_points points.</span>
 
 <span class="sd">  This preprocessor expects features to contain the following keys::</span>
-<span class="sd">    labels.labels of shape [L]</span>
-<span class="sd">    labels.bboxes_3d of shape [L, 7]</span>
-<span class="sd">    labels.bboxes_3d_mask of shape [L]</span>
-<span class="sd">    labels.unfiltered_bboxes_3d_mask of shape [L]</span>
-<span class="sd">    labels.bboxes_3d_num_points of shape [L].</span>
+<span class="sd">    labels.labels of shape [..., L]</span>
+<span class="sd">    labels.bboxes_3d of shape [..., L, 7]</span>
+<span class="sd">    labels.bboxes_3d_mask of shape [..., L]</span>
+<span class="sd">    labels.unfiltered_bboxes_3d_mask of shape [..., L]</span>
+<span class="sd">    labels.bboxes_3d_num_points of shape [..., L].</span>
 
 <span class="sd">  Modifies the bounding box data to turn off ground truth objects that don&#39;t</span>
 <span class="sd">  meet the params.min_num_points point filter:</span>
@@ -529,7 +529,7 @@
                                      <span class="n">p</span><span class="o">.</span><span class="n">min_num_points</span><span class="p">)</span>
     <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
         <span class="n">bbox_is_valid</span><span class="p">,</span> <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">background_id</span><span class="p">],</span> <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">background_id</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span><span class="p">))</span>
     <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_mask</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bbox_is_valid</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="c1"># TODO(bencaine): When we properly implement Waymo difficulty levels</span>
     <span class="c1"># we should consider removing this as the difficulty classes will remove</span>
