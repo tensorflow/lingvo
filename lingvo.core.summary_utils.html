@@ -320,6 +320,46 @@ sequence.</p></li>
 <dd><p>Adds histogram summaries for variables and gradients.</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.summary_utils.PrepareSequenceForPlot">
+<code class="sig-prename descclassname">lingvo.core.summary_utils.</code><code class="sig-name descname">PrepareSequenceForPlot</code><span class="sig-paren">(</span><em class="sig-param">tensor</em>, <em class="sig-param">padding</em>, <em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/summary_utils.html#PrepareSequenceForPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.summary_utils.PrepareSequenceForPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepares a sequence feature for plotting.</p>
+<p>The sequence feature is transposed and channels are flattened.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> – A n-D Tensor of shape [batch, time, …].</p></li>
+<li><p><strong>padding</strong> – A Tensor of shape [batch, time].</p></li>
+<li><p><strong>name</strong> – A string as the name of the reshaped Tensor, which will be used as the
+subcaption for plotting.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>reshaped_tensor: A 3-D Tensor of shape [batch, dim, time].
+sequence_length: A 1-D Tensor of shape [batch].</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A tuple of</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.summary_utils.PlotSequenceFeatures">
+<code class="sig-prename descclassname">lingvo.core.summary_utils.</code><code class="sig-name descname">PlotSequenceFeatures</code><span class="sig-paren">(</span><em class="sig-param">plots</em>, <em class="sig-param">name</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/summary_utils.html#PlotSequenceFeatures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.summary_utils.PlotSequenceFeatures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots a stack of sequence features.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>plots</strong> – A list of tuple (tensor, seq_len), as returned by
+PrepareSequenceForPlot().</p></li>
+<li><p><strong>name</strong> – A string for the caption of the plot.</p></li>
+<li><p><strong>**kwargs</strong> – Keyword arguments passed to AddSubplot().</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 
