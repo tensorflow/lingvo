@@ -1021,7 +1021,8 @@
     <span class="c1"># TODO(miachen): Extend this to more general logic of adding multiple</span>
     <span class="c1"># embedding fields.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;task_emb&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Task embedding layer params.&#39;</span><span class="p">)</span>
-
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;init_step_ids&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Initializes beam search with first target id instead of &lt;s&gt;.&#39;</span><span class="p">)</span>
     <span class="c1"># MASS pretraining related (https://github.com/microsoft/MASS)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_lang_dependent_atten&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, attention between &#39;</span>
@@ -1323,6 +1324,8 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
       <span class="n">encoder_outputs</span><span class="p">[</span><span class="s1">&#39;target_task_ids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">task_ids</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">init_step_ids</span><span class="p">:</span>
+      <span class="n">encoder_outputs</span><span class="p">[</span><span class="s1">&#39;init_step_ids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">ids</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">encoder_outputs</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.ExtendStep"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">new_ids</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">prefix_states</span><span class="p">):</span>
@@ -1491,6 +1494,11 @@
         <span class="n">log_probs</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span><span class="p">],</span>
                            <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
         <span class="n">atten_probs</span><span class="o">=</span><span class="n">atten_probs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">init_step_ids</span><span class="p">:</span>
+      <span class="n">initial_results</span><span class="p">[</span><span class="s1">&#39;step_ids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ExpandToNumHyps</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="o">.</span><span class="n">init_step_ids</span><span class="p">,</span>
+                                <span class="n">num_hyps_per_beam</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
 
     <span class="n">batch_size</span> <span class="o">=</span> <span class="n">num_hyps</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
