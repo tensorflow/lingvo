@@ -832,7 +832,13 @@
 <span class="sd">      ValueError: If unknown token type.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">or</span> <span class="s1">&#39;default&#39;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseSequenceInputGenerator.Cast"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.Cast">[docs]</a>  <span class="k">def</span> <span class="nf">Cast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Cast tensor dtype to fprop_dtype.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="BaseTinyDatasetInput"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseTinyDatasetInput">[docs]</a><span class="k">class</span> <span class="nc">BaseTinyDatasetInput</span><span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
