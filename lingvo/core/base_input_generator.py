@@ -689,6 +689,12 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     key = key or 'default'
     return self.tokenizer_dict[key].IdsToStrings(ids, lens)
 
+  def Cast(self, v):
+    """Cast tensor dtype to fprop_dtype."""
+    if not v.dtype.is_floating:
+      return v
+    return tf.cast(v, py_utils.FPropDtype(self.params))
+
 
 class BaseTinyDatasetInput(BaseInputGenerator):
   """Input generator for tiny dataset which are stored in tf checkpoint.
