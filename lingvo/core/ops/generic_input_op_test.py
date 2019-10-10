@@ -28,7 +28,6 @@ from lingvo.core import generic_input
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 import numpy as np
-import six
 from six.moves import range
 
 
@@ -46,15 +45,17 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(('OutputList', False),
                                   ('OutputNestedMap', True))
   def testBasic(self, use_nested_map):
-    strs, vals = self._RunBasicGraph(use_nested_map=use_nested_map)
+    input_batch = self._RunBasicGraph(use_nested_map=use_nested_map)
     with self.session() as sess:
       record_seen = set()
       for i in range(100):
-        ans_strs, ans_vals = sess.run([strs, vals])
-        for s in ans_strs:
+        ans_input_batch = sess.run(input_batch)
+        for s in ans_input_batch.record:
           record_seen.add(s)
-        self.assertEqual(ans_strs.shape, (8,))
-        self.assertEqual(ans_vals.shape, (8, 2))
+        self.assertEqual(ans_input_batch.source_id.shape, (8,))
+        self.assertEqual(ans_input_batch.record.shape, (8,))
+        self.assertEqual(ans_input_batch.num.shape, (8, 2))
+        ans_vals = ans_input_batch.num
         self.assertAllEqual(np.square(ans_vals[:, 0]), ans_vals[:, 1])
       for i in range(100):
         self.assertIn(('%08d' % i).encode('utf-8'), record_seen)
@@ -72,25 +73,24 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
       return np.array(float(s), dtype=np.float32)
 
     # A record processor written in TF graph.
-    def _process(record):
+    def _process(source_id, record):
       num, = tf.py_func(str_to_num, [record], [tf.float32])
       num = tf.stack([num, tf.square(num)])
       if use_nested_map:
-        return py_utils.NestedMap(record=record, num=num), bucket_fn(num)
+        return py_utils.NestedMap(
+            source_id=source_id, record=record, num=num), bucket_fn(num)
       else:
-        return [record, num], bucket_fn(num)
+        return [source_id, record, num], bucket_fn(num)
 
     # Samples random records from the data files and processes them
     # to generate batches.
     inputs, _ = self.get_test_input(
         tmp, bucket_upper_bound=[1], processor=_process)
     if use_nested_map:
-      input_map = inputs
-      strs, vals = input_map.record, input_map.num
+      return inputs
     else:
-      strs, vals = inputs
-
-    return strs, vals
+      src_ids, strs, vals = inputs
+      return py_utils.NestedMap(source_id=src_ids, record=strs, num=vals)
 
   def testPadding(self):
     # Generate a test file w/ 50 records of different lengths.
@@ -140,28 +140,21 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
           tf.equal(tf.mod(num[0], 2), 0), lambda: 1,
           lambda: -tf.to_int32(num[0]))
 
-    strs, vals = self._RunBasicGraph(use_nested_map=False, bucket_fn=bucket_fn)
+    input_batch = self._RunBasicGraph(use_nested_map=False, bucket_fn=bucket_fn)
 
     with self.session() as sess:
       record_seen = set()
       for i in range(100):
-        ans_strs, ans_vals = sess.run([strs, vals])
-        for s in ans_strs:
+        ans_input_batch = sess.run(input_batch)
+        for s in ans_input_batch.record:
           record_seen.add(s)
-        self.assertEqual(ans_strs.shape, (8,))
-        self.assertEqual(ans_vals.shape, (8, 2))
-        self.assertAllEqual(np.square(ans_vals[:, 0]), ans_vals[:, 1])
       for i in range(100):
         if i % 2 == 0:
           self.assertIn(('%08d' % i).encode('utf-8'), record_seen)
         else:
           self.assertNotIn(('%08d' % i).encode('utf-8'), record_seen)
 
-
-class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
-  # Runs all GenericInputOp tests plus some more.
-
-  def testMix(self):
+  def testWithinBatchMixing(self):
     # Generate couple files.
     def generate_test_data(tag, cnt):
       tmp = os.path.join(tf.test.get_temp_dir(), tag)
@@ -177,12 +170,12 @@ class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
     g = tf.Graph()
     with g.as_default():
       # A record processor written in TF graph.
-      def _process(record):
-        return [record, record], 1
+      def _process(source_id, record):
+        return py_utils.NestedMap(source_id=source_id, record=record), 1
 
       # Samples random records from the data files and processes them
       # to generate batches.
-      (strs, vals), buckets = generic_input.GenericInput(
+      input_batch, buckets = generic_input.GenericInput(
           file_pattern=','.join(
               ['tfrecord:' + path1, 'tfrecord:' + path2, 'tfrecord:' + path3]),
           input_source_weights=[0.2, 0.3, 0.5],
@@ -194,22 +187,30 @@ class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
           processor=_process)
 
     with self.session(graph=g) as sess:
+      source_id_count = collections.defaultdict(int)
       tags_count = collections.defaultdict(int)
       total_count = 10000
       for _ in range(total_count):
-        ans_strs, ans_vals, ans_buckets = sess.run([strs, vals, buckets])
-        for s in ans_strs:
+        ans_input_batch, ans_buckets = sess.run([input_batch, buckets])
+        for s in ans_input_batch.source_id:
+          source_id_count[s] += 1
+        for s in ans_input_batch.record:
           tags_count[s.split(b':')[0]] += 1
-        self.assertEqual(ans_strs.shape, (8,))
-        self.assertEqual(ans_vals.shape, (8,))
+        self.assertEqual(ans_input_batch.source_id.shape, (8,))
+        self.assertEqual(ans_input_batch.record.shape, (8,))
         self.assertAllEqual(ans_buckets, [1] * 8)
+      self.assertEqual(sum(source_id_count.values()), total_count * 8)
       self.assertEqual(sum(tags_count.values()), total_count * 8)
-      mix_ratios = {}
-      for k, v in six.iteritems(tags_count):
-        mix_ratios[k] = float(v) / total_count / 8
-      self.assertAlmostEqual(mix_ratios[b'input1'], 0.2, delta=0.01)
-      self.assertAlmostEqual(mix_ratios[b'input2'], 0.3, delta=0.01)
-      self.assertAlmostEqual(mix_ratios[b'input3'], 0.5, delta=0.01)
+      num_records = 8. * total_count
+      self.assertAlmostEqual(
+          tags_count[b'input1'] / num_records, 0.2, delta=0.01)
+      self.assertAlmostEqual(
+          tags_count[b'input2'] / num_records, 0.3, delta=0.01)
+      self.assertAlmostEqual(
+          tags_count[b'input3'] / num_records, 0.5, delta=0.01)
+      self.assertAlmostEqual(source_id_count[0] / num_records, 0.2, delta=0.01)
+      self.assertAlmostEqual(source_id_count[1] / num_records, 0.3, delta=0.01)
+      self.assertAlmostEqual(source_id_count[2] / num_records, 0.5, delta=0.01)
 
 
 if __name__ == '__main__':

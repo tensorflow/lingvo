@@ -117,10 +117,12 @@ class GenericInputProcessor : public RecordProcessor {
     opts.step_container = &step_container;
     opts.runner = ThreadLocalRunner::PerThread().runner();
 
-    // The input is a single scalar string tensor.
-    TensorVec args(1);
-    args[0] = Tensor(DT_STRING, {});
-    record.AppendTo(&args[0].scalar<string>()());
+    // The input is a <source_id, record> pair.
+    TensorVec args(2);
+    args[0] = Tensor(DT_INT32, {});
+    args[0].scalar<int32>()() = source_id;
+    args[1] = Tensor(DT_STRING, {});
+    record.AppendTo(&args[1].scalar<string>()());
     *bucket_key = 1;
     sample->clear();
     Status status;

@@ -22,12 +22,10 @@ import lingvo.compat as tf
 from lingvo.core import ops
 from lingvo.core import py_utils
 from tensorflow.python.framework import function  # pylint:disable=g-direct-tensorflow-import
+from tensorflow.python.util import tf_inspect  # pylint: disable=g-direct-tensorflow-import
 
 
-# TODO(zhifengc): Changes processor's requirement to return a
-# tuple of (output, bucket_key) to be consistent w/ the return
-# value of GenericInput().
-def GenericInput(processor, *args, **kwargs):
+def GenericInput(processor, **kwargs):
   """Builds a generic input pipeline.
 
   Example usage::
@@ -49,14 +47,26 @@ def GenericInput(processor, *args, **kwargs):
     # represents the batch dimension.
     input_batch.field1 = ...
 
+  ParseRecord can also take both 'source_id' and 'record' as inputs (the arg
+  names must be exactly 'source_id' and 'record'):
+
+    def ParseRecord(source_id, record):
+      # Given a tf.int32 source_id and a tf.string record, return a (NestedMap,
+      # bucketing key) pair.
+      example = py_utils.NestedMap(source_id=source_id, ...)
+      ...
+      return example, bucketing_key
+
+    input_batch, bucket_keys = GenericInput(ParseRecord, file_pattern=..., ...)
+
   Args:
-    processor: a function that takes a string record as input and returns a
-      tuple (output, bucketing_key). `output` must be a NestedMap or a list of
-      tensors representing one example. The `bucketing_key` must be a scalar
-      convertible to a tf.int32 tensor that represents the bucketing key (e.g.,
-      sequence length for sequence inputs). If `bucketing_key` is a negative
-      number, the record is dropped.
-    *args: additional args for x_ops.generic_input.
+    processor: a function that takes either a tf.string record or a
+      (source_id: tf.int32, record: tf.string) pair as input and returns a
+      tuple (output, bucketing_key).
+      `output` must be a NestedMap or a list of tensors representing an example.
+      `bucketing_key` must be a scalar convertible to a tf.int32 tensor that
+      represents the bucketing key (e.g., sequence length for sequence inputs).
+      If `bucketing_key` is a negative number, the record is dropped.
     **kwargs: additional keyword args for x_ops.generic_input.
 
   Returns:
@@ -69,9 +79,20 @@ def GenericInput(processor, *args, **kwargs):
   """
   output_tmpl = py_utils.NestedMap()
 
-  def _FlatOutputProcessor(inputs):
+  def _FlatOutputProcessor(source_id, record):
     """Returns a flattened list of 'processor(inputs)'."""
-    output, bucketing_key = processor(inputs)
+    processor_spec = tf_inspect.getargspec(processor)
+    tf.logging.debug('GenericInput.processor.argspec=%s', processor_spec)
+    processor_args = set(processor_spec.args) - set(['self'])
+    if len(processor_args) == 1:
+      output, bucketing_key = processor(record)
+    elif processor_args == set(['source_id', 'record']):
+      output, bucketing_key = processor(source_id=source_id, record=record)
+    else:
+      raise ValueError(
+          'GenericInput: processor should take either a single arg '
+          'or two args named as "source_id" and "record". '
+          'Actual: %s' % processor_args)
     if isinstance(output, list):
       assert output
       assert all(isinstance(x, tf.Tensor) for x in output), '{}'.format(output)
@@ -95,14 +116,14 @@ def GenericInput(processor, *args, **kwargs):
                                                    function.get_extra_args()))
     return flat_output_tmpl + [bucketing_key]
 
-  proc_fn = tf.Defun(tf.string)(_FlatOutputProcessor)
+  proc_fn = tf.Defun(tf.int32, tf.string)(_FlatOutputProcessor)
 
   out_types = [
       tf.DType(a.type) for a in proc_fn.definition.signature.output_arg
   ]
   assert out_types[-1] == tf.int32, ('%s is not expected.' % out_types[-1])
   flat_outputs, bucket_keys = ops.gen_x_ops.generic_input(
-      processor=proc_fn, out_types=out_types[:-1], *args, **kwargs)
+      processor=proc_fn, out_types=out_types[:-1], **kwargs)
   tf.logging.debug('x_ops.generic_input flat_outputs=%s', flat_outputs)
   # Pack flat_outputs to outputs.
   outputs = output_tmpl.Pack(flat_outputs).out_values
