@@ -167,12 +167,10 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="k">import</span> <span class="n">tf_inspect</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 
 
-<span class="c1"># TODO(zhifengc): Changes processor&#39;s requirement to return a</span>
-<span class="c1"># tuple of (output, bucket_key) to be consistent w/ the return</span>
-<span class="c1"># value of GenericInput().</span>
-<div class="viewcode-block" id="GenericInput"><a class="viewcode-back" href="../../../lingvo.core.generic_input.html#lingvo.core.generic_input.GenericInput">[docs]</a><span class="k">def</span> <span class="nf">GenericInput</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="GenericInput"><a class="viewcode-back" href="../../../lingvo.core.generic_input.html#lingvo.core.generic_input.GenericInput">[docs]</a><span class="k">def</span> <span class="nf">GenericInput</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Builds a generic input pipeline.</span>
 
 <span class="sd">  Example usage::</span>
@@ -194,14 +192,26 @@
 <span class="sd">    # represents the batch dimension.</span>
 <span class="sd">    input_batch.field1 = ...</span>
 
+<span class="sd">  ParseRecord can also take both &#39;source_id&#39; and &#39;record&#39; as inputs (the arg</span>
+<span class="sd">  names must be exactly &#39;source_id&#39; and &#39;record&#39;):</span>
+
+<span class="sd">    def ParseRecord(source_id, record):</span>
+<span class="sd">      # Given a tf.int32 source_id and a tf.string record, return a (NestedMap,</span>
+<span class="sd">      # bucketing key) pair.</span>
+<span class="sd">      example = py_utils.NestedMap(source_id=source_id, ...)</span>
+<span class="sd">      ...</span>
+<span class="sd">      return example, bucketing_key</span>
+
+<span class="sd">    input_batch, bucket_keys = GenericInput(ParseRecord, file_pattern=..., ...)</span>
+
 <span class="sd">  Args:</span>
-<span class="sd">    processor: a function that takes a string record as input and returns a</span>
-<span class="sd">      tuple (output, bucketing_key). `output` must be a NestedMap or a list of</span>
-<span class="sd">      tensors representing one example. The `bucketing_key` must be a scalar</span>
-<span class="sd">      convertible to a tf.int32 tensor that represents the bucketing key (e.g.,</span>
-<span class="sd">      sequence length for sequence inputs). If `bucketing_key` is a negative</span>
-<span class="sd">      number, the record is dropped.</span>
-<span class="sd">    *args: additional args for x_ops.generic_input.</span>
+<span class="sd">    processor: a function that takes either a tf.string record or a</span>
+<span class="sd">      (source_id: tf.int32, record: tf.string) pair as input and returns a</span>
+<span class="sd">      tuple (output, bucketing_key).</span>
+<span class="sd">      `output` must be a NestedMap or a list of tensors representing an example.</span>
+<span class="sd">      `bucketing_key` must be a scalar convertible to a tf.int32 tensor that</span>
+<span class="sd">      represents the bucketing key (e.g., sequence length for sequence inputs).</span>
+<span class="sd">      If `bucketing_key` is a negative number, the record is dropped.</span>
 <span class="sd">    **kwargs: additional keyword args for x_ops.generic_input.</span>
 
 <span class="sd">  Returns:</span>
@@ -214,9 +224,20 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">output_tmpl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
-  <span class="k">def</span> <span class="nf">_FlatOutputProcessor</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">_FlatOutputProcessor</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a flattened list of &#39;processor(inputs)&#39;.&quot;&quot;&quot;</span>
-    <span class="n">output</span><span class="p">,</span> <span class="n">bucketing_key</span> <span class="o">=</span> <span class="n">processor</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">processor_spec</span> <span class="o">=</span> <span class="n">tf_inspect</span><span class="o">.</span><span class="n">getargspec</span><span class="p">(</span><span class="n">processor</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;GenericInput.processor.argspec=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">processor_spec</span><span class="p">)</span>
+    <span class="n">processor_args</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">processor_spec</span><span class="o">.</span><span class="n">args</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;self&#39;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">processor_args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">output</span><span class="p">,</span> <span class="n">bucketing_key</span> <span class="o">=</span> <span class="n">processor</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">processor_args</span> <span class="o">==</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;source_id&#39;</span><span class="p">,</span> <span class="s1">&#39;record&#39;</span><span class="p">]):</span>
+      <span class="n">output</span><span class="p">,</span> <span class="n">bucketing_key</span> <span class="o">=</span> <span class="n">processor</span><span class="p">(</span><span class="n">source_id</span><span class="o">=</span><span class="n">source_id</span><span class="p">,</span> <span class="n">record</span><span class="o">=</span><span class="n">record</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;GenericInput: processor should take either a single arg &#39;</span>
+          <span class="s1">&#39;or two args named as &quot;source_id&quot; and &quot;record&quot;. &#39;</span>
+          <span class="s1">&#39;Actual: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">processor_args</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
       <span class="k">assert</span> <span class="n">output</span>
       <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">output</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
@@ -240,14 +261,14 @@
                                                    <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">()))</span>
     <span class="k">return</span> <span class="n">flat_output_tmpl</span> <span class="o">+</span> <span class="p">[</span><span class="n">bucketing_key</span><span class="p">]</span>
 
-  <span class="n">proc_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)(</span><span class="n">_FlatOutputProcessor</span><span class="p">)</span>
+  <span class="n">proc_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)(</span><span class="n">_FlatOutputProcessor</span><span class="p">)</span>
 
   <span class="n">out_types</span> <span class="o">=</span> <span class="p">[</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">DType</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">proc_fn</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">output_arg</span>
   <span class="p">]</span>
   <span class="k">assert</span> <span class="n">out_types</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is not expected.&#39;</span> <span class="o">%</span> <span class="n">out_types</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
   <span class="n">flat_outputs</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">gen_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="p">(</span>
-      <span class="n">processor</span><span class="o">=</span><span class="n">proc_fn</span><span class="p">,</span> <span class="n">out_types</span><span class="o">=</span><span class="n">out_types</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="n">processor</span><span class="o">=</span><span class="n">proc_fn</span><span class="p">,</span> <span class="n">out_types</span><span class="o">=</span><span class="n">out_types</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;x_ops.generic_input flat_outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">flat_outputs</span><span class="p">)</span>
   <span class="c1"># Pack flat_outputs to outputs.</span>
   <span class="n">outputs</span> <span class="o">=</span> <span class="n">output_tmpl</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_outputs</span><span class="p">)</span><span class="o">.</span><span class="n">out_values</span>

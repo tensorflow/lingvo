@@ -168,7 +168,7 @@
 <p>Generic input.</p>
 <dl class="function">
 <dt id="lingvo.core.generic_input.GenericInput">
-<code class="sig-prename descclassname">lingvo.core.generic_input.</code><code class="sig-name descname">GenericInput</code><span class="sig-paren">(</span><em class="sig-param">processor</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/generic_input.html#GenericInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.generic_input.GenericInput" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.generic_input.</code><code class="sig-name descname">GenericInput</code><span class="sig-paren">(</span><em class="sig-param">processor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/generic_input.html#GenericInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.generic_input.GenericInput" title="Permalink to this definition">¶</a></dt>
 <dd><p>Builds a generic input pipeline.</p>
 <p>Example usage:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">ParseRecord</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
@@ -189,16 +189,29 @@
 <span class="n">input_batch</span><span class="o">.</span><span class="n">field1</span> <span class="o">=</span> <span class="o">...</span>
 </pre></div>
 </div>
+<p>ParseRecord can also take both ‘source_id’ and ‘record’ as inputs (the arg
+names must be exactly ‘source_id’ and ‘record’):</p>
+<blockquote>
+<div><dl class="simple">
+<dt>def ParseRecord(source_id, record):</dt><dd><p># Given a tf.int32 source_id and a tf.string record, return a (NestedMap,
+# bucketing key) pair.
+example = py_utils.NestedMap(source_id=source_id, …)
+…
+return example, bucketing_key</p>
+</dd>
+</dl>
+<p>input_batch, bucket_keys = GenericInput(ParseRecord, file_pattern=…, …)</p>
+</div></blockquote>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>processor</strong> – a function that takes a string record as input and returns a
-tuple (output, bucketing_key). <code class="xref py py-obj docutils literal notranslate"><span class="pre">output</span></code> must be a NestedMap or a list of
-tensors representing one example. The <code class="xref py py-obj docutils literal notranslate"><span class="pre">bucketing_key</span></code> must be a scalar
-convertible to a tf.int32 tensor that represents the bucketing key (e.g.,
-sequence length for sequence inputs). If <code class="xref py py-obj docutils literal notranslate"><span class="pre">bucketing_key</span></code> is a negative
-number, the record is dropped.</p></li>
-<li><p><strong>*args</strong> – additional args for x_ops.generic_input.</p></li>
+<li><p><strong>processor</strong> – a function that takes either a tf.string record or a
+(source_id: tf.int32, record: tf.string) pair as input and returns a
+tuple (output, bucketing_key).
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">output</span></code> must be a NestedMap or a list of tensors representing an example.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">bucketing_key</span></code> must be a scalar convertible to a tf.int32 tensor that
+represents the bucketing key (e.g., sequence length for sequence inputs).
+If <code class="xref py py-obj docutils literal notranslate"><span class="pre">bucketing_key</span></code> is a negative number, the record is dropped.</p></li>
 <li><p><strong>**kwargs</strong> – additional keyword args for x_ops.generic_input.</p></li>
 </ul>
 </dd>
