@@ -330,7 +330,7 @@
   <span class="c1"># When background is the most likely class for the box, mask out the scores</span>
   <span class="c1"># of that box from NMS scoring so the background boxes don&#39;t dominate the</span>
   <span class="c1"># NMS.</span>
-  <span class="n">nms_scores</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">likely_labels</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="n">nms_scores</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">likely_labels</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
   <span class="c1"># Compute NMS for every sample in the batch.</span>
   <span class="n">nms_indices</span><span class="p">,</span> <span class="n">valid_mask</span> <span class="o">=</span> <span class="n">utils_3d</span><span class="o">.</span><span class="n">BatchedNMSIndices</span><span class="p">(</span>
