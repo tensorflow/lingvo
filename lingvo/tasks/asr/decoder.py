@@ -815,6 +815,16 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       # is used for computing attention loss.
       predictions.source_enc_len = tf.reduce_sum(
           1 - encoder_outputs.padding, axis=0)
+      if 'paddings' in targets:
+        source_batch = py_utils.GetShape(encoder_outputs.padding)[1]
+        target_batch = py_utils.GetShape(targets.paddings)[0]
+        multiplier = target_batch // source_batch
+        source_len = py_utils.RepeatDim(
+            predictions.source_enc_len, multiplier, axis=0)
+        target_len = tf.reduce_sum(1 - targets.paddings, axis=1)
+        target_source_length_ratio = target_len / tf.maximum(source_len, 1.0)
+        summary_utils.scalar('avg_target_source_length_ratio',
+                             tf.reduce_mean(target_source_length_ratio))
     return predictions
 
   def _GetInitialSeqStateTensorArrays(self, max_seq_length,
