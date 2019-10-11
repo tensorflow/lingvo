@@ -201,8 +201,9 @@ class _ModelRegistryHelper(object):
     """
     all_params = cls.GetAllRegisteredClasses()
     if class_key not in all_params:
-      raise LookupError('Model %s not found. Known models:\n%s' %
-                        (class_key, '\n'.join(sorted(all_params.keys()))))
+      raise LookupError('Known models:\n%s.\n\n'
+                        'Model %s not found from list of above known models.' %
+                        ('\n'.join(sorted(all_params.keys())), class_key))
     return all_params[class_key]
 
   @classmethod

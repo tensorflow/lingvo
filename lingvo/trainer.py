@@ -1764,7 +1764,12 @@ class RunnerManager(object):
       # Try importing the module path implicitly defined by FLAGS.model so we
       # can register those models.
       module_name = self._model_name.rpartition('.')[0]
-      module_obj = importlib.import_module(module_name)
+      try:
+        module_obj = importlib.import_module(module_name)
+      except ImportError:
+        warn_str = ('\n\nAlso, unable to import `%s` as '
+                    'an external params module.\n\n' % module_name)
+        raise LookupError(str(e) + warn_str)
       tf.logging.info('Imported custom params: %s' % module_obj)
       # Strip off 'params.'
       self._model_name = self._model_name.replace('params.', '')
