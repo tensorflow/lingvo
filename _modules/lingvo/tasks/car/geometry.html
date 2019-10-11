@@ -199,6 +199,42 @@
                         <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
 
 
+<div class="viewcode-block" id="_MakeRotationMatrix"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry._MakeRotationMatrix">[docs]</a><span class="k">def</span> <span class="nf">_MakeRotationMatrix</span><span class="p">(</span><span class="n">yaw</span><span class="p">,</span> <span class="n">roll</span><span class="p">,</span> <span class="n">pitch</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Create a 3x3 rotation matrix from yaw, roll, pitch (angles in radians).</span>
+
+<span class="sd">  Note: Yaw -&gt; Z, Roll -&gt; X, Pitch -&gt; Y.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    yaw: float tensor representing a yaw angle in radians.</span>
+<span class="sd">    roll: float tensor representing a roll angle in radians.</span>
+<span class="sd">    pitch: float tensor representing a pitch angle in radians.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A [3, 3] tensor corresponding to a rotation matrix.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="c1"># pyformat: disable</span>
+  <span class="k">def</span> <span class="nf">_UnitX</span><span class="p">(</span><span class="n">angle</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span>
+                       <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span>
+                       <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)],</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+  <span class="k">def</span> <span class="nf">_UnitY</span><span class="p">(</span><span class="n">angle</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span>
+                       <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span>
+                       <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)],</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+  <span class="k">def</span> <span class="nf">_UnitZ</span><span class="p">(</span><span class="n">angle</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span>
+                       <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span>
+                       <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="c1"># pyformat: enable</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">_UnitZ</span><span class="p">(</span><span class="n">yaw</span><span class="p">),</span> <span class="n">_UnitX</span><span class="p">(</span><span class="n">roll</span><span class="p">)),</span> <span class="n">_UnitY</span><span class="p">(</span><span class="n">pitch</span><span class="p">))</span></div>
+
+
 <div class="viewcode-block" id="CoordinateTransform"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.CoordinateTransform">[docs]</a><span class="k">def</span> <span class="nf">CoordinateTransform</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">pose</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Translate &#39;points&#39; to coordinates according to &#39;pose&#39; vector.</span>
 
@@ -223,41 +259,74 @@
   <span class="n">translation</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="n">translate_x</span><span class="p">,</span> <span class="n">translate_y</span><span class="p">,</span> <span class="n">translate_z</span><span class="p">],</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
   <span class="n">translated_points</span> <span class="o">=</span> <span class="n">points</span> <span class="o">+</span> <span class="n">translation</span>
 
-  <span class="c1"># Define the rotation matrices for each of yaw, roll and pitch.</span>
-  <span class="c1">#</span>
-  <span class="c1"># The angle is expected to be in radians.</span>
-  <span class="c1"># pyformat: disable</span>
-  <span class="k">def</span> <span class="nf">UnitX</span><span class="p">(</span><span class="n">angle</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span>
-                       <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span>
-                       <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)],</span>
-                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
-
-  <span class="k">def</span> <span class="nf">UnitY</span><span class="p">(</span><span class="n">angle</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span>
-                       <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span>
-                       <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)],</span>
-                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
-
-  <span class="k">def</span> <span class="nf">UnitZ</span><span class="p">(</span><span class="n">angle</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span>
-                       <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span> <span class="mf">0.</span><span class="p">,</span>
-                       <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span>
-                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
-  <span class="c1"># pyformat: enable</span>
-
   <span class="c1"># Compose the rotations along the three axes.</span>
   <span class="c1">#</span>
-  <span class="c1"># Yaw-&gt;Z, Roll-&gt;X, Pitch-&gt;Y to match onboard logic:</span>
-  <span class="n">yaw</span> <span class="o">=</span> <span class="n">pose</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
-  <span class="n">roll</span> <span class="o">=</span> <span class="n">pose</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
-  <span class="n">pitch</span> <span class="o">=</span> <span class="n">pose</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
-  <span class="n">rotation_matrix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">UnitZ</span><span class="p">(</span><span class="n">yaw</span><span class="p">),</span> <span class="n">UnitX</span><span class="p">(</span><span class="n">roll</span><span class="p">)),</span> <span class="n">UnitY</span><span class="p">(</span><span class="n">pitch</span><span class="p">))</span>
+  <span class="c1"># Note: Yaw-&gt;Z, Roll-&gt;X, Pitch-&gt;Y.</span>
+  <span class="n">yaw</span><span class="p">,</span> <span class="n">roll</span><span class="p">,</span> <span class="n">pitch</span> <span class="o">=</span> <span class="n">pose</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">pose</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">pose</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+  <span class="n">rotation_matrix</span> <span class="o">=</span> <span class="n">_MakeRotationMatrix</span><span class="p">(</span><span class="n">yaw</span><span class="p">,</span> <span class="n">roll</span><span class="p">,</span> <span class="n">pitch</span><span class="p">)</span>
 
   <span class="c1"># Finally, rotate the points about the pose&#39;s origin according to the</span>
   <span class="c1"># rotation matrix.</span>
   <span class="n">rotated_points</span> <span class="o">=</span> <span class="n">_BroadcastMatmul</span><span class="p">(</span><span class="n">translated_points</span><span class="p">,</span> <span class="n">rotation_matrix</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">rotated_points</span></div>
+
+
+<div class="viewcode-block" id="TransformPoints"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.TransformPoints">[docs]</a><span class="k">def</span> <span class="nf">TransformPoints</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">transforms</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Apply 4x4 transforms to a set of points.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    points: A [..., num_points, 3] tensor of xyz point locations.</span>
+<span class="sd">    transforms: A [..., 4, 4] tensor with the same leading shape as points.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor with the same shape as points, transformed respectively.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># Create homogeneous coordinates for points.</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">points</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">1</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="c1"># Apply transformations, and divide by last axis to project back to 3D-space.</span>
+  <span class="c1"># Transpose the transforms since the transformation is usually expected to</span>
+  <span class="c1"># be applied such that new_points = T * current_point.</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">transforms</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">/</span> <span class="n">points</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:]</span>
+
+  <span class="k">return</span> <span class="n">points</span></div>
+
+
+<div class="viewcode-block" id="_WrapAngleRad"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry._WrapAngleRad">[docs]</a><span class="k">def</span> <span class="nf">_WrapAngleRad</span><span class="p">(</span><span class="n">angles_rad</span><span class="p">,</span> <span class="n">min_val</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrap the value of `angles_rad` to the range [min_val, max_val].&quot;&quot;&quot;</span>
+  <span class="n">max_min_diff</span> <span class="o">=</span> <span class="n">max_val</span> <span class="o">-</span> <span class="n">min_val</span>
+  <span class="k">return</span> <span class="n">min_val</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">angles_rad</span> <span class="o">+</span> <span class="n">max_val</span><span class="p">,</span> <span class="n">max_min_diff</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TransformBBoxes3D"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.TransformBBoxes3D">[docs]</a><span class="k">def</span> <span class="nf">TransformBBoxes3D</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">,</span> <span class="n">transforms</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Apply 4x4 transforms to 7 DOF bboxes (change center and rotation).</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    bboxes_3d: A [..., num_boxes, 7] tensor representing 3D bboxes.</span>
+<span class="sd">    transforms: A [..., 4, 4] tensor with the same leading shape as bboxes_3d.</span>
+<span class="sd">      These transforms are expected to only affect translation and rotation,</span>
+<span class="sd">      while not scaling the data. This ensures that the bboxes have the same</span>
+<span class="sd">      dimensions post transformation.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor with the same shape as bboxes_3d, with transforms applied to each</span>
+<span class="sd">    bbox3d.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">center_xyz</span> <span class="o">=</span> <span class="n">bboxes_3d</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+  <span class="n">dimensions</span> <span class="o">=</span> <span class="n">bboxes_3d</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+  <span class="n">rot</span> <span class="o">=</span> <span class="n">bboxes_3d</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span>
+
+  <span class="c1"># Transform center and rotation, assuming that dimensions are not changed.</span>
+  <span class="n">center_xyz</span> <span class="o">=</span> <span class="n">TransformPoints</span><span class="p">(</span><span class="n">center_xyz</span><span class="p">,</span> <span class="n">transforms</span><span class="p">)</span>
+  <span class="n">rot</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">transforms</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">transforms</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+  <span class="n">rot</span> <span class="o">=</span> <span class="n">_WrapAngleRad</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+      <span class="n">center_xyz</span><span class="p">,</span>
+      <span class="n">dimensions</span><span class="p">,</span>
+      <span class="n">rot</span><span class="p">,</span>
+  <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pyformat: disable</span></div>
 
 
 <div class="viewcode-block" id="XYWHToBBoxes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.XYWHToBBoxes">[docs]</a><span class="k">def</span> <span class="nf">XYWHToBBoxes</span><span class="p">(</span><span class="n">xywh</span><span class="p">):</span>

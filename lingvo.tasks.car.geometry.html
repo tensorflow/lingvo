@@ -193,6 +193,25 @@
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.tasks.car.geometry._MakeRotationMatrix">
+<code class="sig-prename descclassname">lingvo.tasks.car.geometry.</code><code class="sig-name descname">_MakeRotationMatrix</code><span class="sig-paren">(</span><em class="sig-param">yaw</em>, <em class="sig-param">roll</em>, <em class="sig-param">pitch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/geometry.html#_MakeRotationMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.geometry._MakeRotationMatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a 3x3 rotation matrix from yaw, roll, pitch (angles in radians).</p>
+<p>Note: Yaw -&gt; Z, Roll -&gt; X, Pitch -&gt; Y.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>yaw</strong> – float tensor representing a yaw angle in radians.</p></li>
+<li><p><strong>roll</strong> – float tensor representing a roll angle in radians.</p></li>
+<li><p><strong>pitch</strong> – float tensor representing a pitch angle in radians.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A [3, 3] tensor corresponding to a rotation matrix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.tasks.car.geometry.CoordinateTransform">
 <code class="sig-prename descclassname">lingvo.tasks.car.geometry.</code><code class="sig-name descname">CoordinateTransform</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">pose</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/geometry.html#CoordinateTransform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.geometry.CoordinateTransform" title="Permalink to this definition">¶</a></dt>
 <dd><p>Translate ‘points’ to coordinates according to ‘pose’ vector.</p>
@@ -212,6 +231,50 @@ of the rotation and translation angles to apply to points.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>‘points’ transformed to the coordinates defined by ‘pose’.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.geometry.TransformPoints">
+<code class="sig-prename descclassname">lingvo.tasks.car.geometry.</code><code class="sig-name descname">TransformPoints</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">transforms</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/geometry.html#TransformPoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.geometry.TransformPoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply 4x4 transforms to a set of points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> – A […, num_points, 3] tensor of xyz point locations.</p></li>
+<li><p><strong>transforms</strong> – A […, 4, 4] tensor with the same leading shape as points.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tensor with the same shape as points, transformed respectively.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.geometry._WrapAngleRad">
+<code class="sig-prename descclassname">lingvo.tasks.car.geometry.</code><code class="sig-name descname">_WrapAngleRad</code><span class="sig-paren">(</span><em class="sig-param">angles_rad</em>, <em class="sig-param">min_val=-3.141592653589793</em>, <em class="sig-param">max_val=3.141592653589793</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/geometry.html#_WrapAngleRad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.geometry._WrapAngleRad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap the value of <code class="xref py py-obj docutils literal notranslate"><span class="pre">angles_rad</span></code> to the range [min_val, max_val].</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.geometry.TransformBBoxes3D">
+<code class="sig-prename descclassname">lingvo.tasks.car.geometry.</code><code class="sig-name descname">TransformBBoxes3D</code><span class="sig-paren">(</span><em class="sig-param">bboxes_3d</em>, <em class="sig-param">transforms</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/geometry.html#TransformBBoxes3D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.geometry.TransformBBoxes3D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply 4x4 transforms to 7 DOF bboxes (change center and rotation).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bboxes_3d</strong> – A […, num_boxes, 7] tensor representing 3D bboxes.</p></li>
+<li><p><strong>transforms</strong> – A […, 4, 4] tensor with the same leading shape as bboxes_3d.
+These transforms are expected to only affect translation and rotation,
+while not scaling the data. This ensures that the bboxes have the same
+dimensions post transformation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tensor with the same shape as bboxes_3d, with transforms applied to each
+bbox3d.</p>
 </dd>
 </dl>
 </dd></dl>
