@@ -913,9 +913,19 @@ class TransformerDecoder(MTBaseDecoder):
   def __init__(self, params):
     super(TransformerDecoder, self).__init__(params)
     p = self.params
-    assert p.token_emb.vocab_size == p.softmax.num_classes
-    assert p.token_emb.embedding_dim == p.position_emb.embedding_dim
-    if p.model_dim != p.token_emb.embedding_dim:
+
+    if p.softmax.cls == layers.SharedSoftmaxLayer:
+      self._token_emb_vocab_size = p.softmax.num_classes
+      self._token_emb_dim = p.model_dim
+      self._share_sm_emb = True
+    else:
+      self._token_emb_vocab_size = p.token_emb.vocab_size
+      self._token_emb_dim = p.token_emb.embedding_dim
+      self._share_sm_emb = False
+
+    assert self._token_emb_vocab_size == p.softmax.num_classes
+    assert self._token_emb_dim == p.position_emb.embedding_dim
+    if p.model_dim != self._token_emb_dim:
       tf.logging.warning('token_emb.embedding_dim != model_dim (%s vs. %s), '
                          'creating a projection!')
       proj_p = layers.ProjectionLayer.Params().Copy()
@@ -928,10 +938,11 @@ class TransformerDecoder(MTBaseDecoder):
       p.trans_tpl.num_aux_atten_post_proj = p.task_emb.vocab_size
 
     with tf.variable_scope(p.name):
-      self.CreateChild('token_emb', p.token_emb)
+      if not self._share_sm_emb:
+        self.CreateChild('token_emb', p.token_emb)
       self.CreateChild('position_emb', p.position_emb)
       if p.task_emb:
-        assert p.task_emb.embedding_dim == p.token_emb.embedding_dim
+        assert p.task_emb.embedding_dim == self._token_emb_dim
         self.CreateChild('task_emb', p.task_emb)
 
       dropout_tpl = layers.DropoutLayer.Params()
@@ -1097,7 +1108,10 @@ class TransformerDecoder(MTBaseDecoder):
 
       # Embedding layer
       # [batch, time, model_dim]
-      token_embs = self.token_emb.EmbLookup(theta.token_emb, target_ids)
+      if not self._share_sm_emb:
+        token_embs = self.token_emb.EmbLookup(theta.token_emb, target_ids)
+      else:
+        token_embs = self.softmax.EmbLookup(theta.softmax, target_ids)
       target_time = py_utils.GetShape(target_ids)[1]
       # [1, time, model_dim]
       if p.packed_input:
@@ -1117,7 +1131,7 @@ class TransformerDecoder(MTBaseDecoder):
           atten_idx = self._ExpandToNumHyps(atten_idx, target_time)
         input_embs += self.task_emb.EmbLookup(theta.task_emb, targets.task_ids)
 
-      if p.model_dim != p.token_emb.embedding_dim:
+      if p.model_dim != self._token_emb_dim:
         input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)
 
       input_embs = tf.transpose(input_embs, [1, 0, 2])
@@ -1224,7 +1238,10 @@ class TransformerDecoder(MTBaseDecoder):
     with tf.name_scope(p.name):
       # Embedding layer
       # [batch, time, model_dim]
-      token_embs = self.token_emb.EmbLookup(theta.token_emb, new_ids)
+      if not self._share_sm_emb:
+        token_embs = self.token_emb.EmbLookup(theta.token_emb, new_ids)
+      else:
+        token_embs = self.softmax.EmbLookup(theta.softmax, new_ids)
       # [time, model_dim]
       posit_embs = tf.slice(
           self.position_emb.FProp(theta.position_emb, p.target_seq_len), [t, 0],
@@ -1245,7 +1262,7 @@ class TransformerDecoder(MTBaseDecoder):
           atten_idx = task_ids
         input_embs += self.task_emb.EmbLookup(theta.task_emb, task_ids)
 
-      if p.model_dim != p.token_emb.embedding_dim:
+      if p.model_dim != self._token_emb_dim:
         input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)
 
       input_embs = self.input_dropout.FProp(theta.input_dropout, input_embs)
