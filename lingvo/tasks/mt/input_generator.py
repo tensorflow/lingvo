@@ -60,10 +60,10 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
       features = tf.parse_single_example(record, dict(outputs))
       for k, v in six.iteritems(features):
         features[k] = v.values
-      bucket_key = tf.to_int32(
+      bucket_key = tf.cast(
           tf.maximum(
               tf.reduce_sum(1.0 - features['source_padding']),
-              tf.reduce_sum(1.0 - features['target_padding'])))
+              tf.reduce_sum(1.0 - features['target_padding'])), tf.int32)
       return [features[k] for k, _ in outputs], bucket_key
 
     return generic_input.GenericInput(

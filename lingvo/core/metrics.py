@@ -210,8 +210,8 @@ class TpuEvalMetrics(object):
     for (value, weight) in self._metrics.Flatten():
       assert value.shape.is_fully_defined(), ('%s' % value)
       assert weight.shape.is_fully_defined(), ('%s' % weight)
-      weight = tf.to_float(weight)
-      value = tf.to_float(value) * weight
+      weight = tf.cast(weight, tf.float32)
+      value = tf.cast(value, tf.float32) * weight
       ret += [value, weight]
     # Each metric has two tensors: value and weight.
     assert len(ret) == 2 * num_metrics

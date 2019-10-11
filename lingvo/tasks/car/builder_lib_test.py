@@ -433,11 +433,11 @@ class BuilderLibTest(test_utils.TestCase):
         features=tf.random_uniform(
             (batch_size, num_groups, points_per_group, num_in_channels),
             dtype=tf.float32),
-        padding=tf.to_float(
+        padding=tf.cast(
             tf.random_uniform((batch_size, num_groups, points_per_group),
                               minval=0,
                               maxval=2,
-                              dtype=tf.int32)))
+                              dtype=tf.int32), tf.float32))
     y = l.FPropDefaultTheta(x)
 
     with self.session() as sess:

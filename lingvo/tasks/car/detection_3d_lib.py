@@ -177,7 +177,8 @@ class Utils3D(object):
 
     for r_start, r_stop, r_steps in ranges:
       values = tf.lin_space(
-          tf.to_float(r_start), tf.to_float(r_stop), tf.to_int32(r_steps))
+          tf.cast(r_start, tf.float32), tf.cast(r_stop, tf.float32),
+          tf.cast(r_steps, tf.int32))
       cycle_steps //= r_steps
       gather_idx = (tf.range(total_points) // cycle_steps) % r_steps
       stack_coordinates.append(tf.gather(values, gather_idx))
@@ -378,7 +379,7 @@ class Utils3D(object):
           & tf.greater(similarity_score, 0.)
           & tf.cast(gt_bboxes_mask[tf.newaxis, ...], tf.bool))
       force_match_indicator = tf.reduce_any(force_matches, axis=1)
-      force_match_idx = tf.argmax(tf.to_int32(force_matches), axis=1)
+      force_match_idx = tf.argmax(tf.cast(force_matches, tf.int32), axis=1)
 
       # In assigning foreground/background anchors later, force_match_indicator
       # is used to determine which anchors are force foreground, and the index
@@ -433,8 +434,9 @@ class Utils3D(object):
     assigned_gt_labels = tf.batch_gather(gt_bboxes_labels, anchor_gather_idx)
 
     # Set masks for classification and regression losses.
-    assigned_cls_mask = tf.to_float(background_anchors | foreground_anchors)
-    assigned_reg_mask = tf.to_float(foreground_anchors)
+    assigned_cls_mask = tf.cast(background_anchors | foreground_anchors,
+                                tf.float32)
+    assigned_reg_mask = tf.cast(foreground_anchors, tf.float32)
 
     return py_utils.NestedMap(
         assigned_gt_bbox=assigned_gt_bbox,

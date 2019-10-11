@@ -102,7 +102,7 @@ def GenericInput(processor, **kwargs):
       assert all(
           isinstance(x, tf.Tensor) for x in output.Flatten()), '{}'.format(
               output.DebugString())
-    bucketing_key = tf.to_int32(bucketing_key)
+    bucketing_key = tf.cast(bucketing_key, tf.int32)
     tf.logging.debug('Processor outputs=%s bucketing_key=%s', output,
                      bucketing_key)
     output_tmpl.out_values = output

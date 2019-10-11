@@ -538,9 +538,10 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       return
     transcript = targets.transcripts[:index + 1]
 
-    srclen = tf.to_int32(tf.round(tf.reduce_sum(1 - source_paddings[:, index])))
-    tgtlen = tf.to_int32(
-        tf.round(tf.reduce_sum(1 - targets.paddings[index, :])))
+    srclen = tf.cast(
+        tf.round(tf.reduce_sum(1 - source_paddings[:, index])), tf.int32)
+    tgtlen = tf.cast(
+        tf.round(tf.reduce_sum(1 - targets.paddings[index, :])), tf.int32)
 
     def PlotAttentionForOneExample(atten_probs,
                                    target_fig,
@@ -1187,7 +1188,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     p = self.params
     if self._max_label_prob > 0:
       misc_zero_state.prev_predicted_ids = tf.reshape(target_ids[:, 0], [bs])
-      step = tf.to_float(theta.global_step)
+      step = tf.cast(theta.global_step, tf.float32)
       sampling_p = (step - p.prob_decay_start_step) / self._decay_interval
       groundtruth_p = 1 - (self._max_label_prob * sampling_p)
       groundtruth_p = tf.maximum(groundtruth_p, p.min_ground_truth_prob)
@@ -1259,7 +1260,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         log_prob_sample = tf.multinomial(
             log_probs, 1, seed=self.params.random_seed)
         # pred_ids: [bs]
-        pred_ids = tf.reshape(tf.to_int32(log_prob_sample), [bs])
+        pred_ids = tf.reshape(tf.cast(log_prob_sample, tf.int32), [bs])
         decoder_step_state.misc_states.prev_predicted_ids = pred_ids
     return decoder_step_state
 

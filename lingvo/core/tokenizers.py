@@ -322,8 +322,9 @@ class WpmTokenizer(BaseTokenizer):
     paddings = paddings_ta.stack()
 
     if not p.pad_to_max_length:
-      maxlen = tf.to_int32(
-          tf.round(tf.reduce_max(tf.reduce_sum(1.0 - paddings, axis=1))))
+      maxlen = tf.cast(
+          tf.round(tf.reduce_max(tf.reduce_sum(1.0 - paddings, axis=1))),
+          tf.int32)
       token_ids = token_ids[:, :maxlen]
       target_ids = target_ids[:, :maxlen]
       paddings = paddings[:, :maxlen]

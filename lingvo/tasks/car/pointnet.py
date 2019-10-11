@@ -66,7 +66,7 @@ class PointNet(builder_lib.ModelBuilderBase):
       features = input_data.features
       label = input_data.label
       num_pts = tf.shape(features)[1]
-      label_one_hot = tf.one_hot(tf.to_int32(label), depth=16)
+      label_one_hot = tf.one_hot(tf.cast(label, tf.int32), depth=16)
       label_one_hot = tf.tile(tf.expand_dims(label_one_hot, 1), [1, num_pts, 1])
       input_data.features = tf.concat([features, label_one_hot], axis=-1)
       return input_data

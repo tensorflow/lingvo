@@ -71,14 +71,15 @@ def ComputeWer(hyps, refs):
   refs = py_utils.HasRank(refs, 1)
   hyps = py_utils.HasShape(hyps, tf.shape(refs))
 
-  word_errors = tf.to_int64(
+  word_errors = tf.cast(
       tf.edit_distance(
-          tf.string_split(hyps), tf.string_split(refs), normalize=False))
+          tf.string_split(hyps), tf.string_split(refs), normalize=False),
+      tf.int64)
 
   # Count number of spaces in reference, and increment by 1 to get total number
   # of words.
-  ref_words = tf.to_int64(
-      tf.strings.length(tf.regex_replace(refs, '[^ ]', '')) + 1)
+  ref_words = tf.cast(
+      tf.strings.length(tf.regex_replace(refs, '[^ ]', '')) + 1, tf.int64)
   # Set number of words to 0 if the reference was empty.
   ref_words = tf.where(
       tf.equal(refs, ''), tf.zeros_like(ref_words, tf.int64), ref_words)

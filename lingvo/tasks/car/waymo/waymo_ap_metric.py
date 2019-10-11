@@ -154,11 +154,11 @@ class WaymoAPMetrics(ap_metric.APMetrics):
         prediction_bbox=f_pd_bbox,
         prediction_type=pd_class_ids,
         prediction_score=f_pd_score,
-        prediction_frame_id=tf.to_int64(f_pd_imgid),
+        prediction_frame_id=tf.cast(f_pd_imgid, tf.int64),
         prediction_overlap_nlz=tf.zeros_like(f_pd_imgid, dtype=tf.bool),
         ground_truth_bbox=f_gt_bbox,
         ground_truth_type=gt_class_ids,
-        ground_truth_frame_id=tf.to_int64(f_gt_imgid),
+        ground_truth_frame_id=tf.cast(f_gt_imgid, tf.int64),
         ground_truth_difficulty=tf.zeros_like(f_gt_imgid, dtype=tf.uint8),
         config=self._waymo_metric_config)
     # All tensors returned by Waymo's metric op have a leading dimension

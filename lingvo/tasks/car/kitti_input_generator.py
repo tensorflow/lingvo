@@ -47,14 +47,14 @@ def _NestedMapToParams(nmap):
 def ComputeKITTIDifficulties(box_image_height, occlusion, truncation):
   """Compute difficulties from box height, occlusion, and truncation."""
   # Easy: No occlusion, max truncation 15%
-  easy_level = tf.to_int32((box_image_height >= 40.) & (occlusion <= 0.)
-                           & (truncation <= 0.15)) * 3
+  easy_level = tf.cast((box_image_height >= 40.) & (occlusion <= 0.)
+                       & (truncation <= 0.15), tf.int32) * 3
   # Moderate: max occlusion: partly occluded, max truncation 30%
-  moderate_level = tf.to_int32((occlusion <= 1.) & (truncation <= 0.3)
-                               & (box_image_height >= 25.)) * 2
+  moderate_level = tf.cast((occlusion <= 1.) & (truncation <= 0.3)
+                           & (box_image_height >= 25.), tf.int32) * 2
   # Hard: Difficult to see, max truncation 50%
-  hard_level = tf.to_int32((occlusion <= 2.) & (truncation <= 0.5)
-                           & (box_image_height >= 25.)) * 1
+  hard_level = tf.cast((occlusion <= 2.) & (truncation <= 0.5)
+                       & (box_image_height >= 25.), tf.int32) * 1
 
   # Occlusion = 3 and higher truncation is "super hard", and
   # will map to 0 (ignored).
@@ -352,7 +352,7 @@ class KITTILabelExtractor(input_extractor.FieldsExtractor):
     ], axis=-1)  # pyformat: disable
     bboxes_td = py_utils.PadOrTrimTo(bboxes_td, [p.max_num_objects, 4])
 
-    has_3d_info = tf.to_float(_Dense(features['object/has_3d_info']))
+    has_3d_info = tf.cast(_Dense(features['object/has_3d_info']), tf.float32)
     bboxes_3d_mask = py_utils.PadOrTrimTo(has_3d_info, [p.max_num_objects])
     bboxes_td_mask = bboxes_3d_mask
 
@@ -363,7 +363,7 @@ class KITTILabelExtractor(input_extractor.FieldsExtractor):
 
     # 0 to 3 indicating occlusion level. 0 means fully visible, 1 means partly,
     occlusion = tf.reshape(_Dense(features['object/occlusion']), [-1])
-    occlusion = tf.to_float(occlusion)
+    occlusion = tf.cast(occlusion, tf.float32)
     occlusion = py_utils.PadOrTrimTo(occlusion, [p.max_num_objects])
     occlusion *= bboxes_3d_mask
 
@@ -402,7 +402,7 @@ class KITTILabelExtractor(input_extractor.FieldsExtractor):
       valid_labels = tf.constant([p.filter_labels])
       bbox_mask = tf.reduce_any(
           tf.equal(tf.expand_dims(labels, 1), valid_labels), axis=1)
-      bbox_mask = tf.to_float(bbox_mask)
+      bbox_mask = tf.cast(bbox_mask, tf.float32)
       bboxes_padding = 1 - bbox_mask * (1 - bboxes_padding)
       filtered_bboxes_3d_mask = bboxes_3d_mask * bbox_mask
       bboxes_td_mask *= bbox_mask

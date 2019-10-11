@@ -173,7 +173,7 @@ class ModelV1(BaseClassifier):
     act = self.fc.FProp(theta.fc, tf.reshape(act, [batch, -1]))
 
     # Softmax
-    labels = tf.to_int64(input_batch.label)
+    labels = tf.cast(input_batch.label, tf.int64)
     xent = self.softmax.FProp(
         theta=theta.softmax,
         inputs=act,
@@ -244,7 +244,7 @@ class ModelV2(BaseClassifier):
     with tf.colocate_with(act):
       tf.logging.info("{}'s device: {}".format(act, act.device))
       # Softmax
-      labels = tf.to_int64(input_batch.label)
+      labels = tf.cast(input_batch.label, tf.int64)
       onehot_labels = tf.one_hot(labels, p.softmax.num_classes)
       if p.label_smoothing > 0:
         smooth_positives = 1.0 - p.label_smoothing

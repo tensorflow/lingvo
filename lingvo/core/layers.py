@@ -1425,7 +1425,7 @@ class StackingOverTime(base_layer.BaseLayer):
     # the original input is located, and extract them with tf.gather_nd.
     input_indices = tf.range(0, input_length)
     m = tf.mod(input_indices, p.stride)
-    in_next_window = tf.to_int32(tf.greater(m, p.right_context))
+    in_next_window = tf.cast(tf.greater(m, p.right_context), tf.int32)
     window_index = tf.div(input_indices, p.stride) + in_next_window
     frame_index = p.left_context + m - p.stride * in_next_window
     # [input_length, 2]
@@ -2253,7 +2253,7 @@ class OneHotEmbeddingLayer(base_layer.BaseLayer):
     if not py_utils.use_xla():
       ids = py_utils.with_dependencies(
           [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
-    low_confidence = p.uncertainty / tf.to_float(p.vocab_size - 1)
+    low_confidence = p.uncertainty / tf.cast(p.vocab_size - 1, tf.float32)
     high_confidence = 1.0 - p.uncertainty
     embs_result = tf.one_hot(
         ids,
@@ -3264,7 +3264,7 @@ class UniformLabelSmoother(base_layer.BaseLayer):
     del target_paddings  # Unused by FProp.
     p = self.params
 
-    low_confidence = p.uncertainty / tf.to_float(p.num_classes - 1)
+    low_confidence = p.uncertainty / tf.cast(p.num_classes - 1, tf.float32)
     high_confidence = (1.0 - p.uncertainty)
 
     smooth_targets = tf.one_hot(
@@ -3274,8 +3274,8 @@ class UniformLabelSmoother(base_layer.BaseLayer):
         off_value=low_confidence)
     if p.token_id_uncertainty_larger is not None:
       assert target_ids is not None
-      low_confidence_larger = p.uncertainty_larger / tf.to_float(p.num_classes -
-                                                                 1)
+      low_confidence_larger = p.uncertainty_larger / tf.cast(
+          p.num_classes - 1, tf.float32)
       high_confidence_larger = (1.0 - p.uncertainty_larger)
       smooth_targets_larger = tf.one_hot(
           tf.cast(target_labels, tf.int32),
@@ -3759,7 +3759,8 @@ def Conv2DFlops(inputs, filter_shape, stride, padding):
     oh = _CeilDiv(h - fh + 1, sh)
     ow = _CeilDiv(w - fw + 1, sw)
   # Mul/add counts as 2 flops.
-  return tf.to_int64(b * oh * ow) * tf.to_int64(fh * fw * ic * oc) * 2
+  return (tf.cast(b * oh * ow, tf.int64) *
+          tf.cast(fh * fw * ic * oc, tf.int64) * 2)
 
 
 class Conv2DLayerNoPadding(base_layer.BaseLayer):

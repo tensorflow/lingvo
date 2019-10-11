@@ -119,7 +119,8 @@ class PointsToGridFeaturizer(base_layer.BaseLayer):
     # Compute mean by computing sum and dividing by number of points. Clip the
     # denominator by 1.0 to gracefully handle empty pillars.
     pillar_sum = tf.reduce_sum(pillar_xyz, axis=2, keep_dims=True)
-    pillar_means = pillar_sum / tf.maximum(tf.to_float(pillar_num_points), 1.0)
+    pillar_means = pillar_sum / tf.maximum(
+        tf.cast(pillar_num_points, tf.float32), 1.0)
 
     pillar_feats = pillar_points[..., 3:]
     pillar_centers = py_utils.HasShape(input_batch.pillar_centers,
@@ -517,7 +518,7 @@ class ModelV1(point_detector.PointDetectorBase):
       # which already has assigned a gt bounding box to every anchor.
       rot_target = input_batch.assigned_gt_bbox[..., 6]
       # If rotation is > 0, the class is 1, else it is 0.
-      rot_dir = tf.to_int32(rot_target > 0.)
+      rot_dir = tf.cast(rot_target > 0., tf.int32)
 
       # Compute one-hot labels as a target.
       rot_dir_onehot = tf.one_hot(rot_dir, 2)

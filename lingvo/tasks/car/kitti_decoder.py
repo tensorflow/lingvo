@@ -128,7 +128,7 @@ class KITTIDecoder(base_decoder.BaseDecoder):
 
     frustum_mask = (fraction > p.truncation_threshold)
     frustum_mask = py_utils.HasShape(frustum_mask, [batch_size, num_boxes])
-    frustum_mask = tf.to_float(frustum_mask)
+    frustum_mask = tf.cast(frustum_mask, tf.float32)
     return frustum_mask
 
   def _BBox2DImage(self, bbox_corners_image, input_images):
@@ -137,12 +137,12 @@ class KITTIDecoder(base_decoder.BaseDecoder):
     bci_x = bbox_corners_image[..., 0:1]
     image_width = tf.broadcast_to(
         input_images.width[..., tf.newaxis, tf.newaxis], tf.shape(bci_x))
-    bci_x = tf.clip_by_value(bci_x, 0.0, tf.to_float(image_width))
+    bci_x = tf.clip_by_value(bci_x, 0.0, tf.cast(image_width, tf.float32))
 
     bci_y = bbox_corners_image[..., 1:2]
     image_height = tf.broadcast_to(
         input_images.height[..., tf.newaxis, tf.newaxis], tf.shape(bci_y))
-    bci_y = tf.clip_by_value(bci_y, 0.0, tf.to_float(image_height))
+    bci_y = tf.clip_by_value(bci_y, 0.0, tf.cast(image_height, tf.float32))
 
     bbox_corners_image_clipped = tf.concat([bci_x, bci_y], axis=-1)
 

@@ -56,7 +56,7 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
       fval['frames'] = tf.reshape(
           fval['frames'], shape=[-1, self.params.frame_size])
       # Input duration determines the bucket.
-      bucket_key = tf.to_int32(tf.shape(fval['frames'])[0])
+      bucket_key = tf.cast(tf.shape(fval['frames'])[0], tf.int32)
       if self.params.append_eos_frame:
         bucket_key += 1
       tgt_ids, tgt_labels, tgt_paddings = self.StringsToIds(fval['transcript'])
@@ -82,7 +82,7 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
     per_src_len += 1
     max_src_len = tf.reduce_max(per_src_len)
     input_shape = tf.shape(src_inputs)
-    input_len = tf.maximum(input_shape[1], tf.to_int32(max_src_len))
+    input_len = tf.maximum(input_shape[1], tf.cast(max_src_len, tf.int32))
     pad_steps = input_len - input_shape[1]
     src_inputs = tf.concat([
         src_inputs,

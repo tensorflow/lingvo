@@ -293,11 +293,11 @@ class TransformerLearningRateSchedule(BaseLearningRateSchedule):
   def FProp(self, theta, current_step):
     """Returns the current learning rate decay."""
     p = self.params
-    current_step = tf.to_float(current_step)
-    warmup_steps = tf.to_float(p.warmup_steps * p.worker_replicas)
+    current_step = tf.cast(current_step, tf.float32)
+    warmup_steps = tf.cast(p.warmup_steps * p.worker_replicas, tf.float32)
     if p.decay_end is not None:
       current_step = tf.where(current_step < p.decay_end, current_step,
-                              tf.to_float(p.decay_end))
+                              tf.cast(p.decay_end, tf.float32))
     return p.model_dim**-0.5 * tf.minimum(
         (current_step + 1) * warmup_steps**-1.5, (current_step + 1)**-0.5)
 
@@ -333,11 +333,12 @@ class TransformerLearningRateScheduleNoWarmUp(BaseLearningRateSchedule):
   def FProp(self, theta, current_step):
     """Returns the current learning rate decay."""
     params = self.params
-    warmup_steps = tf.to_float(params.decay_start * params.worker_replicas)
-    current_step = tf.to_float(current_step)
+    warmup_steps = tf.cast(params.decay_start * params.worker_replicas,
+                           tf.float32)
+    current_step = tf.cast(current_step, tf.float32)
     if params.decay_end is not None:
       current_step = tf.where(current_step < params.decay_end, current_step,
-                              tf.to_float(params.decay_end))
+                              tf.cast(params.decay_end, tf.float32))
     peak_learning_rate = (warmup_steps**-0.5)
     return (params.model_dim**-0.5) * tf.minimum(
         tf.minimum((current_step + 1),
@@ -494,9 +495,9 @@ class LinearRampupSqrtDecayByBatchSizeAndReplicas(BaseLearningRateSchedule):
   def FProp(self, theta, current_step):
     """Returns the current learning rate decay."""
     p = self.params
-    current_step = tf.to_float(current_step)
-    warmup_steps = tf.to_float(p.warmup_examples /
-                               (p.batch_size * self._num_replicas))
+    current_step = tf.cast(current_step, tf.float32)
+    warmup_steps = tf.cast(
+        p.warmup_examples / (p.batch_size * self._num_replicas), tf.float32)
     return tf.minimum((current_step + 1) * warmup_steps**-1.5,
                       (current_step + 1)**-0.5)
 

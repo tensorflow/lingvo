@@ -185,7 +185,7 @@ def _SingleClassDecodeWithNMS(predicted_bboxes,
   # When background is the most likely class for the box, mask out the scores
   # of that box from NMS scoring so the background boxes don't dominate the
   # NMS.
-  nms_scores *= tf.to_float(likely_labels > 0)
+  nms_scores *= tf.cast(likely_labels > 0, tf.float32)
 
   # Compute NMS for every sample in the batch.
   nms_indices, valid_mask = utils_3d.BatchedNMSIndices(

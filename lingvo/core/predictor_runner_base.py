@@ -36,9 +36,9 @@ import threading
 import time
 
 from absl import flags
+from lingvo import compat as tf
 from lingvo.core import predictor
 from lingvo.core import py_utils
-import tensorflow as tf
 
 flags.DEFINE_string(
     'checkpoint', None, 'Either a checkpoint file to load,'

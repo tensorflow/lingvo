@@ -426,8 +426,8 @@ class CountNumberOfPointsInBoxes3D(Preprocessor):
     points_in_bboxes_mask = geometry.IsWithinBBox3D(points_xyz,
                                                     features.labels.bboxes_3d)
     bboxes_3d_num_points = tf.reduce_sum(
-        tf.to_int32(points_in_bboxes_mask), axis=0, keepdims=False)
-    bboxes_3d_num_points *= tf.to_int32(features.labels.bboxes_3d_mask)
+        tf.cast(points_in_bboxes_mask, tf.int32), axis=0, keepdims=False)
+    bboxes_3d_num_points *= tf.cast(features.labels.bboxes_3d_mask, tf.int32)
 
     features.labels.bboxes_3d_num_points = bboxes_3d_num_points
     return features
@@ -599,10 +599,14 @@ class PointsToGrid(Preprocessor):
     y_range_min = y_range[0]
     y_range_len = y_range[1] - y_range[0]
 
-    xmin = tf.to_float(xmin - x_range_min) / tf.to_float(x_range_len)
-    xmax = tf.to_float(xmax - x_range_min) / tf.to_float(x_range_len)
-    ymin = tf.to_float(ymin - y_range_min) / tf.to_float(y_range_len)
-    ymax = tf.to_float(ymax - y_range_min) / tf.to_float(y_range_len)
+    xmin = tf.cast(xmin - x_range_min, tf.float32) / tf.cast(
+        x_range_len, tf.float32)
+    xmax = tf.cast(xmax - x_range_min, tf.float32) / tf.cast(
+        x_range_len, tf.float32)
+    ymin = tf.cast(ymin - y_range_min, tf.float32) / tf.cast(
+        y_range_len, tf.float32)
+    ymax = tf.cast(ymax - y_range_min, tf.float32) / tf.cast(
+        y_range_len, tf.float32)
 
     return ymin, xmin, ymax, xmax
 
@@ -795,7 +799,7 @@ class GridToPillars(Preprocessor):
     flattened_num_points = tf.reshape(num_points, [num_grid_points])
 
     # Normalize flattened_num_points to sum to 1.
-    flattened_num_points = tf.to_float(flattened_num_points)
+    flattened_num_points = tf.cast(flattened_num_points, tf.float32)
     flattened_num_points /= tf.reduce_sum(flattened_num_points)
 
     # TODO(jngiam): Consider generalizing this to enable other methods of
@@ -825,7 +829,7 @@ class GridToPillars(Preprocessor):
       locations = self._DensitySample(num_points)
     else:
       # Select non-empty cells uniformly at random.
-      locations = tf.random.shuffle(tf.to_int32(tf.where(num_points > 0)))
+      locations = tf.random.shuffle(tf.cast(tf.where(num_points > 0), tf.int32))
 
     num_features = py_utils.GetShape(features.laser_grid)[-1]
 
@@ -1603,7 +1607,7 @@ class DropLaserPointsOutOfRange(Preprocessor):
 
     if 'points_padding' in features.lasers:
       # Suffices to just update the padding.
-      features.lasers.points_padding = 1. - tf.to_float(points_mask)
+      features.lasers.points_padding = 1. - tf.cast(points_mask, tf.float32)
     else:
       features.lasers = features.lasers.Transform(
           _GetApplyPointMaskFn(points_mask))
@@ -1651,17 +1655,18 @@ class KITTIDropPointsOutOfFrustum(Preprocessor):
     # Drop those points outside the image plane.
     points_image = geometry.PointsToImagePlane(features.lasers.points_xyz,
                                                images.velo_to_image_plane)
-    in_image_plane = ((points_image[:, 0] >= 0) &
-                      (points_image[:, 0] <= tf.to_float(images.width)) &
-                      (points_image[:, 1] >= 0) &
-                      (points_image[:, 1] <= tf.to_float(images.height)))
+    in_image_plane = (
+        (points_image[:, 0] >= 0) &
+        (points_image[:, 0] <= tf.cast(images.width, tf.float32)) &
+        (points_image[:, 1] >= 0) &
+        (points_image[:, 1] <= tf.cast(images.height, tf.float32)))
 
     if 'points_padding' in features.lasers:
       # Update padding to only include front indices and in image plane.
       points_mask = tf.cast(1 - features.lasers.points_padding, tf.bool)
       points_mask &= front_indices
       points_mask &= in_image_plane
-      features.lasers.points_padding = 1. - tf.to_float(points_mask)
+      features.lasers.points_padding = 1. - tf.cast(points_mask, tf.float32)
     else:
       features.lasers = features.lasers.Transform(
           _GetApplyPointMaskFn(in_image_plane))
@@ -1902,7 +1907,7 @@ class DropBoxesOutOfRange(Preprocessor):
     max_num_boxes = py_utils.GetShape(features.labels.bboxes_3d_mask)
     mask = py_utils.HasShape(mask, max_num_boxes)
 
-    features.labels.bboxes_3d_mask *= tf.to_float(mask)
+    features.labels.bboxes_3d_mask *= tf.cast(mask, tf.float32)
     return features
 
   def TransformShapes(self, shapes):
@@ -2259,7 +2264,7 @@ class RandomBBoxTransform(Preprocessor):
 
     # Only iterate over the actual number of boxes in the scene.
     actual_num_bboxes = tf.reduce_sum(
-        tf.to_int32(features.labels.bboxes_3d_mask))
+        tf.cast(features.labels.bboxes_3d_mask, tf.int32))
 
     (_, _, _, _, _, _, out_bbox_xyz, out_bbox_feature,
      out_bbox_mask) = functional_ops.For(
@@ -2639,8 +2644,8 @@ class GroundTruthAugmentor(Preprocessor):
                                          [p.max_num_points_per_bbox])
 
       bboxes_3d = tf.reshape(_Dense(example_data['bbox_3d']), [7])
-      label = tf.to_int32(example_data['label'])
-      difficulty = tf.to_int32(example_data['difficulty'])
+      label = tf.cast(example_data['label'], tf.int32)
+      difficulty = tf.cast(example_data['difficulty'], tf.int32)
       return (points, features, points_mask, bboxes_3d, label, difficulty)
 
     # Read the entire dataset into memory.
@@ -2687,7 +2692,7 @@ class GroundTruthAugmentor(Preprocessor):
     num_objects_in_database = tf.shape(db_points_mask)[0]
 
     # Filter number of objects.
-    points_per_object = tf.reduce_sum(tf.to_int32(db_points_mask), axis=1)
+    points_per_object = tf.reduce_sum(tf.cast(db_points_mask, tf.int32), axis=1)
     example_filter = points_per_object >= p.filter_min_points
     if p.filter_max_points:
       example_filter = tf.logical_and(example_filter,
@@ -2699,7 +2704,7 @@ class GroundTruthAugmentor(Preprocessor):
       db_difficulty_probability = tf.zeros_like(db_difficulty, dtype=tf.float32)
       for difficulty_idx, difficulty_prob in enumerate(sampling_prob):
         db_difficulty_probability += (
-            tf.to_float(tf.equal(db_difficulty, difficulty_idx)) *
+            tf.cast(tf.equal(db_difficulty, difficulty_idx), tf.float32) *
             difficulty_prob)
 
       sampled_filter = tf.random_uniform(
@@ -2724,7 +2729,7 @@ class GroundTruthAugmentor(Preprocessor):
 
       for class_idx, class_prob in enumerate(sampling_prob):
         db_class_probability += (
-            tf.to_float(tf.equal(db_label, class_idx)) * class_prob)
+            tf.cast(tf.equal(db_label, class_idx), tf.float32) * class_prob)
 
       sampled_filter = tf.random_uniform(
           tf.shape(example_filter),
@@ -2786,7 +2791,7 @@ class GroundTruthAugmentor(Preprocessor):
 
     # Compute the number of bboxes to augment.
     num_bboxes_in_scene = tf.reduce_sum(
-        tf.to_int32(features.labels.bboxes_3d_mask))
+        tf.cast(features.labels.bboxes_3d_mask, tf.int32))
     max_bboxes = tf.shape(features.labels.bboxes_3d_mask)[0]
     num_augmented_bboxes = tf.minimum(max_bboxes - num_bboxes_in_scene,
                                       p.max_augmented_bboxes)
@@ -3043,7 +3048,7 @@ class FrustumDropout(Preprocessor):
     points_mask &= ~down_sampling_filter
 
     if points_padding is not None:
-      features.lasers.points_padding = 1 - tf.to_float(points_mask)
+      features.lasers.points_padding = 1 - tf.cast(points_mask, tf.float32)
     else:
       features.lasers.points_xyz = tf.boolean_mask(points_xyz, points_mask)
       features.lasers.points_feature = tf.boolean_mask(points_feature,

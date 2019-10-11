@@ -19,10 +19,10 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_helper
 from lingvo.core import test_utils
-import tensorflow as tf
 
 
 class TokenizerOpsTest(test_utils.TestCase):
@@ -298,7 +298,8 @@ class TokenizerOpsTest(test_utils.TestCase):
       label_tensor = tf.constant(sentences)
       _, token_ids, paddings = ops.bpe_words_to_ids(
           label_tensor, tokenization_filepath=word_vocab, maxlen=15)
-      seq_lens = tf.to_int32(tf.round(tf.reduce_sum(1 - paddings, axis=-1)))
+      seq_lens = tf.cast(
+          tf.round(tf.reduce_sum(1 - paddings, axis=-1)), tf.int32)
 
       target_string = ops.bpe_ids_to_words(
           token_ids, seq_lengths=seq_lens, vocab_filepath=code_vocab)

@@ -184,7 +184,7 @@ class WaymoFrameMetadataExtractor(input_extractor.FieldsExtractor):
           tf.equal(outputs[filter_key], filter_values))
       allowed_example = tf.logical_and(allowed_example, has_allowed_data)
 
-    not_allowed_example = 1 - tf.to_int32(allowed_example)
+    not_allowed_example = 1 - tf.cast(allowed_example, tf.int32)
     return 1 + (not_allowed_example * input_extractor.BUCKET_UPPER_BOUND)
 
 
@@ -455,13 +455,14 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
     p = self.params
     # Label values match the proto enum car.open_dataset.Label.Type. The value
     # range is [1..4] for non-background labels.
-    labels = tf.to_int32(_Dense(features['labels']))
+    labels = tf.cast(_Dense(features['labels']), tf.int32)
     labels = py_utils.PadOrTrimTo(labels, [p.max_num_objects])
     label_ids = tf.reshape(_Dense(features['label_ids'], ''), [-1])
     label_ids = py_utils.PadOrTrimTo(label_ids, [p.max_num_objects], '')
     bboxes_3d = tf.reshape(_Dense(features['bboxes_3d']), [-1, 7])
     bboxes_3d_mask = tf.ones([tf.shape(bboxes_3d)[0]])
-    bboxes_3d_num_points = tf.to_int32(_Dense(features['bboxes_3d_num_points']))
+    bboxes_3d_num_points = tf.cast(
+        _Dense(features['bboxes_3d_num_points']), tf.int32)
     bboxes_3d = py_utils.PadOrTrimTo(bboxes_3d, [p.max_num_objects, 7])
     bboxes_3d_mask = py_utils.PadOrTrimTo(bboxes_3d_mask, [p.max_num_objects])
     bboxes_3d_num_points = py_utils.PadOrTrimTo(bboxes_3d_num_points,
@@ -471,10 +472,10 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
                                           [p.max_num_objects, 4])
 
     detection_difficulties = py_utils.PadOrTrimTo(
-        tf.to_int32(_Dense(features['detection_difficulties'])),
+        tf.cast(_Dense(features['detection_difficulties']), tf.int32),
         [p.max_num_objects])
     tracking_difficulties = py_utils.PadOrTrimTo(
-        tf.to_int32(_Dense(features['tracking_difficulties'])),
+        tf.cast(_Dense(features['tracking_difficulties']), tf.int32),
         [p.max_num_objects])
     unfiltered_bboxes_3d_mask = bboxes_3d_mask
 
@@ -482,7 +483,7 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
       valid_labels = tf.constant([p.filter_labels])
       bbox_mask = tf.reduce_any(
           tf.equal(tf.expand_dims(labels, 1), valid_labels), axis=1)
-      bboxes_3d_mask *= tf.to_float(bbox_mask)
+      bboxes_3d_mask *= tf.cast(bbox_mask, tf.float32)
 
     outputs = {
         'labels': labels,
@@ -685,7 +686,8 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
         min_inclination = inclinations[0]
         max_inclination = inclinations[1]
         diff = max_inclination - min_inclination
-        ratio = (.5 + tf.to_float(tf.range(0, height))) / tf.to_float(height)
+        ratio = (.5 + tf.cast(tf.range(0, height), tf.float32)) / tf.cast(
+            height, tf.float32)
         # interpolate from min to max inclination.
         inclinations = (ratio * diff) + min_inclination
       else:
@@ -701,15 +703,16 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
         range_image = ri_outputs['%s_%s' % (laser, returns)]
         range_image = tf.reshape(range_image, ri_shape)
         range_image_mask = range_image[..., 0] >= 0
-        ri_xyz = tf.to_float(
+        ri_xyz = tf.cast(
             self._XYZFromRangeImage(range_image, range_image_mask, extrinsics,
-                                    inclinations, pixel_pose, frame_pose))
+                                    inclinations, pixel_pose, frame_pose),
+            tf.float32)
 
         # Produce the NestedMap of xyz, features, mask.
         ri_result = py_utils.NestedMap({
             'xyz': ri_xyz,
             'features': range_image,
-            'mask': tf.to_float(range_image_mask),
+            'mask': tf.cast(range_image_mask, tf.float32),
         })
 
         outputs['%s_%s' % (laser, returns)] = ri_result

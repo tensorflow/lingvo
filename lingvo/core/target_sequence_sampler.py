@@ -30,7 +30,7 @@ from lingvo.core import recurrent
 
 
 def _ComputePaddings(ids, eos_id):
-  is_eos = tf.to_int32(tf.equal(ids, eos_id))
+  is_eos = tf.cast(tf.equal(ids, eos_id), tf.int32)
   # eos_in_prefix[i, j] = any(ids[i, k] == eos_id for k in range(j))
   eos_in_prefix = tf.cumsum(is_eos, axis=-1, exclusive=True)
   return tf.where(
@@ -101,7 +101,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         timestep=tf.zeros(shape=[], dtype=tf.int32),
         logits=bs_result.log_probs,
         # Start with target_sos_id.
-        ids=tf.fill([batch], tf.to_int32(p.target_sos_id)),
+        ids=tf.fill([batch], tf.cast(p.target_sos_id, tf.int32)),
         bs_state=bs_state)
     inputs = py_utils.NestedMap(dummy=tf.zeros([p.target_seq_len, batch]))
 

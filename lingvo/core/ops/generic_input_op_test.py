@@ -138,7 +138,7 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
       # Drops record if num[0] is odd.
       return tf.cond(
           tf.equal(tf.mod(num[0], 2), 0), lambda: 1,
-          lambda: -tf.to_int32(num[0]))
+          lambda: -tf.cast(num[0], tf.int32))
 
     input_batch = self._RunBasicGraph(use_nested_map=False, bucket_fn=bucket_fn)
 

@@ -403,7 +403,7 @@ class WaymoOpenDatasetConverter(beam.DoFn):
         laser_ri_name = '%s_ri1' % laser_name
         range_image_shape = feature[laser_ri_name +
                                     '_shape'].int64_list.value[:]
-        height = tf.to_float(range_image_shape[0])
+        height = tf.cast(range_image_shape[0], tf.float32)
 
         beam_inclinations = tf.constant(
             [beam_inclination_min[0], beam_inclination_max[0]])
@@ -461,8 +461,9 @@ class WaymoOpenDatasetConverter(beam.DoFn):
 
         # Fetch the features corresponding to each xyz coordinate and
         # concatentate them together.
-        points_features = tf.to_float(
-            tf.gather_nd(range_image[..., 1:], tf.where(range_image_mask)))
+        points_features = tf.cast(
+            tf.gather_nd(range_image[..., 1:], tf.where(range_image_mask)),
+            tf.float32)
         points_data = tf.concat([points_xyz, points_features], axis=-1)
 
         # Add laser feature to output.
@@ -524,17 +525,17 @@ class WaymoOpenDatasetConverter(beam.DoFn):
         np.array(bboxes).reshape(-1, 7), dtype=tf.float32)
     points_in_bboxes_mask = geometry.IsWithinBBox3D(points_xyz, bboxes_3d)
     bboxes_3d_num_points = tf.reduce_sum(
-        tf.to_int32(points_in_bboxes_mask), axis=0, keepdims=False)
+        tf.cast(points_in_bboxes_mask, tf.int32), axis=0, keepdims=False)
     bboxes_3d_num_points = bboxes_3d_num_points.numpy().reshape([-1])
 
     bboxes = np.array(bboxes).reshape(-1)
     label_md = np.array(label_md).reshape(-1)
     feature['labels'].int64_list.value[:] = label_classes
     feature['label_ids'].bytes_list.value[:] = label_ids
-    feature[
-        'detection_difficulties'].int64_list.value[:] = detection_difficulty_levels
-    feature[
-        'tracking_difficulties'].int64_list.value[:] = tracking_difficulty_levels
+    feature['detection_difficulties'].int64_list.value[:] = (
+        detection_difficulty_levels)
+    feature['tracking_difficulties'].int64_list.value[:] = (
+        tracking_difficulty_levels)
     feature['bboxes_3d'].float_list.value[:] = list(bboxes)
     feature['label_metadata'].float_list.value[:] = list(label_md)
     feature['bboxes_3d_num_points'].int64_list.value[:] = list(

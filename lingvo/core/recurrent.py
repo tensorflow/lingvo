@@ -112,7 +112,7 @@ def _Update(nmap_acc, nmap_x, t):
   """
   acc_lst = nmap_acc.Flatten()
   kx_lst = nmap_x.FlattenItems()
-  t = tf.to_int32([t])  # tf.to_int32 casts on-device tensors.
+  t = tf.cast([t], tf.int32)  # tf.cast casts on-device tensors.
   lst = []
   for acc, (key, x) in zip(acc_lst, kx_lst):
     with tf.name_scope('update_%s' % key):
@@ -162,8 +162,8 @@ def _SeqPaddingLength(inputs_nmap):
     return [0, 0]
   time = tf.shape(padding)[0]
   pad_1d = FlattenPadding(padding)
-  mask = tf.to_int32(tf.equal(pad_1d, 0))  # [time], 1s/0s
-  mask_reverse = tf.to_int32(tf.equal(tf.reverse(pad_1d, [0]), 0))
+  mask = tf.cast(tf.equal(pad_1d, 0), tf.int32)  # [time], 1s/0s
+  mask_reverse = tf.cast(tf.equal(tf.reverse(pad_1d, [0]), 0), tf.int32)
   numbers = tf.range(1, time + 1)
   padding_end = time - tf.reduce_max(mask * numbers)
   padding_begin = tf.where(
@@ -589,11 +589,11 @@ class _Recurrent(object):
       acc_extras = _EmptyAcc(slen_dim, extras)
 
       if compiled:
-        t = tf.to_int32(pad_begin)
-        limit = tf.to_int32(limit)
+        t = tf.cast(pad_begin, tf.int32)
+        limit = tf.cast(limit, tf.int32)
       else:
-        t = tf.to_int64(pad_begin)
-        limit = tf.to_int64(limit)
+        t = tf.cast(pad_begin, tf.int64)
+        limit = tf.cast(limit, tf.int64)
 
       run = functional_ops.While(
           [t, limit] + Flatten([theta, state0, inputs, acc_state, acc_extras]),
@@ -799,9 +799,9 @@ class _Recurrent(object):
       limit = pad_begin
 
       if compiled:
-        limit = tf.to_int32(limit)
+        limit = tf.cast(limit, tf.int32)
       else:
-        limit = tf.to_int64(limit)
+        limit = tf.cast(limit, tf.int64)
       run = functional_ops.While(
           [start - 1, limit] + Flatten([
               theta,

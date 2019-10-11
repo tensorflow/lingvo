@@ -72,11 +72,11 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
     src_ids = src_labels
 
     # Compute the length for bucketing.
-    bucket_key = tf.to_int32(
+    bucket_key = tf.cast(
         tf.round(
             tf.maximum(
                 tf.reduce_sum(1.0 - src_paddings),
-                tf.reduce_sum(1.0 - tgt_paddings))))
+                tf.reduce_sum(1.0 - tgt_paddings))), tf.int32)
     tgt_weights = 1.0 - tgt_paddings
 
     # Return tensors in an order consistent with __init__.

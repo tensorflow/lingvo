@@ -17,9 +17,9 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_utils
-import tensorflow as tf
 
 
 class AssertOpsTest(test_utils.TestCase):

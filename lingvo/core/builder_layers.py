@@ -1029,9 +1029,9 @@ class LinearLayer(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       computation_cost.Add(
           self, 'flops',
-          tf.reduce_prod(tf.to_int64(tf.shape(inputs)[:-1])) * tf.to_int64(
+          tf.reduce_prod(tf.cast(tf.shape(inputs)[:-1], tf.int64)) * tf.cast(
               symbolic.EvalExpr(symbolic.TENSOR_VALUES,
-                                p.input_dims * p.output_dims)) * 2)
+                                p.input_dims * p.output_dims), tf.int64) * 2)
       use_tpu = py_utils.use_tpu()
       if use_tpu and inputs.shape is not None and inputs.shape.rank < 26:
         # Avoids reshape if feasible and uses Einsum.

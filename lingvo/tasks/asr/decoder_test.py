@@ -593,7 +593,7 @@ class DecoderTest(test_utils.TestCase):
       encoder_outputs = py_utils.NestedMap(
           encoded=source_encodings, padding=source_encoding_padding)
       sampled_sequences = dec.SampleTargetSequences(
-          dec.theta, encoder_outputs, random_seed=tf.to_int32(123))
+          dec.theta, encoder_outputs, random_seed=tf.cast(123, tf.int32))
       self.assertAllEqual([batch_size, p.target_seq_len],
                           sampled_sequences.ids.shape)
       tf.global_variables_initializer().run()
@@ -616,7 +616,7 @@ class DecoderTest(test_utils.TestCase):
       # Sample again with the same random seed.
       decoder_output2 = sess.run(
           dec.SampleTargetSequences(
-              dec.theta, encoder_outputs, random_seed=tf.to_int32(123)))
+              dec.theta, encoder_outputs, random_seed=tf.cast(123, tf.int32)))
       # Get the same output.
       self.assertAllEqual(decoder_output.ids, decoder_output2.ids)
       self.assertAllEqual(decoder_output.paddings, decoder_output2.paddings)
@@ -624,7 +624,8 @@ class DecoderTest(test_utils.TestCase):
       # Sample again with a different random seed.
       decoder_output3 = sess.run(
           dec.SampleTargetSequences(
-              dec.theta, encoder_outputs, random_seed=tf.to_int32(123456)))
+              dec.theta, encoder_outputs, random_seed=tf.cast(123456,
+                                                              tf.int32)))
       # Get different sequences.
       self.assertNotAllClose(expected_ids, decoder_output3.ids)
 

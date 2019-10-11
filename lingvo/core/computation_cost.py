@@ -19,8 +19,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from lingvo import compat as tf
 from lingvo.core import bn_layers  # for AddingAccumulator
-import tensorflow as tf
 
 COST_METRICS = {
     'flops': tf.int64,

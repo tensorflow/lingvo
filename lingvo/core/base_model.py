@@ -92,7 +92,7 @@ class StatsCounter(object):
     """Increment the counter by delta and return the new value."""
     # NOTE: We must ensure _value is computed (_var + 0) before
     # updating _var with delta.
-    delta = tf.to_int64(delta)
+    delta = tf.cast(delta, tf.int64)
     with tf.control_dependencies([self._value]):
       summary_utils.scalar(self._name, self._value)
       return tf.identity(tf.assign_add(self._var, delta))
@@ -592,7 +592,7 @@ class BaseTask(base_layer.BaseLayer):
           gradient_mask=gradient_mask,
           gradient_adjuster=self.AdjustGradients)
       train_ops['stats/%s' % loss_name] = self.IncrementTotalNans(
-          tf.to_int32(stats.has_nan_or_inf))
+          tf.cast(stats.has_nan_or_inf, tf.int32))
       for key, (value, weight) in six.iteritems(stats.eval_metrics):
         self.AddEvalMetric(key + '/' + loss_name, value, weight)
 

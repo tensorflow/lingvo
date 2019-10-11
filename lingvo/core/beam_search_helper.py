@@ -472,13 +472,14 @@ class BeamSearchHelper(base_layer.BaseLayer):
     # TODO(rpang): avoid inspecting 'encoder_outputs'.
     source_paddings = encoder_outputs.padding
     if isinstance(source_paddings, py_utils.NestedMap):
-      source_seq_lengths = tf.to_int32(
+      source_seq_lengths = tf.cast(
           tf.round(
               tf.reduce_sum(1.0 - tf.transpose(source_paddings.Flatten()[0]),
-                            1)))
+                            1)), tf.int32)
     else:
-      source_seq_lengths = tf.to_int32(
-          tf.round(tf.reduce_sum(1.0 - tf.transpose(source_paddings), 1)))
+      source_seq_lengths = tf.cast(
+          tf.round(tf.reduce_sum(1.0 - tf.transpose(source_paddings), 1)),
+          tf.int32)
 
     # [num_beams, num_hyps_per_beam].
     topk_hyps = ops.top_k_terminated_hyps(

@@ -545,9 +545,10 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
         (end_step - start_step))
     rmax_tensor = (
         steps_ratio * p.end_cap + (1.0 - steps_ratio) * p.start_cap)
-    return tf.cond(tf.less(current_step, p.start_step),
-                   lambda: tf.to_float(p.start_cap),
-                   lambda: tf.to_float(rmax_tensor))
+    return tf.cond(
+        tf.less(current_step,
+                p.start_step), lambda: tf.cast(p.start_cap, tf.float32),
+        lambda: tf.cast(rmax_tensor, tf.float32))
 
   def PostTrainingStepUpdate(self, global_step):
     summary_utils.scalar('cap', self._Value(global_step))

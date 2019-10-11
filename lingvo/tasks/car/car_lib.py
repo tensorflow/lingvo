@@ -197,7 +197,7 @@ def NeighborhoodIndices(points,
   #   if k < valid_num[i]: distance between points[i, k] and query_points[i, j]
   #   otherwise:           a large scalar added to dist_mat[i, j, k]
   if points_padding is not None:
-    points_padding = tf.to_float(tf.expand_dims(points_padding, 1))
+    points_padding = tf.cast(tf.expand_dims(points_padding, 1), tf.float32)
     points_padding = py_utils.HasShape(points_padding, [n, 1, p1])
     large_scalar = tf.reduce_max(dist_mat) + 1
     dist_mat += points_padding * large_scalar
@@ -235,7 +235,7 @@ def NeighborhoodIndices(points,
     paddings |= mask_by_distance
 
   indices = tf.reshape(indices, [n, p2, k])
-  paddings = tf.to_float(paddings)
+  paddings = tf.cast(paddings, tf.float32)
 
   return indices, paddings
 
