@@ -54,6 +54,42 @@ def _BroadcastMatmul(x, y):
                         [tf.shape(x)[:-1], tf.shape(y)[-1:]], axis=0))
 
 
+def _MakeRotationMatrix(yaw, roll, pitch):
+  """Create a 3x3 rotation matrix from yaw, roll, pitch (angles in radians).
+
+  Note: Yaw -> Z, Roll -> X, Pitch -> Y.
+
+  Args:
+    yaw: float tensor representing a yaw angle in radians.
+    roll: float tensor representing a roll angle in radians.
+    pitch: float tensor representing a pitch angle in radians.
+
+  Returns:
+    A [3, 3] tensor corresponding to a rotation matrix.
+  """
+
+  # pyformat: disable
+  def _UnitX(angle):
+    return tf.reshape([1., 0., 0.,
+                       0., tf.cos(angle), -tf.sin(angle),
+                       0., tf.sin(angle), tf.cos(angle)],
+                      shape=[3, 3])
+
+  def _UnitY(angle):
+    return tf.reshape([tf.cos(angle), 0., tf.sin(angle),
+                       0., 1., 0.,
+                       -tf.sin(angle), 0., tf.cos(angle)],
+                      shape=[3, 3])
+
+  def _UnitZ(angle):
+    return tf.reshape([tf.cos(angle), -tf.sin(angle), 0.,
+                       tf.sin(angle), tf.cos(angle), 0.,
+                       0., 0., 1.],
+                      shape=[3, 3])
+  # pyformat: enable
+  return tf.matmul(tf.matmul(_UnitZ(yaw), _UnitX(roll)), _UnitY(pitch))
+
+
 def CoordinateTransform(points, pose):
   """Translate 'points' to coordinates according to 'pose' vector.
 
@@ -78,41 +114,74 @@ def CoordinateTransform(points, pose):
   translation = tf.reshape([translate_x, translate_y, translate_z], shape=[3])
   translated_points = points + translation
 
-  # Define the rotation matrices for each of yaw, roll and pitch.
-  #
-  # The angle is expected to be in radians.
-  # pyformat: disable
-  def UnitX(angle):
-    return tf.reshape([1., 0., 0.,
-                       0., tf.cos(angle), -tf.sin(angle),
-                       0., tf.sin(angle), tf.cos(angle)],
-                      shape=[3, 3])
-
-  def UnitY(angle):
-    return tf.reshape([tf.cos(angle), 0., tf.sin(angle),
-                       0., 1., 0.,
-                       -tf.sin(angle), 0., tf.cos(angle)],
-                      shape=[3, 3])
-
-  def UnitZ(angle):
-    return tf.reshape([tf.cos(angle), -tf.sin(angle), 0.,
-                       tf.sin(angle), tf.cos(angle), 0.,
-                       0., 0., 1.],
-                      shape=[3, 3])
-  # pyformat: enable
-
   # Compose the rotations along the three axes.
   #
-  # Yaw->Z, Roll->X, Pitch->Y to match onboard logic:
-  yaw = pose[3]
-  roll = pose[4]
-  pitch = pose[5]
-  rotation_matrix = tf.matmul(tf.matmul(UnitZ(yaw), UnitX(roll)), UnitY(pitch))
+  # Note: Yaw->Z, Roll->X, Pitch->Y.
+  yaw, roll, pitch = pose[3], pose[4], pose[5]
+  rotation_matrix = _MakeRotationMatrix(yaw, roll, pitch)
 
   # Finally, rotate the points about the pose's origin according to the
   # rotation matrix.
   rotated_points = _BroadcastMatmul(translated_points, rotation_matrix)
   return rotated_points
+
+
+def TransformPoints(points, transforms):
+  """Apply 4x4 transforms to a set of points.
+
+  Args:
+    points: A [..., num_points, 3] tensor of xyz point locations.
+    transforms: A [..., 4, 4] tensor with the same leading shape as points.
+
+  Returns:
+    A tensor with the same shape as points, transformed respectively.
+  """
+  # Create homogeneous coordinates for points.
+  points = tf.concat([points, tf.ones_like(points[..., :1])], axis=-1)
+
+  # Apply transformations, and divide by last axis to project back to 3D-space.
+  # Transpose the transforms since the transformation is usually expected to
+  # be applied such that new_points = T * current_point.
+  points = tf.matmul(points, transforms, transpose_b=True)
+  points = points[..., :3] / points[..., 3:]
+
+  return points
+
+
+def _WrapAngleRad(angles_rad, min_val=-np.pi, max_val=np.pi):
+  """Wrap the value of `angles_rad` to the range [min_val, max_val]."""
+  max_min_diff = max_val - min_val
+  return min_val + tf.mod(angles_rad + max_val, max_min_diff)
+
+
+def TransformBBoxes3D(bboxes_3d, transforms):
+  """Apply 4x4 transforms to 7 DOF bboxes (change center and rotation).
+
+  Args:
+    bboxes_3d: A [..., num_boxes, 7] tensor representing 3D bboxes.
+    transforms: A [..., 4, 4] tensor with the same leading shape as bboxes_3d.
+      These transforms are expected to only affect translation and rotation,
+      while not scaling the data. This ensures that the bboxes have the same
+      dimensions post transformation.
+
+  Returns:
+    A tensor with the same shape as bboxes_3d, with transforms applied to each
+    bbox3d.
+  """
+  center_xyz = bboxes_3d[..., :3]
+  dimensions = bboxes_3d[..., 3:6]
+  rot = bboxes_3d[..., 6:]
+
+  # Transform center and rotation, assuming that dimensions are not changed.
+  center_xyz = TransformPoints(center_xyz, transforms)
+  rot += tf.atan2(transforms[..., 1, 0], transforms[..., 0, 0])
+  rot = _WrapAngleRad(rot)
+
+  return tf.concat([
+      center_xyz,
+      dimensions,
+      rot,
+  ], axis=-1)  # pyformat: disable
 
 
 def XYWHToBBoxes(xywh):

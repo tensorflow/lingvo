@@ -180,6 +180,112 @@ class GeometryTest(test_utils.TestCase):
 
       self.assertAllClose(expected, result)
 
+  def _MakeTransformTestRotationMatrices(self, batch_size):
+    # Make a batch of 4x4 transformation matrices that only has rotation around
+    # the z-axis (world rotation).
+    rot_matrices = []
+    for _ in range(batch_size):
+      rot_matrix = geometry._MakeRotationMatrix(tf.random_uniform([]), 0., 0.)
+      # Embed rotation matrix into a 4 x 4 matrix
+      rot_matrix = tf.pad(rot_matrix, [[0, 1], [0, 1]]) + tf.diag([0, 0, 0, 1.])
+      rot_matrices.append(rot_matrix)
+    transforms = tf.stack(rot_matrices, axis=0)
+    return transforms
+
+  def _MakeTransformTestTranslationMatrices(self, batch_size):
+    # Make a batch of 4x4 transformation matrices that translate in all
+    # directions.
+    translation_matrices = []
+    for _ in range(batch_size):
+      translation_matrix = tf.random_uniform([3, 1])
+      translation_matrix = tf.pad(translation_matrix, [[0, 1], [3, 0]])
+      translation_matrix += tf.diag([1., 1., 1., 1.])
+      translation_matrices.append(translation_matrix)
+    transforms = tf.stack(translation_matrices, axis=0)
+    return transforms
+
+  def testTransformPointsRotation(self):
+    batch_size, num_points = 10, 8
+    points = tf.random_uniform((batch_size, num_points, 3))
+    transforms = self._MakeTransformTestRotationMatrices(batch_size)
+    points_transformed = geometry.TransformPoints(points, transforms)
+    with self.session() as sess:
+      actual_points, actual_points_transformed = sess.run(
+          (points, points_transformed))
+    # Points are the same on the z-axis (no rotation).
+    self.assertAllClose(actual_points[:, :, 2], actual_points_transformed[:, :,
+                                                                          2])
+    # Points are transformed, and different.
+    self.assertNotAllClose(actual_points, actual_points_transformed)
+
+  def testTransformPointsTranslation(self):
+    batch_size, num_points = 10, 8
+    points = tf.random_uniform((batch_size, num_points, 3))
+    transforms = self._MakeTransformTestTranslationMatrices(batch_size)
+    points_transformed = geometry.TransformPoints(points, transforms)
+    with self.session() as sess:
+      actual_points, actual_points_transformed, actual_transforms = sess.run(
+          (points, points_transformed, transforms))
+    # Points are transformed, and different.
+    self.assertNotAllClose(actual_points, actual_points_transformed)
+    # Manually transform points and check that they are as expected.
+    actual_translation = actual_transforms[:, :3, 3]
+    self.assertAllClose(actual_points + actual_translation[:, np.newaxis, :],
+                        actual_points_transformed)
+
+  def testWrapAngleRad(self):
+    angles = tf.random_uniform([100],
+                               minval=-100.,
+                               maxval=100.,
+                               dtype=tf.float32)
+    wrapped_angles = geometry._WrapAngleRad(angles)
+    with self.session() as sess:
+      actual_angles, actual_wrapped_angles = sess.run((angles, wrapped_angles))
+
+    # The sine values of the angles should remain the same after wrapping.
+    self.assertAllClose(
+        np.sin(actual_angles), np.sin(actual_wrapped_angles), atol=1e-5)
+
+    # Check ranges match the wrapped expectations.
+    self.assertTrue(np.all(actual_wrapped_angles >= -np.pi))
+    self.assertTrue(np.all(actual_wrapped_angles <= np.pi))
+
+  def testTransformBBoxes3D(self):
+    batch_size, num_boxes = 10, 20
+    bboxes_3d = tf.random_uniform((batch_size, num_boxes, 7))
+    transforms = self._MakeTransformTestTranslationMatrices(batch_size)
+    bboxes_3d_transformed = geometry.TransformBBoxes3D(bboxes_3d, transforms)
+    with self.session() as sess:
+      actual_bboxes_3d, actual_bboxes_3d_transformed = sess.run(
+          (bboxes_3d, bboxes_3d_transformed))
+
+    # Dimensions (slice 3:6) should remain unchanged.
+    self.assertAllClose(actual_bboxes_3d[..., 3:6],
+                        actual_bboxes_3d_transformed[..., 3:6])
+
+    # Rotation should remain unchanged.
+    self.assertAllClose(actual_bboxes_3d[..., 6],
+                        actual_bboxes_3d_transformed[..., 6])
+
+    # Center xyz should be different.
+    self.assertNotAllClose(actual_bboxes_3d[..., :3],
+                           actual_bboxes_3d_transformed[..., :3])
+
+  def testTransformBBoxes3DConsistentWithPoints(self):
+    num_boxes, num_points = 20, 100
+    points = tf.random_uniform((num_points, 3))
+    bboxes_3d = tf.random_uniform((num_boxes, 7))
+    in_bboxes = geometry.IsWithinBBox3D(points, bboxes_3d)
+    transforms = self._MakeTransformTestTranslationMatrices(1)[0]
+    points_transformed = geometry.TransformPoints(points, transforms)
+    bboxes_3d_transformed = geometry.TransformBBoxes3D(bboxes_3d, transforms)
+    in_bboxes_transformed = geometry.IsWithinBBox3D(points_transformed,
+                                                    bboxes_3d_transformed)
+    with self.session() as sess:
+      actual_in_bboxes, actual_in_bboxes_transformed = sess.run(
+          (in_bboxes, in_bboxes_transformed))
+    self.assertAllEqual(actual_in_bboxes, actual_in_bboxes_transformed)
+
   def testIsOnLeftHandSideOrOn(self):
     v1 = tf.constant([[0., 0.]], dtype=tf.float32)
     v2 = tf.constant([[1., 0.]], dtype=tf.float32)
