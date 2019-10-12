@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import re
 import threading
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -161,8 +162,20 @@ def RecursiveFindLayerParams(params):
 LAYER_WT = 'layer_weight_variable'
 
 
-class BaseLayer(object):
-  """Base class for all the layer object."""
+class BaseLayer(tf.Module):
+  """Base class for all the layer object.
+
+  As this BaseLayer is a proper sub-class of tf.Module, it supports proper
+  tracking and reflection of key constituents such as variables and submodules.
+
+  self.submodules returns a list of submodules that are reachable through
+  recursive member access from self.
+
+  self.variables returns a list of Variables that are reachable through
+  recursive member access from self.
+
+  self(\*args, \*\*kwargs) carries out computation on the input args and kwargs.
+  """
 
   # Set to an inference driver name if this is an inference specialization
   # class.
@@ -255,6 +268,25 @@ class BaseLayer(object):
     """
     assert params.name, (
         'Layer params for %s must have a "name"' % self.__class__.__name__)
+
+    tf_module_name = params.name
+    tf_module_name = re.sub('[^a-zA-Z0-9_]+', '_', tf_module_name)
+    tf_module_name = 'bbf_' + self.__class__.__name__ + '_' + tf_module_name
+    py_utils.NestedMap.CheckKey(tf_module_name)
+
+    # initialize the base class.
+    super(BaseLayer, self).__init__(tf_module_name)
+
+    # Note AutoTracking doesn't work properly due to its inability to walk
+    # through py_utils.NestedMap data structures which are used widely
+    # throughout the Lingvo codebase. Also there seems to be some performance
+    # hit in turning on auto-tracking in constructing graphs. For now, we
+    # disable auto-tracking.
+    # TODO(lingvo): Re-enable auto-tracking when fuller support is
+    # added for key data structures used in Lingvo, and performance issue is
+    # debugged more and understood better.
+    self._setattr_tracking = False
+
     self._parent = (
         _LAYER_STACK.layer_stack[-2]
         if len(_LAYER_STACK.layer_stack) > 1 else None)
@@ -289,6 +321,10 @@ class BaseLayer(object):
   def FPropDefaultTheta(self, *args, **kwargs):
     """Calls `FProp`."""
     return self.FProp(self.theta, *args, **kwargs)
+
+  def __call__(self, *args, **kwargs):
+    """Forwards call to FPropDefaultTheta."""
+    return self.FPropDefaultTheta(*args, **kwargs)
 
   def FProp(self, theta, *args, **kwargs):
     """Forward propagation.
@@ -388,6 +424,10 @@ class BaseLayer(object):
 
   def __getattr__(self, name):
     """Returns the child layer of the given name."""
+    if name == '_private_children':
+      raise AttributeError(
+          'pre-mature access to __getattr__ before _private_children'
+          'is created.')
     if name in self._private_children:
       return self._private_children[name]
     elif (hasattr(type(self), name) and
@@ -400,6 +440,9 @@ class BaseLayer(object):
 
   def GetDescendant(self, path):
     """Returns a descendant layer given the path.
+
+    NOTE(yonghui): This GetDescendant is not complete. It is not able to descent
+    into list/tuple substructures.
 
     Args:
       path: a comma separated string denoting a descendant of this layer.

@@ -277,6 +277,42 @@ class ConvLayerTest(test_utils.TestCase):
       ]
       self.assertEqual(expected_var_names, bn_var_names)
 
+  def testDepthwiseConv2DLayerModuleInterface(self):
+    with self.session(use_gpu=True):
+      tf.set_random_seed(398847392)
+      np.random.seed(12345)
+      params = layers.DepthwiseConv2DLayer.Params()
+      params.name = 'conv1'
+      params.filter_shape = [3, 3, 3, 32]
+      params.filter_stride = [2, 2]
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.is_eval = False
+      conv1 = layers.DepthwiseConv2DLayer(params)
+      params.name = 'conv2'
+      conv2 = layers.DepthwiseConv2DLayer(params)
+
+      def ModuleName(m):
+        return m.name
+
+      conv1_variables = [v.name for v in conv1.variables]
+      conv1_submodules = [ModuleName(v) for v in conv1.submodules]
+      conv2_variables = [v.name for v in conv2.variables]
+      conv2_submodules = [ModuleName(v) for v in conv2.submodules]
+      expected_conv1_vars = ['global_step:0', 'conv1/w/var:0',
+                             'conv1/moving_mean/var:0',
+                             'conv1/moving_variance/var:0', 'conv1/beta/var:0',
+                             'conv1/gamma/var:0']
+      expected_conv2_vars = ['global_step:0', 'conv2/w/var:0',
+                             'conv2/moving_mean/var:0',
+                             'conv2/moving_variance/var:0', 'conv2/beta/var:0',
+                             'conv2/gamma/var:0']
+      expected_conv1_modules = ['bbf_BatchNormLayer_conv1']
+      expected_conv2_modules = ['bbf_BatchNormLayer_conv2']
+      self.assertEqual(expected_conv1_vars, conv1_variables)
+      self.assertEqual(expected_conv2_vars, conv2_variables)
+      self.assertEqual(expected_conv1_modules, conv1_submodules)
+      self.assertEqual(expected_conv2_modules, conv2_submodules)
+
   def testSeparableConv2DLayerConstruction(self):
     with self.session(use_gpu=True):
       tf.set_random_seed(398847392)

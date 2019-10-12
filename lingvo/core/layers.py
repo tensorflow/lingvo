@@ -2548,15 +2548,15 @@ class SimpleFullSoftmax(SoftmaxLayer):
     # shape=[num_classes_per_shard, p.input_dim] to avoid an expensive transpose
     # op before computing the sampled_softmax_loss.
     self._transpose_weight_params = False
-    self._weights_shard_shape = [p.input_dim, num_classes_per_shard]
+    weights_shard_shape = [p.input_dim, num_classes_per_shard]
     if p.num_sampled:
       self._transpose_weight_params = True
-      self._weights_shard_shape = [num_classes_per_shard, p.input_dim]
+      weights_shard_shape = [num_classes_per_shard, p.input_dim]
     self.TrackQTensor('inputs', 'logits')
 
     with tf.variable_scope(p.name):
       pc = py_utils.WeightParams(
-          shape=self._weights_shard_shape,
+          shape=weights_shard_shape,
           init=p.params_init,
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
