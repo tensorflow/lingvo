@@ -845,6 +845,8 @@ class TrainerTpu(base_runner.BaseRunner):
 
         if self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
+          if FLAGS.checkpoint_in_trainer_tpu:
+            self.checkpointer.Save(sess, global_step)
           return
 
         if self._retrieve_ops:

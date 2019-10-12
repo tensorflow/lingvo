@@ -258,6 +258,7 @@ class ExecutorTpu(base_runner.BaseRunner):
 
         if self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
+          self.save_only_checkpointer.Save(sess, global_step)
           return
 
         # If a task is explicitly selected, only run the programs associated
