@@ -50,6 +50,16 @@ class PyUtilsTest(test_utils.TestCase):
     p = py_utils.DefaultParamInit()
     self.assertTrue(py_utils.IsDefaultParamInit(p))
 
+  def testNestedMapFromNestedDict(self):
+    a = {'a1': 1, 'a2': 2}
+    b = {'b1': 1, 'b2': 2}
+    c = {'a': a, 'b': b}
+    d = py_utils.NestedMap(c)
+    e = py_utils.NestedMap.FromNestedDict(c)
+    self.assertIsInstance(d, py_utils.NestedMap)
+    self.assertNotIsInstance(d.a, py_utils.NestedMap)
+    self.assertIsInstance(e.a, py_utils.NestedMap)
+
   def testCreateVariableBasics(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
       methods = [

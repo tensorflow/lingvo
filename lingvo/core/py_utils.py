@@ -620,6 +620,17 @@ class NestedMap(dict):
     return self.Pack(flat_v)
 
   @staticmethod
+  def FromNestedDict(a_dict):
+    """Convert a nested dict to a NestedMap."""
+    res = NestedMap()
+    for k, v in six.iteritems(a_dict):
+      if isinstance(v, dict):
+        res[k] = NestedMap.FromNestedDict(v)
+      else:
+        res[k] = v
+    return res
+
+  @staticmethod
   def CheckKey(key):
     """Asserts that key is valid NestedMap key."""
     assert isinstance(key, six.string_types) and _NAME_PATTERN.match(key), key
