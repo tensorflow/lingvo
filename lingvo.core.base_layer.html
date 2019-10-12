@@ -264,8 +264,15 @@ __init__() for classes on the class hierarchy.</p>
 <dl class="class">
 <dt id="lingvo.core.base_layer.BaseLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_layer.</code><code class="sig-name descname">BaseLayer</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.module.module.Module</span></code></p>
 <p>Base class for all the layer object.</p>
+<p>As this BaseLayer is a proper sub-class of tf.Module, it supports proper
+tracking and reflection of key constituents such as variables and submodules.</p>
+<p>self.submodules returns a list of submodules that are reachable through
+recursive member access from self.</p>
+<p>self.variables returns a list of Variables that are reachable through
+recursive member access from self.</p>
+<p>self(*args, **kwargs) carries out computation on the input args and kwargs.</p>
 <dl class="attribute">
 <dt id="lingvo.core.base_layer.BaseLayer._INFERENCE_DRIVER_NAME">
 <code class="sig-name descname">_INFERENCE_DRIVER_NAME</code><em class="property"> = None</em><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._INFERENCE_DRIVER_NAME" title="Permalink to this definition">¶</a></dt>
@@ -398,6 +405,8 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dt id="lingvo.core.base_layer.BaseLayer.GetDescendant">
 <code class="sig-name descname">GetDescendant</code><span class="sig-paren">(</span><em class="sig-param">path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.GetDescendant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.GetDescendant" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a descendant layer given the path.</p>
+<p>NOTE(yonghui): This GetDescendant is not complete. It is not able to descent
+into list/tuple substructures.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>path</strong> – a comma separated string denoting a descendant of this layer.</p>

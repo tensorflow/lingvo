@@ -2693,15 +2693,15 @@
     <span class="c1"># shape=[num_classes_per_shard, p.input_dim] to avoid an expensive transpose</span>
     <span class="c1"># op before computing the sampled_softmax_loss.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_weights_shard_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">num_classes_per_shard</span><span class="p">]</span>
+    <span class="n">weights_shard_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">num_classes_per_shard</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span> <span class="o">=</span> <span class="kc">True</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_weights_shard_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">num_classes_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]</span>
+      <span class="n">weights_shard_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">num_classes_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;logits&#39;</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_weights_shard_shape</span><span class="p">,</span>
+          <span class="n">shape</span><span class="o">=</span><span class="n">weights_shard_shape</span><span class="p">,</span>
           <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
