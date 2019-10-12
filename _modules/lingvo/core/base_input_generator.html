@@ -459,6 +459,15 @@
         <span class="s1">&#39;How many records are buffered for random shuffling. This param &#39;</span>
         <span class="s1">&#39;affects how much RAM a train/test job needs. E.g., if an average &#39;</span>
         <span class="s1">&#39;record is about 500KB, the buffer needs 5GB ram.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;file_buffer_size_in_seconds&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;If non-zero, keep enough records in the buffer to handle N seconds &#39;</span>
+        <span class="s1">&#39;worth of demand. E.g., if the training job is reading 1000 records &#39;</span>
+        <span class="s1">&#39;per second and this parameter is set to 10, the buffer is resized &#39;</span>
+        <span class="s1">&#39;to contain 10000 records. This parameter is useful when reading from &#39;</span>
+        <span class="s1">&#39;many data sources at different speeds, as it automatically tunes the &#39;</span>
+        <span class="s1">&#39;size of buffers to fit demand. The file_buffer_size parameter is an &#39;</span>
+        <span class="s1">&#39;upper bound to the buffer size.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;file_parallelism&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s1">&#39;How many files to read concurrently.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;bucket_adjust_every_n&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If non-zero, optimize the values of &#39;</span>
@@ -582,6 +591,7 @@
         <span class="s1">&#39;file_random_seed&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span><span class="p">,</span>
         <span class="s1">&#39;file_buffer_size&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">,</span>
         <span class="s1">&#39;file_parallelism&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span><span class="p">,</span>
+        <span class="s1">&#39;file_buffer_size_in_seconds&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size_in_seconds</span><span class="p">,</span>
         <span class="s1">&#39;bucket_adjust_every_n&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_adjust_every_n</span><span class="p">,</span>
         <span class="s1">&#39;flush_every_n&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">flush_every_n</span><span class="p">,</span>
         <span class="s1">&#39;num_threads&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span><span class="p">,</span>
