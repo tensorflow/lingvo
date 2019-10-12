@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "lingvo/core/ops/record_yielder.h"
 
+#include <chrono>  // NOLINT(build/c++11)
+
 #include <gtest/gtest.h>
 #include "lingvo/core/ops/input_common.h"
 #include "lingvo/core/ops/sequential_record_yielder.h"
@@ -423,6 +425,44 @@ TEST(RecordYielder, Iota) {
   std::sort(vals.begin(), vals.end());
   auto new_end = std::unique(vals.begin(), vals.end());
   EXPECT_EQ(new_end, vals.end());
+  yielder->Close();
+}
+
+TEST(RecordYielder, AdjustStaysLow) {
+  BasicRecordYielder::Options opts;
+  opts.file_pattern = "iota:100";
+  opts.bufsize = 100;
+  opts.bufsize_in_seconds = 1;
+  opts.parallelism = 1;
+  BasicRecordYielder* yielder = BasicRecordYielder::New(opts);
+
+  // We didn't read anything for 5 seconds, so we expect that the buffer size
+  // has stayed at the initial value of 16.
+  std::this_thread::sleep_for(std::chrono::seconds(5));
+  EXPECT_EQ(16, yielder->bufsize());
+  yielder->Close();
+}
+
+TEST(RecordYielder, AdjustUp) {
+  BasicRecordYielder::Options opts;
+  opts.file_pattern = "iota:100";
+  opts.bufsize = 100;
+  opts.bufsize_in_seconds = 1;
+  opts.parallelism = 1;
+  BasicRecordYielder* yielder = BasicRecordYielder::New(opts);
+
+  // We are reading 1000 records/second, so we expect that the buffer size
+  // will be much higher than the initial value of 16.
+  for (int i = 0; i < 50; i++) {
+    for (int j = 0; j < 100; j++) {
+      Rope v;
+      LOG(INFO) << "yield " << j;
+      TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+  EXPECT_LT(30, yielder->bufsize());
+  EXPECT_GE(100, yielder->bufsize());
   yielder->Close();
 }
 

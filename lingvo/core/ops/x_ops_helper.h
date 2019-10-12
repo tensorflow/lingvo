@@ -22,6 +22,7 @@ limitations under the License.
       .Attr("input_source_weights: list(float) = []") \
       .Attr("file_random_seed: int = 301")            \
       .Attr("file_buffer_size: int = 10000")          \
+      .Attr("file_buffer_size_in_seconds: int = 0")   \
       .Attr("file_parallelism: int = 16")             \
       .Attr("bucket_upper_bound: list(int)")          \
       .Attr("bucket_batch_limit: list(int)")          \
@@ -44,6 +45,9 @@ input_source_weights: A list of input sources weights that control the input\
   Defaults to empty list.\
 file_random_seed: Random seeds used to produce randomized records.\
 file_buffer_size: The randomization shuffling buffer.\
+file_buffer_size_in_seconds: Number of records the shuffling buffer should\
+  contain, measured in seconds (the number of records demanded by the trainer\
+  in this many seconds).\
 file_parallelism: How many sstables are opened and concurrently iterated over.\
 bucket_upper_bound: Bucketing scheme. Specifies each bucket's upper bound.\
 bucket_batch_limit: Batching scheme. Specifies each bucket's maximum batch\

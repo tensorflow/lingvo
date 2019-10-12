@@ -314,6 +314,15 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'How many records are buffered for random shuffling. This param '
         'affects how much RAM a train/test job needs. E.g., if an average '
         'record is about 500KB, the buffer needs 5GB ram.')
+    p.Define(
+        'file_buffer_size_in_seconds', 0,
+        'If non-zero, keep enough records in the buffer to handle N seconds '
+        'worth of demand. E.g., if the training job is reading 1000 records '
+        'per second and this parameter is set to 10, the buffer is resized '
+        'to contain 10000 records. This parameter is useful when reading from '
+        'many data sources at different speeds, as it automatically tunes the '
+        'size of buffers to fit demand. The file_buffer_size parameter is an '
+        'upper bound to the buffer size.')
     p.Define('file_parallelism', 16, 'How many files to read concurrently.')
     p.Define(
         'bucket_adjust_every_n', 0, 'If non-zero, optimize the values of '
@@ -437,6 +446,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'file_random_seed': p.file_random_seed,
         'file_buffer_size': p.file_buffer_size,
         'file_parallelism': p.file_parallelism,
+        'file_buffer_size_in_seconds': p.file_buffer_size_in_seconds,
         'bucket_adjust_every_n': p.bucket_adjust_every_n,
         'flush_every_n': p.flush_every_n,
         'num_threads': p.num_batcher_threads,

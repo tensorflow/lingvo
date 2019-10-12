@@ -30,6 +30,7 @@ namespace lingvo {
 RecordYielder* ConstructYielder(const string& file_pattern,
                                 const std::vector<float>& input_source_weights,
                                 int64 file_random_seed, int64 file_buffer_size,
+                                int64 file_buffer_size_in_seconds,
                                 int64 file_parallelism,
                                 bool require_sequential_order,
                                 int64 repeat_count, bool use_chaining);
@@ -52,6 +53,7 @@ class InputOp : public OpKernel {
     GETATTR(std::vector<float>, input_source_weights);
     GETATTR(int64, file_random_seed);
     GETATTR(int64, file_buffer_size);
+    GETATTR(int64, file_buffer_size_in_seconds);
     GETATTR(int64, file_parallelism);
     GETATTR(Int64Vec, bucket_upper_bound);
     GETATTR(Int64Vec, bucket_batch_limit);
@@ -71,10 +73,10 @@ class InputOp : public OpKernel {
     }
     LOG(INFO) << "Create RecordProcessor";
     processor_ = new RecordProcessorClass(ctx);
-    RecordYielder* yielder = CHECK_NOTNULL(
-        ConstructYielder(file_pattern, input_source_weights, file_random_seed,
-                         file_buffer_size, file_parallelism,
-                         require_sequential_order, repeat_count, use_chaining));
+    RecordYielder* yielder = CHECK_NOTNULL(ConstructYielder(
+        file_pattern, input_source_weights, file_random_seed, file_buffer_size,
+        file_buffer_size_in_seconds, file_parallelism, require_sequential_order,
+        repeat_count, use_chaining));
     LOG(INFO) << "Create batcher";
     RecordBatcher::Options bopts;
     bopts.bucket_upper_bound = bucket_upper_bound;

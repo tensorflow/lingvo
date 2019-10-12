@@ -15,7 +15,10 @@ limitations under the License.
 
 #include "lingvo/core/ops/record_yielder.h"
 
+#include <chrono>  // NOLINT(build/c++11)
+#include <memory>
 #include <string>
+#include <thread>  // NOLINT(build/c++11)
 #include <unordered_map>
 
 #include "lingvo/core/ops/mutex.h"
@@ -35,6 +38,9 @@ namespace tensorflow {
 namespace lingvo {
 
 namespace {
+
+// Number of records to batch for a single call to Add.
+const int kRecordsPerAdd = 16;
 
 struct Factory {
   Mutex mu;
@@ -314,10 +320,11 @@ BasicRecordYielder* BasicRecordYielder::New(Options opts) {
 BasicRecordYielder::BasicRecordYielder(const Options& opts)
     : opts_(opts),
       thread_(new thread::ThreadPool(Env::Default(), ThreadOptions(),
-                                     "record_yielder", 1 + opts.parallelism,
+                                     "record_yielder", 2 + opts.parallelism,
                                      /* low_latency_hint */ false)),
       epoch_(1),
       rnd_(opts.seed),
+      yields_(0),
       buf_empty_(this, &ME::BufEmpty),
       buf_not_full_(this, &ME::BufNotFull),
       buf_enough_(this, &ME::BufEnough) {
@@ -329,6 +336,11 @@ BasicRecordYielder::BasicRecordYielder(const Options& opts)
   file_type_ = RecordIterator::GetFilePatternPrefix(opts_.file_pattern);
   if (!file_type_.empty()) {
     opts_.file_pattern.erase(0, file_type_.size() + 1);
+  }
+  if (opts_.bufsize_in_seconds > 0) {
+    bufsize_ = kRecordsPerAdd * opts_.parallelism;
+  } else {
+    bufsize_ = opts_.bufsize;
   }
 }
 
@@ -357,6 +369,8 @@ void BasicRecordYielder::Close() {
 Status BasicRecordYielder::Yield(Rope* value, int* source_id) {
   MutexLock l(&mu_);
   WaitForBufEnough();
+  ++yields_;
+
   if (status_.ok()) {
     CHECK(!stop_ && !buf_.empty());
     ExtractValue(value);
@@ -377,7 +391,55 @@ bool BasicRecordYielder::ShouldFinish(const Status& s) {
   return stop_ || !status_.ok();
 }
 
+void BasicRecordYielder::AdjustBufferSizeLoop() {
+  if (opts_.bufsize_in_seconds == 0) {
+    // Nothing to do for a fixed buffer size.
+    return;
+  }
+
+  // Wake up each second and adjust the buffer size.
+  while (true) {
+    {
+      MutexLock l(&mu_);
+
+      // Quit if requested.
+      if (stop_) break;
+
+      // Smoothed bufsize_ estimate based on current yields_ requests.
+      // With this set of parameters, the contribution of the current buffer
+      // size decays as follows:
+      //    10 seconds -> 90% (.99^10)
+      //      1 minute -> 50% (.99^60)
+      //     5 minutes ->  5% (.99^300)
+      bufsize_ = 0.99 * static_cast<double>(bufsize_) +
+                 0.01 * yields_ * opts_.bufsize_in_seconds;
+
+      // Make sure the buffer is large enough to hold one batch of Add records
+      // per thread.
+      bufsize_ = std::max<int64>(opts_.parallelism * kRecordsPerAdd, bufsize_);
+
+      // Make sure the buffer is not larger than the bufsize parameter in the
+      // options.
+      if (opts_.bufsize > 0) {
+        bufsize_ = std::min<double>(opts_.bufsize, bufsize_);
+      }
+      VLOG(1) << "Yields:" << yields_ << " Bufsize:" << bufsize_
+              << " Pattern:" << opts_.file_pattern;
+
+      // Reset yields_ to zero to count another second of requests.
+      yields_ = 0;
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+}
+
 void BasicRecordYielder::MainLoop() {
+  Notification adjust_done;
+  thread_->Schedule([this, &adjust_done]() {
+    AdjustBufferSizeLoop();
+    adjust_done.Notify();
+  });
+
   while (true) {
     num_records_yielded_in_epoch_ = 0;
     LOG(INFO) << "Epoch " << current_epoch() << " " << opts_.file_pattern;
@@ -430,6 +492,8 @@ void BasicRecordYielder::MainLoop() {
     LOG(INFO) << "Epoch " << current_epoch() << ": total records "
               << num_records_yielded_in_epoch_;
   }
+
+  adjust_done.WaitForNotification();
   main_loop_done_.Notify();
 }
 
@@ -454,7 +518,6 @@ bool BasicRecordYielder::Add(std::vector<Rope>* values) {
 
 void BasicRecordYielder::ShardLoop(Shard* shard) {
   std::vector<Rope> values;
-  const int64 kRecords = 16;
   for (const string& filename : shard->filenames) {
     if (ShouldFinish(Status::OK())) break;
     VLOG(1) << "Shard " << shard->index << " " << filename;
@@ -464,7 +527,7 @@ void BasicRecordYielder::ShardLoop(Shard* shard) {
     Rope val;
     while (iter->Next(&key, &val)) {
       values.emplace_back(val);
-      if (values.size() >= kRecords && Add(&values)) {
+      if (values.size() >= kRecordsPerAdd && Add(&values)) {
         shard->status = errors::Aborted("stopped");
         break;
       }

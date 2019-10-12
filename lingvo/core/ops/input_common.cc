@@ -25,6 +25,7 @@ namespace lingvo {
 RecordYielder* ConstructYielder(const string& file_pattern,
                                 const std::vector<float>& input_source_weights,
                                 int64 file_random_seed, int64 file_buffer_size,
+                                int64 file_buffer_size_in_seconds,
                                 int64 file_parallelism,
                                 bool require_sequential_order,
                                 int64 repeat_count, bool use_chaining) {
@@ -65,6 +66,7 @@ RecordYielder* ConstructYielder(const string& file_pattern,
       }
     }
     yopts.bufsize = file_buffer_size;
+    yopts.bufsize_in_seconds = file_buffer_size_in_seconds;
     yopts.parallelism = file_parallelism;
     yopts.source_id = i;
     yielder_options.push_back(yopts);

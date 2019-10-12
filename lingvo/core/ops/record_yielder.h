@@ -134,6 +134,10 @@ class BasicRecordYielder : public RecordYielder {
     // Randomization buffer keeps these many records.
     int64 bufsize = 1;
 
+    // If non-zero, attempt to keep this many seconds of records in the
+    // randomization buffer. The buffer size will never exceed bufsize.
+    int64 bufsize_in_seconds = 0;
+
     // Uses this many concurrent iterators to iterate through files.
     int32 parallelism = 1;
 
@@ -160,10 +164,15 @@ class BasicRecordYielder : public RecordYielder {
     return epoch_;
   }
 
+  // Returns the current buffer size.
+  int64 bufsize() const {
+    MutexLock l(&mu_);
+    return bufsize_;
+  }
+
  protected:
   explicit BasicRecordYielder(const Options& opts);
   explicit BasicRecordYielder();  // USED ONLY FOR TESTS.
-
 
   ~BasicRecordYielder() override;
 
@@ -212,6 +221,12 @@ class BasicRecordYielder : public RecordYielder {
 
   int64 num_records_yielded_in_epoch_ = 0;
 
+  // Dynamically adjusted buffer size.
+  double bufsize_ GUARDED_BY(mu_);
+
+  // Number of Yield calls in the current adjustment interval.
+  int64 yields_ GUARDED_BY(mu_);
+
   // Trigger when the main loop has exited.
   Notification main_loop_done_;
 
@@ -223,7 +238,7 @@ class BasicRecordYielder : public RecordYielder {
 
   Condition buf_not_full_;
   bool BufNotFull() const SHARED_LOCKS_REQUIRED(mu_) {
-    return stop_ || static_cast<int64>(buf_.size()) < opts_.bufsize;
+    return stop_ || static_cast<int64>(buf_.size()) < bufsize_;
   }
 
   Condition buf_enough_;
@@ -232,7 +247,7 @@ class BasicRecordYielder : public RecordYielder {
     // the buf_ contains enough randomized elements before yielding any.
     return stop_ || !status_.ok() || (epoch_end_ && !buf_.empty()) ||
            (!epoch_end_ && static_cast<int64>(buf_.size()) >=
-                               std::max<int64>(1, opts_.bufsize / 2));
+                               std::max<int64>(1, bufsize_ / 2));
   }
 
   void ExtractValue(Rope* value) EXCLUSIVE_LOCKS_REQUIRED(mu_) {
@@ -251,6 +266,7 @@ class BasicRecordYielder : public RecordYielder {
 
   void Start();
   void MainLoop();
+  void AdjustBufferSizeLoop();
 
   // For performance debugging.
   void WaitForBufEnough() EXCLUSIVE_LOCKS_REQUIRED(mu_);
