@@ -1306,8 +1306,8 @@ class StackingOverTime(base_layer.BaseLayer):
 
       # Original sequence length before padding.
       inputs_max_len = py_utils.GetShape(inputs)[1]
-      # Make p.stacking copies of the padded sequence with the original sequence
-      # length, where each copy is offset by 1 time step.
+      # Make window_size() copies of the padded sequence with the original
+      # sequence length, where each copy is offset by 1 time step.
       pieces = []
       for i in range(self.window_size):
         pieces.append(padded_inputs[:, i:i + inputs_max_len, :])
