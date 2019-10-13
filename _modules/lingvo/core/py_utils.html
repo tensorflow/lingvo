@@ -764,6 +764,17 @@
     <span class="n">flat_v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_v</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="NestedMap.FromNestedDict"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.FromNestedDict">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">FromNestedDict</span><span class="p">(</span><span class="n">a_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert a nested dict to a NestedMap.&quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">a_dict</span><span class="p">):</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="o">.</span><span class="n">FromNestedDict</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
 <div class="viewcode-block" id="NestedMap.CheckKey"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.CheckKey">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">CheckKey</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Asserts that key is valid NestedMap key.&quot;&quot;&quot;</span>
