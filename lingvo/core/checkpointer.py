@@ -78,8 +78,8 @@ class Checkpointer(object):
     return tf.train.Saver(
         sharded=True,
         max_to_keep=self._train_params.save_max_to_keep,
-        keep_checkpoint_every_n_hours=self._train_params
-        .save_keep_checkpoint_every_n_hours,
+        keep_checkpoint_every_n_hours=(
+            self._train_params.save_keep_checkpoint_every_n_hours),
         pad_step_number=True,  # %08d
         write_version=tf.train.SaverDef.V2)
 
@@ -166,7 +166,8 @@ class Checkpointer(object):
       return
 
     # uninitialized_var_names is a list of strings without ":0" suffix.
-    assert all(isinstance(s, str) for s in uninitialized_var_names)
+    # tf.report_uninitialized_variables returns binary strings.
+    assert all(isinstance(s, six.binary_type) for s in uninitialized_var_names)
 
     # Need to retrieve vars, removing ":0" suffix from names.
     uninitialized_vars = [
