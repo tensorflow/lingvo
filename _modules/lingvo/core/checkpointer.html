@@ -223,8 +223,8 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span>
         <span class="n">sharded</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">max_to_keep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="o">.</span><span class="n">save_max_to_keep</span><span class="p">,</span>
-        <span class="n">keep_checkpoint_every_n_hours</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span>
-        <span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span><span class="p">,</span>
+        <span class="n">keep_checkpoint_every_n_hours</span><span class="o">=</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span><span class="p">),</span>
         <span class="n">pad_step_number</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># %08d</span>
         <span class="n">write_version</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">SaverDef</span><span class="o">.</span><span class="n">V2</span><span class="p">)</span></div>
 
@@ -311,7 +311,8 @@
       <span class="k">return</span>
 
     <span class="c1"># uninitialized_var_names is a list of strings without &quot;:0&quot; suffix.</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
+    <span class="c1"># tf.report_uninitialized_variables returns binary strings.</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">binary_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
 
     <span class="c1"># Need to retrieve vars, removing &quot;:0&quot; suffix from names.</span>
     <span class="n">uninitialized_vars</span> <span class="o">=</span> <span class="p">[</span>
