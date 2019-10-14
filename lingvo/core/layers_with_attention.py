@@ -23,6 +23,7 @@ from lingvo.core import attention
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import py_utils
+from lingvo.core import symbolic
 from six.moves import range
 from six.moves import zip
 
@@ -377,7 +378,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     p = self.params
     assert p.name
     assert p.input_dim
-    assert p.hidden_dim
+    assert symbolic.ToStatic(p.hidden_dim) > 0
 
     with tf.variable_scope(p.name):
       # Initialize feed-forward layer

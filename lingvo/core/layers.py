@@ -1147,6 +1147,8 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     super(FeedForwardNet, self).__init__(params)
     p = self.params
     assert p.name
+    assert symbolic.ToStatic(p.input_dim) > 0
+    assert all(symbolic.ToStatic(x) > 0 for x in p.hidden_layer_dims)
 
     assert p.skip_connections is None
     batch_norm = p.batch_norm
@@ -1205,9 +1207,10 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
 
     in_dim, layer_in = p.input_dim, inputs
     for i in range(num_layers):
-      layer_in = py_utils.with_dependencies(
-          [py_utils.assert_shape_match([tf.shape(layer_in)[-1]], [in_dim])],
-          layer_in)
+      layer_in = py_utils.with_dependencies([
+          py_utils.assert_shape_match([tf.shape(layer_in)[-1]],
+                                      [symbolic.ToStatic(in_dim)])
+      ], layer_in)
       out_dim = p.hidden_layer_dims[i]
       layer_out = self.fc[i].FProp(theta.fc[i], layer_in, paddings)
       layer_out = self.dropout[i].FProp(theta.dropout[i], layer_out)
@@ -1225,7 +1228,8 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     for out_dim in p.hidden_layer_dims:
       flops += 5 * other_dims * in_dim * out_dim
       in_dim = out_dim
-    out_shape = tshape.Shape(inputs[:-1] + [p.hidden_layer_dims[-1]])
+    out_shape = tshape.Shape(inputs[:-1] +
+                             [symbolic.ToStatic(p.hidden_layer_dims[-1])])
     return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
 
 

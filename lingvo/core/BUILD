@@ -1212,6 +1212,7 @@ py_library(
         ":base_layer",
         ":layers",
         ":py_utils",
+        ":symbolic",
         "//lingvo:compat",
         # Implicit six dependency.
     ],
