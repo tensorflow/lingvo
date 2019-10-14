@@ -259,6 +259,9 @@ class GeometryTest(test_utils.TestCase):
       actual_bboxes_3d, actual_bboxes_3d_transformed = sess.run(
           (bboxes_3d, bboxes_3d_transformed))
 
+    self.assertAllEqual(actual_bboxes_3d.shape,
+                        actual_bboxes_3d_transformed.shape)
+
     # Dimensions (slice 3:6) should remain unchanged.
     self.assertAllClose(actual_bboxes_3d[..., 3:6],
                         actual_bboxes_3d_transformed[..., 3:6])

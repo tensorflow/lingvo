@@ -174,7 +174,7 @@ def TransformBBoxes3D(bboxes_3d, transforms):
 
   # Transform center and rotation, assuming that dimensions are not changed.
   center_xyz = TransformPoints(center_xyz, transforms)
-  rot += tf.atan2(transforms[..., 1, 0], transforms[..., 0, 0])
+  rot += tf.atan2(transforms[..., 1:2, 0:1], transforms[..., 0:1, 0:1])
   rot = _WrapAngleRad(rot)
 
   return tf.concat([
