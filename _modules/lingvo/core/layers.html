@@ -1451,8 +1451,8 @@
 
       <span class="c1"># Original sequence length before padding.</span>
       <span class="n">inputs_max_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-      <span class="c1"># Make p.stacking copies of the padded sequence with the original sequence</span>
-      <span class="c1"># length, where each copy is offset by 1 time step.</span>
+      <span class="c1"># Make window_size() copies of the padded sequence with the original</span>
+      <span class="c1"># sequence length, where each copy is offset by 1 time step.</span>
       <span class="n">pieces</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">window_size</span><span class="p">):</span>
         <span class="n">pieces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded_inputs</span><span class="p">[:,</span> <span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">inputs_max_len</span><span class="p">,</span> <span class="p">:])</span>
