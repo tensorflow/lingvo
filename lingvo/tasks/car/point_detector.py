@@ -22,9 +22,11 @@ from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import py_utils
+from lingvo.tasks.car import detection_3d_lib
 from lingvo.tasks.car import detection_decoder
 
 from lingvo.tasks.car import kitti_decoder
+import numpy as np
 
 
 class PointDetectorBase(base_model.BaseTask):
@@ -75,6 +77,7 @@ class PointDetectorBase(base_model.BaseTask):
   def __init__(self, params):
     super(PointDetectorBase, self).__init__(params)
     p = self.params
+    self._utils_3d = detection_3d_lib.Utils3D()
     with tf.variable_scope(p.name):
       self.CreateChild('output_decoder', p.output_decoder)
 
@@ -120,6 +123,63 @@ class PointDetectorBase(base_model.BaseTask):
 
     result = inputs.DType().Pack(placeholders)
     return result
+
+  def _BBoxDimensionErrors(self,
+                           gt_bboxes,
+                           pred_bboxes,
+                           regression_weights,
+                           epsilon=1e-6):
+    """Calculates the errors per bounding box dimension for assigned anchors.
+
+    Args:
+      gt_bboxes: float Tensor of shape [..., 7] with the ground truth bounding
+        box for each anchor.
+      pred_bboxes: float Tensor of shape [..., 7] with the predicted bounding
+        box for each anchor.
+      regression_weights: float Tensor with 0/1 weights indicating whether the
+        anchor had a positive assignment with same base shape as `gt_bboxes` and
+        `pred_bboxes` excluding the last dimension.
+      epsilon: A float epsilon for the denominiator of our MaskedAverage.
+
+    Returns:
+      A metrics dict with mean bounding box errors for all positive assigned
+      anchor locations.
+    """
+    if py_utils.GetShape(gt_bboxes)[-1] != 7:
+      raise ValueError('`gt_bboxes` last dimension should be 7.')
+    if py_utils.GetShape(pred_bboxes)[-1] != 7:
+      raise ValueError('`pred_bboxes` last dimension should be 7.')
+    batch_size = py_utils.GetShape(pred_bboxes)[0]
+    # Get the leading dims for later (the -1 is to exclude the last dim).
+    leading_dims = len(py_utils.GetShape(pred_bboxes)) - 1
+
+    sum_regression_weights = tf.reduce_sum(regression_weights) + epsilon
+
+    def _MaskedAverage(value, axis=None):
+      return (tf.reduce_sum(value * regression_weights, axis=axis) /
+              sum_regression_weights)
+
+    center_error = tf.linalg.norm(
+        gt_bboxes[..., :3] - pred_bboxes[..., :3], axis=-1, keepdims=True)
+    mean_center_error = _MaskedAverage(center_error)
+
+    # Dimension error as shape [3] so we can get separate height, width, length
+    mean_dimension_error = _MaskedAverage(
+        gt_bboxes[..., 3:6] - pred_bboxes[..., 3:6],
+        axis=list(range(leading_dims)))
+
+    # Angular error in degrees
+    mean_angular_error_rad = _MaskedAverage(gt_bboxes[..., 6:] -
+                                            pred_bboxes[..., 6:])
+    mean_angular_error_deg = mean_angular_error_rad * (180 / np.pi)
+
+    return py_utils.NestedMap({
+        'error/center_distance': (mean_center_error, batch_size),
+        'error/length': (mean_dimension_error[0], batch_size),
+        'error/width': (mean_dimension_error[1], batch_size),
+        'error/height': (mean_dimension_error[2], batch_size),
+        'error/rotation_deg': (mean_angular_error_deg, batch_size),
+    })
 
   def Inference(self):
     """Builds the inference graph.
