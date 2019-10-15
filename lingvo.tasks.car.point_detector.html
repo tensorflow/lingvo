@@ -225,6 +225,30 @@ of the inputs.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.tasks.car.point_detector.PointDetectorBase._BBoxDimensionErrors">
+<code class="sig-name descname">_BBoxDimensionErrors</code><span class="sig-paren">(</span><em class="sig-param">gt_bboxes</em>, <em class="sig-param">pred_bboxes</em>, <em class="sig-param">regression_weights</em>, <em class="sig-param">epsilon=1e-06</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/point_detector.html#PointDetectorBase._BBoxDimensionErrors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.point_detector.PointDetectorBase._BBoxDimensionErrors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the errors per bounding box dimension for assigned anchors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gt_bboxes</strong> – float Tensor of shape […, 7] with the ground truth bounding
+box for each anchor.</p></li>
+<li><p><strong>pred_bboxes</strong> – float Tensor of shape […, 7] with the predicted bounding
+box for each anchor.</p></li>
+<li><p><strong>regression_weights</strong> – float Tensor with 0/1 weights indicating whether the
+anchor had a positive assignment with same base shape as <code class="xref py py-obj docutils literal notranslate"><span class="pre">gt_bboxes</span></code> and
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">pred_bboxes</span></code> excluding the last dimension.</p></li>
+<li><p><strong>epsilon</strong> – A float epsilon for the denominiator of our MaskedAverage.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A metrics dict with mean bounding box errors for all positive assigned
+anchor locations.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.tasks.car.point_detector.PointDetectorBase.Inference">
 <code class="sig-name descname">Inference</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/point_detector.html#PointDetectorBase.Inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.point_detector.PointDetectorBase.Inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Builds the inference graph.</p>

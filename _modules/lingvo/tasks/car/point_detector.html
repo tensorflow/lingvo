@@ -167,9 +167,11 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">detection_3d_lib</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">detection_decoder</span>
 
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">kitti_decoder</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 
 <div class="viewcode-block" id="PointDetectorBase"><a class="viewcode-back" href="../../../../lingvo.tasks.car.point_detector.html#lingvo.tasks.car.point_detector.PointDetectorBase">[docs]</a><span class="k">class</span> <span class="nc">PointDetectorBase</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">):</span>
@@ -220,6 +222,7 @@
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">PointDetectorBase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span> <span class="o">=</span> <span class="n">detection_3d_lib</span><span class="o">.</span><span class="n">Utils3D</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;output_decoder&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_decoder</span><span class="p">)</span>
 
@@ -265,6 +268,63 @@
 
     <span class="n">result</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">DType</span><span class="p">()</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">placeholders</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="PointDetectorBase._BBoxDimensionErrors"><a class="viewcode-back" href="../../../../lingvo.tasks.car.point_detector.html#lingvo.tasks.car.point_detector.PointDetectorBase._BBoxDimensionErrors">[docs]</a>  <span class="k">def</span> <span class="nf">_BBoxDimensionErrors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                           <span class="n">gt_bboxes</span><span class="p">,</span>
+                           <span class="n">pred_bboxes</span><span class="p">,</span>
+                           <span class="n">regression_weights</span><span class="p">,</span>
+                           <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculates the errors per bounding box dimension for assigned anchors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      gt_bboxes: float Tensor of shape [..., 7] with the ground truth bounding</span>
+<span class="sd">        box for each anchor.</span>
+<span class="sd">      pred_bboxes: float Tensor of shape [..., 7] with the predicted bounding</span>
+<span class="sd">        box for each anchor.</span>
+<span class="sd">      regression_weights: float Tensor with 0/1 weights indicating whether the</span>
+<span class="sd">        anchor had a positive assignment with same base shape as `gt_bboxes` and</span>
+<span class="sd">        `pred_bboxes` excluding the last dimension.</span>
+<span class="sd">      epsilon: A float epsilon for the denominiator of our MaskedAverage.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A metrics dict with mean bounding box errors for all positive assigned</span>
+<span class="sd">      anchor locations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">7</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`gt_bboxes` last dimension should be 7.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">pred_bboxes</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">7</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`pred_bboxes` last dimension should be 7.&#39;</span><span class="p">)</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">pred_bboxes</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># Get the leading dims for later (the -1 is to exclude the last dim).</span>
+    <span class="n">leading_dims</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">pred_bboxes</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="n">sum_regression_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">regression_weights</span><span class="p">)</span> <span class="o">+</span> <span class="n">epsilon</span>
+
+    <span class="k">def</span> <span class="nf">_MaskedAverage</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">value</span> <span class="o">*</span> <span class="n">regression_weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span> <span class="o">/</span>
+              <span class="n">sum_regression_weights</span><span class="p">)</span>
+
+    <span class="n">center_error</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+        <span class="n">gt_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">pred_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">mean_center_error</span> <span class="o">=</span> <span class="n">_MaskedAverage</span><span class="p">(</span><span class="n">center_error</span><span class="p">)</span>
+
+    <span class="c1"># Dimension error as shape [3] so we can get separate height, width, length</span>
+    <span class="n">mean_dimension_error</span> <span class="o">=</span> <span class="n">_MaskedAverage</span><span class="p">(</span>
+        <span class="n">gt_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span> <span class="o">-</span> <span class="n">pred_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span>
+        <span class="n">axis</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">leading_dims</span><span class="p">)))</span>
+
+    <span class="c1"># Angular error in degrees</span>
+    <span class="n">mean_angular_error_rad</span> <span class="o">=</span> <span class="n">_MaskedAverage</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span> <span class="o">-</span>
+                                            <span class="n">pred_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:])</span>
+    <span class="n">mean_angular_error_deg</span> <span class="o">=</span> <span class="n">mean_angular_error_rad</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;error/center_distance&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_center_error</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
+        <span class="s1">&#39;error/length&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_dimension_error</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">),</span>
+        <span class="s1">&#39;error/width&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_dimension_error</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">),</span>
+        <span class="s1">&#39;error/height&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_dimension_error</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">),</span>
+        <span class="s1">&#39;error/rotation_deg&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_angular_error_deg</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
+    <span class="p">})</span></div>
 
 <div class="viewcode-block" id="PointDetectorBase.Inference"><a class="viewcode-back" href="../../../../lingvo.tasks.car.point_detector.html#lingvo.tasks.car.point_detector.PointDetectorBase.Inference">[docs]</a>  <span class="k">def</span> <span class="nf">Inference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Builds the inference graph.</span>

@@ -297,28 +297,6 @@ overridden if desired.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.tasks.car.starnet.ModelBase._BBoxDimensionErrors">
-<code class="sig-name descname">_BBoxDimensionErrors</code><span class="sig-paren">(</span><em class="sig-param">gt_bboxes</em>, <em class="sig-param">pred_bboxes</em>, <em class="sig-param">regression_weights</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase._BBoxDimensionErrors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase._BBoxDimensionErrors" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the errors per bounding box dimension for assigned anchors.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>gt_bboxes</strong> – float Tensor of shape [batch, num_centers, num_anchors, 7] with
-the ground truth bounding box for each anchor.</p></li>
-<li><p><strong>pred_bboxes</strong> – float Tensor of shape [batch, num_centers, num_anchors, 7]
-with the predicted bounding box for each anchor.</p></li>
-<li><p><strong>regression_weights</strong> – float Tensor with 0/1 weights indicating whether the
-anchor had a positive assignment.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A metrics dict with mean bounding box errors for all positive assigned
-anchor locations.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
 <dt id="lingvo.tasks.car.starnet.ModelBase.ComputeLoss">
 <code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predictions</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute loss for the sparse detector model v1.</p>

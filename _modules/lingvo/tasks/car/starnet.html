@@ -187,7 +187,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">builder_lib</span>
-<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">detection_3d_lib</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">point_detector</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
@@ -394,7 +393,6 @@
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">ModelBase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span> <span class="o">=</span> <span class="n">detection_3d_lib</span><span class="o">.</span><span class="n">Utils3D</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">per_class_loss_weight</span><span class="p">)</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`Need `per_class_loss_weight` to be of len equal &#39;</span>
@@ -403,55 +401,6 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Background class should be assigned 0 weight. &#39;</span>
                        <span class="s1">&#39;per_class_loss_weight=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                            <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">per_class_loss_weight</span><span class="p">)))</span>
-
-<div class="viewcode-block" id="ModelBase._BBoxDimensionErrors"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelBase._BBoxDimensionErrors">[docs]</a>  <span class="k">def</span> <span class="nf">_BBoxDimensionErrors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gt_bboxes</span><span class="p">,</span> <span class="n">pred_bboxes</span><span class="p">,</span> <span class="n">regression_weights</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculates the errors per bounding box dimension for assigned anchors.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      gt_bboxes: float Tensor of shape [batch, num_centers, num_anchors, 7] with</span>
-<span class="sd">        the ground truth bounding box for each anchor.</span>
-<span class="sd">      pred_bboxes: float Tensor of shape [batch, num_centers, num_anchors, 7]</span>
-<span class="sd">        with the predicted bounding box for each anchor.</span>
-<span class="sd">      regression_weights: float Tensor with 0/1 weights indicating whether the</span>
-<span class="sd">        anchor had a positive assignment.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      A metrics dict with mean bounding box errors for all positive assigned</span>
-<span class="sd">      anchor locations.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
-    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-    <span class="n">pred_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">pred_bboxes</span><span class="p">,</span>
-                                    <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchors</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
-    <span class="n">regression_weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
-        <span class="n">regression_weights</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchors</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-
-    <span class="n">sum_regression_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">regression_weights</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_MaskedAverage</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-      <span class="k">return</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">value</span> <span class="o">*</span> <span class="n">regression_weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span> <span class="o">/</span>
-              <span class="n">sum_regression_weights</span><span class="p">)</span>
-
-    <span class="n">center_error</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
-        <span class="n">gt_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">pred_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">mean_center_error</span> <span class="o">=</span> <span class="n">_MaskedAverage</span><span class="p">(</span><span class="n">center_error</span><span class="p">)</span>
-
-    <span class="c1"># Dimension error as shape [3] so we can get separate height, width, length</span>
-    <span class="n">mean_dimension_error</span> <span class="o">=</span> <span class="n">_MaskedAverage</span><span class="p">(</span>
-        <span class="n">gt_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span> <span class="o">-</span> <span class="n">pred_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-
-    <span class="c1"># Angular error in degrees</span>
-    <span class="n">mean_angular_error_rad</span> <span class="o">=</span> <span class="n">_MaskedAverage</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span> <span class="o">-</span>
-                                            <span class="n">pred_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:])</span>
-    <span class="n">mean_angular_error_deg</span> <span class="o">=</span> <span class="n">mean_angular_error_rad</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
-        <span class="s1">&#39;error/center_distance&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_center_error</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
-        <span class="s1">&#39;error/length&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_dimension_error</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">),</span>
-        <span class="s1">&#39;error/width&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_dimension_error</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">),</span>
-        <span class="s1">&#39;error/height&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_dimension_error</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">),</span>
-        <span class="s1">&#39;error/rotation_deg&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_angular_error_deg</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
-    <span class="p">})</span></div>
 
 <div class="viewcode-block" id="ModelBase.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelBase.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute loss for the sparse detector model v1.</span>
