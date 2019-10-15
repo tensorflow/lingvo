@@ -207,10 +207,10 @@ class ResetFlags(Transform):
   default_priority = 999
 
   def apply(self):
-    import tensorflow as tf
-    for flag in list(tf.flags.FLAGS):
+    from absl import flags  # pylint: disable=g-import-not-at-top
+    for flag in list(flags.FLAGS):
       if flag not in ('showprefixforinfo',):
-        delattr(tf.flags.FLAGS, flag)
+        delattr(flags.FLAGS, flag)
 
 
 def setup(app):

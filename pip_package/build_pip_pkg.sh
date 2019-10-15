@@ -60,10 +60,7 @@ function main() {
   pushd ${TMPDIR}
   echo $(date) : "=== Building wheel"
 
-  # Create two different wheels, one that depends on tf-nightly-gpu, and one on
-  # tf-nightly.  This should go away once a single package exists.
   ${PYTHON} setup.py bdist_wheel --project_name lingvo > /dev/null
-  ${PYTHON} setup.py bdist_wheel --project_name lingvo-gpu > /dev/null
   cp dist/*.whl "${DEST}"
   popd
   rm -rf ${TMPDIR}

@@ -21,7 +21,7 @@ from setuptools import setup
 from setuptools.command.install import install
 from setuptools.dist import Distribution
 
-__version__ = '0.5.3'
+__version__ = '0.5.4'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -34,18 +34,14 @@ REQUIRED_PACKAGES = [
     'jupyter',
     'jupyter_http_over_ws',
     'matplotlib',
+    'model-pruning-google-research',
     'Pillow',
     'protobuf>=3.7,<4',
     'sklearn',
     'sympy',
-    'waymo-od-tf1-15',
+    'tensorflow-gpu',
+    'waymo-od-tf2-0',
 ]
-
-# Depend on the right nightly package.
-if project_name.endswith('-gpu'):
-  REQUIRED_PACKAGES += ['tf-nightly-gpu==1.15.0.dev20190814']
-else:
-  REQUIRED_PACKAGES += ['tf-nightly==1.15.0.dev20190814']
 
 
 class BinaryDistribution(Distribution):
@@ -90,7 +86,6 @@ setup(
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',

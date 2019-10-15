@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y && \
     apt-get update && apt-get install -y bazel && \
     rm -rf /usr/local/bin/bazel && hash -r
 
-RUN apt-get install python3.6
+RUN apt-get install -y python3.6
 
 RUN pip3 install --upgrade setuptools auditwheel
 
@@ -21,7 +21,7 @@ RUN pip3 install matplotlib \
     numpy>=1.16.0 \
     sympy
     
-RUN pip3 install tf-nightly==1.15.0.dev20190814
+RUN pip3 install tensorflow-gpu
 
 WORKDIR "/tmp/lingvo"
 						

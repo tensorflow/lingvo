@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN curl -O https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py && rm get-pip.py
 
-RUN pip3 --no-cache-dir install lingvo$(test "$base_image" != "$cpu_base_image" && echo "_gpu")
+RUN pip3 --no-cache-dir install lingvo
 
 RUN python3 -m ipykernel.kernelspec
 RUN jupyter serverextension enable --py jupyter_http_over_ws

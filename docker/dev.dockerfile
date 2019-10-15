@@ -80,17 +80,16 @@ RUN pip3 --no-cache-dir install $pip_dependencies && \
 
 RUN jupyter serverextension enable --py jupyter_http_over_ws
 
-# The latest tf-nightly-gpu requires CUDA 10 compatible nvidia drivers (410.xx).
+# The latest tensorflow requires CUDA 10 compatible nvidia drivers (410.xx).
 # If you are unable to update your drivers, an alternative is to compile
 # TensorFlow from source instead of installing from pip.
-RUN pip3 --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")==1.15.0.dev20190814
-RUN pip3 --no-cache-dir install tf-estimator-nightly==1.14.0.dev2019081401
+RUN pip3 --no-cache-dir install tensorflow-gpu
 
 # Install pip packages that may depend on TensorFlow.
 
-# Because this image uses tf-nightly 1.15, we install a special
+# Because this image uses tf2, we install a special
 # version of waymo-open-dataset.
-ARG post_tf_pip_dependencies='waymo-od-tf1-15'
+ARG post_tf_pip_dependencies='waymo-od-tf2-0'
 RUN pip3 --no-cache-dir install $post_tf_pip_dependencies
 
 # bazel assumes the python executable is "python".

@@ -33,8 +33,7 @@ This is an alternative to using Docker as described in the section above.
 
 The prerequisites are:
 
-*   a TensorFlow [installation](https://www.tensorflow.org/install/) (for now
-    tf-nightly is required),
+*   a TensorFlow 2.0 [installation](https://www.tensorflow.org/install/),
 *   a `C++` compiler (only g++ 7.3 is officially supported), and
 *   the bazel build system.
 
