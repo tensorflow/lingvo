@@ -3200,7 +3200,7 @@ def StatefulRandomOpsInDefun(func, graph=None):
   return stateful_ops
 
 
-def ToPlacerholders(nmap, dtype=None):
+def ToPlaceholders(nmap, dtype=None):
   """Converts every Tensor in nmap to a placeholder."""
 
   def _ToPlacerholder(x):
