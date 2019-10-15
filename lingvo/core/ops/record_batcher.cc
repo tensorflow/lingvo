@@ -20,8 +20,7 @@ limitations under the License.
 //
 // * Processor threads
 //
-//   * call the yielder to get a record (a string) and process it into
-//     a TensorVec.
+//   * call the yielder to get a Record and process it into a TensorVec.
 //
 //   * Processed TensorVec are put into buckets according to the
 //     bucket key returned by processor->Process().
@@ -292,9 +291,9 @@ void RecordBatcher::ProcessorLoop() {
     }
 
     // Get the next record.
-    Rope record;
-    int source_id = 0;
-    Status s = yielder_->Yield(&record, &source_id);
+    Record record;
+    record.source_id = kDefaultSourceId;
+    Status s = yielder_->Yield(&record);
     // If yielder returns OutOfRange, set
     // the out status appropriately and return.
     if (errors::IsOutOfRange(s)) {
@@ -312,7 +311,7 @@ void RecordBatcher::ProcessorLoop() {
     // Parse the record.
     int64 bucket;
     TensorVec sample;
-    s = processor_->Process(source_id, record, &bucket, &sample);
+    s = processor_->Process(record, &bucket, &sample);
     if (!s.ok()) {
       // Print error message. Some example processors use CANCELLED for data
       // that are filtered out. Print only first 10 such errors.

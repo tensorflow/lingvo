@@ -36,10 +36,10 @@ namespace lingvo {
 //   opts2.parallelism = 8;      // Use 8 iterators.
 //   // Yield all records defined by opts1, then all records defined by opts2.
 //   ChainRecordYielder* yielder = ChainRecordYielder::New({opts1, opts2});
-//   Rope val;
+//   Record record;
 //   while (true) {
-//     yielder->Yield(&val);
-//     // process val.
+//     yielder->Yield(&record);
+//     // process record.
 //   }
 //   yielder->Close();
 //
@@ -48,7 +48,7 @@ class ChainRecordYielder : public RecordYielder {
  public:
   ~ChainRecordYielder() override;
   void Close() override;
-  Status Yield(Rope* value, int* source_id) override;
+  Status Yield(Record* record) override;
 
   // Creates new ChainRecordYielder that will be creating child yielders using
   // options provided. Caller is responsible for closing the ChainRecordYielder

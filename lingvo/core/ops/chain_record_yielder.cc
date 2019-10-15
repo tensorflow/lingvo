@@ -49,7 +49,7 @@ void ChainRecordYielder::Close() {
   delete this;
 }
 
-Status ChainRecordYielder::Yield(Rope* value, int* source_id) {
+Status ChainRecordYielder::Yield(Record* record) {
   MutexLock l(&mu_);
 
   if (current_yielder_->current_epoch() > 1) {
@@ -64,7 +64,7 @@ Status ChainRecordYielder::Yield(Rope* value, int* source_id) {
     // Retry indefinitely until we get an Ok status from the specific yielder.
     // This will stall the training if there is any unrecoverable error with
     // the child yielder.
-    Status s = current_yielder_->Yield(value, source_id);
+    Status s = current_yielder_->Yield(record);
     if (!s.ok()) {
       LOG(WARNING) << s;
       continue;

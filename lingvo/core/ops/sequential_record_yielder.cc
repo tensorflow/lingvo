@@ -63,9 +63,9 @@ void SequentialRecordYielder::Close() {
   delete this;
 }
 
-Status SequentialRecordYielder::Yield(Rope* value, int* source_id) {
+Status SequentialRecordYielder::Yield(Record* record) {
   string key;
-  if (record_iterator_->Next(&key, value)) {
+  if (record_iterator_->Next(&key, &record->value)) {
     return Status::OK();
   }
 
@@ -82,7 +82,7 @@ Status SequentialRecordYielder::Yield(Rope* value, int* source_id) {
   }
   record_iterator_ = std::unique_ptr<RecordIterator>(
       RecordIterator::New(file_type_, filenames_[cur_file_index_]));
-  return Yield(value, source_id);
+  return Yield(record);
 }
 
 }  // namespace lingvo

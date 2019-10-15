@@ -95,7 +95,7 @@ class GenericInputProcessor : public RecordProcessor {
 
   ~GenericInputProcessor() { delete merger_; }
 
-  Status Process(const int source_id, const Rope& record, int64* bucket_key,
+  Status Process(const Record& record, int64* bucket_key,
                  TensorVec* sample) override {
     // We expect that this input processor is used in conjunction with
     // RecordBatcher, which uses multiple threads to call this input
@@ -117,12 +117,12 @@ class GenericInputProcessor : public RecordProcessor {
     opts.step_container = &step_container;
     opts.runner = ThreadLocalRunner::PerThread().runner();
 
-    // The input is a <source_id, record> pair.
+    // Generates <record, source_id> pair as the resulting Tensors.
     TensorVec args(2);
     args[0] = Tensor(DT_INT32, {});
-    args[0].scalar<int32>()() = source_id;
+    args[0].scalar<int32>()() = record.source_id;
     args[1] = Tensor(DT_STRING, {});
-    record.AppendTo(&args[1].scalar<string>()());
+    record.value.AppendTo(&args[1].scalar<string>()());
     *bucket_key = 1;
     sample->clear();
     Status status;

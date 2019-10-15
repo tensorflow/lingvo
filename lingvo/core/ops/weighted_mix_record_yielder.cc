@@ -63,7 +63,7 @@ void WeightedMixRecordYielder::Close() {
   delete this;
 }
 
-Status WeightedMixRecordYielder::Yield(Rope* value, int* source_id) {
+Status WeightedMixRecordYielder::Yield(Record* record) {
   size_t yielder_idx = 0;
   {
     MutexLock l(&mu_);
@@ -74,7 +74,7 @@ Status WeightedMixRecordYielder::Yield(Rope* value, int* source_id) {
     // Retry indefinitely until we get an Ok status from the specific yielder.
     // This will stall the training if there is any unrecoverable error with
     // the child yielder.
-    Status s = yielders_.at(yielder_idx)->Yield(value, source_id);
+    Status s = yielders_.at(yielder_idx)->Yield(record);
     if (!s.ok()) {
       LOG(WARNING) << s;
       continue;

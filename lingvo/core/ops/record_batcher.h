@@ -36,8 +36,6 @@ namespace lingvo {
 // convention, the 1st dimension of every Tensor represents the batch
 // dimension.
 typedef std::vector<Tensor> TensorVec;
-// Set source id to zero.
-constexpr int kDefaultSourceId = 0;
 
 // An interface for processing records yielded by RecordYielder into a
 // training example (single one or batched).
@@ -45,15 +43,14 @@ class RecordProcessor {
  public:
   virtual ~RecordProcessor() {}
 
-  // Parses 'record' (typically a protocol buffer) and fills in
-  // 'sample' a vector of Tensor representing a training example.
+  // Parses 'record' (typically a protocol buffer) and fills
+  // in 'sample' a vector of Tensor representing a training example.
   //
   // 'bucket_key' is an auxilary annotation extracted from the record
   // used by RecordBatcher to bucketize training examples. Typically,
   // 'bucket_key' is just a length measure about the record.
-  // 'source_id' indicate where this record comes from.
-  virtual Status Process(const int source_id, const Rope& record,
-                         int64* bucket_key, TensorVec* sample) = 0;
+  virtual Status Process(const Record& record, int64* bucket_key,
+                         TensorVec* sample) = 0;
 
   // Gives a list of training 'samples' returned by Process() and bucketed into
   // a bucket with size `bucket_size`, merges them into a single 'batch'.

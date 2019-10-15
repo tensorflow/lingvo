@@ -25,7 +25,7 @@ class SequentialRecordYielder : public RecordYielder {
  public:
   ~SequentialRecordYielder() override;
   void Close() override;
-  Status Yield(Rope* value, int* source_id) override;
+  Status Yield(Record* record) override;
 
   // Returns a sequential record yielder. The caller is responsible for calling
   // Close when this yielder is no longer required. The caller shouldn't delete

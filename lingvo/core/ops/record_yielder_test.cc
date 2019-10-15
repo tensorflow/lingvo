@@ -46,11 +46,12 @@ TEST(RecordYielderTest, PlainTextYielderBasicTest) {
 
   BasicRecordYielder* yielder = BasicRecordYielder::New(opts);
   std::vector<string> vals;
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    VLOG(1) << i << " " << v;
-    vals.emplace_back(string(v));
+    TF_CHECK_OK(yielder->Yield(&record));
+    VLOG(1) << i << " " << record.value;
+    vals.emplace_back(string(record.value));
   }
   std::sort(vals.begin(), vals.end());
   auto new_end = std::unique(vals.begin(), vals.end());
@@ -60,12 +61,12 @@ TEST(RecordYielderTest, PlainTextYielderBasicTest) {
 
   // Iterates another two epochs.
   for (int i = 0; i < 2 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    TF_CHECK_OK(yielder->Yield(&record));
   }
 
   // Iterates another 34 epochs.
   for (int i = 0; i < 2 * 17 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    TF_CHECK_OK(yielder->Yield(&record));
   }
 
   // End of the 37th epoch | start of the 38th epoch.
@@ -82,16 +83,17 @@ TEST(SequentialRecordYielderTest, SequentialRecordYielderBasicTest) {
 
   SequentialRecordYielder* yielder =
       SequentialRecordYielder::New(file_pattern, -1);
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    ASSERT_EQ(string(v), strings::Printf("basic:%010d", i));
+    TF_CHECK_OK(yielder->Yield(&record));
+    ASSERT_EQ(string(record.value), strings::Printf("basic:%010d", i));
   }
 
   // Iterate another epoch.
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    ASSERT_EQ(string(v), strings::Printf("basic:%010d", i));
+    TF_CHECK_OK(yielder->Yield(&record));
+    ASSERT_EQ(string(record.value), strings::Printf("basic:%010d", i));
   }
 
   yielder->Close();
@@ -107,20 +109,21 @@ TEST(SequentialRecordYielderTest, SequentialRecordYielderRepeatCount) {
   // Yield two epochs.
   SequentialRecordYielder* yielder =
       SequentialRecordYielder::New(file_pattern, 2);
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    ASSERT_EQ(string(v), strings::Printf("basic:%010d", i));
+    TF_CHECK_OK(yielder->Yield(&record));
+    ASSERT_EQ(string(record.value), strings::Printf("basic:%010d", i));
   }
 
   // Iterate another epoch.
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    ASSERT_EQ(string(v), strings::Printf("basic:%010d", i));
+    TF_CHECK_OK(yielder->Yield(&record));
+    ASSERT_EQ(string(record.value), strings::Printf("basic:%010d", i));
   }
 
   // Trying to yield one more element should throw an out of range error.
-  Status s = yielder->Yield(&v, nullptr);
+  Status s = yielder->Yield(&record);
   ASSERT_TRUE(errors::IsOutOfRange(s)) << s;
 
   yielder->Close();
@@ -181,11 +184,12 @@ TEST_P(TfRecordYielderTest, TfRecordYielderBasicTest) {
 
   BasicRecordYielder* yielder = BasicRecordYielder::New(opts);
   std::vector<string> vals;
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    VLOG(1) << i << " " << v;
-    vals.emplace_back(string(v));
+    TF_CHECK_OK(yielder->Yield(&record));
+    VLOG(1) << i << " " << record.value;
+    vals.emplace_back(string(record.value));
   }
   std::sort(vals.begin(), vals.end());
   auto new_end = std::unique(vals.begin(), vals.end());
@@ -195,12 +199,12 @@ TEST_P(TfRecordYielderTest, TfRecordYielderBasicTest) {
 
   // Iterates another two epochs.
   for (int i = 0; i < 2 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    TF_CHECK_OK(yielder->Yield(&record));
   }
 
   // Iterates another 34 epochs.
   for (int i = 0; i < 2 * 17 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    TF_CHECK_OK(yielder->Yield(&record));
   }
 
   // End of the 37th epoch | start of the 38th epoch.
@@ -235,14 +239,16 @@ TEST_P(TfRecordYielderTest, ShufflesShard) {
     opts.seed = 301;
     auto yielder = BasicRecordYielder::New(opts);
     for (int i = 0; i < M; ++i) {
-      Rope v;
-      TF_CHECK_OK(yielder->Yield(&v, nullptr));
-      epoch1.push_back(v);
+      Record record;
+      record.source_id = kDefaultSourceId;
+      TF_CHECK_OK(yielder->Yield(&record));
+      epoch1.push_back(record.value);
     }
     for (int i = 0; i < M; ++i) {
-      Rope v;
-      TF_CHECK_OK(yielder->Yield(&v, nullptr));
-      epoch2.push_back(v);
+      Record record;
+      record.source_id = kDefaultSourceId;
+      TF_CHECK_OK(yielder->Yield(&record));
+      epoch2.push_back(record.value);
     }
     yielder->Close();
     EXPECT_LT(NumMatches(epoch1, epoch2), M);
@@ -254,9 +260,10 @@ TEST_P(TfRecordYielderTest, ShufflesShard) {
     opts.seed = 103;
     auto yielder = BasicRecordYielder::New(opts);
     for (int i = 0; i < M; ++i) {
-      Rope v;
-      TF_CHECK_OK(yielder->Yield(&v, nullptr));
-      epoch1_different_seed.push_back(v);
+      Record record;
+      record.source_id = kDefaultSourceId;
+      TF_CHECK_OK(yielder->Yield(&record));
+      epoch1_different_seed.push_back(record.value);
     }
     yielder->Close();
     EXPECT_LT(NumMatches(epoch1, epoch1_different_seed), M);
@@ -269,8 +276,9 @@ TEST(RecordYielderDeathTest, Error) {
     opts.file_pattern = strings::StrCat(
         "tfrecord:", io::JoinPath("/tmp", "nothing.*"));
     auto yielder = BasicRecordYielder::New(opts);
-    Rope v;
-    auto unused = yielder->Yield(&v, nullptr);
+    Record record;
+    record.source_id = kDefaultSourceId;
+    auto unused = yielder->Yield(&record);
   }(), "Found no files at .*nothing");
 }
 
@@ -288,10 +296,11 @@ TEST_P(TfRecordYielderTest, MatchFilesFromMultiplePatterns) {
   opts.parallelism = 1;
   std::vector<Rope> epoch;
   auto yielder = BasicRecordYielder::New(opts);
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    epoch.emplace_back(string(v));
+    TF_CHECK_OK(yielder->Yield(&record));
+    epoch.emplace_back(string(record.value));
   }
   auto new_end = std::unique(epoch.begin(), epoch.end());
   // If we iterated through both shards (rather than 1 shard twice), there
@@ -299,7 +308,7 @@ TEST_P(TfRecordYielderTest, MatchFilesFromMultiplePatterns) {
   EXPECT_EQ(new_end, epoch.end());
   // End of the 1st epoch | start of the 2nd epoch.
   EXPECT_TRUE(yielder->current_epoch() == 1 || yielder->current_epoch() == 2);
-  TF_CHECK_OK(yielder->Yield(&v, nullptr));
+  TF_CHECK_OK(yielder->Yield(&record));
   // End of the 2st epoch | start of the 3nd epoch.
   EXPECT_TRUE(yielder->current_epoch() == 2 || yielder->current_epoch() == 3);
   yielder->Close();
@@ -322,10 +331,11 @@ TEST(RecordYielder, MatchShardedFilePattern) {
   opts.parallelism = 1;
   std::vector<Rope> epoch;
   auto yielder = BasicRecordYielder::New(opts);
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
   for (int i = 0; i < num_shards * records_per_shard; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    epoch.emplace_back(string(v));
+    TF_CHECK_OK(yielder->Yield(&record));
+    epoch.emplace_back(string(record.value));
   }
   auto new_end = std::unique(epoch.begin(), epoch.end());
   // If we iterated through all shards (rather than 1 shard twice), there
@@ -333,7 +343,7 @@ TEST(RecordYielder, MatchShardedFilePattern) {
   EXPECT_EQ(new_end, epoch.end());
   // End of the 1st epoch | start of the 2nd epoch.
   EXPECT_TRUE(yielder->current_epoch() == 1 || yielder->current_epoch() == 2);
-  TF_CHECK_OK(yielder->Yield(&v, nullptr));
+  TF_CHECK_OK(yielder->Yield(&record));
   // End of the 2st epoch | start of the 3nd epoch.
   EXPECT_TRUE(yielder->current_epoch() == 2 || yielder->current_epoch() == 3);
   yielder->Close();
@@ -352,10 +362,12 @@ TEST(RecordYielder, MatchWildcardShardedFilePattern) {
   opts.parallelism = 1;
   std::vector<Rope> epoch;
   auto yielder = BasicRecordYielder::New(opts);
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
+
   for (int i = 0; i < num_shards * records_per_shard; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    epoch.emplace_back(string(v));
+    TF_CHECK_OK(yielder->Yield(&record));
+    epoch.emplace_back(string(record.value));
   }
   auto new_end = std::unique(epoch.begin(), epoch.end());
   // If we iterated through all shards (rather than 1 shard twice), there
@@ -363,7 +375,7 @@ TEST(RecordYielder, MatchWildcardShardedFilePattern) {
   EXPECT_EQ(new_end, epoch.end());
   // End of the 1st epoch | start of the 2nd epoch.
   EXPECT_TRUE(yielder->current_epoch() == 1 || yielder->current_epoch() == 2);
-  TF_CHECK_OK(yielder->Yield(&v, nullptr));
+  TF_CHECK_OK(yielder->Yield(&record));
   // End of the 2st epoch | start of the 3nd epoch.
   EXPECT_TRUE(yielder->current_epoch() == 2 || yielder->current_epoch() == 3);
   yielder->Close();
@@ -401,11 +413,12 @@ TEST(RecordYielder, RegisterFakeIterator) {
   options.file_pattern = "fakeiter:hello1";
   BasicRecordYielder* yielder = BasicRecordYielder::New(options);
   EXPECT_TRUE(yielder != nullptr);
-  Rope value;
-  EXPECT_TRUE(yielder->Yield(&value, nullptr).ok());
-  EXPECT_EQ("hello1", value);
-  EXPECT_TRUE(yielder->Yield(&value, nullptr).ok());
-  EXPECT_EQ("hello1", value);
+  Record record;
+  record.source_id = kDefaultSourceId;
+  EXPECT_TRUE(yielder->Yield(&record).ok());
+  EXPECT_EQ("hello1", record.value);
+  EXPECT_TRUE(yielder->Yield(&record).ok());
+  EXPECT_EQ("hello1", record.value);
   yielder->Close();
 }
 
@@ -416,11 +429,12 @@ TEST(RecordYielder, Iota) {
   opts.parallelism = 1;
   BasicRecordYielder* yielder = BasicRecordYielder::New(opts);
   std::vector<string> vals;
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
   for (int i = 0; i < 100; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    VLOG(1) << i << " " << v;
-    vals.emplace_back(string(v));
+    TF_CHECK_OK(yielder->Yield(&record));
+    VLOG(1) << i << " " << record.value;
+    vals.emplace_back(string(record.value));
   }
   std::sort(vals.begin(), vals.end());
   auto new_end = std::unique(vals.begin(), vals.end());
@@ -455,9 +469,10 @@ TEST(RecordYielder, AdjustUp) {
   // will be much higher than the initial value of 16.
   for (int i = 0; i < 50; i++) {
     for (int j = 0; j < 100; j++) {
-      Rope v;
+      Record record;
+      record.source_id = kDefaultSourceId;
       LOG(INFO) << "yield " << j;
-      TF_CHECK_OK(yielder->Yield(&v, nullptr));
+      TF_CHECK_OK(yielder->Yield(&record));
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }

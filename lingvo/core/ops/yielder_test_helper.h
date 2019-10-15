@@ -25,7 +25,7 @@ namespace lingvo {
 class MockRecordYielder : public BasicRecordYielder {
  public:
   MockRecordYielder() : BasicRecordYielder() {}
-  MOCK_METHOD2(Yield, Status(Rope* value, int* source_id));
+  MOCK_METHOD1(Yield, Status(Record* record));
   MOCK_METHOD0(Close, void());
   MOCK_CONST_METHOD0(current_epoch, int64());
 };

@@ -35,6 +35,27 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
+// TODO(oday): Separate some constants and Record to other file.
+// TODO(oday): Change "source_id" to another appropriate name, because this is
+// one of the typically used symbols in some tasks (e.g., NMTExample has such
+// field for source tokens).
+
+constexpr int kDefaultSourceId = 0;
+
+// A data structure representing a record with its context information.
+// TODO(oday): The typename may sound too simple to represent itself. Consider
+// to revise it if it may become really problematic.
+struct Record {
+  // Byte sequence representing the record value.
+  Rope value;
+
+  // ID of the source of the record, typically an index of the given file
+  // pattern list. This field is used to determine where the record comes from,
+  // and is useful to specify the source when reading from multiple input
+  // sources.
+  int source_id;
+};
+
 // An interface to iterate sequentially a set of record (Rope).
 class RecordIterator {
  public:
@@ -83,10 +104,10 @@ class RecordIterator {
 //   opts.bufsize = 1000000;    // A randomized buffer with 1M records.
 //   opts.parallelism = 8;      // Use 8 iterators to iterate through all files.
 //   RecordYielder* yielder = BasicRecordYielder::New(opts);
-//   Rope val;
+//   Record record;
 //   while (true) {
-//     yielder->Yield(&val);
-//     // process val
+//     yielder->Yield(&record);
+//     // process record.
 //   }
 //   yielder->Close();
 //
@@ -95,14 +116,12 @@ class RecordYielder {
  public:
   virtual ~RecordYielder();
 
-  // Yields one 'value' and the id of the source.
-  // source_id is useful to specify the source when reading from multiple input
-  // sources. To read from multiple input sources and keep track of the
-  // source id, create a WeightedMixRecordYielder and create a
-  // BasicRecordYielder for each source. Each BasicRecordYielder can be assigned
-  // a source_id, which is assigned to the argument here.
-  // A nullptr can be provided as input for source_id.
-  virtual Status Yield(Rope* value, int* source_id) = 0;
+  // Yields one Record.
+  // To read from multiple input sources and keep track of the source id, create
+  // a WeightedMixRecordYielder and create a BasicRecordYielder for each
+  // source. Each BasicRecordYielder can assign some fields in 'record' to
+  // indicate some characteristics of the data source.
+  virtual Status Yield(Record* record) = 0;
 
   // Stop this yielder and then delete it.
   virtual void Close() = 0;
@@ -150,8 +169,8 @@ class BasicRecordYielder : public RecordYielder {
   // delete the yielder.
   static BasicRecordYielder* New(Options opts);
 
-  // Yields one 'value' and 'source_id' from which the value was read.
-  Status Yield(Rope* value, int* source_id) override;
+  // Yields one 'record' from which the value was read.
+  Status Yield(Record* record) override;
 
   // Stop this yielder and then delete it.
   void Close() override;

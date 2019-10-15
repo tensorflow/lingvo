@@ -54,30 +54,31 @@ TEST(RecordYielderTest, ChainBasicTest) {
   ChainRecordYielder* yielder = ChainRecordYielder::New({opts1, opts2});
 
   std::vector<string> vals;
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
   // Consume first yielder entirely.
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    VLOG(1) << i << " " << v;
-    vals.emplace_back(string(v));
+    TF_CHECK_OK(yielder->Yield(&record));
+    VLOG(1) << i << " " << record.value;
+    vals.emplace_back(string(record.value));
   }
   ASSERT_NEAR(ComputeInputSourceDistribution(vals)["chain_yielder1"],
               1.0, 0.001);
   vals.clear();
   // Consume second yielder entirely.
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    VLOG(1) << i << " " << v;
-    vals.emplace_back(string(v));
+    TF_CHECK_OK(yielder->Yield(&record));
+    VLOG(1) << i << " " << record.value;
+    vals.emplace_back(string(record.value));
   }
   ASSERT_NEAR(ComputeInputSourceDistribution(vals)["chain_yielder2"],
               1.0, 0.001);
   vals.clear();
   // Consume first yielder again.
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    VLOG(1) << i << " " << v;
-    vals.emplace_back(string(v));
+    TF_CHECK_OK(yielder->Yield(&record));
+    VLOG(1) << i << " " << record.value;
+    vals.emplace_back(string(record.value));
   }
   ASSERT_NEAR(ComputeInputSourceDistribution(vals)["chain_yielder1"],
               1.0, 0.001);

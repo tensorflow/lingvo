@@ -47,15 +47,15 @@ class TestRP : public RecordProcessor {
 
   ~TestRP() override {}
 
-  Status Process(const int source_id, const Rope& record, int64* bucket_key,
+  Status Process(const Record& record, int64* bucket_key,
                  TensorVec* sample) override {
-    const string val = string(record);
+    const string val = string(record.value);
     *bucket_key = val.size();
     Tensor t(DT_STRING, {});
-    record.AppendTo(&t.scalar<string>()());
+    record.value.AppendTo(&t.scalar<string>()());
     Tensor ids(DT_STRING, {1});
     auto lab = ids.flat<tensorflow::tstring>();
-    lab(0) = absl::StrCat(source_id);
+    lab(0) = absl::StrCat(record.source_id);
     sample->clear();
     sample->push_back(std::move(t));
     sample->push_back(std::move(ids));

@@ -366,20 +366,18 @@ void BasicRecordYielder::Close() {
   delete this;
 }
 
-Status BasicRecordYielder::Yield(Rope* value, int* source_id) {
+Status BasicRecordYielder::Yield(Record* record) {
   MutexLock l(&mu_);
   WaitForBufEnough();
   ++yields_;
 
   if (status_.ok()) {
     CHECK(!stop_ && !buf_.empty());
-    ExtractValue(value);
+    ExtractValue(&record->value);
     if (epoch_end_ && buf_.empty()) {
       ++epoch_;
     }
-    if (source_id) {
-      *source_id = static_cast<int>(opts_.source_id);
-    }
+    record->source_id = static_cast<int>(opts_.source_id);
     ++num_records_yielded_in_epoch_;
   }
   return status_;

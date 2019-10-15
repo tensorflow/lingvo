@@ -54,11 +54,12 @@ TEST(RecordYielderTest, WeightedMixerBasicTest) {
       WeightedMixRecordYielder::New(301, {yielder1, yielder2}, {0.5, 0.5});
 
   std::vector<string> vals;
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
   for (int i = 0; i < 2 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    VLOG(1) << i << " " << v;
-    vals.emplace_back(string(v));
+    TF_CHECK_OK(yielder->Yield(&record));
+    VLOG(1) << i << " " << record.value;
+    vals.emplace_back(string(record.value));
   }
 
   auto input_source_distribution = ComputeInputSourceDistribution(vals);
@@ -103,13 +104,13 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
 
   std::vector<string> vals;
   std::vector<int> source_ids;
-  Rope v;
-  int32 yielder_id;
+  Record record;
+  record.source_id = kDefaultSourceId;
   for (int i = 0; i < 2 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, &yielder_id));
-    VLOG(1) << i << " " << v;
-    vals.emplace_back(string(v));
-    source_ids.emplace_back(yielder_id);
+    TF_CHECK_OK(yielder->Yield(&record));
+    VLOG(1) << i << " " << record.value;
+    vals.emplace_back(string(record.value));
+    source_ids.emplace_back(record.source_id);
   }
 
   auto input_source_distribution = ComputeInputSourceDistribution(vals);
@@ -159,12 +160,13 @@ TEST(RecordYielderTest, WeightedMixerUnevenInputSourcesTest) {
       WeightedMixRecordYielder::New(301, {yielder1, yielder2}, {0.5, 0.5});
 
   std::vector<string> vals;
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
   // Iterate 8 times the total record count.
   for (int i = 0; i < 8 * 5 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    VLOG(1) << i << " " << v;
-    vals.emplace_back(string(v));
+    TF_CHECK_OK(yielder->Yield(&record));
+    VLOG(1) << i << " " << record.value;
+    vals.emplace_back(string(record.value));
   }
   auto input_source_distribution = ComputeInputSourceDistribution(vals);
   ASSERT_NEAR(input_source_distribution["yielder1"], 0.5, 0.01);
@@ -189,13 +191,13 @@ TEST(RecordYielderTest, RecordYielderRetryLoop) {
   // Yielder1 always returns OK. Yielder2 returns DEADLINE_EXCEEDED 3 times in a
   // row and then returns OK.
   // Each of them yields max of 5 records and then saturates.
-  EXPECT_CALL(yielder1, Yield(testing::_, testing::_))
+  EXPECT_CALL(yielder1, Yield(testing::_))
       .Times(5)
       .WillRepeatedly(testing::Return(Status::OK()));
-  EXPECT_CALL(yielder2, Yield(testing::_, testing::_))
+  EXPECT_CALL(yielder2, Yield(testing::_))
       .Times(5)
       .WillRepeatedly(testing::Return(Status::OK()));
-  EXPECT_CALL(yielder2, Yield(testing::_, testing::_))
+  EXPECT_CALL(yielder2, Yield(testing::_))
       .Times(3)
       .WillRepeatedly(testing::Return(Status(error::DEADLINE_EXCEEDED, "")))
       .RetiresOnSaturation();
@@ -203,11 +205,12 @@ TEST(RecordYielderTest, RecordYielderRetryLoop) {
   WeightedMixRecordYielder* yielder =
       WeightedMixRecordYielder::New(304, {&yielder1, &yielder2}, {0.5, 0.5});
 
-  Rope v;
+  Record record;
+  record.source_id = kDefaultSourceId;
   for (int i = 0; i < 10; ++i) {
     // Thanks to the seed selected every child yielder will be selected exactly
     // 5 times.
-    TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    TF_CHECK_OK(yielder->Yield(&record));
   }
   EXPECT_CALL(yielder1, Close());
   EXPECT_CALL(yielder2, Close());

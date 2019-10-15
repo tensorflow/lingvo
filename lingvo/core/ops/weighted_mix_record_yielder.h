@@ -40,10 +40,10 @@ namespace lingvo {
 //   // Use records from yielder1 for 70% of the yields.
 //   WeightedMixRecordYielder* yielder = WeightedMixRecordYielder::New(
 //       opts1.seed, {yielder1, yielder2}, {0.7, 0.3});
-//   Rope val;
+//   Record record;
 //   while (true) {
-//     yielder->Yield(&val);
-//     // process val.
+//     yielder->Yield(&record);
+//     // process record.
 //   }
 //   yielder->Close();
 //
@@ -52,7 +52,7 @@ class WeightedMixRecordYielder : public RecordYielder {
  public:
   ~WeightedMixRecordYielder() override;
   void Close() override;
-  Status Yield(Rope* value, int* source_id) override;
+  Status Yield(Record* record) override;
 
   // Creates new WeightedMixRecordYielder and takes ownership over yielders
   // provided. Those yielders should be properly initialized already and will be
