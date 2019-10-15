@@ -140,6 +140,17 @@ tf.flags.DEFINE_string(
     'evaler_dev and decoder_dev will only match the corresponding '
     'jobs that are on the dev set.')
 
+
+@tf.flags.validator('vizier_reporting_job')
+def _ValidateVizierReportingJob(value):
+  if value in ['evaler', 'decoder']:
+    return True
+  if value.startswith('evaler_') or value.startswith('decoder_'):
+    return True
+  raise tf.flags.ValidationError('Invalid value %s for vizier_reporting_job' %
+                                 value)
+
+
 tf.flags.DEFINE_integer(
     'enqueue_max_steps', None, 'Max enqueue steps. -1 meaning no limit.'
     ' This flag should be set for unit-test only.')
@@ -995,6 +1006,7 @@ class Evaler(base_runner.BaseRunner):
       self.EvalLatestCheckpoint(path)
 
     if self._should_report_metrics:
+      tf.logging.info('Reporting trial done.')
       self._trial.ReportDone()
     tf.logging.info('Evaluation finished.')
 
@@ -1067,6 +1079,7 @@ class Evaler(base_runner.BaseRunner):
 
     should_stop = global_step >= self.params.train.max_steps
     if self._should_report_metrics:
+      tf.logging.info('Reporting eval measure for step %d.' % global_step)
       trial_should_stop = self._trial.ReportEvalMeasure(global_step,
                                                         metrics_dict, path)
       should_stop = should_stop or trial_should_stop
@@ -1184,6 +1197,7 @@ class Decoder(base_runner.BaseRunner):
       self.DecodeLatestCheckpoint(path)
 
     if self._should_report_metrics:
+      tf.logging.info('Reporting trial done.')
       self._trial.ReportDone()
     tf.logging.info('Decoding finished.')
 
@@ -1263,6 +1277,7 @@ class Decoder(base_runner.BaseRunner):
 
     should_stop = global_step >= self.params.train.max_steps
     if self._should_report_metrics:
+      tf.logging.info('Reporting eval measure for step %d.' % global_step)
       trial_should_stop = self._trial.ReportEvalMeasure(global_step,
                                                         dec_metrics,
                                                         checkpoint_path)
