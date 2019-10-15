@@ -1,0 +1,451 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.steps.attention_steps &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.steps.attention_steps</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.steps.attention_steps</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;Steps for attention computation.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">attention</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">step</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.steps</span> <span class="k">import</span> <span class="n">rnn_steps</span>
+
+
+<div class="viewcode-block" id="AttentionStep"><a class="viewcode-back" href="../../../../lingvo.core.steps.attention_steps.html#lingvo.core.steps.attention_steps.AttentionStep">[docs]</a><span class="k">class</span> <span class="nc">AttentionStep</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">Step</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;AttentionStep wraps an attention layer in the Step interface.</span>
+
+<span class="sd">  An attention algorithm outputs a targeted summary of a set of input vectors.</span>
+
+<span class="sd">  At each step, the query vector (input to FProp as step_inputs.input)</span>
+<span class="sd">  describes what data should be returned. The attention algorithm compares the</span>
+<span class="sd">  query vector with the source vectors (external_inputs.src) to compute</span>
+<span class="sd">  weights (attention_probs).</span>
+
+<span class="sd">  The result is the weighted sum (using attention_probs) of a set of vectors.</span>
+<span class="sd">  By default that set of vectors is also external_inputs.src, but it can</span>
+<span class="sd">  optionally be external_inputs.context if a context tensor is specified.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AttentionStep.Params"><a class="viewcode-back" href="../../../../lingvo.core.steps.attention_steps.html#lingvo.core.steps.attention_steps.AttentionStep.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AttentionStep</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;attention_step&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">attention</span><span class="o">.</span><span class="n">AdditiveAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Params of a subclass of BaseAttentionLayer.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">AttentionStep</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">atten</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AttentionStep.PrepareExternalInputs"><a class="viewcode-back" href="../../../../lingvo.core.steps.attention_steps.html#lingvo.core.steps.attention_steps.AttentionStep.PrepareExternalInputs">[docs]</a>  <span class="k">def</span> <span class="nf">PrepareExternalInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Prepare encoded source data for processing.</span>
+
+<span class="sd">    In some attention algorithms, this step will pre-process the source</span>
+<span class="sd">    feature data so that FProp runs faster.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      external_inputs: A NestedMap containing at least these three tensors: src,</span>
+<span class="sd">        a [batch, seq_len, src_len] tensor that forms the input to the attention</span>
+<span class="sd">        layer; padding, a [batch, seq_len] 0/1 tensor indicating which parts of</span>
+<span class="sd">        src contain useful information, and max_seq_length, the maximum length</span>
+<span class="sd">        of an output sequence from this attention layer. An optional context</span>
+<span class="sd">        tensor may also be specified. See the class documentation for more</span>
+<span class="sd">        details.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      state0, a state parameter to pass to FProp on its first invocation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">packed_inputs</span> <span class="o">=</span> <span class="n">external_inputs</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+    <span class="k">del</span> <span class="n">packed_inputs</span><span class="p">[</span><span class="s1">&#39;src&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s1">&#39;context&#39;</span> <span class="ow">in</span> <span class="n">external_inputs</span><span class="p">:</span>
+      <span class="k">del</span> <span class="n">packed_inputs</span><span class="p">[</span><span class="s1">&#39;context&#39;</span><span class="p">]</span>
+      <span class="n">context</span> <span class="o">=</span> <span class="n">external_inputs</span><span class="o">.</span><span class="n">context</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">context</span> <span class="o">=</span> <span class="n">external_inputs</span><span class="o">.</span><span class="n">src</span>
+    <span class="n">packed_inputs</span><span class="o">.</span><span class="n">packed_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">InitForSourcePacked</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">external_inputs</span><span class="o">.</span><span class="n">src</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">external_inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">packed_inputs</span></div>
+
+<div class="viewcode-block" id="AttentionStep.ZeroState"><a class="viewcode-back" href="../../../../lingvo.core.steps.attention_steps.html#lingvo.core.steps.attention_steps.AttentionStep.ZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Produce a zero state for this step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      prepared_inputs: A set of inputs pre-processed by using</span>
+<span class="sd">        PrepareExternalInputs.</span>
+<span class="sd">      batch_size: Number of elements in the batched input.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      state0, a state parameter to pass to FProp on its first invocation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">atten_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ZeroAttentionState</span><span class="p">(</span><span class="n">prepared_inputs</span><span class="o">.</span><span class="n">max_seq_length</span><span class="p">,</span>
+                                                <span class="n">batch_size</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">new_atten_context</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span>
+     <span class="n">new_atten_states</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
+         <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
+         <span class="n">prepared_inputs</span><span class="o">.</span><span class="n">packed_src</span><span class="p">,</span>
+         <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">query_dim</span><span class="p">],</span>
+                  <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)),</span>
+         <span class="n">attention_state</span><span class="o">=</span><span class="n">atten_state</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">atten_context</span><span class="o">=</span><span class="n">new_atten_context</span><span class="p">,</span> <span class="n">atten_state</span><span class="o">=</span><span class="n">new_atten_states</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AttentionStep.FProp"><a class="viewcode-back" href="../../../../lingvo.core.steps.attention_steps.html#lingvo.core.steps.attention_steps.AttentionStep.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Produces a context vector from the attention algorithm.</span>
+
+<span class="sd">    The context vector is a summary of the inputs from external_inputs</span>
+<span class="sd">    which the attention algorithm has determined would be useful for decoding</span>
+<span class="sd">    the next output.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      prepared_inputs: A set of encoded tensors that have been pre-processed by</span>
+<span class="sd">        PrepareExternalInputs.</span>
+<span class="sd">      step_inputs: Unused. All of the input for this step comes from</span>
+<span class="sd">        external_inputs and previous step state.</span>
+<span class="sd">      padding: A [batch] 0/1 float tensor, where 1.0 means that this batch slot</span>
+<span class="sd">        is not used.</span>
+<span class="sd">      state0: A NestedMap of state, either produced by ZeroState or a previous</span>
+<span class="sd">        invocation of this graph.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      output, state1, defined as follows:</span>
+<span class="sd">      output: a NestedMap containing a query tensor, a context tensor, and</span>
+<span class="sd">        cum_atten_probs, the log of attention probabilities for each input</span>
+<span class="sd">        vector.</span>
+<span class="sd">      state1: a NestedMap of state to be used in subsequent invocations of this</span>
+<span class="sd">        graph.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">(</span><span class="n">new_atten_context</span><span class="p">,</span> <span class="n">new_atten_probs</span><span class="p">,</span>
+     <span class="n">new_atten_states</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
+         <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
+         <span class="n">prepared_inputs</span><span class="o">.</span><span class="n">packed_src</span><span class="p">,</span>
+         <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">step_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+         <span class="n">attention_state</span><span class="o">=</span><span class="n">state0</span><span class="o">.</span><span class="n">atten_state</span><span class="p">)</span>
+    <span class="n">new_atten_probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">new_atten_probs</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">context</span><span class="o">=</span><span class="n">new_atten_context</span><span class="p">,</span> <span class="n">probs</span><span class="o">=</span><span class="n">new_atten_probs</span><span class="p">)</span>
+    <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">atten_context</span><span class="o">=</span><span class="n">new_atten_context</span><span class="p">,</span> <span class="n">atten_state</span><span class="o">=</span><span class="n">new_atten_states</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">state1</span></div></div>
+
+
+<div class="viewcode-block" id="AttentionBlockStep"><a class="viewcode-back" href="../../../../lingvo.core.steps.attention_steps.html#lingvo.core.steps.attention_steps.AttentionBlockStep">[docs]</a><span class="k">class</span> <span class="nc">AttentionBlockStep</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">Step</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes attention queries and context vectors.</span>
+
+<span class="sd">  An attention algorithm produces a summary of a set of input vectors.</span>
+<span class="sd">  A query vector is used as an input to the process; we can think of this as</span>
+<span class="sd">  describing what information we&#39;re hoping to retrieve in the summary.</span>
+<span class="sd">  The summary output is called a context vector.</span>
+
+<span class="sd">  This class uses attention as a way to view the input to a decoder.</span>
+<span class="sd">  In each step, we hope to read a summary of the encoded input that would be</span>
+<span class="sd">  most useful for generating the next output from the decoder.</span>
+
+<span class="sd">  To do this, we combine a query generator and an attention algorithm.</span>
+<span class="sd">  The query generator&#39;s job is to build a query vector that represents the</span>
+<span class="sd">  current decoder state. The attention algorithm then uses that query vector</span>
+<span class="sd">  as a key to decide which encoded inputs are most important, and it combines</span>
+<span class="sd">  those into a context vector.</span>
+
+<span class="sd">  The query generator takes two inputs: one is the context vector output by</span>
+<span class="sd">  the attention algorithm in the previous step, and the other is the label</span>
+<span class="sd">  output by the decoder in the previous step. It combines this information</span>
+<span class="sd">  in an implementation-dependent way to produce a query vector.</span>
+
+<span class="sd">  In previous implementations, the query generator was just the first layer</span>
+<span class="sd">  of a stack of RNN layers (rnn_cell[0]). In this implementation, the query</span>
+<span class="sd">  generator can be any suitable Step, but in practice is one or more RNN layers.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AttentionBlockStep.Params"><a class="viewcode-back" href="../../../../lingvo.core.steps.attention_steps.html#lingvo.core.steps.attention_steps.AttentionBlockStep.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AttentionBlockStep</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;attention_block&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;query_generator&#39;</span><span class="p">,</span> <span class="n">rnn_steps</span><span class="o">.</span><span class="n">RnnStackStep</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Query generator params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;attention&#39;</span><span class="p">,</span> <span class="n">AttentionStep</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Attention params. This can be either an AttentionStep.Params()&#39;</span>
+        <span class="s1">&#39;or a list of them.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">AttentionBlockStep</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;query_generator&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">query_generator</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AttentionBlockStep.ZeroState"><a class="viewcode-back" href="../../../../lingvo.core.steps.attention_steps.html#lingvo.core.steps.attention_steps.AttentionBlockStep.ZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Produce a zero state for this step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      prepared_inputs: A set of inputs pre-processed by using</span>
+<span class="sd">        PrepareExternalInputs.</span>
+<span class="sd">      batch_size: Number of elements in the batched input.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      state0, a state parameter to pass to FProp on its first invocation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">query_state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_generator</span><span class="o">.</span><span class="n">ZeroState</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">query_generator</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="o">.</span><span class="n">query_generator</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+    <span class="n">atten_state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">ZeroState</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">attention</span><span class="p">,</span>
+                                            <span class="n">prepared_inputs</span><span class="o">.</span><span class="n">attention</span><span class="p">,</span>
+                                            <span class="n">batch_size</span><span class="p">)</span>
+    <span class="n">state0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">query_state</span><span class="o">=</span><span class="n">query_state0</span><span class="p">,</span> <span class="n">atten_state</span><span class="o">=</span><span class="n">atten_state0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state0</span></div>
+
+<div class="viewcode-block" id="AttentionBlockStep.FProp"><a class="viewcode-back" href="../../../../lingvo.core.steps.attention_steps.html#lingvo.core.steps.attention_steps.AttentionBlockStep.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Produces a query vector and a context vector for the next decoder step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      prepared_inputs: A set of encoded tensors that have been pre-processed by</span>
+<span class="sd">        PrepareExternalInputs.</span>
+<span class="sd">      step_inputs: Unused. All of the input for this step comes from</span>
+<span class="sd">        external_inputs and previous step state.</span>
+<span class="sd">      padding: A 0/1 float tensor, where 1.0 means that this batch slot is not</span>
+<span class="sd">        used.</span>
+<span class="sd">      state0: A NestedMap of state, either produced by ZeroState or a previous</span>
+<span class="sd">        invocation of this graph.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      output, state1, are defined as follows.</span>
+<span class="sd">      output, a NestedMap containing an atten_query tensor,</span>
+<span class="sd">      an atten_context tensor, and atten_probs, attention probabilities for each</span>
+<span class="sd">      input vector.</span>
+<span class="sd">      state1, a NestedMap of state to be used in subsequent invocations of this</span>
+<span class="sd">      graph.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">query_output</span><span class="p">,</span> <span class="n">query_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_generator</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">query_generator</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="o">.</span><span class="n">query_generator</span><span class="p">,</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">atten_state</span><span class="o">.</span><span class="n">atten_context</span><span class="p">]),</span> <span class="n">padding</span><span class="p">,</span>
+        <span class="n">state0</span><span class="o">.</span><span class="n">query_state</span><span class="p">)</span>
+    <span class="n">atten_input</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">query_output</span><span class="o">.</span><span class="n">output</span><span class="p">])</span>
+    <span class="n">atten_output</span><span class="p">,</span> <span class="n">atten_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">attention</span><span class="p">,</span>
+                                                      <span class="n">prepared_inputs</span><span class="o">.</span><span class="n">attention</span><span class="p">,</span>
+                                                      <span class="n">atten_input</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span>
+                                                      <span class="n">state0</span><span class="o">.</span><span class="n">atten_state</span><span class="p">)</span>
+    <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">atten_state</span><span class="o">=</span><span class="n">atten_state1</span><span class="p">,</span> <span class="n">query_state</span><span class="o">=</span><span class="n">query_state1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">atten_context</span><span class="o">=</span><span class="n">atten_output</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+        <span class="n">atten_query</span><span class="o">=</span><span class="n">query_output</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+        <span class="n">atten_probs</span><span class="o">=</span><span class="n">atten_output</span><span class="o">.</span><span class="n">probs</span><span class="p">),</span> <span class="n">state1</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
