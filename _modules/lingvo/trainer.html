@@ -285,6 +285,17 @@
     <span class="s1">&#39;evaler_dev and decoder_dev will only match the corresponding &#39;</span>
     <span class="s1">&#39;jobs that are on the dev set.&#39;</span><span class="p">)</span>
 
+
+<div class="viewcode-block" id="_ValidateVizierReportingJob"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer._ValidateVizierReportingJob">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">validator</span><span class="p">(</span><span class="s1">&#39;vizier_reporting_job&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_ValidateVizierReportingJob</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;evaler&#39;</span><span class="p">,</span> <span class="s1">&#39;decoder&#39;</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="kc">True</span>
+  <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;evaler_&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;decoder_&#39;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">True</span>
+  <span class="k">raise</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span><span class="s1">&#39;Invalid value </span><span class="si">%s</span><span class="s1"> for vizier_reporting_job&#39;</span> <span class="o">%</span>
+                                 <span class="n">value</span><span class="p">)</span></div>
+
+
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
     <span class="s1">&#39;enqueue_max_steps&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Max enqueue steps. -1 meaning no limit.&#39;</span>
     <span class="s1">&#39; This flag should be set for unit-test only.&#39;</span><span class="p">)</span>
@@ -1140,6 +1151,7 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">EvalLatestCheckpoint</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reporting trial done.&#39;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Evaluation finished.&#39;</span><span class="p">)</span></div>
 
@@ -1212,6 +1224,7 @@
 
     <span class="n">should_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reporting eval measure for step </span><span class="si">%d</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="n">global_step</span><span class="p">)</span>
       <span class="n">trial_should_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span>
                                                         <span class="n">metrics_dict</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
       <span class="n">should_stop</span> <span class="o">=</span> <span class="n">should_stop</span> <span class="ow">or</span> <span class="n">trial_should_stop</span>
@@ -1329,6 +1342,7 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">DecodeLatestCheckpoint</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reporting trial done.&#39;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Decoding finished.&#39;</span><span class="p">)</span></div>
 
@@ -1408,6 +1422,7 @@
 
     <span class="n">should_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reporting eval measure for step </span><span class="si">%d</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="n">global_step</span><span class="p">)</span>
       <span class="n">trial_should_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span>
                                                         <span class="n">dec_metrics</span><span class="p">,</span>
                                                         <span class="n">checkpoint_path</span><span class="p">)</span>
