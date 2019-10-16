@@ -20,7 +20,7 @@ from __future__ import print_function
 
 from lingvo import compat as tf
 from lingvo.core import py_utils
-from lingvo.core import recurrent
+from lingvo.core import step
 from lingvo.core import test_utils
 from lingvo.core.steps import rnn_steps
 
@@ -77,39 +77,33 @@ class RnnStepsTest(test_utils.TestCase):
       p.cell.num_output_nodes = 2
       p.cell.inputs_arity = 2
 
-      rnn_step = p.Instantiate()
+      recurrent_p = step.RecurrentStepWrapper.Params().Set(
+          name='recurrent_wrapper', step=p)
+      recurrent_step = recurrent_p.Instantiate()
+
       external = tf.constant([[3]], tf.float32)
-      packed = rnn_step.PrepareExternalInputs(rnn_step.theta, external)
-      padding = tf.constant([0.0], dtype=tf.float32)
+      packed = recurrent_step.PrepareExternalInputs(recurrent_step.theta,
+                                                    external)
+      inputs = py_utils.NestedMap(
+          inputs=[tf.constant([[[4]], [[4]]], tf.float32)])
+      padding = tf.constant([[0.0], [0.0]], dtype=tf.float32)
+      state0 = recurrent_step.ZeroState(recurrent_step.theta, packed, 1)
 
-      def cell_fn(theta, state0, inputs):
-        output, state1 = rnn_step.FProp(theta, state0.packed, inputs,
-                                        state0.padding, state0.state)
-        return py_utils.NestedMap(
-            output=output,
-            state=state1,
-            packed=state0.packed,
-            padding=state0.padding), py_utils.NestedMap()
-
-      _, state2 = recurrent.Recurrent(
-          theta=rnn_step.theta,
-          state0=py_utils.NestedMap(
-              state=rnn_step.ZeroState(rnn_step.theta, packed, 1),
-              output=py_utils.NestedMap(
-                  output=tf.zeros([1, 2], tf.float32),
-                  extra=py_utils.NestedMap(),
-                  padding=padding),
-              padding=padding,
-              packed=packed),
-          cell_fn=cell_fn,
-          inputs=py_utils.NestedMap(
-              inputs=[tf.constant([[[4]], [[4]]], tf.float32)]))
+      output, state2 = recurrent_step.FProp(
+          recurrent_step.theta,
+          external_inputs=packed,
+          inputs=inputs,
+          padding=padding,
+          state0=state0)
 
       tf.global_variables_initializer().run()
-      state2 = sess.run(state2)
-      self.assertAllClose(state2.state.m, [[-0.32659757, 0.87739915]])
-      self.assertAllClose(state2.state.c, [[-1.9628618, 1.4194499]])
-      self.assertAllClose(state2.output.output, [[-0.32659757, 0.87739915]])
+      output, state2 = sess.run([output, state2])
+      self.assertAllClose(state2.m,
+                          [[[-0.20144, 0.741861]], [[-0.326598, 0.877399]]])
+      self.assertAllClose(state2.c,
+                          [[[-0.980946, 0.973391]], [[-1.962862, 1.41945]]])
+      self.assertAllClose(output.output,
+                          [[[-0.20144, 0.741861]], [[-0.326598, 0.877399]]])
 
   def testRnnStackStep(self):
     with self.session(use_gpu=False) as sess:

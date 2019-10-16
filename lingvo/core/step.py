@@ -39,6 +39,7 @@ from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import builder_layers
 from lingvo.core import py_utils
+from lingvo.core import recurrent
 import six
 
 
@@ -121,6 +122,7 @@ class Step(base_layer.BaseLayer):
 
     Returns:
       A tuple (step_outputs, state1).
+
       - outputs: The outputs of this step.
       - state1: The next recurrent state.
     """
@@ -576,3 +578,75 @@ class IteratorStep(Step):
     output = prepared_inputs.Transform(_Slice)
     state1 = py_utils.NestedMap(t=state0.t + 1)
     return output, state1
+
+
+class RecurrentStepWrapper(base_layer.BaseLayer):
+  """A layer that wraps a step in a recurrent.Recurrent call."""
+
+  @classmethod
+  def Params(cls):
+    p = super(RecurrentStepWrapper, cls).Params()
+    p.Define('step', None, 'The step params that this class wraps.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(RecurrentStepWrapper, self).__init__(params)
+    self.CreateChild('step', self.params.step)
+
+  def PrepareExternalInputs(self, theta, external_inputs):
+    """See Step.PrepareExternalInputs."""
+    return self.step.PrepareExternalInputs(theta.step, external_inputs)
+
+  def ZeroState(self, theta, external_inputs, batch_size):
+    """See Step.ZeroState."""
+    return self.step.ZeroState(theta.step, external_inputs, batch_size)
+
+  def FProp(self, theta, external_inputs, inputs, padding, state0, **kwargs):
+    """Runs a Step layer over multiple timesteps using Recurrent.
+
+    Args:
+      theta: A NestedMap containing weights' values of this layer and its
+        children layers.
+      external_inputs: External inputs returned by Step.PrepareExternalInputs().
+      inputs: A NestedMap of inputs of shape [time, batch_size, dim].
+      padding: A 0/1 float tensor of shape [time, batch_size]; 1.0 means that
+        this batch element is empty in this step.
+      state0: A NestedMap containing the initial recurrent state.
+      **kwargs: Additional kwargs to pass to Recurrent.
+
+    Returns:
+      A tuple (outputs, state1).
+
+      - outputs: A NestedMap containing the accumulated outputs of all steps,
+        containing Tensors shaped [time, batch_size, dim].
+      - state1: A NestedMap containing the accumulated recurrent states,
+        containing Tensors shaped [time, batch_size, dim].
+    """
+
+    def RnnStep(recurrent_theta, recurrent_state0, recurrent_inputs):
+      """Compute a single timestep."""
+      output, state1 = self.step.FProp(
+          theta=recurrent_theta.theta,
+          external_inputs=recurrent_theta.external_inputs,
+          step_inputs=recurrent_inputs.inputs,
+          padding=recurrent_inputs.padding,
+          state0=recurrent_state0.state)
+      recurrent_state1 = py_utils.NestedMap(output=output, state=state1)
+      return recurrent_state1, py_utils.NestedMap()
+
+    # In order to pass Step outputs through Recurrent, they need to be
+    # included as part of state.
+    output0, _ = self.step.FProp(theta.step, external_inputs,
+                                 inputs.Transform(lambda x: x[0]), padding[0],
+                                 state0)
+
+    accumulated_states, _ = recurrent.Recurrent(
+        theta=py_utils.NestedMap(
+            theta=theta.step, external_inputs=external_inputs),
+        state0=py_utils.NestedMap(output=output0, state=state0),
+        inputs=py_utils.NestedMap(inputs=inputs, padding=padding),
+        cell_fn=RnnStep,
+        **kwargs)
+
+    return accumulated_states.output, accumulated_states.state

@@ -79,7 +79,7 @@ py_test(
         ":rnn_steps",
         "//lingvo:compat",
         "//lingvo/core:py_utils",
-        "//lingvo/core:recurrent",
+        "//lingvo/core:step",
         "//lingvo/core:test_utils",
     ],
 )
