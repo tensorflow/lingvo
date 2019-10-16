@@ -233,9 +233,12 @@ batch element is empty in this step.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A tuple (step_outputs, state1).
-- outputs: The outputs of this step.
-- state1: The next recurrent state.</p>
+<dd class="field-even"><p><p>A tuple (step_outputs, state1).</p>
+<ul class="simple">
+<li><p>outputs: The outputs of this step.</p></li>
+<li><p>state1: The next recurrent state.</p></li>
+</ul>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -630,6 +633,61 @@ output is implementation-dependent and is defined by the output_signature
 parameter.
 state1 is a NestedMap where the keys are names of sub-steps and the values
 are state outputs from their FProp methods.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.step.RecurrentStepWrapper">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.step.</code><code class="sig-name descname">RecurrentStepWrapper</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer that wraps a step in a recurrent.Recurrent call.</p>
+<dl class="method">
+<dt id="lingvo.core.step.RecurrentStepWrapper.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.step.RecurrentStepWrapper.PrepareExternalInputs">
+<code class="sig-name descname">PrepareExternalInputs</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">external_inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper.PrepareExternalInputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper.PrepareExternalInputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>See Step.PrepareExternalInputs.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.step.RecurrentStepWrapper.ZeroState">
+<code class="sig-name descname">ZeroState</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">external_inputs</em>, <em class="sig-param">batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper.ZeroState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper.ZeroState" title="Permalink to this definition">¶</a></dt>
+<dd><p>See Step.ZeroState.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.step.RecurrentStepWrapper.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">external_inputs</em>, <em class="sig-param">inputs</em>, <em class="sig-param">padding</em>, <em class="sig-param">state0</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs a Step layer over multiple timesteps using Recurrent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap containing weights’ values of this layer and its
+children layers.</p></li>
+<li><p><strong>external_inputs</strong> – External inputs returned by Step.PrepareExternalInputs().</p></li>
+<li><p><strong>inputs</strong> – A NestedMap of inputs of shape [time, batch_size, dim].</p></li>
+<li><p><strong>padding</strong> – A 0/1 float tensor of shape [time, batch_size]; 1.0 means that
+this batch element is empty in this step.</p></li>
+<li><p><strong>state0</strong> – A NestedMap containing the initial recurrent state.</p></li>
+<li><p><strong>**kwargs</strong> – Additional kwargs to pass to Recurrent.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple (outputs, state1).</p>
+<ul class="simple">
+<li><p>outputs: A NestedMap containing the accumulated outputs of all steps,
+containing Tensors shaped [time, batch_size, dim].</p></li>
+<li><p>state1: A NestedMap containing the accumulated recurrent states,
+containing Tensors shaped [time, batch_size, dim].</p></li>
+</ul>
+</p>
 </dd>
 </dl>
 </dd></dl>

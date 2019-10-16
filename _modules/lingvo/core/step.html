@@ -184,6 +184,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">builder_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">recurrent</span>
 <span class="kn">import</span> <span class="nn">six</span>
 
 
@@ -266,6 +267,7 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple (step_outputs, state1).</span>
+
 <span class="sd">      - outputs: The outputs of this step.</span>
 <span class="sd">      - state1: The next recurrent state.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -721,6 +723,78 @@
     <span class="n">output</span> <span class="o">=</span> <span class="n">prepared_inputs</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">_Slice</span><span class="p">)</span>
     <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">state0</span><span class="o">.</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">state1</span></div></div>
+
+
+<div class="viewcode-block" id="RecurrentStepWrapper"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.RecurrentStepWrapper">[docs]</a><span class="k">class</span> <span class="nc">RecurrentStepWrapper</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer that wraps a step in a recurrent.Recurrent call.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RecurrentStepWrapper.Params"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.RecurrentStepWrapper.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RecurrentStepWrapper</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;step&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The step params that this class wraps.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">RecurrentStepWrapper</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;step&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RecurrentStepWrapper.PrepareExternalInputs"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.RecurrentStepWrapper.PrepareExternalInputs">[docs]</a>  <span class="k">def</span> <span class="nf">PrepareExternalInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;See Step.PrepareExternalInputs.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="o">.</span><span class="n">PrepareExternalInputs</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">step</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RecurrentStepWrapper.ZeroState"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.RecurrentStepWrapper.ZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;See Step.ZeroState.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="o">.</span><span class="n">ZeroState</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">step</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RecurrentStepWrapper.FProp"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.RecurrentStepWrapper.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs a Step layer over multiple timesteps using Recurrent.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      external_inputs: External inputs returned by Step.PrepareExternalInputs().</span>
+<span class="sd">      inputs: A NestedMap of inputs of shape [time, batch_size, dim].</span>
+<span class="sd">      padding: A 0/1 float tensor of shape [time, batch_size]; 1.0 means that</span>
+<span class="sd">        this batch element is empty in this step.</span>
+<span class="sd">      state0: A NestedMap containing the initial recurrent state.</span>
+<span class="sd">      **kwargs: Additional kwargs to pass to Recurrent.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tuple (outputs, state1).</span>
+
+<span class="sd">      - outputs: A NestedMap containing the accumulated outputs of all steps,</span>
+<span class="sd">        containing Tensors shaped [time, batch_size, dim].</span>
+<span class="sd">      - state1: A NestedMap containing the accumulated recurrent states,</span>
+<span class="sd">        containing Tensors shaped [time, batch_size, dim].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">RnnStep</span><span class="p">(</span><span class="n">recurrent_theta</span><span class="p">,</span> <span class="n">recurrent_state0</span><span class="p">,</span> <span class="n">recurrent_inputs</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Compute a single timestep.&quot;&quot;&quot;</span>
+      <span class="n">output</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">=</span><span class="n">recurrent_theta</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
+          <span class="n">external_inputs</span><span class="o">=</span><span class="n">recurrent_theta</span><span class="o">.</span><span class="n">external_inputs</span><span class="p">,</span>
+          <span class="n">step_inputs</span><span class="o">=</span><span class="n">recurrent_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+          <span class="n">padding</span><span class="o">=</span><span class="n">recurrent_inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span>
+          <span class="n">state0</span><span class="o">=</span><span class="n">recurrent_state0</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+      <span class="n">recurrent_state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">output</span><span class="o">=</span><span class="n">output</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state1</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">recurrent_state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+    <span class="c1"># In order to pass Step outputs through Recurrent, they need to be</span>
+    <span class="c1"># included as part of state.</span>
+    <span class="n">output0</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">step</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span>
+                                 <span class="n">inputs</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                 <span class="n">state0</span><span class="p">)</span>
+
+    <span class="n">accumulated_states</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">step</span><span class="p">,</span> <span class="n">external_inputs</span><span class="o">=</span><span class="n">external_inputs</span><span class="p">),</span>
+        <span class="n">state0</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">output</span><span class="o">=</span><span class="n">output0</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state0</span><span class="p">),</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">),</span>
+        <span class="n">cell_fn</span><span class="o">=</span><span class="n">RnnStep</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">accumulated_states</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">accumulated_states</span><span class="o">.</span><span class="n">state</span></div></div>
 </pre></div>
 
            </div>
