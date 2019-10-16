@@ -296,6 +296,12 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
 class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
   """An implemention of StackedRNNBase with bidirection RNN layers."""
 
+  @classmethod
+  def Params(cls):
+    p = super(StackedBiFRNNLayerByLayer, cls).Params()
+    p.Define('frnn_tpl', BidirectionalFRNN.Params(), 'Rnn cell default params.')
+    return p
+
   @base_layer.initializer
   def __init__(self, params):
     super(StackedBiFRNNLayerByLayer, self).__init__(params)
@@ -312,7 +318,7 @@ class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
           rnn_p.num_input_nodes = p.num_input_nodes
         if p.num_output_nodes > 0 and i == p.num_layers - 1:
           rnn_p.num_output_nodes = p.num_output_nodes // 2
-        frnn_param = BidirectionalFRNN.Params()
+        frnn_param = p.frnn_tpl.Copy()
         frnn_param.name = 'bidi_rnn_%d' % i
         frnn_param.fwd = rnn_p.Copy().Set(name='f_rnn_%d' % i)
         frnn_param.bak = rnn_p.Copy().Set(name='b_rnn_%d' % i)
