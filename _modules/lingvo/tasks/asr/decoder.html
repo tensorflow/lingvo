@@ -776,12 +776,12 @@
         <span class="n">gamma</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_gamma</span><span class="p">)</span>
 
     <span class="n">per_sequence_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_example_loss</span> <span class="o">*</span> <span class="n">target_weights</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">per_token_avg_loss</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_sequence_loss</span><span class="p">)</span> <span class="o">/</span> <span class="n">target_weights_sum_eps</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">token_normalized_per_seq_loss</span><span class="p">:</span>
       <span class="n">per_seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">target_weights</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
       <span class="c1"># +0.001 to avoid possible divide by 0.</span>
       <span class="n">per_sequence_loss</span> <span class="o">/=</span> <span class="p">(</span><span class="n">per_seq_length</span> <span class="o">+</span> <span class="mf">0.001</span><span class="p">)</span>
-    <span class="n">per_token_avg_loss</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_sequence_loss</span><span class="p">)</span> <span class="o">/</span> <span class="n">target_weights_sum_eps</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_token_avg_loss</span><span class="p">:</span>
       <span class="n">loss</span> <span class="o">=</span> <span class="n">per_token_avg_loss</span>
       <span class="n">loss_weight</span> <span class="o">=</span> <span class="n">target_weights_sum</span>
