@@ -310,49 +310,48 @@
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">RnnStackStep</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">sub</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="p">[]</span>
 
-      <span class="c1"># Users can either provide a single rnn_cell_tpl or one per layer.</span>
-      <span class="c1"># If only one is provided, we replicate it for each layer.</span>
-      <span class="n">rnn_cell_tpls</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rnn_cell_tpls</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-        <span class="n">rnn_cell_tpls</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span>
+    <span class="c1"># Users can either provide a single rnn_cell_tpl or one per layer.</span>
+    <span class="c1"># If only one is provided, we replicate it for each layer.</span>
+    <span class="n">rnn_cell_tpls</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rnn_cell_tpls</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="n">rnn_cell_tpls</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span>
 
-      <span class="c1"># We may provide up to three tensors as input to the RnnStep:</span>
-      <span class="c1"># the normal input, the context input (from step_inputs.context),</span>
-      <span class="c1"># and the external input (from external_inputs).</span>
-      <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">context_input_dim</span><span class="p">:</span>
-        <span class="n">arity</span> <span class="o">+=</span> <span class="mi">1</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">external_input_dim</span><span class="p">:</span>
-        <span class="n">arity</span> <span class="o">+=</span> <span class="mi">1</span>
-      <span class="n">extra_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">context_input_dim</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">external_input_dim</span>
+    <span class="c1"># We may provide up to three tensors as input to the RnnStep:</span>
+    <span class="c1"># the normal input, the context input (from step_inputs.context),</span>
+    <span class="c1"># and the external input (from external_inputs).</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">context_input_dim</span><span class="p">:</span>
+      <span class="n">arity</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">external_input_dim</span><span class="p">:</span>
+      <span class="n">arity</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">extra_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">context_input_dim</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">external_input_dim</span>
 
-      <span class="c1"># The first layer&#39;s input comes from step_inputs.input. Later layers</span>
-      <span class="c1"># will get their inputs from the previous layer&#39;s output.</span>
-      <span class="n">input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">step_input_dim</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span><span class="p">):</span>
-        <span class="n">step_i</span> <span class="o">=</span> <span class="n">RnnStep</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-        <span class="n">step_i</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rnn_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
-        <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span> <span class="o">=</span> <span class="n">rnn_cell_tpls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">input_nodes</span> <span class="o">+</span> <span class="n">extra_dim</span>
-        <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">inputs_arity</span> <span class="o">=</span> <span class="n">arity</span>
-        <span class="c1"># The dimensions of each cell may be specified in the cell template</span>
-        <span class="c1"># but most users will specify them in the stack params.</span>
-        <span class="k">if</span> <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span>
-        <span class="k">if</span> <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_hidden_nodes</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_hidden_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_hidden_dim</span>
-        <span class="n">input_nodes</span> <span class="o">=</span> <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span>
-        <span class="n">sub</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">step_i</span><span class="p">)</span>
+    <span class="c1"># The first layer&#39;s input comes from step_inputs.input. Later layers</span>
+    <span class="c1"># will get their inputs from the previous layer&#39;s output.</span>
+    <span class="n">input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">step_input_dim</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span><span class="p">):</span>
+      <span class="n">step_i</span> <span class="o">=</span> <span class="n">RnnStep</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">step_i</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rnn_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+      <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span> <span class="o">=</span> <span class="n">rnn_cell_tpls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">input_nodes</span> <span class="o">+</span> <span class="n">extra_dim</span>
+      <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">inputs_arity</span> <span class="o">=</span> <span class="n">arity</span>
+      <span class="c1"># The dimensions of each cell may be specified in the cell template</span>
+      <span class="c1"># but most users will specify them in the stack params.</span>
+      <span class="k">if</span> <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span>
+      <span class="k">if</span> <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_hidden_nodes</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_hidden_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_hidden_dim</span>
+      <span class="n">input_nodes</span> <span class="o">=</span> <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span>
+      <span class="n">sub</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">step_i</span><span class="p">)</span>
 
-      <span class="n">stack_params</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">StackStep</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-      <span class="n">stack_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
-      <span class="n">stack_params</span><span class="o">.</span><span class="n">sub</span> <span class="o">=</span> <span class="n">sub</span>
-      <span class="n">stack_params</span><span class="o">.</span><span class="n">residual_start</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_start</span>
-      <span class="n">stack_params</span><span class="o">.</span><span class="n">residual_stride</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_stride</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;stack&#39;</span><span class="p">,</span> <span class="n">stack_params</span><span class="p">)</span>
+    <span class="n">stack_params</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">StackStep</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">stack_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">stack_params</span><span class="o">.</span><span class="n">sub</span> <span class="o">=</span> <span class="n">sub</span>
+    <span class="n">stack_params</span><span class="o">.</span><span class="n">residual_start</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_start</span>
+    <span class="n">stack_params</span><span class="o">.</span><span class="n">residual_stride</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_stride</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;stack&#39;</span><span class="p">,</span> <span class="n">stack_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RnnStackStep.PrepareExternalInputs"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStackStep.PrepareExternalInputs">[docs]</a>  <span class="k">def</span> <span class="nf">PrepareExternalInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Delegates external inputs preparation to sub-layers.</span>
