@@ -1558,20 +1558,18 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules):
   # to the vars in our model they correspond to.
   vars_to_load = []
   for model_var in all_vars:
-    already_matched = False
     for regexp, name_format in variable_loading_rules:
       match = re.match(regexp, model_var.name)
       # Skip if var doesn't match the loading rules, or if it should be ignored.
       if not match or any(
           re.match(r, model_var.name) for r in var_ignore_rules):
         continue
-      assert not already_matched, '%s is already matched!' % model_var.name
-      already_matched = True
       checkpoint_var_name = name_format % match.groups()
       if checkpoint_var_name.endswith(':0'):
         checkpoint_var_name = checkpoint_var_name[:-2]
       tf.logging.info('Loading %s from %s', model_var, checkpoint_var_name)
       vars_to_load.append((checkpoint_var_name, model_var))
+      break
   return vars_to_load
 
 
