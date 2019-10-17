@@ -165,49 +165,48 @@ class RnnStackStep(step.Step):
   def __init__(self, params):
     super(RnnStackStep, self).__init__(params)
     p = params
-    with tf.variable_scope(p.name):
-      sub = []
+    sub = []
 
-      # Users can either provide a single rnn_cell_tpl or one per layer.
-      # If only one is provided, we replicate it for each layer.
-      rnn_cell_tpls = p.rnn_cell_tpl
-      if not isinstance(rnn_cell_tpls, list):
-        rnn_cell_tpls = [p.rnn_cell_tpl] * p.rnn_layers
+    # Users can either provide a single rnn_cell_tpl or one per layer.
+    # If only one is provided, we replicate it for each layer.
+    rnn_cell_tpls = p.rnn_cell_tpl
+    if not isinstance(rnn_cell_tpls, list):
+      rnn_cell_tpls = [p.rnn_cell_tpl] * p.rnn_layers
 
-      # We may provide up to three tensors as input to the RnnStep:
-      # the normal input, the context input (from step_inputs.context),
-      # and the external input (from external_inputs).
-      arity = 1
-      if p.context_input_dim:
-        arity += 1
-      if p.external_input_dim:
-        arity += 1
-      extra_dim = p.context_input_dim + p.external_input_dim
+    # We may provide up to three tensors as input to the RnnStep:
+    # the normal input, the context input (from step_inputs.context),
+    # and the external input (from external_inputs).
+    arity = 1
+    if p.context_input_dim:
+      arity += 1
+    if p.external_input_dim:
+      arity += 1
+    extra_dim = p.context_input_dim + p.external_input_dim
 
-      # The first layer's input comes from step_inputs.input. Later layers
-      # will get their inputs from the previous layer's output.
-      input_nodes = p.step_input_dim
-      for i in range(p.rnn_layers):
-        step_i = RnnStep.Params()
-        step_i.name = 'rnn_%d' % (i)
-        step_i.cell = rnn_cell_tpls[i].Copy()
-        step_i.cell.num_input_nodes = input_nodes + extra_dim
-        step_i.cell.inputs_arity = arity
-        # The dimensions of each cell may be specified in the cell template
-        # but most users will specify them in the stack params.
-        if step_i.cell.num_output_nodes == 0:
-          step_i.cell.num_output_nodes = p.rnn_cell_dim
-        if step_i.cell.num_hidden_nodes == 0:
-          step_i.cell.num_hidden_nodes = p.rnn_cell_hidden_dim
-        input_nodes = step_i.cell.num_output_nodes
-        sub.append(step_i)
+    # The first layer's input comes from step_inputs.input. Later layers
+    # will get their inputs from the previous layer's output.
+    input_nodes = p.step_input_dim
+    for i in range(p.rnn_layers):
+      step_i = RnnStep.Params()
+      step_i.name = 'rnn_%d' % (i)
+      step_i.cell = rnn_cell_tpls[i].Copy()
+      step_i.cell.num_input_nodes = input_nodes + extra_dim
+      step_i.cell.inputs_arity = arity
+      # The dimensions of each cell may be specified in the cell template
+      # but most users will specify them in the stack params.
+      if step_i.cell.num_output_nodes == 0:
+        step_i.cell.num_output_nodes = p.rnn_cell_dim
+      if step_i.cell.num_hidden_nodes == 0:
+        step_i.cell.num_hidden_nodes = p.rnn_cell_hidden_dim
+      input_nodes = step_i.cell.num_output_nodes
+      sub.append(step_i)
 
-      stack_params = step.StackStep.Params()
-      stack_params.name = p.name
-      stack_params.sub = sub
-      stack_params.residual_start = p.residual_start
-      stack_params.residual_stride = p.residual_stride
-      self.CreateChild('stack', stack_params)
+    stack_params = step.StackStep.Params()
+    stack_params.name = p.name
+    stack_params.sub = sub
+    stack_params.residual_start = p.residual_start
+    stack_params.residual_stride = p.residual_stride
+    self.CreateChild('stack', stack_params)
 
   def PrepareExternalInputs(self, theta, external_inputs):
     """Delegates external inputs preparation to sub-layers.
