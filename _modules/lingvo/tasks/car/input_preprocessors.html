@@ -1033,6 +1033,10 @@
 <div class="viewcode-block" id="GridAnchorCenters"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.GridAnchorCenters">[docs]</a><span class="k">class</span> <span class="nc">GridAnchorCenters</span><span class="p">(</span><span class="n">Preprocessor</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Create anchor centers on a grid.</span>
 
+<span class="sd">  Anchors are placed in the middle of each grid cell. For example, on a 2D grid</span>
+<span class="sd">  range (0 -&gt; 10, 0 -&gt; 10) with a 10 x 5 grid size, the anchors will be placed</span>
+<span class="sd">  at [(0.5, 1), (0.5, 3), ... , (9.5, 7), (9.5, 9)].</span>
+
 <span class="sd">  Adds the following features:</span>
 <span class="sd">    anchor_centers: [num_locations, 3] - Floating point output containing the</span>
 <span class="sd">      center (x, y, z) locations for tiling anchor boxes.</span>
@@ -1058,12 +1062,35 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">utils_3d</span> <span class="o">=</span> <span class="n">detection_3d_lib</span><span class="o">.</span><span class="n">Utils3D</span><span class="p">()</span>
 
+    <span class="c1"># Compute the grid cell size and adjust the range sent to dense coordinates</span>
+    <span class="c1"># by half a cell size so as to ensure that the anchors are placed in the</span>
+    <span class="c1"># center of each grid cell.</span>
+    <span class="n">grid_size_x</span><span class="p">,</span> <span class="n">grid_size_y</span><span class="p">,</span> <span class="n">grid_size_z</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">grid_size</span>
+    <span class="n">grid_cell_sizes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">grid_range_x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">grid_range_x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">grid_size_x</span><span class="p">,</span>
+        <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">grid_range_y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">grid_range_y</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">grid_size_y</span><span class="p">,</span>
+        <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">grid_range_z</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">grid_range_z</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">grid_size_z</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">half_size_x</span><span class="p">,</span> <span class="n">half_size_y</span><span class="p">,</span> <span class="n">half_size_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">grid_cell_sizes</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
+
     <span class="n">grid_shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">grid_size</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">3</span><span class="p">]</span>
     <span class="n">anchor_centers</span> <span class="o">=</span> <span class="n">utils_3d</span><span class="o">.</span><span class="n">CreateDenseCoordinates</span><span class="p">([</span>
-        <span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">grid_range_x</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">grid_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
-        <span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">grid_range_y</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">grid_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
-        <span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">grid_range_z</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">grid_size</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span>
-    <span class="p">])</span>
+        <span class="p">[</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">grid_range_x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">half_size_x</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">grid_range_x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">half_size_x</span><span class="p">,</span>
+            <span class="n">grid_size_x</span>
+        <span class="p">],</span>
+        <span class="p">[</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">grid_range_y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">half_size_y</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">grid_range_y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">half_size_y</span><span class="p">,</span>
+            <span class="n">grid_size_y</span>
+        <span class="p">],</span>
+        <span class="p">[</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">grid_range_z</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">half_size_z</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">grid_range_z</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">half_size_z</span><span class="p">,</span>
+            <span class="n">grid_size_z</span>
+        <span class="p">],</span>
+    <span class="p">])</span>  <span class="c1"># pyformat: disable</span>
     <span class="n">features</span><span class="o">.</span><span class="n">anchor_centers</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">anchor_centers</span><span class="p">,</span> <span class="n">grid_shape</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">features</span></div>

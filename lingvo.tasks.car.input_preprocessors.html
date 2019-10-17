@@ -1022,6 +1022,9 @@ features.</p>
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.input_preprocessors.</code><code class="sig-name descname">GridAnchorCenters</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#GridAnchorCenters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.GridAnchorCenters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.input_preprocessors.Preprocessor" title="lingvo.tasks.car.input_preprocessors.Preprocessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_preprocessors.Preprocessor</span></code></a></p>
 <p>Create anchor centers on a grid.</p>
+<p>Anchors are placed in the middle of each grid cell. For example, on a 2D grid
+range (0 -&gt; 10, 0 -&gt; 10) with a 10 x 5 grid size, the anchors will be placed
+at [(0.5, 1), (0.5, 3), … , (9.5, 7), (9.5, 9)].</p>
 <dl class="simple">
 <dt>Adds the following features:</dt><dd><dl class="simple">
 <dt>anchor_centers: [num_locations, 3] - Floating point output containing the</dt><dd><p>center (x, y, z) locations for tiling anchor boxes.</p>
