@@ -614,14 +614,13 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     target_weights_sum = tf.reduce_sum(target_weights)
     # add 0.000001 to avoid divide-by-zero.
     target_weights_sum_eps = target_weights_sum + 0.000001
-    if not py_utils.use_tpu():
-      correct_preds = tf.cast(
-          tf.equal(tf.argmax(logits, 2, output_type=tf.int32), target_labels),
-          py_utils.FPropDtype(p))
-      correct_next_preds = tf.reduce_sum(correct_preds * target_weights)
-      accuracy = tf.identity(
-          correct_next_preds / target_weights_sum_eps,
-          name='fraction_of_correct_next_step_preds')
+    correct_preds = tf.cast(
+        tf.equal(tf.argmax(logits, 2, output_type=tf.int32), target_labels),
+        py_utils.FPropDtype(p))
+    correct_next_preds = tf.reduce_sum(correct_preds * target_weights)
+    accuracy = tf.identity(
+        correct_next_preds / target_weights_sum_eps,
+        name='fraction_of_correct_next_step_preds')
     # Pad zeros so that we can stack them.
     per_example_loss = py_utils.SoftmaxCrossEntropyFocalLoss(
         logits=logits,
@@ -649,9 +648,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         'log_pplx': (per_token_avg_loss, target_weights_sum),
         'token_normed_prob': (tf.exp(-per_token_avg_loss), target_weights_sum),
     }
-    if not py_utils.use_tpu():
-      metrics['fraction_of_correct_next_step_preds'] = (accuracy,
-                                                        target_weights_sum)
+    metrics['fraction_of_correct_next_step_preds'] = (accuracy,
+                                                      target_weights_sum)
     return metrics, per_sequence_loss
 
   def InitDecoder(self, theta, encoder_outputs, dec_bs):

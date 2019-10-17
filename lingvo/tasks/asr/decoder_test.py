@@ -198,6 +198,7 @@ class DecoderTest(test_utils.TestCase):
           vn_config=py_utils.VariationalNoiseParams(None, True, False))
 
       metrics, per_sequence_loss = self._getDecoderFPropMetrics(params=p)
+      self.assertIn('fraction_of_correct_next_step_preds', metrics)
       tf.global_variables_initializer().run()
       metrics_val, per_sequence_loss_val = sess.run(
           [metrics, per_sequence_loss])
