@@ -167,6 +167,7 @@
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">ap_metric</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">breakdown_metric</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">waymo_open_dataset</span> <span class="k">import</span> <span class="n">label_pb2</span>
 <span class="kn">from</span> <span class="nn">waymo_open_dataset.metrics.ops</span> <span class="k">import</span> <span class="n">py_metrics_ops</span>
@@ -203,6 +204,13 @@
     <span class="nb">super</span><span class="p">(</span><span class="n">WaymoAPMetrics</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_waymo_metric_config</span> <span class="o">=</span> <span class="n">_BuildWaymoMetricConfig</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
                                                         <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">box_type</span><span class="p">)</span>
+    <span class="c1"># Add APH metric.</span>
+    <span class="n">metrics_params</span> <span class="o">=</span> <span class="n">breakdown_metric</span><span class="o">.</span><span class="n">ByDifficulty</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
+        <span class="n">ap_key</span><span class="o">=</span><span class="s1">&#39;ap_ha_weighted&#39;</span><span class="p">,</span>
+        <span class="n">pr_key</span><span class="o">=</span><span class="s1">&#39;pr_ha_weighted&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="s1">&#39;aph&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">breakdown_metric</span><span class="o">.</span><span class="n">ByDifficulty</span><span class="p">(</span>
+        <span class="n">metrics_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="WaymoAPMetrics._GetData"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_ap_metric.html#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics._GetData">[docs]</a>  <span class="k">def</span> <span class="nf">_GetData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">classid</span><span class="p">,</span>
@@ -311,7 +319,25 @@
     <span class="c1"># it compatible to the python code.</span>
     <span class="n">scalar_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ap&#39;</span><span class="p">:</span> <span class="n">ap</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;ap_ha_weighted&#39;</span><span class="p">:</span> <span class="n">ap_ha</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span>
     <span class="n">curve_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pr&#39;</span><span class="p">:</span> <span class="n">pr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;pr_ha_weighted&#39;</span><span class="p">:</span> <span class="n">pr_ha</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span>
-    <span class="k">return</span> <span class="n">scalar_metrics</span><span class="p">,</span> <span class="n">curve_metrics</span><span class="p">,</span> <span class="n">feed_dict</span></div></div>
+    <span class="k">return</span> <span class="n">scalar_metrics</span><span class="p">,</span> <span class="n">curve_metrics</span><span class="p">,</span> <span class="n">feed_dict</span></div>
+
+<div class="viewcode-block" id="WaymoAPMetrics.Summary"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_ap_metric.html#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics.Summary">[docs]</a>  <span class="k">def</span> <span class="nf">Summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoAPMetrics</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_EvaluateIfNecessary</span><span class="p">()</span>
+    <span class="n">aph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="s1">&#39;aph&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_average_precisions</span>  <span class="c1"># pylint:disable=protected-access</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
+      <span class="n">classname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">():</span>
+        <span class="n">tag_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">/APH_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">classname</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">)</span>
+        <span class="n">aph_value</span> <span class="o">=</span> <span class="n">aph</span><span class="p">[</span><span class="n">difficulty</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="n">tag_str</span><span class="p">,</span> <span class="n">simple_value</span><span class="o">=</span><span class="n">aph_value</span><span class="p">)</span>
+
+    <span class="n">image_summaries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="s1">&#39;aph&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">GenerateSummaries</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span>
+                                                                       <span class="s1">&#39;_aph&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">image_summary</span> <span class="ow">in</span> <span class="n">image_summaries</span><span class="p">:</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">image_summary</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div></div>
 </pre></div>
 
            </div>
