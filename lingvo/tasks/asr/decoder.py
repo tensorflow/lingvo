@@ -631,12 +631,12 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         gamma=p.focal_loss_gamma)
 
     per_sequence_loss = tf.reduce_sum(per_example_loss * target_weights, 1)
+    per_token_avg_loss = (
+        tf.reduce_sum(per_sequence_loss) / target_weights_sum_eps)
     if p.token_normalized_per_seq_loss:
       per_seq_length = tf.reduce_sum(target_weights, 1)
       # +0.001 to avoid possible divide by 0.
       per_sequence_loss /= (per_seq_length + 0.001)
-    per_token_avg_loss = (
-        tf.reduce_sum(per_sequence_loss) / target_weights_sum_eps)
     if p.per_token_avg_loss:
       loss = per_token_avg_loss
       loss_weight = target_weights_sum

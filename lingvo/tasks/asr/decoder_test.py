@@ -78,8 +78,8 @@ class DecoderTest(test_utils.TestCase):
 
     return p
 
-  def _testDecoderFPropHelper(self, params):
-    """Computes decoder from params and computes loss with random inputs."""
+  def _getDecoderFPropMetrics(self, params):
+    """Creates decoder from params and computes metrics with random inputs."""
     dec = decoder.AsrDecoder(params)
     src_seq_len = 5
     src_enc = tf.random_normal([src_seq_len, 2, 8],
@@ -115,11 +115,11 @@ class DecoderTest(test_utils.TestCase):
         'paddings': target_paddings,
         'transcripts': target_transcripts,
     })
-    metrics, per_sequence_loss = dec.FPropWithPerExampleLoss(
-        encoder_outputs, targets)
-    loss = metrics['loss']
+    return dec.FPropWithPerExampleLoss(encoder_outputs, targets)
 
-    return loss, per_sequence_loss
+  def _testDecoderFPropHelper(self, params):
+    metrics, per_sequence_loss = self._getDecoderFPropMetrics(params)
+    return metrics['loss'], per_sequence_loss
 
   def _testDecoderFPropFloatHelper(self,
                                    func_inline=False,
@@ -197,11 +197,37 @@ class DecoderTest(test_utils.TestCase):
       p = self._DecoderParams(
           vn_config=py_utils.VariationalNoiseParams(None, True, False))
 
-      loss, per_sequence_loss = self._testDecoderFPropHelper(params=p)
+      metrics, per_sequence_loss = self._getDecoderFPropMetrics(params=p)
       tf.global_variables_initializer().run()
-      loss_val, per_sequence_loss_val = sess.run([loss, per_sequence_loss])
+      metrics_val, per_sequence_loss_val = sess.run(
+          [metrics, per_sequence_loss])
+      tf.logging.info('metrics=%s, per_sequence_loss=%s', metrics_val,
+                      per_sequence_loss_val)
 
-      print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
+      self.assertEqual(metrics_val['loss'], metrics_val['log_pplx'])
+      # Target batch size is 4. Therefore, we should expect 4 here.
+      self.assertEqual(per_sequence_loss_val.shape, (4,))
+
+  def testDecoderFPropWithMeanSeqLoss(self):
+    """Create and fprop a decoder with different dims per layer."""
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      tf.set_random_seed(8372749040)
+
+      p = self._DecoderParams(
+          vn_config=py_utils.VariationalNoiseParams(None, True, False))
+      p.token_normalized_per_seq_loss = True
+      p.per_token_avg_loss = False
+
+      metrics, per_sequence_loss = self._getDecoderFPropMetrics(params=p)
+      tf.global_variables_initializer().run()
+      metrics_val, per_sequence_loss_val = sess.run(
+          [metrics, per_sequence_loss])
+      tf.logging.info('metrics=%s, per_sequence_loss=%s', metrics_val,
+                      per_sequence_loss_val)
+
+      self.assertNotEqual(metrics_val['loss'][0], metrics_val['log_pplx'][0])
+      self.assertAllClose(metrics_val['loss'], (3.58785, 4.0))
+      self.assertAllClose(metrics_val['log_pplx'], (3.6008675, 15.0))
       # Target batch size is 4. Therefore, we should expect 4 here.
       self.assertEqual(per_sequence_loss_val.shape, (4,))
 
