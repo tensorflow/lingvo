@@ -71,6 +71,13 @@ class WaymoAveragePrecisionMetrics3DTest(test_utils.TestCase):
     self.assertAllClose(waymo_ap['default'][0], 1.)
     self.assertTrue(np.isnan(waymo_ap['default'][1]))
 
+    # Write a summary.
+    summary = m.Summary('foo')
+    # Check that both AP and APH are in the tags.
+    tags = [v.tag for v in summary.value]
+    self.assertIn('foo/Pedestrian/AP_default', tags)
+    self.assertIn('foo/Pedestrian/APH_default', tags)
+
 
 if __name__ == '__main__':
   tf.test.main()

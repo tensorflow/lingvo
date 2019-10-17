@@ -169,7 +169,7 @@ class APMetrics(BaseMetric):
     assert self.params.box_type in ['2d', '3d']
 
     # We must always include ByDifficulty.
-    metrics_params = breakdown_metric.BreakdownMetric.Params().Set(
+    metrics_params = breakdown_metric.ByDifficulty.Params().Set(
         metadata=self.metadata)
     self._breakdown_metrics = {
         'difficulty': breakdown_metric.ByDifficulty(metrics_params)
@@ -533,7 +533,6 @@ class APMetrics(BaseMetric):
     return self._breakdown_metrics['difficulty']._average_precisions  # pylint:disable=protected-access
 
   def Summary(self, name):
-    # TODO(weihan): also display ha_weighted metrics for Waymo.
     self._EvaluateIfNecessary()
 
     ret = tf.Summary()

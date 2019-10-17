@@ -597,6 +597,13 @@ class ByRotation(BreakdownMetric):
 class ByDifficulty(BreakdownMetric):
   """Calculate average precision as function of difficulty."""
 
+  @classmethod
+  def Params(cls):
+    p = super(ByDifficulty, cls).Params()
+    p.Define('ap_key', 'ap', 'Metrics key for the AP value.')
+    p.Define('pr_key', 'pr', 'Metrics key for the PR value.')
+    return p
+
   def NumBinsOfHistogram(self):
     return len(self.params.metadata.DifficultyLevels()) + 1
 
@@ -608,11 +615,13 @@ class ByDifficulty(BreakdownMetric):
     self._AccumulateHistogram(statistics=difficulties, labels=result.labels)
 
   def ComputeMetrics(self, compute_metrics_fn):
+    p = self.params
     tf.logging.info('Calculating AP by difficulty: start')
     for difficulty in self.params.metadata.DifficultyLevels():
       scalars, curves = compute_metrics_fn(difficulty=difficulty)
-      self._average_precisions[difficulty] = [s['ap'] for s in scalars]
-      self._precision_recall[difficulty] = np.array([c['pr'] for c in curves])
+      self._average_precisions[difficulty] = [s[p.ap_key] for s in scalars]
+      self._precision_recall[difficulty] = np.array(
+          [c[p.pr_key] for c in curves])
 
     tf.logging.info('Calculating AP by difficulty: finished')
 

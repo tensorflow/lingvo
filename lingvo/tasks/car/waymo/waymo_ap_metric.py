@@ -22,6 +22,7 @@ from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import py_utils
 from lingvo.tasks.car import ap_metric
+from lingvo.tasks.car import breakdown_metric
 import numpy as np
 from waymo_open_dataset import label_pb2
 from waymo_open_dataset.metrics.ops import py_metrics_ops
@@ -58,6 +59,13 @@ class WaymoAPMetrics(ap_metric.APMetrics):
     super(WaymoAPMetrics, self).__init__(params)
     self._waymo_metric_config = _BuildWaymoMetricConfig(self.metadata,
                                                         self.params.box_type)
+    # Add APH metric.
+    metrics_params = breakdown_metric.ByDifficulty.Params().Set(
+        metadata=self.metadata,
+        ap_key='ap_ha_weighted',
+        pr_key='pr_ha_weighted')
+    self._breakdown_metrics['aph'] = breakdown_metric.ByDifficulty(
+        metrics_params)
 
   def _GetData(self,
                classid,
@@ -167,3 +175,21 @@ class WaymoAPMetrics(ap_metric.APMetrics):
     scalar_metrics = {'ap': ap[0], 'ap_ha_weighted': ap_ha[0]}
     curve_metrics = {'pr': pr[0], 'pr_ha_weighted': pr_ha[0]}
     return scalar_metrics, curve_metrics, feed_dict
+
+  def Summary(self, name):
+    ret = super(WaymoAPMetrics, self).Summary(name)
+
+    self._EvaluateIfNecessary()
+    aph = self._breakdown_metrics['aph']._average_precisions  # pylint:disable=protected-access
+    for i, j in enumerate(self.metadata.EvalClassIndices()):
+      classname = self.metadata.ClassNames()[j]
+      for difficulty in self.metadata.DifficultyLevels():
+        tag_str = '{}/{}/APH_{}'.format(name, classname, difficulty)
+        aph_value = aph[difficulty][i]
+        ret.value.add(tag=tag_str, simple_value=aph_value)
+
+    image_summaries = self._breakdown_metrics['aph'].GenerateSummaries(name +
+                                                                       '_aph')
+    for image_summary in image_summaries:
+      ret.value.extend(image_summary.value)
+    return ret
