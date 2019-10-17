@@ -888,6 +888,10 @@ class GridToPillars(Preprocessor):
 class GridAnchorCenters(Preprocessor):
   """Create anchor centers on a grid.
 
+  Anchors are placed in the middle of each grid cell. For example, on a 2D grid
+  range (0 -> 10, 0 -> 10) with a 10 x 5 grid size, the anchors will be placed
+  at [(0.5, 1), (0.5, 3), ... , (9.5, 7), (9.5, 9)].
+
   Adds the following features:
     anchor_centers: [num_locations, 3] - Floating point output containing the
       center (x, y, z) locations for tiling anchor boxes.
@@ -913,12 +917,35 @@ class GridAnchorCenters(Preprocessor):
     p = self.params
     utils_3d = detection_3d_lib.Utils3D()
 
+    # Compute the grid cell size and adjust the range sent to dense coordinates
+    # by half a cell size so as to ensure that the anchors are placed in the
+    # center of each grid cell.
+    grid_size_x, grid_size_y, grid_size_z = p.grid_size
+    grid_cell_sizes = [
+        float(p.grid_range_x[1] - p.grid_range_x[0]) / grid_size_x,
+        float(p.grid_range_y[1] - p.grid_range_y[0]) / grid_size_y,
+        float(p.grid_range_z[1] - p.grid_range_z[0]) / grid_size_z,
+    ]
+    half_size_x, half_size_y, half_size_z = np.asarray(grid_cell_sizes) / 2.0
+
     grid_shape = list(p.grid_size) + [3]
     anchor_centers = utils_3d.CreateDenseCoordinates([
-        list(p.grid_range_x) + [p.grid_size[0]],
-        list(p.grid_range_y) + [p.grid_size[1]],
-        list(p.grid_range_z) + [p.grid_size[2]],
-    ])
+        [
+            p.grid_range_x[0] + half_size_x,
+            p.grid_range_x[1] - half_size_x,
+            grid_size_x
+        ],
+        [
+            p.grid_range_y[0] + half_size_y,
+            p.grid_range_y[1] - half_size_y,
+            grid_size_y
+        ],
+        [
+            p.grid_range_z[0] + half_size_z,
+            p.grid_range_z[1] - half_size_z,
+            grid_size_z
+        ],
+    ])  # pyformat: disable
     features.anchor_centers = tf.reshape(anchor_centers, grid_shape)
 
     return features
