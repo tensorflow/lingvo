@@ -759,14 +759,13 @@
     <span class="n">target_weights_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">target_weights</span><span class="p">)</span>
     <span class="c1"># add 0.000001 to avoid divide-by-zero.</span>
     <span class="n">target_weights_sum_eps</span> <span class="o">=</span> <span class="n">target_weights_sum</span> <span class="o">+</span> <span class="mf">0.000001</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-      <span class="n">correct_preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">target_labels</span><span class="p">),</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-      <span class="n">correct_next_preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">correct_preds</span> <span class="o">*</span> <span class="n">target_weights</span><span class="p">)</span>
-      <span class="n">accuracy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
-          <span class="n">correct_next_preds</span> <span class="o">/</span> <span class="n">target_weights_sum_eps</span><span class="p">,</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">)</span>
+    <span class="n">correct_preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">target_labels</span><span class="p">),</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="n">correct_next_preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">correct_preds</span> <span class="o">*</span> <span class="n">target_weights</span><span class="p">)</span>
+    <span class="n">accuracy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
+        <span class="n">correct_next_preds</span> <span class="o">/</span> <span class="n">target_weights_sum_eps</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">)</span>
     <span class="c1"># Pad zeros so that we can stack them.</span>
     <span class="n">per_example_loss</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SoftmaxCrossEntropyFocalLoss</span><span class="p">(</span>
         <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span>
@@ -794,9 +793,8 @@
         <span class="s1">&#39;log_pplx&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">per_token_avg_loss</span><span class="p">,</span> <span class="n">target_weights_sum</span><span class="p">),</span>
         <span class="s1">&#39;token_normed_prob&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">per_token_avg_loss</span><span class="p">),</span> <span class="n">target_weights_sum</span><span class="p">),</span>
     <span class="p">}</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-      <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">accuracy</span><span class="p">,</span>
-                                                        <span class="n">target_weights_sum</span><span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">accuracy</span><span class="p">,</span>
+                                                      <span class="n">target_weights_sum</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_sequence_loss</span></div>
 
 <div class="viewcode-block" id="AsrDecoderBase.InitDecoder"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.InitDecoder">[docs]</a>  <span class="k">def</span> <span class="nf">InitDecoder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">dec_bs</span><span class="p">):</span>
