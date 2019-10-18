@@ -148,7 +148,7 @@ def TransformPoints(points, transforms):
   return points
 
 
-def _WrapAngleRad(angles_rad, min_val=-np.pi, max_val=np.pi):
+def WrapAngleRad(angles_rad, min_val=-np.pi, max_val=np.pi):
   """Wrap the value of `angles_rad` to the range [min_val, max_val]."""
   max_min_diff = max_val - min_val
   return min_val + tf.mod(angles_rad + max_val, max_min_diff)
@@ -175,7 +175,7 @@ def TransformBBoxes3D(bboxes_3d, transforms):
   # Transform center and rotation, assuming that dimensions are not changed.
   center_xyz = TransformPoints(center_xyz, transforms)
   rot += tf.atan2(transforms[..., 1:2, 0:1], transforms[..., 0:1, 0:1])
-  rot = _WrapAngleRad(rot)
+  rot = WrapAngleRad(rot)
 
   return tf.concat([
       center_xyz,

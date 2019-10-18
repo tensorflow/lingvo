@@ -238,7 +238,7 @@ class GeometryTest(test_utils.TestCase):
                                minval=-100.,
                                maxval=100.,
                                dtype=tf.float32)
-    wrapped_angles = geometry._WrapAngleRad(angles)
+    wrapped_angles = geometry.WrapAngleRad(angles)
     with self.session() as sess:
       actual_angles, actual_wrapped_angles = sess.run((angles, wrapped_angles))
 
