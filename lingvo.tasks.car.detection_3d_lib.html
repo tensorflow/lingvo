@@ -477,7 +477,7 @@ residuals for every corresponding bbox.</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.ResidualsToBBoxes">
-<code class="sig-name descname">ResidualsToBBoxes</code><span class="sig-paren">(</span><em class="sig-param">anchor_bboxes</em>, <em class="sig-param">residuals</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.ResidualsToBBoxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.ResidualsToBBoxes" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ResidualsToBBoxes</code><span class="sig-paren">(</span><em class="sig-param">anchor_bboxes</em>, <em class="sig-param">residuals</em>, <em class="sig-param">min_angle_rad=0</em>, <em class="sig-param">max_angle_rad=3.141592653589793</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.ResidualsToBBoxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.ResidualsToBBoxes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts anchor_boxes and residuals to predicted bboxes.</p>
 <p>This converts predicted residuals into bboxes using the following formulae:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x_predicted</span> <span class="o">=</span> <span class="n">x_a</span> <span class="o">+</span> <span class="n">x_residual</span> <span class="o">*</span> <span class="n">diagonal_xy</span>
@@ -488,7 +488,10 @@ residuals for every corresponding bbox.</p>
 <span class="n">dy_predicted</span> <span class="o">=</span> <span class="n">dy_a</span> <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="n">dy_residual</span><span class="p">)</span>
 <span class="n">dz_predicted</span> <span class="o">=</span> <span class="n">dz_a</span> <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="n">dz_residual</span><span class="p">)</span>
 
-<span class="n">phi_predicted</span> <span class="o">=</span> <span class="n">phi_a</span> <span class="o">+</span> <span class="n">phi_residual</span>
+<span class="c1"># Adding the residual, and bounding it between</span>
+<span class="c1"># [min_angle_rad, max_angle_rad]</span>
+<span class="n">phi_predicted</span> <span class="o">=</span> <span class="n">NormalizeAngleRad</span><span class="p">(</span><span class="n">phi_a</span> <span class="o">+</span> <span class="n">phi_residual</span><span class="p">,</span>
+                                  <span class="n">min_angle_rad</span><span class="p">,</span> <span class="n">max_angle_rad</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>These equations follow from those in LocalizationResiduals, where we solve
@@ -500,6 +503,11 @@ for the *_gt variables.</p>
 phi), corresponding to each anchor bbox parameters.</p></li>
 <li><p><strong>residuals</strong> – tf.float32 of the same shape as anchor_bboxes containing
 predicted residuals at each anchor location.</p></li>
+<li><p><strong>min_angle_rad</strong> – Scalar with the minimum angle allowed (before wrapping)
+in radians. Defaults to 0 for backwards compatibility with previous
+sin(theta) encoding.</p></li>
+<li><p><strong>max_angle_rad</strong> – Scalar with the maximum angle allowed (before wrapping)
+in radians. This value usually should be pi.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

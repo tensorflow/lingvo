@@ -677,7 +677,11 @@
         <span class="n">phi_residual</span><span class="p">,</span>
     <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pyformat: disable</span></div>
 
-<div class="viewcode-block" id="Utils3D.ResidualsToBBoxes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.ResidualsToBBoxes">[docs]</a>  <span class="k">def</span> <span class="nf">ResidualsToBBoxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">anchor_bboxes</span><span class="p">,</span> <span class="n">residuals</span><span class="p">):</span>
+<div class="viewcode-block" id="Utils3D.ResidualsToBBoxes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.ResidualsToBBoxes">[docs]</a>  <span class="k">def</span> <span class="nf">ResidualsToBBoxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                        <span class="n">anchor_bboxes</span><span class="p">,</span>
+                        <span class="n">residuals</span><span class="p">,</span>
+                        <span class="n">min_angle_rad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                        <span class="n">max_angle_rad</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Converts anchor_boxes and residuals to predicted bboxes.</span>
 
 <span class="sd">    This converts predicted residuals into bboxes using the following formulae::</span>
@@ -690,7 +694,10 @@
 <span class="sd">      dy_predicted = dy_a * exp(dy_residual)</span>
 <span class="sd">      dz_predicted = dz_a * exp(dz_residual)</span>
 
-<span class="sd">      phi_predicted = phi_a + phi_residual</span>
+<span class="sd">      # Adding the residual, and bounding it between</span>
+<span class="sd">      # [min_angle_rad, max_angle_rad]</span>
+<span class="sd">      phi_predicted = NormalizeAngleRad(phi_a + phi_residual,</span>
+<span class="sd">                                        min_angle_rad, max_angle_rad)</span>
 
 <span class="sd">    These equations follow from those in LocalizationResiduals, where we solve</span>
 <span class="sd">    for the \*_gt variables.</span>
@@ -700,6 +707,11 @@
 <span class="sd">        phi), corresponding to each anchor bbox parameters.</span>
 <span class="sd">      residuals: tf.float32 of the same shape as anchor_bboxes containing</span>
 <span class="sd">        predicted residuals at each anchor location.</span>
+<span class="sd">      min_angle_rad: Scalar with the minimum angle allowed (before wrapping)</span>
+<span class="sd">        in radians. Defaults to 0 for backwards compatibility with previous</span>
+<span class="sd">        sin(theta) encoding.</span>
+<span class="sd">      max_angle_rad: Scalar with the maximum angle allowed (before wrapping)</span>
+<span class="sd">        in radians. This value usually should be pi.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tf.float32 tensor of the same shape as anchor_bboxes with predicted</span>
@@ -726,12 +738,16 @@
     <span class="n">dy_predicted</span> <span class="o">=</span> <span class="n">dy_a</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">dy_residual</span><span class="p">)</span>
     <span class="n">dz_predicted</span> <span class="o">=</span> <span class="n">dz_a</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">dz_residual</span><span class="p">)</span>
 
-    <span class="c1"># Assuming a sine(delta_phi) transformation is used in the loss, then, it</span>
-    <span class="c1"># is not possible to distinguish direction, hence, we use floormod here to</span>
-    <span class="c1"># ensure that the predicted_phi is always in [0, np.pi) for consistency.</span>
-    <span class="c1"># A separate direction classifier should be added the model if needed.</span>
+    <span class="c1"># We bound the angle between [min_angle_rad, max_angle_rad], which should</span>
+    <span class="c1"># be passed in depending on the heading handling in the calling model.</span>
+    <span class="c1"># If the model uses a sine(delta_phi) transformation in the loss, then it</span>
+    <span class="c1"># cannot distinguish direction and a [0, np.pi]</span>
+    <span class="c1"># [min_angle_rad, max_angle_rad] should be used.</span>
+    <span class="c1"># If there is a heading encoding that is directional, most likely you</span>
+    <span class="c1"># should use a [-np.pi, np.pi] [min_angle_rad, max_angle_rad].</span>
     <span class="n">phi_predicted</span> <span class="o">=</span> <span class="n">phi_a</span> <span class="o">+</span> <span class="n">phi_residual</span>
-    <span class="n">phi_predicted</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">phi_predicted</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="n">phi_predicted</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">WrapAngleRad</span><span class="p">(</span><span class="n">phi_predicted</span><span class="p">,</span> <span class="n">min_angle_rad</span><span class="p">,</span>
+                                          <span class="n">max_angle_rad</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
         <span class="n">x_predicted</span><span class="p">,</span> <span class="n">y_predicted</span><span class="p">,</span> <span class="n">z_predicted</span><span class="p">,</span>
