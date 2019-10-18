@@ -2016,7 +2016,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     super(SimpleEmbeddingLayer, self).__init__(params)
     p = self.params
     assert p.vocab_size > 0
-    assert p.embedding_dim > 0
+    assert symbolic.ToStatic(p.embedding_dim) > 0
 
     valid_fprop_modes = ['loop', 'matmul', 'gather']
     self._fprop_mode = p.fprop_mode
@@ -2027,12 +2027,12 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
 
     if py_utils.tpu_compat() and self._fprop_mode != 'matmul':
       if p.use_3d_weight_tensor:
-        assert p.embedding_dim % 128 == 0
-        emb_shape_suf = [p.embedding_dim // 128, 128]
+        assert symbolic.ToStatic(p.embedding_dim) % 128 == 0
+        emb_shape_suf = [symbolic.ToStatic(p.embedding_dim) // 128, 128]
       else:
-        emb_shape_suf = [p.embedding_dim]
+        emb_shape_suf = [symbolic.ToStatic(p.embedding_dim)]
     else:
-      emb_shape_suf = [p.embedding_dim]
+      emb_shape_suf = [symbolic.ToStatic(p.embedding_dim)]
     weight_shape = [p.vocab_size] + emb_shape_suf
 
     with tf.variable_scope(p.name):
@@ -2156,7 +2156,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
           body=EmbFpropLoop,
           rewrite_with_while=compiled)
       if len(weight_shape) > 2:
-        rets = tf.reshape(rets, [num, p.embedding_dim])
+        rets = tf.reshape(rets, [num, symbolic.ToStatic(p.embedding_dim)])
       return rets
 
     def EmbMatmul(embs, ids_vec):
@@ -2187,7 +2187,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     """A faster path for CPU inference than the default gather."""
     p = self.params
     embs = tf.nn.embedding_lookup(self.theta.wm, tf.reshape(ids, [-1]))
-    out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
+    out_shape = tf.concat([tf.shape(ids), [symbolic.ToStatic(p.embedding_dim)]],
+                          0)
     return tf.reshape(embs, out_shape)
 
   def FProp(self, theta, ids):
@@ -2210,7 +2211,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       emb_noise = p.vn.scale * tf.random_normal(
           tf.shape(embs_result), stddev=1.0, dtype=embs_result.dtype)
       embs_result += emb_noise
-    out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
+    out_shape = tf.concat([tf.shape(ids), [symbolic.ToStatic(p.embedding_dim)]],
+                          0)
     return tf.reshape(embs_result, out_shape)
 
 
