@@ -1158,7 +1158,7 @@ def GetVariableName(name):
 def GenerateSeedFromName(name):
   """Generate a random seed from a name string."""
   md5 = hashlib.md5()
-  md5.update(name.encode('utf-8'))
+  md5.update(six.ensure_binary(name))
   return int(md5.hexdigest(), 16) % (2**31 - 1)
 
 
