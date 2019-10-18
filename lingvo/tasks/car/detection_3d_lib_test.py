@@ -284,6 +284,28 @@ class Utils3DTest(test_utils.TestCase):
       actual_predicted_bboxes = sess.run(predicted_bboxes)
       self.assertAllClose(actual_predicted_bboxes, expected_predicted_bboxes)
 
+  def testResidualsToBBoxesNegPiToPi(self):
+    utils_3d = detection_3d_lib.Utils3D()
+
+    anchor_bboxes = tf.constant(
+        [[1, 2, 3, 4, 3, 6, 0.2], [1, 2, 3, 4, 3, 6, -0.2]], dtype=tf.float32)
+    expected_predicted_bboxes = np.asarray(
+        [[2, 22, 303, 4, 9, 12, -np.pi + 0.2],
+         [2, 22, 303, 4, 9, 12, np.pi - 0.2]])
+
+    residuals = tf.constant([
+        [1. / 5, 20. / 5, 300. / 6, 0.,
+         np.log(9. / 3.), np.log(12. / 6.), np.pi],
+        [1. / 5, 20. / 5, 300. / 6, 0.,
+         np.log(9. / 3.), np.log(12. / 6.), -np.pi]
+    ], dtype=tf.float32)  # pyformat: disable
+    predicted_bboxes = utils_3d.ResidualsToBBoxes(
+        anchor_bboxes, residuals, min_angle_rad=-np.pi, max_angle_rad=np.pi)
+
+    with self.session() as sess:
+      actual_predicted_bboxes = sess.run(predicted_bboxes)
+      self.assertAllClose(actual_predicted_bboxes, expected_predicted_bboxes)
+
   def testZeroResiduals(self):
     utils_3d = detection_3d_lib.Utils3D()
 

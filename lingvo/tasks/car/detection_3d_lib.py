@@ -532,7 +532,11 @@ class Utils3D(object):
         phi_residual,
     ], axis=-1)  # pyformat: disable
 
-  def ResidualsToBBoxes(self, anchor_bboxes, residuals):
+  def ResidualsToBBoxes(self,
+                        anchor_bboxes,
+                        residuals,
+                        min_angle_rad=0,
+                        max_angle_rad=np.pi):
     r"""Converts anchor_boxes and residuals to predicted bboxes.
 
     This converts predicted residuals into bboxes using the following formulae::
@@ -545,7 +549,10 @@ class Utils3D(object):
       dy_predicted = dy_a * exp(dy_residual)
       dz_predicted = dz_a * exp(dz_residual)
 
-      phi_predicted = phi_a + phi_residual
+      # Adding the residual, and bounding it between
+      # [min_angle_rad, max_angle_rad]
+      phi_predicted = NormalizeAngleRad(phi_a + phi_residual,
+                                        min_angle_rad, max_angle_rad)
 
     These equations follow from those in LocalizationResiduals, where we solve
     for the \*_gt variables.
@@ -555,6 +562,11 @@ class Utils3D(object):
         phi), corresponding to each anchor bbox parameters.
       residuals: tf.float32 of the same shape as anchor_bboxes containing
         predicted residuals at each anchor location.
+      min_angle_rad: Scalar with the minimum angle allowed (before wrapping)
+        in radians. Defaults to 0 for backwards compatibility with previous
+        sin(theta) encoding.
+      max_angle_rad: Scalar with the maximum angle allowed (before wrapping)
+        in radians. This value usually should be pi.
 
     Returns:
       A tf.float32 tensor of the same shape as anchor_bboxes with predicted
@@ -581,12 +593,16 @@ class Utils3D(object):
     dy_predicted = dy_a * tf.exp(dy_residual)
     dz_predicted = dz_a * tf.exp(dz_residual)
 
-    # Assuming a sine(delta_phi) transformation is used in the loss, then, it
-    # is not possible to distinguish direction, hence, we use floormod here to
-    # ensure that the predicted_phi is always in [0, np.pi) for consistency.
-    # A separate direction classifier should be added the model if needed.
+    # We bound the angle between [min_angle_rad, max_angle_rad], which should
+    # be passed in depending on the heading handling in the calling model.
+    # If the model uses a sine(delta_phi) transformation in the loss, then it
+    # cannot distinguish direction and a [0, np.pi]
+    # [min_angle_rad, max_angle_rad] should be used.
+    # If there is a heading encoding that is directional, most likely you
+    # should use a [-np.pi, np.pi] [min_angle_rad, max_angle_rad].
     phi_predicted = phi_a + phi_residual
-    phi_predicted = tf.floormod(phi_predicted, np.pi)
+    phi_predicted = geometry.WrapAngleRad(phi_predicted, min_angle_rad,
+                                          max_angle_rad)
 
     return tf.stack([
         x_predicted, y_predicted, z_predicted,
