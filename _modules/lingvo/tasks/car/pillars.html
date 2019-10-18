@@ -723,6 +723,16 @@
         <span class="s1">&#39;loss/dir&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">dir_loss</span><span class="p">,</span> <span class="n">preds</span><span class="p">),</span>
     <span class="p">}</span>
 
+    <span class="c1"># Calculate dimension errors</span>
+    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ResidualsToBBoxes</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span>
+                                                 <span class="n">anchor_localization_residuals</span><span class="p">)</span>
+    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ResidualsToBBoxes</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span> <span class="n">predicted_residuals</span><span class="p">)</span>
+    <span class="n">dimension_errors_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BBoxDimensionErrors</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span>
+                                                      <span class="n">predicted_bboxes</span><span class="p">,</span>
+                                                      <span class="n">reg_weights</span><span class="p">)</span>
+    <span class="n">metrics_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dimension_errors_dict</span><span class="p">)</span>
+
     <span class="n">per_example_dict</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;residuals&#39;</span><span class="p">:</span> <span class="n">predicted_residuals</span><span class="p">,</span>
         <span class="s1">&#39;classification_logits&#39;</span><span class="p">:</span> <span class="n">predicted_class_logits</span><span class="p">,</span>
