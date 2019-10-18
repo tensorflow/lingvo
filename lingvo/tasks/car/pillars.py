@@ -578,6 +578,16 @@ class ModelV1(point_detector.PointDetectorBase):
         'loss/dir': (dir_loss, preds),
     }
 
+    # Calculate dimension errors
+    gt_bboxes = self._utils_3d.ResidualsToBBoxes(input_batch.anchor_bboxes,
+                                                 anchor_localization_residuals)
+    predicted_bboxes = self._utils_3d.ResidualsToBBoxes(
+        input_batch.anchor_bboxes, predicted_residuals)
+    dimension_errors_dict = self._BBoxDimensionErrors(gt_bboxes,
+                                                      predicted_bboxes,
+                                                      reg_weights)
+    metrics_dict.update(dimension_errors_dict)
+
     per_example_dict = {
         'residuals': predicted_residuals,
         'classification_logits': predicted_class_logits,
