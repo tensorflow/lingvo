@@ -302,6 +302,9 @@ class ModelV1(point_detector.PointDetectorBase):
         'direction_classifier_weight', 0.0,
         'If > 0, adds a direction classifier to the model and adds '
         'to the total loss with this weight.')
+    p.Define(
+        'use_atan2_heading_loss', False, 'Whether to have the heading loss be '
+        'atan2(sin(theta), cos(theta))')
 
     p.Define(
         'squash_rotation_predictions', False,
@@ -507,10 +510,19 @@ class ModelV1(point_detector.PointDetectorBase):
     rot_delta = (
         predicted_residuals[..., 6:] -
         input_batch.anchor_localization_residuals[..., 6:])
-    reg_rot_loss = self._utils.ScaledHuberLoss(
-        predictions=tf.sin(rot_delta),
-        labels=tf.zeros_like(rot_delta),
-        delta=1 / (3.**2))
+
+    if p.use_atan2_heading_loss:
+      atan2_of_delta = tf.atan2(tf.sin(rot_delta), tf.cos(rot_delta))
+      reg_rot_loss = self._utils.ScaledHuberLoss(
+          predictions=atan2_of_delta,
+          labels=tf.zeros_like(atan2_of_delta),
+          delta=1 / (3.**2))
+    else:
+      # Rotation loss with SmoothL1(sin(delta)).
+      reg_rot_loss = self._utils.ScaledHuberLoss(
+          predictions=tf.sin(rot_delta),
+          labels=tf.zeros_like(rot_delta),
+          delta=1 / (3.**2))
 
     # Direction loss
     if p.direction_classifier_weight > 0.0:
@@ -579,10 +591,17 @@ class ModelV1(point_detector.PointDetectorBase):
     }
 
     # Calculate dimension errors
-    gt_bboxes = self._utils_3d.ResidualsToBBoxes(input_batch.anchor_bboxes,
-                                                 anchor_localization_residuals)
+    min_angle_rad = -np.pi if p.use_atan2_heading_loss else 0
+    gt_bboxes = self._utils_3d.ResidualsToBBoxes(
+        input_batch.anchor_bboxes,
+        anchor_localization_residuals,
+        min_angle_rad=min_angle_rad,
+        max_angle_rad=np.pi)
     predicted_bboxes = self._utils_3d.ResidualsToBBoxes(
-        input_batch.anchor_bboxes, predicted_residuals)
+        input_batch.anchor_bboxes,
+        predicted_residuals,
+        min_angle_rad=min_angle_rad,
+        max_angle_rad=np.pi)
     dimension_errors_dict = self._BBoxDimensionErrors(gt_bboxes,
                                                       predicted_bboxes,
                                                       reg_weights)
@@ -597,11 +616,16 @@ class ModelV1(point_detector.PointDetectorBase):
 
   def _BBoxesAndLogits(self, input_batch):
     """Decode an input batch, computing predicted bboxes from residuals."""
+    p = self.params
     _, per_example_dict = self.FPropTower(self.theta, input_batch)
 
     # Decode residuals.
+    min_angle_rad = -np.pi if p.use_atan2_heading_loss else 0
     predicted_bboxes = self._utils.ResidualsToBBoxes(
-        input_batch.anchor_bboxes, per_example_dict['residuals'])
+        input_batch.anchor_bboxes,
+        per_example_dict['residuals'],
+        min_angle_rad=min_angle_rad,
+        max_angle_rad=np.pi)
 
     # predicted_bboxes is a [batch, nx, ny, nz, na, 7] Tensor.
     batch_size, nx, ny, nz, na, _ = py_utils.GetShape(predicted_bboxes, 6)
