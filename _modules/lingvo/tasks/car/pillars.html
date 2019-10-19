@@ -447,6 +447,9 @@
         <span class="s1">&#39;direction_classifier_weight&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="s1">&#39;If &gt; 0, adds a direction classifier to the model and adds &#39;</span>
         <span class="s1">&#39;to the total loss with this weight.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_atan2_heading_loss&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to have the heading loss be &#39;</span>
+        <span class="s1">&#39;atan2(sin(theta), cos(theta))&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;squash_rotation_predictions&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -652,10 +655,19 @@
     <span class="n">rot_delta</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span> <span class="o">-</span>
         <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_localization_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:])</span>
-    <span class="n">reg_rot_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
-        <span class="n">predictions</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">rot_delta</span><span class="p">),</span>
-        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">rot_delta</span><span class="p">),</span>
-        <span class="n">delta</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mf">3.</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_atan2_heading_loss</span><span class="p">:</span>
+      <span class="n">atan2_of_delta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">rot_delta</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">rot_delta</span><span class="p">))</span>
+      <span class="n">reg_rot_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
+          <span class="n">predictions</span><span class="o">=</span><span class="n">atan2_of_delta</span><span class="p">,</span>
+          <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">atan2_of_delta</span><span class="p">),</span>
+          <span class="n">delta</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mf">3.</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Rotation loss with SmoothL1(sin(delta)).</span>
+      <span class="n">reg_rot_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
+          <span class="n">predictions</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">rot_delta</span><span class="p">),</span>
+          <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">rot_delta</span><span class="p">),</span>
+          <span class="n">delta</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mf">3.</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
 
     <span class="c1"># Direction loss</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">direction_classifier_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
@@ -724,10 +736,17 @@
     <span class="p">}</span>
 
     <span class="c1"># Calculate dimension errors</span>
-    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ResidualsToBBoxes</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span>
-                                                 <span class="n">anchor_localization_residuals</span><span class="p">)</span>
+    <span class="n">min_angle_rad</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_atan2_heading_loss</span> <span class="k">else</span> <span class="mi">0</span>
+    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ResidualsToBBoxes</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span>
+        <span class="n">anchor_localization_residuals</span><span class="p">,</span>
+        <span class="n">min_angle_rad</span><span class="o">=</span><span class="n">min_angle_rad</span><span class="p">,</span>
+        <span class="n">max_angle_rad</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
     <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ResidualsToBBoxes</span><span class="p">(</span>
-        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span> <span class="n">predicted_residuals</span><span class="p">)</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span>
+        <span class="n">predicted_residuals</span><span class="p">,</span>
+        <span class="n">min_angle_rad</span><span class="o">=</span><span class="n">min_angle_rad</span><span class="p">,</span>
+        <span class="n">max_angle_rad</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
     <span class="n">dimension_errors_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BBoxDimensionErrors</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span>
                                                       <span class="n">predicted_bboxes</span><span class="p">,</span>
                                                       <span class="n">reg_weights</span><span class="p">)</span>
@@ -742,11 +761,16 @@
 
 <div class="viewcode-block" id="ModelV1._BBoxesAndLogits"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ModelV1._BBoxesAndLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_BBoxesAndLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decode an input batch, computing predicted bboxes from residuals.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">per_example_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
 
     <span class="c1"># Decode residuals.</span>
+    <span class="n">min_angle_rad</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_atan2_heading_loss</span> <span class="k">else</span> <span class="mi">0</span>
     <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span><span class="o">.</span><span class="n">ResidualsToBBoxes</span><span class="p">(</span>
-        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span> <span class="n">per_example_dict</span><span class="p">[</span><span class="s1">&#39;residuals&#39;</span><span class="p">])</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span>
+        <span class="n">per_example_dict</span><span class="p">[</span><span class="s1">&#39;residuals&#39;</span><span class="p">],</span>
+        <span class="n">min_angle_rad</span><span class="o">=</span><span class="n">min_angle_rad</span><span class="p">,</span>
+        <span class="n">max_angle_rad</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
 
     <span class="c1"># predicted_bboxes is a [batch, nx, ny, nz, na, 7] Tensor.</span>
     <span class="n">batch_size</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
