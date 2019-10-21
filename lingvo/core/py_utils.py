@@ -830,11 +830,17 @@ def ReadOnlyAttrDictView(backing):
 
 
 def ToStaticShape(shape):
-  if (isinstance(shape, (list, tuple)) and
-      any(symbolic.IsExpr(dim) for dim in shape)):
-    return symbolic.EvalExpr(symbolic.STATIC_VALUES, shape)
+  """Converts 'shape' to a static shape."""
+  if isinstance(shape, (list, tuple)):
+    shape = [
+        dim.value if isinstance(dim, tf.Dimension) else dim for dim in shape
+    ]
+    if any(symbolic.IsExpr(dim) for dim in shape):
+      return symbolic.EvalExpr(symbolic.STATIC_VALUES, shape)
+    else:
+      return shape
   else:
-    return shape
+    return shape.value if isinstance(shape, tf.Dimension) else shape
 
 
 def Zeros(shape, *args, **kwargs):
