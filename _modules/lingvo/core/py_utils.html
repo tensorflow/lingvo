@@ -174,7 +174,6 @@
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
-<span class="kn">import</span> <span class="nn">zlib</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
@@ -3201,7 +3200,7 @@
 <span class="sd">    `fn(*xs)`</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">initial_step_seed</span> <span class="o">=</span> <span class="n">GetStepSeed</span><span class="p">()</span>
-  <span class="n">final_step_seed</span> <span class="o">=</span> <span class="n">zlib</span><span class="o">.</span><span class="n">adler32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+  <span class="n">final_step_seed</span> <span class="o">=</span> <span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="o">*</span><span class="n">dy</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The backward function that rematerializes forward outputs.&quot;&quot;&quot;</span>

@@ -190,7 +190,6 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">collections</span>
-<span class="kn">import</span> <span class="nn">zlib</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">constants</span>
@@ -1445,7 +1444,7 @@
   <span class="c1"># bug, which is a problem with global tensors being shared by different</span>
   <span class="c1"># inference graphs. It should be removed once the bug is fixed.</span>
   <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span>
-      <span class="n">zlib</span><span class="o">.</span><span class="n">adler32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">encode</span><span class="p">()))</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
 
   <span class="k">return</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span></div>
 
@@ -1990,7 +1989,7 @@
   <span class="c1"># bug, which is a problem with global tensors being shared by different</span>
   <span class="c1"># inference graphs. It should be removed once the bug is fixed.</span>
   <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span>
-      <span class="n">zlib</span><span class="o">.</span><span class="n">adler32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">encode</span><span class="p">()))</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
 
   <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">final_states</span></div>
 </pre></div>
