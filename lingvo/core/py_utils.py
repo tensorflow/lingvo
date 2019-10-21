@@ -29,7 +29,6 @@ import pkgutil
 import re
 import threading
 import traceback
-import zlib
 
 import lingvo.compat as tf
 from lingvo.core import hyperparams
@@ -3056,7 +3055,7 @@ def RematerializeFn(fn, *xs):
     `fn(*xs)`
   """
   initial_step_seed = GetStepSeed()
-  final_step_seed = zlib.adler32(tf.no_op(name='new_step_seed').name.encode())
+  final_step_seed = GenerateSeedFromName(tf.no_op(name='new_step_seed').name)
 
   def Backward(op, *dy):
     """The backward function that rematerializes forward outputs."""

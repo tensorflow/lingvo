@@ -45,7 +45,6 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-import zlib
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import constants
@@ -1300,7 +1299,7 @@ def Recurrent(theta,
   # bug, which is a problem with global tensors being shared by different
   # inference graphs. It should be removed once the bug is fixed.
   py_utils.ResetStepSeed(
-      zlib.adler32(tf.no_op(name='new_step_seed').name.encode()))
+      py_utils.GenerateSeedFromName(tf.no_op(name='new_step_seed').name))
 
   return acc_state, final_state
 
@@ -1845,6 +1844,6 @@ def StackedRecurrent(devices,
   # bug, which is a problem with global tensors being shared by different
   # inference graphs. It should be removed once the bug is fixed.
   py_utils.ResetStepSeed(
-      zlib.adler32(tf.no_op(name='new_step_seed').name.encode()))
+      py_utils.GenerateSeedFromName(tf.no_op(name='new_step_seed').name))
 
   return outputs, final_states
