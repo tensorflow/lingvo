@@ -1983,7 +1983,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
   """Adjusts the map of (var, grad) with Lp regularization, where p=1.0 or 2.0.
 
   Args:
-    var_grads: a `.NestedMap` of (variable, gradient).
+    var_grads: a `.NestedMap` or list of (variable, gradient).
     lp_regularizer_weight: Lp regularization weight.
     p: For now we support 1.0 or 2.0.
 
@@ -1991,7 +1991,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
     A tuple (lp_loss, var_grads).
 
     - lp_loss: A scalar. The lp loss.
-    - var_grads: a `.NestedMap` of (variable, gradient) regulated by Lp.
+    - var_grads: a `.NestedMap` or list of (variable, gradient) regulated by Lp.
   """
   # TODO(yuancao): For now we support p=1 or 2, but this can be extended to
   # lp-norm in general.
@@ -2008,24 +2008,27 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
     else:
       return var
 
-  def Skip(v_g):
-    return v_g[0] not in tf.get_collection(SKIP_LP_REGULARIZATION)
+  def ShouldAdjust(v):
+    return v not in tf.get_collection(SKIP_LP_REGULARIZATION)
 
-  filtered_var_grads = var_grads.Filter(Skip)
-  for k, (v, _) in filtered_var_grads.FlattenItems():
-    tf.logging.info('AdjustGradientsWithLpLoss: %s: %s', k, v)
+  filtered_var_grads = [(v, g) for v, g in Flatten(var_grads) if ShouldAdjust(v)
+                       ]
+  filtered_vars = [GetVar(v_g) for v_g in filtered_var_grads]
+  for v in filtered_vars:
+    tf.logging.info('AdjustGradientsWithLpLoss: %s', v)
 
   if p == 2.0:
-    lp_loss = 0.5 * lp_regularizer_weight * SumSquared(
-        filtered_var_grads.Transform(GetVar).Flatten())
+    lp_loss = 0.5 * lp_regularizer_weight * SumSquared(filtered_vars)
   elif p == 1.0:
-    lp_loss = lp_regularizer_weight * SumAbs(
-        filtered_var_grads.Transform(GetVar).Flatten())
+    lp_loss = lp_regularizer_weight * SumAbs(filtered_vars)
 
   def LpGrad(item):
     """Adjusts item's grad w/ Lp loss term."""
     var, grad = item
     if isinstance(grad, tf.IndexedSlices):
+      # Question(rpang): do we apply Lp loss here even if 'var' is in
+      # SKIP_LP_REGULARIZATION?
+      #
       # Note: IndexedSlces appears for embedding lookups.
       # Embedding lookup ids can have duplicate. For duplicated ids, we
       # only want to consider once for each ids.
@@ -2066,7 +2069,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
         grad += delta
     return (var, grad)
 
-  return lp_loss, var_grads.Transform(LpGrad)
+  return lp_loss, Transform(var_grads, LpGrad)
 
 
 def SplitRecursively(x, num_splits, axis=-1):

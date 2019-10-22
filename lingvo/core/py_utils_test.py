@@ -618,35 +618,42 @@ class PyUtilsTest(test_utils.TestCase):
       vmap = py_utils.NestedMap(emb=emb, weight=weight, bias=bias)
       var_grads = py_utils.ComputeGradients(loss, vmap)
       self.assertEqual(sorted(var_grads.keys()), ['emb', 'weight'])
-      l2_loss, var_grads_with_l2 = py_utils.AdjustGradientsWithLpLoss(
-          var_grads, 0.1, p=2.0)
+      for mode in ('NestedMap', 'list'):
+        if mode == 'NestedMap':
+          l2_loss, var_grads_with_l2 = py_utils.AdjustGradientsWithLpLoss(
+              var_grads, 0.1, p=2.0)
+        else:
+          l2_loss, var_grads_with_l2 = py_utils.AdjustGradientsWithLpLoss(
+              var_grads.Flatten(), 0.1, p=2.0)
+          var_grads_with_l2 = py_utils.Pack(var_grads, var_grads_with_l2)
 
-      sess.run(tf.global_variables_initializer())
-      var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run(
-          [var_grads, l2_loss, var_grads_with_l2])
-      print('var_grads_vals = ', var_grads_vals)
-      print('var_grads_with_l2_vals = ', var_grads_with_l2_vals)
-      self.assertAllEqual(var_grads_vals.emb[0], var_grads_with_l2_vals.emb[0])
-      self.assertAllEqual(var_grads_vals.weight[0],
-                          var_grads_with_l2_vals.weight[0])
-      self.assertAllEqual(
-          l2_loss_val,
-          0.5 * 0.1 * (np.sum(np.square(var_grads_vals.weight[0])) +
-                       np.sum(np.square(var_grads_vals.emb[0][2, :])) +
-                       np.sum(np.square(var_grads_vals.emb[0][5, :]))))
+        sess.run(tf.global_variables_initializer())
+        var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run(
+            [var_grads, l2_loss, var_grads_with_l2])
+        print('var_grads_vals = ', var_grads_vals)
+        print('var_grads_with_l2_vals = ', var_grads_with_l2_vals)
+        self.assertAllEqual(var_grads_vals.emb[0],
+                            var_grads_with_l2_vals.emb[0])
+        self.assertAllEqual(var_grads_vals.weight[0],
+                            var_grads_with_l2_vals.weight[0])
+        self.assertAllEqual(
+            l2_loss_val,
+            0.5 * 0.1 * (np.sum(np.square(var_grads_vals.weight[0])) +
+                         np.sum(np.square(var_grads_vals.emb[0][2, :])) +
+                         np.sum(np.square(var_grads_vals.emb[0][5, :]))))
 
-      # With l2, gradients of emb and weight are adjusted.
-      self.assertAllClose(
-          var_grads_with_l2_vals.weight[1],
-          var_grads_vals.weight[1] + 0.1 * var_grads_vals.weight[0])
-      self.assertAllClose(var_grads_with_l2_vals.emb[1].indices,
-                          var_grads_vals.emb[1].indices)
-      self.assertAllClose(var_grads_with_l2_vals.emb[1].indices,
-                          [2, 5, 2, 2, 5])
-      self.assertAllClose(
-          var_grads_with_l2_vals.emb[1].values, var_grads_vals.emb[1].values +
-          0.1 * np.array([[1 / 3.], [1 / 2.], [1 / 3.], [1 / 3.], [1 / 2.]]) *
-          var_grads_vals.emb[0][[2, 5, 2, 2, 5], :])
+        # With l2, gradients of emb and weight are adjusted.
+        self.assertAllClose(
+            var_grads_with_l2_vals.weight[1],
+            var_grads_vals.weight[1] + 0.1 * var_grads_vals.weight[0])
+        self.assertAllClose(var_grads_with_l2_vals.emb[1].indices,
+                            var_grads_vals.emb[1].indices)
+        self.assertAllClose(var_grads_with_l2_vals.emb[1].indices,
+                            [2, 5, 2, 2, 5])
+        self.assertAllClose(
+            var_grads_with_l2_vals.emb[1].values, var_grads_vals.emb[1].values +
+            0.1 * np.array([[1 / 3.], [1 / 2.], [1 / 3.], [1 / 3.], [1 / 2.]]) *
+            var_grads_vals.emb[0][[2, 5, 2, 2, 5], :])
 
   def testSkipL1Regularization(self):
     with self.session(use_gpu=False) as sess:
