@@ -612,9 +612,11 @@ class NestedMap(dict):
     return NestedMap(self)
 
   def __deepcopy__(self, unused_memo):
+    """Deep-copies the structure but not the leaf objects."""
     return self.DeepCopy()
 
   def DeepCopy(self):
+    """Deep-copies the structure but not the leaf objects."""
     flat_v = self.Flatten()
     return self.Pack(flat_v)
 
