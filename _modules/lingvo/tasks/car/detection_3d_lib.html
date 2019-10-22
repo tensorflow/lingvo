@@ -237,7 +237,7 @@
         <span class="n">delta</span><span class="o">=</span><span class="n">delta</span><span class="p">,</span>
         <span class="n">reduction</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">Reduction</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Utils3D.CornerLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.CornerLoss">[docs]</a>  <span class="k">def</span> <span class="nf">CornerLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gt_bboxes</span><span class="p">,</span> <span class="n">predicted_bboxes</span><span class="p">):</span>
+<div class="viewcode-block" id="Utils3D.CornerLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.CornerLoss">[docs]</a>  <span class="k">def</span> <span class="nf">CornerLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gt_bboxes</span><span class="p">,</span> <span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Corner regularization loss.</span>
 
 <span class="sd">    This function computes the corner loss, an alternative regression loss</span>
@@ -251,52 +251,46 @@
 <span class="sd">    [1] Frustum PointNets for 3D Object Detection from RGB-D Data</span>
 <span class="sd">        https://arxiv.org/pdf/1711.08488.pdf</span>
 
-<span class="sd">    TODO(bcyang): support arbitrary input shapes [..., 7].</span>
-
 <span class="sd">    Args:</span>
-<span class="sd">      gt_bboxes: tf.float32 of shape [batch_size, num_centers,</span>
-<span class="sd">        num_anchor_bboxes_per_center, 7] which contains (x, y, z, dx, dy, dz,</span>
-<span class="sd">        phi), corresponding to ground truth bbox parameters.</span>
+<span class="sd">      gt_bboxes: tf.float32 of shape [..., 7] which contains (x, y, z, dx, dy,</span>
+<span class="sd">        dz, phi), corresponding to ground truth bbox parameters.</span>
 <span class="sd">      predicted_bboxes: tf.float32 of same shape as gt_bboxes containing</span>
 <span class="sd">        predicted bbox parameters.</span>
+<span class="sd">      symmetric: boolean.  If True, computes the minimum of the corner loss</span>
+<span class="sd">        with respect to both the gt box and the gt box rotated 180 degrees.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      tf.float32 Tensor of shape [batch_size, num_centers,</span>
-<span class="sd">      num_anchor_bboxes_per_center] where each entry contains the corner loss</span>
+<span class="sd">      tf.float32 Tensor of shape [...] where each entry contains the corner loss</span>
 <span class="sd">      for the corresponding bbox.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span>
-        <span class="n">gt_bboxes</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
-        <span class="n">gt_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
-    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
-        <span class="n">predicted_bboxes</span><span class="p">,</span>
-        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">bbox_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">)</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">bbox_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-        <span class="n">gt_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span> <span class="o">*</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
-    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-        <span class="n">predicted_bboxes</span><span class="p">,</span>
-        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span> <span class="o">*</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
-    <span class="n">rot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">rotated_gt_bboxes</span> <span class="o">=</span> <span class="n">gt_bboxes</span> <span class="o">+</span> <span class="n">rot</span>
+    <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+    <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
 
     <span class="n">gt_corners</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">BBoxCorners</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">)</span>
-    <span class="n">rotated_gt_corners</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">BBoxCorners</span><span class="p">(</span><span class="n">rotated_gt_bboxes</span><span class="p">)</span>
     <span class="n">predicted_corners</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">BBoxCorners</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">)</span>
-
     <span class="n">corner_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">predicted_corners</span> <span class="o">-</span> <span class="n">gt_corners</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">rotated_corner_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
-        <span class="n">predicted_corners</span> <span class="o">-</span> <span class="n">rotated_gt_corners</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">total_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">corner_dist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">rotated_total_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">rotated_corner_dist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">min_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">total_dist</span><span class="p">,</span> <span class="n">rotated_total_dist</span><span class="p">)</span>
-
     <span class="n">huber_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
-        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">total_dist</span><span class="p">),</span> <span class="n">predictions</span><span class="o">=</span><span class="n">min_dist</span><span class="p">)</span>
-    <span class="n">huber_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-        <span class="n">huber_loss</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">])</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">corner_dist</span><span class="p">),</span> <span class="n">predictions</span><span class="o">=</span><span class="n">corner_dist</span><span class="p">)</span>
+    <span class="n">huber_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">huber_loss</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+      <span class="c1"># Compute the loss assuming the ground truth is flipped 180, and</span>
+      <span class="c1"># take the minimum of the two losses.</span>
+      <span class="n">rot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">rotated_gt_bboxes</span> <span class="o">=</span> <span class="n">gt_bboxes</span> <span class="o">+</span> <span class="n">rot</span>
+      <span class="n">rotated_gt_corners</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">BBoxCorners</span><span class="p">(</span><span class="n">rotated_gt_bboxes</span><span class="p">)</span>
+      <span class="n">rotated_corner_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+          <span class="n">predicted_corners</span> <span class="o">-</span> <span class="n">rotated_gt_corners</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">rotated_huber_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
+          <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">rotated_corner_dist</span><span class="p">),</span>
+          <span class="n">predictions</span><span class="o">=</span><span class="n">rotated_corner_dist</span><span class="p">)</span>
+      <span class="n">rotated_huber_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">rotated_huber_loss</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">huber_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">huber_loss</span><span class="p">,</span> <span class="n">rotated_huber_loss</span><span class="p">)</span>
+
+    <span class="n">huber_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">huber_loss</span><span class="p">,</span> <span class="n">bbox_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">huber_loss</span></div>
 
 <div class="viewcode-block" id="Utils3D.CreateDenseCoordinates"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.CreateDenseCoordinates">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDenseCoordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ranges</span><span class="p">):</span>
