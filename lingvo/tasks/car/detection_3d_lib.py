@@ -92,7 +92,7 @@ class Utils3D(object):
         delta=delta,
         reduction=tf.losses.Reduction.NONE)
 
-  def CornerLoss(self, gt_bboxes, predicted_bboxes):
+  def CornerLoss(self, gt_bboxes, predicted_bboxes, symmetric=True):
     """Corner regularization loss.
 
     This function computes the corner loss, an alternative regression loss
@@ -106,52 +106,46 @@ class Utils3D(object):
     [1] Frustum PointNets for 3D Object Detection from RGB-D Data
         https://arxiv.org/pdf/1711.08488.pdf
 
-    TODO(bcyang): support arbitrary input shapes [..., 7].
-
     Args:
-      gt_bboxes: tf.float32 of shape [batch_size, num_centers,
-        num_anchor_bboxes_per_center, 7] which contains (x, y, z, dx, dy, dz,
-        phi), corresponding to ground truth bbox parameters.
+      gt_bboxes: tf.float32 of shape [..., 7] which contains (x, y, z, dx, dy,
+        dz, phi), corresponding to ground truth bbox parameters.
       predicted_bboxes: tf.float32 of same shape as gt_bboxes containing
         predicted bbox parameters.
+      symmetric: boolean.  If True, computes the minimum of the corner loss
+        with respect to both the gt box and the gt box rotated 180 degrees.
 
     Returns:
-      tf.float32 Tensor of shape [batch_size, num_centers,
-      num_anchor_bboxes_per_center] where each entry contains the corner loss
+      tf.float32 Tensor of shape [...] where each entry contains the corner loss
       for the corresponding bbox.
     """
-    batch_size, num_centers, num_anchor_bboxes_per_center = py_utils.GetShape(
-        gt_bboxes, 3)
-    gt_bboxes = py_utils.HasShape(
-        gt_bboxes, [batch_size, num_centers, num_anchor_bboxes_per_center, 7])
-    predicted_bboxes = py_utils.HasShape(
-        predicted_bboxes,
-        [batch_size, num_centers, num_anchor_bboxes_per_center, 7])
+    bbox_shape = py_utils.GetShape(gt_bboxes)
+    batch_size = bbox_shape[0]
 
-    gt_bboxes = tf.reshape(
-        gt_bboxes, [batch_size, num_centers * num_anchor_bboxes_per_center, 7])
-    predicted_bboxes = tf.reshape(
-        predicted_bboxes,
-        [batch_size, num_centers * num_anchor_bboxes_per_center, 7])
-    rot = tf.constant([[[0., 0., 0., 0., 0., 0., np.pi]]], dtype=tf.float32)
-    rotated_gt_bboxes = gt_bboxes + rot
+    gt_bboxes = tf.reshape(gt_bboxes, [batch_size, -1, 7])
+    predicted_bboxes = tf.reshape(predicted_bboxes, [batch_size, -1, 7])
 
     gt_corners = geometry.BBoxCorners(gt_bboxes)
-    rotated_gt_corners = geometry.BBoxCorners(rotated_gt_bboxes)
     predicted_corners = geometry.BBoxCorners(predicted_bboxes)
-
     corner_dist = tf.norm(predicted_corners - gt_corners, axis=-1)
-    rotated_corner_dist = tf.norm(
-        predicted_corners - rotated_gt_corners, axis=-1)
-    total_dist = tf.reduce_sum(corner_dist, axis=-1)
-    rotated_total_dist = tf.reduce_sum(rotated_corner_dist, axis=-1)
-    min_dist = tf.minimum(total_dist, rotated_total_dist)
-
     huber_loss = self.ScaledHuberLoss(
-        labels=tf.zeros_like(total_dist), predictions=min_dist)
-    huber_loss = tf.reshape(
-        huber_loss, [batch_size, num_centers, num_anchor_bboxes_per_center])
+        labels=tf.zeros_like(corner_dist), predictions=corner_dist)
+    huber_loss = tf.reduce_sum(huber_loss, axis=-1)
 
+    if symmetric:
+      # Compute the loss assuming the ground truth is flipped 180, and
+      # take the minimum of the two losses.
+      rot = tf.constant([[[0., 0., 0., 0., 0., 0., np.pi]]], dtype=tf.float32)
+      rotated_gt_bboxes = gt_bboxes + rot
+      rotated_gt_corners = geometry.BBoxCorners(rotated_gt_bboxes)
+      rotated_corner_dist = tf.norm(
+          predicted_corners - rotated_gt_corners, axis=-1)
+      rotated_huber_loss = self.ScaledHuberLoss(
+          labels=tf.zeros_like(rotated_corner_dist),
+          predictions=rotated_corner_dist)
+      rotated_huber_loss = tf.reduce_sum(rotated_huber_loss, axis=-1)
+      huber_loss = tf.minimum(huber_loss, rotated_huber_loss)
+
+    huber_loss = tf.reshape(huber_loss, bbox_shape[:-1])
     return huber_loss
 
   def CreateDenseCoordinates(self, ranges):

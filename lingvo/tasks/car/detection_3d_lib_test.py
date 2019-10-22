@@ -60,13 +60,31 @@ class Utils3DTest(test_utils.TestCase):
     expected_loss = [[[
         0.,
         0.,
-        7.5,
-        8. * np.sqrt(3.) - 0.5,
-        8. * np.sqrt(0.75) - 0.5,
+        8. * (1 - 0.5),
+        8. * (np.sqrt(3.) - 0.5),
+        8. * ((np.sqrt(0.5 * 0.5 * 3)**2) * 0.5),
     ]]]
     loss = utils_3d.CornerLoss(gt_bboxes, predicted_bboxes)
     with self.session() as sess:
       actual_loss = sess.run(loss)
+      self.assertAllClose(actual_loss, expected_loss)
+
+  def testCornerLossAsym(self):
+    utils_3d = detection_3d_lib.Utils3D()
+    gt_bboxes = tf.constant([[[[0., 0., 0., 1., 1., 1., 0.],
+                               [0., 0., 0., 1., 1., 1., 0.]]]])
+    predicted_bboxes = tf.constant([[[
+        [0., 0., 0., 1., 1., 1., 0.],  # Same as GT
+        [0., 0., 0., 1., 1., 1., np.pi],  # Opposite heading
+    ]]])
+    expected_loss = [[[
+        0.,
+        8 * (np.sqrt(2) - 0.5),
+    ]]]
+    loss = utils_3d.CornerLoss(gt_bboxes, predicted_bboxes, symmetric=False)
+    with self.session() as sess:
+      actual_loss = sess.run(loss)
+      print(actual_loss)
       self.assertAllClose(actual_loss, expected_loss)
 
   def testCreateDenseCoordinates(self):
