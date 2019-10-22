@@ -171,7 +171,7 @@
 <p>Average Precision metric class for Waymo open dataset.</p>
 <dl class="function">
 <dt id="lingvo.tasks.car.waymo.waymo_ap_metric._BuildWaymoMetricConfig">
-<code class="sig-prename descclassname">lingvo.tasks.car.waymo.waymo_ap_metric.</code><code class="sig-name descname">_BuildWaymoMetricConfig</code><span class="sig-paren">(</span><em class="sig-param">metadata</em>, <em class="sig-param">box_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#_BuildWaymoMetricConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric._BuildWaymoMetricConfig" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.waymo.waymo_ap_metric.</code><code class="sig-name descname">_BuildWaymoMetricConfig</code><span class="sig-paren">(</span><em class="sig-param">metadata</em>, <em class="sig-param">box_type</em>, <em class="sig-param">waymo_breakdown_metrics</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#_BuildWaymoMetricConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric._BuildWaymoMetricConfig" title="Permalink to this definition">¶</a></dt>
 <dd><p>Build the Config proto for Waymo’s metric op.</p>
 </dd></dl>
 
@@ -180,6 +180,12 @@
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.waymo.waymo_ap_metric.</code><code class="sig-name descname">WaymoAPMetrics</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoAPMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics" title="lingvo.tasks.car.ap_metric.APMetrics"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.ap_metric.APMetrics</span></code></a></p>
 <p>The Waymo Open Dataset implementation of AP metric.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><em class="sig-param">metadata</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoAPMetrics.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params builder for APMetrics.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics._GetData">
 <code class="sig-name descname">_GetData</code><span class="sig-paren">(</span><em class="sig-param">classid</em>, <em class="sig-param">difficulty=None</em>, <em class="sig-param">distance=None</em>, <em class="sig-param">num_points=None</em>, <em class="sig-param">rotation=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoAPMetrics._GetData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics._GetData" title="Permalink to this definition">¶</a></dt>
@@ -243,6 +249,77 @@ are found with these parameters, returns None.</p>
 <dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> proto.</p>
 </dd>
 </dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.waymo.waymo_ap_metric.</code><code class="sig-name descname">WaymoBreakdownMetric</code><span class="sig-paren">(</span><em class="sig-param">p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoBreakdownMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.BreakdownMetric" title="lingvo.tasks.car.breakdown_metric.BreakdownMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.breakdown_metric.BreakdownMetric</span></code></a></p>
+<p>Calculate average precision as function of difficulty.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoBreakdownMetric.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.Params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.ComputeMetrics">
+<code class="sig-name descname">ComputeMetrics</code><span class="sig-paren">(</span><em class="sig-param">compute_metrics_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoBreakdownMetric.ComputeMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.ComputeMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute precision-recall analysis conditioned on particular metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>compute_metrics_fn</strong> – Function that that calculates precision-recall metrics
+and accepts named arguments for conditioning. Typically, this would be
+APMetrics._ComputeFinalMetrics().</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.GenerateSummaries">
+<code class="sig-name descname">GenerateSummaries</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoBreakdownMetric.GenerateSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.GenerateSummaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate list of image summaries plotting precision-recall analysis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – string providing scope</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of image summaries</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.AccumulateHistogram">
+<code class="sig-name descname">AccumulateHistogram</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoBreakdownMetric.AccumulateHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.AccumulateHistogram" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.AccumulateCumulative">
+<code class="sig-name descname">AccumulateCumulative</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoBreakdownMetric.AccumulateCumulative"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.AccumulateCumulative" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulate cumulative of real-valued statistic by label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>result</strong> – A NestedMap with these fields:
+.labels: [N]. Groundtruth boxes’ labels.
+.bboxes: [N, 7]. Groundtruth boxes coordinates.
+.difficulties: [N]. Groundtruth boxes difficulties.
+.num_points: [N]. Number of laser points in bounding boxes.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.NumBinsOfHistogram">
+<code class="sig-name descname">NumBinsOfHistogram</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoBreakdownMetric.NumBinsOfHistogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.NumBinsOfHistogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns int32 of number of bins in histogram.</p>
 </dd></dl>
 
 </dd></dl>
