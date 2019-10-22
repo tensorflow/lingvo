@@ -757,9 +757,11 @@
     <span class="k">return</span> <span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
   <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_memo</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Deep-copies the structure but not the leaf objects.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
 
 <div class="viewcode-block" id="NestedMap.DeepCopy"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.DeepCopy">[docs]</a>  <span class="k">def</span> <span class="nf">DeepCopy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Deep-copies the structure but not the leaf objects.&quot;&quot;&quot;</span>
     <span class="n">flat_v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_v</span><span class="p">)</span></div>
 
