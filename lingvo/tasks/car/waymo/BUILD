@@ -47,6 +47,7 @@ py_library(
         # Implicit Waymo Open Dataset label dependency.
         # Implicit Waymo Open Dataset detection metrics dependency.
         # Implicit Waymo Open Dataset py_metrics dependency.
+        # Implicit Waymo Open Dataset config_util_py dependency.
         # Implicit Waymo Open Dataset breakdown_proto dependency.
         # Implicit Waymo Open Dataset metrics_proto dependency.
     ],

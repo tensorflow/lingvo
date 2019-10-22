@@ -26,19 +26,16 @@ from lingvo.tasks.car.waymo import waymo_ap_metric
 from lingvo.tasks.car.waymo import waymo_metadata
 import numpy as np
 from waymo_open_dataset import label_pb2
-from waymo_open_dataset.protos import metrics_pb2
 
 FLAGS = tf.flags.FLAGS
 
 
-class WaymoAveragePrecisionMetrics3DTest(test_utils.TestCase):
+class APTest(test_utils.TestCase):
 
   def testWaymoAPConfig(self):
     metadata = waymo_metadata.WaymoMetadata()
     # Use 2D metric.
-    config_str = waymo_ap_metric._BuildWaymoMetricConfig(metadata, '2d')
-    config = metrics_pb2.Config()
-    config.ParseFromString(config_str)
+    config = waymo_ap_metric._BuildWaymoMetricConfig(metadata, '2d', [])
     vehicle_idx = label_pb2.Label.Type.Value('TYPE_VEHICLE')
     ped_idx = label_pb2.Label.Type.Value('TYPE_PEDESTRIAN')
     cyc_idx = label_pb2.Label.Type.Value('TYPE_CYCLIST')
@@ -77,6 +74,46 @@ class WaymoAveragePrecisionMetrics3DTest(test_utils.TestCase):
     tags = [v.tag for v in summary.value]
     self.assertIn('foo/Pedestrian/AP_default', tags)
     self.assertIn('foo/Pedestrian/APH_default', tags)
+
+  def testWaymoBreakdowns(self):
+    metadata = waymo_metadata.WaymoMetadata()
+    params = waymo_ap_metric.WaymoAPMetrics.Params(metadata)
+    params.waymo_breakdown_metrics = ['RANGE']
+
+    m = params.Instantiate()
+    # Make one update with a perfect box.
+    update_dict = py_utils.NestedMap(
+        groundtruth_labels=np.array([1]),
+        groundtruth_bboxes=np.ones(shape=(1, 7)),
+        groundtruth_difficulties=np.zeros(shape=(1)),
+        groundtruth_num_points=None,
+        detection_scores=np.ones(shape=(5, 1)),
+        detection_boxes=np.ones(shape=(5, 1, 7)),
+        detection_heights_in_pixels=np.ones(shape=(5, 1)))
+
+    m.Update('1234', update_dict)
+
+    # Write a summary.
+    summary = m.Summary('foo')
+
+    # Check that the summary value for default ap and
+    # a waymo breakdown version by range is the same.
+    for v in summary.value:
+      if v.tag == 'foo_extra/AP_RANGE_TYPE_VEHICLE_[0, 30)_LEVEL_2':
+        bd_val = v.simple_value
+      elif v.tag == 'foo/Vehicle/AP_default':
+        default_val = v.simple_value
+      elif v.tag == 'foo_extra/APH_RANGE_TYPE_VEHICLE_[0, 30)_LEVEL_2':
+        aph_bd_val = v.simple_value
+      elif v.tag == 'foo/Vehicle/APH_default':
+        aph_default_val = v.simple_value
+
+    self.assertEqual(bd_val, default_val)
+    self.assertEqual(aph_bd_val, aph_default_val)
+
+    # Check that eval classes not evaluated are not present.
+    tags = [v.tag for v in summary.value]
+    self.assertNotIn('foo_extra/APH_RANGE_TYPE_SIGN_[0, 30)_LEVEL_2', tags)
 
 
 if __name__ == '__main__':

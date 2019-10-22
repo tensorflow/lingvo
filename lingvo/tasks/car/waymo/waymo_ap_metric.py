@@ -26,11 +26,12 @@ from lingvo.tasks.car import breakdown_metric
 import numpy as np
 from waymo_open_dataset import label_pb2
 from waymo_open_dataset.metrics.ops import py_metrics_ops
+from waymo_open_dataset.metrics.python import config_util_py as config_util
 from waymo_open_dataset.protos import breakdown_pb2
 from waymo_open_dataset.protos import metrics_pb2
 
 
-def _BuildWaymoMetricConfig(metadata, box_type):
+def _BuildWaymoMetricConfig(metadata, box_type, waymo_breakdown_metrics):
   """Build the Config proto for Waymo's metric op."""
   config = metrics_pb2.Config()
   # config.num_desired_score_cutoffs = metadata.NumberOfPrecisionRecallPoints()
@@ -49,16 +50,33 @@ def _BuildWaymoMetricConfig(metadata, box_type):
     config.iou_thresholds[cls_idx] = threshold
   config.breakdown_generator_ids.append(breakdown_pb2.Breakdown.ONE_SHARD)
   config.difficulties.append(metrics_pb2.Difficulty())
-  return config.SerializeToString()
+  # Add extra breakdown metrics.
+  for breakdown_value in waymo_breakdown_metrics:
+    breakdown_id = breakdown_pb2.Breakdown.GeneratorId.Value(breakdown_value)
+    config.breakdown_generator_ids.append(breakdown_id)
+    config.difficulties.append(metrics_pb2.Difficulty())
+  return config
 
 
 class WaymoAPMetrics(ap_metric.APMetrics):
   """The Waymo Open Dataset implementation of AP metric."""
 
+  @classmethod
+  def Params(cls, metadata):
+    """Params builder for APMetrics."""
+    p = super(WaymoAPMetrics, cls).Params(metadata)
+    p.Define(
+        'waymo_breakdown_metrics', [],
+        'List of extra waymo breakdown metrics when computing AP. These '
+        'should match the names of the proto entries in metrics.proto, such '
+        'as `RANGE` or `OBJECT_TYPE`.')
+    return p
+
   def __init__(self, params):
     super(WaymoAPMetrics, self).__init__(params)
-    self._waymo_metric_config = _BuildWaymoMetricConfig(self.metadata,
-                                                        self.params.box_type)
+    self._waymo_metric_config = _BuildWaymoMetricConfig(
+        self.metadata, self.params.box_type,
+        self.params.waymo_breakdown_metrics)
     # Add APH metric.
     metrics_params = breakdown_metric.ByDifficulty.Params().Set(
         metadata=self.metadata,
@@ -66,6 +84,13 @@ class WaymoAPMetrics(ap_metric.APMetrics):
         pr_key='pr_ha_weighted')
     self._breakdown_metrics['aph'] = breakdown_metric.ByDifficulty(
         metrics_params)
+
+    # Compute extra breakdown metrics.
+    breakdown_names = config_util.get_breakdown_names_from_config(
+        self._waymo_metric_config)
+    waymo_params = WaymoBreakdownMetric.Params().Set(
+        metadata=self.metadata, breakdown_list=breakdown_names[1:])
+    self._breakdown_metrics['waymo'] = WaymoBreakdownMetric(waymo_params)
 
   def _GetData(self,
                classid,
@@ -128,13 +153,20 @@ class WaymoAPMetrics(ap_metric.APMetrics):
       - curves: a dict mapping all the curve names to fetch tensors.
       - feed_dict: a dict mapping the tensors in feed_tensors to feed values.
     """
-
+    breakdown_names = config_util.get_breakdown_names_from_config(
+        self._waymo_metric_config)
     if feed_data is None:
       dummy_scalar = tf.constant(np.nan)
       dummy_curve = tf.zeros([self.metadata.NumberOfPrecisionRecallPoints(), 2],
                              tf.float32)
       scalar_metrics = {'ap': dummy_scalar, 'ap_ha_weighted': dummy_scalar}
       curve_metrics = {'pr': dummy_curve, 'pr_ha_weighted': dummy_curve}
+
+      for i, metric in enumerate(breakdown_names[1:]):
+        scalar_metrics['ap_%s' % metric] = dummy_scalar
+        scalar_metrics['ap_ha_weighted_%s' % metric] = dummy_scalar
+        curve_metrics['pr_%s' % metric] = dummy_curve
+        curve_metrics['pr_ha_weighted_%s' % metric] = dummy_curve
       return scalar_metrics, curve_metrics, {}
 
     feed_dict = {}
@@ -168,12 +200,20 @@ class WaymoAPMetrics(ap_metric.APMetrics):
         ground_truth_type=gt_class_ids,
         ground_truth_frame_id=tf.cast(f_gt_imgid, tf.int64),
         ground_truth_difficulty=tf.zeros_like(f_gt_imgid, dtype=tf.uint8),
-        config=self._waymo_metric_config)
+        config=self._waymo_metric_config.SerializeToString())
+
     # All tensors returned by Waymo's metric op have a leading dimension
     # B=number of breakdowns. At this moment we always use B=1 to make
     # it compatible to the python code.
     scalar_metrics = {'ap': ap[0], 'ap_ha_weighted': ap_ha[0]}
     curve_metrics = {'pr': pr[0], 'pr_ha_weighted': pr_ha[0]}
+
+    for i, metric in enumerate(breakdown_names[1:]):
+      # There is a scalar / curve for every breakdown.
+      scalar_metrics['ap_%s' % metric] = ap[i + 1]
+      scalar_metrics['ap_ha_weighted_%s' % metric] = ap_ha[i + 1]
+      curve_metrics['pr_%s' % metric] = pr[i + 1]
+      curve_metrics['pr_ha_weighted_%s' % metric] = pr_ha[i + 1]
     return scalar_metrics, curve_metrics, feed_dict
 
   def Summary(self, name):
@@ -192,4 +232,77 @@ class WaymoAPMetrics(ap_metric.APMetrics):
                                                                        '_aph')
     for image_summary in image_summaries:
       ret.value.extend(image_summary.value)
+
+    ap = self._breakdown_metrics['waymo']._average_precisions  # pylint:disable=protected-access
+    aph = self._breakdown_metrics['waymo']._average_precision_headings  # pylint:disable=protected-access
+    breakdown_names = config_util.get_breakdown_names_from_config(
+        self._waymo_metric_config)
+    for i, j in enumerate(self.metadata.EvalClassIndices()):
+      classname = self.metadata.ClassNames()[j]
+      for breakdown_name in breakdown_names[1:]:
+        # Skip adding entries for breakdowns that are in a different class.
+        if classname.lower() not in breakdown_name.lower():
+          continue
+
+        # Use a different suffix to avoid polluting the main metrics tab.
+        tag_str = '{}_extra/AP_{}'.format(name, breakdown_name)
+        ap_value = ap[breakdown_name][i]
+        ret.value.add(tag=tag_str, simple_value=ap_value)
+        tag_str = '{}_extra/APH_{}'.format(name, breakdown_name)
+        aph_value = aph[breakdown_name][i]
+        ret.value.add(tag=tag_str, simple_value=aph_value)
+
     return ret
+
+
+class WaymoBreakdownMetric(breakdown_metric.BreakdownMetric):
+  """Calculate average precision as function of difficulty."""
+
+  @classmethod
+  def Params(cls):
+    p = super(WaymoBreakdownMetric, cls).Params()
+    p.Define(
+        'breakdown_list', [],
+        'A list of breakdown names corresponding to the extra breakdown '
+        'metrics computed from the Waymo breakdown generator config.')
+    return p
+
+  def __init__(self, p):
+    super(WaymoBreakdownMetric, self).__init__(p)
+    self._average_precision_headings = {}
+    self._precision_recall_headings = {}
+
+  def ComputeMetrics(self, compute_metrics_fn):
+    p = self.params
+    tf.logging.info('Calculating waymo AP breakdowns: start')
+    scalars, curves = compute_metrics_fn()
+
+    for breakdown_str in p.breakdown_list:
+      self._average_precisions[breakdown_str] = [
+          s['ap_%s' % breakdown_str] for s in scalars
+      ]
+      self._average_precision_headings[breakdown_str] = [
+          s['ap_ha_weighted_%s' % breakdown_str] for s in scalars
+      ]
+      self._precision_recall[breakdown_str] = np.array(
+          [c['pr_%s' % breakdown_str] for c in curves])
+      self._precision_recall_headings[breakdown_str] = np.array(
+          [c['pr_ha_weighted_%s' % breakdown_str] for c in curves])
+    tf.logging.info('Calculating waymo AP breakdowns: finished')
+
+  # TODO(vrv): Generate image summaries plotting PR curves from the waymo
+  # metrics if we find them useful.
+  def GenerateSummaries(self, name):
+    return []
+
+  # Fill in dummy implementations which are largely
+  # unused.  The current implementation does not provide breakdown
+  # image summaries that do bucketing.
+  def AccumulateHistogram(self, result):
+    pass
+
+  def AccumulateCumulative(self, result):
+    pass
+
+  def NumBinsOfHistogram(self):
+    return 1
