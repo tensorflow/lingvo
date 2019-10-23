@@ -57,7 +57,6 @@ class AttentionStepsTest(test_utils.TestCase):
       step = p.Instantiate()
 
       external_inputs = py_utils.NestedMap(
-          max_seq_length=13,
           src=source_vecs,
           context=source_contexts,
           padding=source_padding)
@@ -127,8 +126,7 @@ class AttentionStepsTest(test_utils.TestCase):
       step = p.Instantiate()
 
       external_inputs = py_utils.NestedMap(
-          attention=py_utils.NestedMap(
-              max_seq_length=14, src=source_vecs, padding=source_padding))
+          attention=py_utils.NestedMap(src=source_vecs, padding=source_padding))
       packed = step.PrepareExternalInputs(step.theta, external_inputs)
       state0 = step.ZeroState(step.theta, packed, target_batch_size)
 

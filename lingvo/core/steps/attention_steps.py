@@ -65,19 +65,18 @@ class AttentionStep(step.Step):
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      external_inputs: A NestedMap containing at least these three tensors: src,
-        a [batch, seq_len, src_len] tensor that forms the input to the attention
-        layer; padding, a [batch, seq_len] 0/1 tensor indicating which parts of
-        src contain useful information, and max_seq_length, the maximum length
-        of an output sequence from this attention layer. An optional context
-        tensor may also be specified. See the class documentation for more
-        details.
+      external_inputs: A NestedMap containing tensors:
+
+        - src: a [batch, seq_len, src_len] tensor that forms the input to the
+          attention layer.
+        - padding: a [batch, seq_len] 0/1 tensor indicating which parts of
+          src contain useful information.
+        - context: Optional. See the class documentation for more details.
 
     Returns:
       state0, a state parameter to pass to FProp on its first invocation.
     """
     packed_inputs = external_inputs.DeepCopy()
-    del packed_inputs['src']
     if 'context' in external_inputs:
       del packed_inputs['context']
       context = external_inputs.context
@@ -100,8 +99,8 @@ class AttentionStep(step.Step):
     Returns:
       state0, a state parameter to pass to FProp on its first invocation.
     """
-    atten_state = self.atten.ZeroAttentionState(prepared_inputs.max_seq_length,
-                                                batch_size)
+    max_seq_length = py_utils.GetShape(prepared_inputs.src, 3)[0]
+    atten_state = self.atten.ZeroAttentionState(max_seq_length, batch_size)
     (new_atten_context, _,
      new_atten_states) = self.atten.ComputeContextVectorWithSource(
          theta.atten,
@@ -120,12 +119,12 @@ class AttentionStep(step.Step):
     the next output.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
+      theta: A NestedMap containing weights' values of this layer and its
+        children layers.
       prepared_inputs: A set of encoded tensors that have been pre-processed by
         PrepareExternalInputs.
-      step_inputs: Unused. All of the input for this step comes from
-        external_inputs and previous step state.
+      step_inputs: A NestedMap containing an 'inputs' tensor with the query
+        vector to use.
       padding: A [batch] 0/1 float tensor, where 1.0 means that this batch slot
         is not used.
       state0: A NestedMap of state, either produced by ZeroState or a previous
@@ -133,11 +132,11 @@ class AttentionStep(step.Step):
 
     Returns:
       output, state1, defined as follows:
-      output: a NestedMap containing a query tensor, a context tensor, and
+      - output: a NestedMap containing a query tensor, a context tensor, and
         cum_atten_probs, the log of attention probabilities for each input
         vector.
-      state1: a NestedMap of state to be used in subsequent invocations of this
-        graph.
+      - state1: a NestedMap of state to be used in subsequent invocations of
+        this graph.
     """
     (new_atten_context, new_atten_probs,
      new_atten_states) = self.atten.ComputeContextVectorWithSource(

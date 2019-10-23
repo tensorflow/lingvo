@@ -15,7 +15,6 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core:attention",
         "//lingvo/core:base_layer",
-        "//lingvo/core:layers",
         "//lingvo/core:py_utils",
         "//lingvo/core:step",
     ],
