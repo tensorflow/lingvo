@@ -46,13 +46,13 @@ class EmbeddingStep(step.Step):
     with tf.variable_scope(p.name):
       self.CreateChild('emb', p.emb)
 
-  def FProp(self, theta, external_inputs, step_inputs, padding, state0):
+  def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
     """Looks up a list of embeddings from an EmbeddingLayer.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      external_inputs: unused.
+      prepared_inputs: unused.
       step_inputs: A NestedMap containing a list called inputs. This list should
         contain a single integer tensor of shape [batch], where each integer
         represents an index into the embedding table. (By convention, all Steps
@@ -65,7 +65,7 @@ class EmbeddingStep(step.Step):
     Returns:
       A params.dtype tensor of shape [batch, embedding_dim].
     """
-    del external_inputs
+    del prepared_inputs
     del state0
     assert len(step_inputs.inputs) == 1
 

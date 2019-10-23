@@ -17,15 +17,15 @@
 E.g.::
 
   def ProcessSeq(step, external_inputs, input_batch):
-    prepared_external_inputs = step.PrepareExternalInputs(
+    prepared_inputs = step.PrepareExternalInputs(
         step.theta, external_inputs)
     batch_size, T = tf.shape(input_batch.paddings)[:2]
     state = step.ZeroState(
-        step.theta, prepared_external_inputs, batch_size)
+        step.theta, prepared_inputs, batch_size)
     for t in range(T):
       step_inputs = input_batch.Transform(lambda x: x[:, i, ...])
       step_outputs, state = step.FProp(
-          step.theta, prepared_external_inputs, step_inputs, state)
+          step.theta, prepared_inputs, step_inputs, state)
       (processing step_outputs...)
 """
 
@@ -72,13 +72,13 @@ class Step(base_layer.BaseLayer):
                                                    child_external_inputs)
     return packed
 
-  def ZeroState(self, theta, external_inputs, batch_size):
+  def ZeroState(self, theta, prepared_inputs, batch_size):
     """Returns the initial state given external inputs and batch size.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      external_inputs: External inputs returned by PrepareExternalInputs().
+      prepared_inputs: External inputs returned by PrepareExternalInputs().
       batch_size: An int scalar representing the batch size of per-step inputs.
 
     Returns:
@@ -92,18 +92,18 @@ class Step(base_layer.BaseLayer):
         for i, sub in enumerate(child):
           if isinstance(sub, Step):
             output.append(
-                sub.ZeroState(theta[name][i], external_inputs[name][i],
+                sub.ZeroState(theta[name][i], prepared_inputs[name][i],
                               batch_size))
         if output:
           if len(output) != len(child):
             raise ValueError('Expecting child list to be instances of Step.')
           state0[name] = type(child)(output)
       elif isinstance(child, Step):
-        state0[name] = child.ZeroState(theta[name], external_inputs[name],
+        state0[name] = child.ZeroState(theta[name], prepared_inputs[name],
                                        batch_size)
     return state0
 
-  def FProp(self, theta, external_inputs, step_inputs, padding, state0):
+  def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
     """Forward function.
 
     step_inputs, state0, step_outputs, and state1 should each be a `.NestedMap`
@@ -114,7 +114,7 @@ class Step(base_layer.BaseLayer):
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      external_inputs: External inputs returned by PrepareExternalInputs().
+      prepared_inputs: External inputs returned by PrepareExternalInputs().
       step_inputs: The inputs for this time step.
       padding: A 0/1 float tensor of shape [batch_size]; 1.0 means that this
         batch element is empty in this step.
@@ -149,13 +149,13 @@ class StatelessLayerStep(Step):
     with tf.variable_scope(p.name):
       self.CreateChild('layer', p.layer)
 
-  def FProp(self, theta, external_inputs, step_inputs, padding, state0):
+  def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
     """Perform inference on a stateless layer.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      external_inputs: unused.
+      prepared_inputs: unused.
       step_inputs: A NestedMap containing 'inputs', which are passed directly to
         the layer.
       padding: A 0/1 float tensor of shape [batch_size]; 1.0 means that this
@@ -167,6 +167,7 @@ class StatelessLayerStep(Step):
       state1 is an empty NestedMap.
     """
     del state0
+    del prepared_inputs
     args = {}
     if padding is not None:
       args['padding'] = padding
@@ -236,13 +237,13 @@ class StackStep(Step):
           theta.sub[i], external_inputs))
     return packed
 
-  def ZeroState(self, theta, external_inputs, batch_size):
+  def ZeroState(self, theta, prepared_inputs, batch_size):
     """Computes a zero state for each sub-step.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      external_inputs: An output from PrepareExternalInputs.
+      prepared_inputs: An output from PrepareExternalInputs.
       batch_size: The number of items in the batch that FProp will process.
 
     Returns:
@@ -250,24 +251,24 @@ class StackStep(Step):
     """
     state = py_utils.NestedMap(sub=[])
     for i in range(len(self.sub)):
-      state.sub.append(self.sub[i].ZeroState(theta.sub[i], external_inputs,
+      state.sub.append(self.sub[i].ZeroState(theta.sub[i], prepared_inputs,
                                              batch_size))
     return state
 
-  def FProp(self, theta, external_inputs, step_inputs, padding, state0):
+  def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
     """Performs inference on the stack of sub-steps.
 
     There are three possible ways to feed input to the stack:
 
       * step_inputs.inputs: These tensors are fed only to the lowest layer.
       * step_inputs.context: [Optional] This tensor is fed to every layer.
-      * external_inputs: [Optional] This tensor is fed to every layer and
+      * prepared_inputs: [Optional] This tensor is fed to every layer and
           is assumed to stay constant over all steps.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      external_inputs: An output from PrepareExternalInputs.
+      prepared_inputs: An output from PrepareExternalInputs.
       step_inputs: A `.NestedMap` containing a list called 'inputs', an
         optionally a tensor called 'context'.
       padding: A 0/1 float tensor of shape [batch_size]; 1.0 means that this
@@ -291,7 +292,7 @@ class StackStep(Step):
     for i in range(len(self.sub)):
       sub_inputs = py_utils.NestedMap(inputs=inputs + additional)
       sub_output, state1_i = self.sub[i].FProp(theta.sub[i],
-                                               external_inputs.sub[i],
+                                               prepared_inputs.sub[i],
                                                sub_inputs, padding,
                                                state0.sub[i])
       state1.sub.append(state1_i)
@@ -442,12 +443,12 @@ class GraphStep(Step):
                                               batch_size)
     return state0
 
-  def FProp(self, theta, external_inputs, step_inputs, padding, state0):
+  def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
     """A single inference step for this step graph.
 
     Args:
       theta: variables used by sub-steps.
-      external_inputs: A NestedMap containing external_inputs that were
+      prepared_inputs: A NestedMap containing external_inputs that were
         pre-processed by the PrepareExternalInputs method of each sub-step. The
         keys are the names of the sub-steps.
       step_inputs: A NestedMap of [batch, ...] tensors. The structure of this
@@ -467,7 +468,7 @@ class GraphStep(Step):
     """
     p = self.params
     graph_tensors = builder_layers.GraphTensors()
-    graph_tensors.StoreTensor('external_inputs', external_inputs)
+    graph_tensors.StoreTensor('prepared_inputs', prepared_inputs)
     graph_tensors.StoreTensor('step_inputs', step_inputs)
     state1 = py_utils.NestedMap()
     with tf.name_scope(p.name):
@@ -475,7 +476,7 @@ class GraphStep(Step):
         tf.logging.vlog(1, 'GraphStep: call %s', seq.name)
         external = None
         if seq.external_signature:
-          external = external_inputs[seq.name]
+          external = prepared_inputs[seq.name]
         template = py_utils.NestedMap(inputs=seq.signature.inputs)
         packed = template.Transform(graph_tensors.GetTensor)
         input_args = packed.inputs[0]
@@ -598,17 +599,17 @@ class RecurrentStepWrapper(base_layer.BaseLayer):
     """See Step.PrepareExternalInputs."""
     return self.step.PrepareExternalInputs(theta.step, external_inputs)
 
-  def ZeroState(self, theta, external_inputs, batch_size):
+  def ZeroState(self, theta, prepared_inputs, batch_size):
     """See Step.ZeroState."""
-    return self.step.ZeroState(theta.step, external_inputs, batch_size)
+    return self.step.ZeroState(theta.step, prepared_inputs, batch_size)
 
-  def FProp(self, theta, external_inputs, inputs, padding, state0, **kwargs):
+  def FProp(self, theta, prepared_inputs, inputs, padding, state0, **kwargs):
     """Runs a Step layer over multiple timesteps using Recurrent.
 
     Args:
       theta: A NestedMap containing weights' values of this layer and its
         children layers.
-      external_inputs: External inputs returned by Step.PrepareExternalInputs().
+      prepared_inputs: External inputs returned by Step.PrepareExternalInputs().
       inputs: A NestedMap of inputs of shape [time, batch_size, dim].
       padding: A 0/1 float tensor of shape [time, batch_size]; 1.0 means that
         this batch element is empty in this step.
@@ -628,7 +629,7 @@ class RecurrentStepWrapper(base_layer.BaseLayer):
       """Compute a single timestep."""
       output, state1 = self.step.FProp(
           theta=recurrent_theta.theta,
-          external_inputs=recurrent_theta.external_inputs,
+          prepared_inputs=recurrent_theta.prepared_inputs,
           step_inputs=recurrent_inputs.inputs,
           padding=recurrent_inputs.padding,
           state0=recurrent_state0.state)
@@ -637,13 +638,13 @@ class RecurrentStepWrapper(base_layer.BaseLayer):
 
     # In order to pass Step outputs through Recurrent, they need to be
     # included as part of state.
-    output0, _ = self.step.FProp(theta.step, external_inputs,
+    output0, _ = self.step.FProp(theta.step, prepared_inputs,
                                  inputs.Transform(lambda x: x[0]), padding[0],
                                  state0)
 
     accumulated_states, _ = recurrent.Recurrent(
         theta=py_utils.NestedMap(
-            theta=theta.step, external_inputs=external_inputs),
+            theta=theta.step, prepared_inputs=prepared_inputs),
         state0=py_utils.NestedMap(output=output0, state=state0),
         inputs=py_utils.NestedMap(inputs=inputs, padding=padding),
         cell_fn=RnnStep,

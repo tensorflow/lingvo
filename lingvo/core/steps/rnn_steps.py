@@ -57,12 +57,12 @@ class RnnStep(step.Step):
     """
     return external_inputs
 
-  def ZeroState(self, theta, external_inputs, batch_size):
+  def ZeroState(self, theta, prepared_inputs, batch_size):
     """Returns the zero_state for the RNN cell.
 
     Args:
       theta: Variables used by the RNNCell.
-      external_inputs: unused.
+      prepared_inputs: unused.
       batch_size: An int scalar representing the batch size of per-step inputs.
 
     Returns:
@@ -70,7 +70,7 @@ class RnnStep(step.Step):
     """
     return self.cell.zero_state(theta.cell, batch_size)
 
-  def FProp(self, theta, external_inputs, step_inputs, padding, state0):
+  def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
     """Performs one inference step on the RNN cell.
 
     If external_inputs is not None, it is added as another act input
@@ -78,7 +78,7 @@ class RnnStep(step.Step):
 
     Args:
       theta: Variables used by the RNNCell.
-      external_inputs: If not None, concatenated with step_inputs.input. A
+      prepared_inputs: If not None, concatenated with step_inputs.input. A
         tensor of shape [batch_size, external_input_dim].
       step_inputs: A NestedMap containing an 'input' list of [batch_size, dim]
         where the sum of dim (including external_inputs) is
@@ -95,9 +95,9 @@ class RnnStep(step.Step):
     """
     cell_inputs = py_utils.NestedMap(act=step_inputs.inputs)
     # An empty NestedMap can act as a None value here.
-    if external_inputs is not None and not isinstance(external_inputs,
+    if prepared_inputs is not None and not isinstance(prepared_inputs,
                                                       py_utils.NestedMap):
-      cell_inputs.act.append(external_inputs)
+      cell_inputs.act.append(prepared_inputs)
     cell_inputs.padding = padding
     state1, extra = self.cell.FProp(theta.cell, state0, cell_inputs)
     return py_utils.NestedMap(
@@ -223,21 +223,21 @@ class RnnStackStep(step.Step):
     """
     return self.stack.PrepareExternalInputs(theta.stack, external_inputs)
 
-  def ZeroState(self, theta, external_inputs, batch_size):
+  def ZeroState(self, theta, prepared_inputs, batch_size):
     """Computes a zero state for each sub-step.
 
     Args:
       theta: A `.NestedMap` object containing weight values of this layer and
         its children layers.
-      external_inputs: An output from PrepareExternalInputs.
+      prepared_inputs: An output from PrepareExternalInputs.
       batch_size: The number of items in the batch that FProp will process.
 
     Returns:
       A `.NestedMap` containing a state0 object for each sub-step.
     """
-    return self.stack.ZeroState(theta.stack, external_inputs, batch_size)
+    return self.stack.ZeroState(theta.stack, prepared_inputs, batch_size)
 
-  def FProp(self, theta, external_inputs, step_inputs, padding, state0):
+  def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
     """Performs inference on the stack of sub-steps.
 
     See the documentation for StackStep for the particulars of passing context
@@ -246,7 +246,7 @@ class RnnStackStep(step.Step):
     Args:
       theta: A `.NestedMap` object containing weight values of this layer and
         its children layers.
-      external_inputs: An output from PrepareExternalInputs.
+      prepared_inputs: An output from PrepareExternalInputs.
       step_inputs: A `.NestedMap` containing a list called 'inputs', an
         optionally a tensor called 'context'.
       padding: A 0/1 float tensor of shape [batch_size]; 1.0 means that this
@@ -259,5 +259,5 @@ class RnnStackStep(step.Step):
       - output: A `.NestedMap` containing the output of the top-most step.
       - state1: The recurrent state to feed to next invocation of this graph.
     """
-    return self.stack.FProp(theta.stack, external_inputs, step_inputs, padding,
+    return self.stack.FProp(theta.stack, prepared_inputs, step_inputs, padding,
                             state0)

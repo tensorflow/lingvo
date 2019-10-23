@@ -91,7 +91,7 @@ class RnnStepsTest(test_utils.TestCase):
 
       output, state2 = recurrent_step.FProp(
           recurrent_step.theta,
-          external_inputs=packed,
+          prepared_inputs=packed,
           inputs=inputs,
           padding=padding,
           state0=state0)
