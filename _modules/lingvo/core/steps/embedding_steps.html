@@ -191,13 +191,13 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
 
-<div class="viewcode-block" id="EmbeddingStep.FProp"><a class="viewcode-back" href="../../../../lingvo.core.steps.embedding_steps.html#lingvo.core.steps.embedding_steps.EmbeddingStep.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+<div class="viewcode-block" id="EmbeddingStep.FProp"><a class="viewcode-back" href="../../../../lingvo.core.steps.embedding_steps.html#lingvo.core.steps.embedding_steps.EmbeddingStep.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Looks up a list of embeddings from an EmbeddingLayer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">        its children layers.</span>
-<span class="sd">      external_inputs: unused.</span>
+<span class="sd">      prepared_inputs: unused.</span>
 <span class="sd">      step_inputs: A NestedMap containing a list called inputs. This list should</span>
 <span class="sd">        contain a single integer tensor of shape [batch], where each integer</span>
 <span class="sd">        represents an index into the embedding table. (By convention, all Steps</span>
@@ -210,7 +210,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A params.dtype tensor of shape [batch, embedding_dim].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">del</span> <span class="n">external_inputs</span>
+    <span class="k">del</span> <span class="n">prepared_inputs</span>
     <span class="k">del</span> <span class="n">state0</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">step_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
 
