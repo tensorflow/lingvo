@@ -1167,12 +1167,12 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
       Transformed source vectors and transposed source vectors.
     """
     p = self._params
-    dtype = p.dtype
     rcell = self.cell
 
     # Initial RNN states, theta and auxiliary variables.
     state0 = py_utils.NestedMap(rnn=rcell.zero_state(theta.cell, batch_size))
-    query_vec0 = tf.zeros([batch_size, p.cell.num_output_nodes], dtype)
+    query_vec0 = tf.zeros([batch_size, p.cell.num_output_nodes],
+                          py_utils.FPropDtype(p))
 
     ctxs0 = []
     packed_srcs = py_utils.NestedMap()
