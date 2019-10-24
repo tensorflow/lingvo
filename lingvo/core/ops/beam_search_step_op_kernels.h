@@ -234,7 +234,7 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                       const float local_eos_threshold, bool is_first_step,
                       bool is_last_decoder_step, const Tensor& is_last_chunk,
                       bool merge_paths, bool allow_empty_terminated_hyp,
-                      std::vector<bool>* eos_in_topk, std::vector<Hyp>* top_k,
+                      std::vector<char>* eos_in_topk, std::vector<Hyp>* top_k,
                       std::vector<Hyp>* extra_m, std::vector<Hyp>* eos_hyps,
                       std::vector<int32>* terminal_symbol);
 

@@ -110,7 +110,10 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                       const float local_eos_threshold, bool is_first_step,
                       bool is_last_decoder_step, const Tensor& is_last_chunk,
                       bool merge_paths, bool allow_empty_terminated_hyp,
-                      std::vector<bool>* eos_in_topk, std::vector<Hyp>* top_k,
+                      // Note that this is functionally a bool, however
+                      // vector<bool> is not safe to parallel write into
+                      // since it's underlying storage is at the byte-level.
+                      std::vector<char>* eos_in_topk, std::vector<Hyp>* top_k,
                       std::vector<Hyp>* extra_m, std::vector<Hyp>* eos_hyps,
                       std::vector<int32>* terminal_syms) {
   VLOG(1) << "Topk clear, num_beams: " << num_beams;
@@ -539,7 +542,7 @@ class BeamSearchStepOp : public OpKernel {
     std::vector<Hyp> top_k_hyps;
     std::vector<Hyp> extra_m_hyps;
     std::vector<Hyp> eos_hyps;
-    std::vector<bool> eos_in_topk;
+    std::vector<char> eos_in_topk;
     std::vector<int32> terminal_syms;
     const bool is_last_decoder_step =
         (t == (in_hyps.dim_size(0) - 1)) && force_eos_in_last_step_;
