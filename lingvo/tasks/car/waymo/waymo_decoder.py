@@ -23,7 +23,6 @@ from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.tasks.car import base_decoder
 from lingvo.tasks.car import detection_3d_metrics
-from lingvo.tasks.car import kitti_ap_metric
 from lingvo.tasks.car import transform_util
 from lingvo.tasks.car.waymo import waymo_ap_metric
 from lingvo.tasks.car.waymo import waymo_metadata
@@ -47,8 +46,6 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
     """Decoder metrics for WaymoOpenDataset."""
     p = self.params
 
-    kitti_metric_p = p.ap_metric.Copy().Set(cls=kitti_ap_metric.KITTIAPMetrics)
-    kitti_metrics = kitti_metric_p.Instantiate()
     waymo_metric_p = p.ap_metric.Copy().Set(cls=waymo_ap_metric.WaymoAPMetrics)
     waymo_metrics = waymo_metric_p.Instantiate()
     class_names = waymo_metrics.metadata.ClassNames()
@@ -77,7 +74,6 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
         'num_samples_in_batch': metrics.AverageMetric(),
         'waymo_metrics': waymo_metrics,
         'waymo_metrics_bev': waymo_metrics_bev,
-        'kitti_metrics': kitti_metrics,
     })
 
     decoder_metrics.mesh = detection_3d_metrics.WorldViewer()
@@ -212,8 +208,7 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
       gt_num_points = dec_out_dict.num_points_in_bboxes[batch_idx][gt_mask]
 
       for metric_cls in [
-          dec_metrics_dict.waymo_metrics, dec_metrics_dict.waymo_metrics_bev,
-          dec_metrics_dict.kitti_metrics
+          dec_metrics_dict.waymo_metrics, dec_metrics_dict.waymo_metrics_bev
       ]:
         metric_cls.Update(
             dec_out_dict.source_ids[batch_idx],

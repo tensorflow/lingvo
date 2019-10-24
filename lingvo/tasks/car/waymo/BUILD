@@ -64,7 +64,6 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/tasks/car:base_decoder",
         "//lingvo/tasks/car:detection_3d_metrics",
-        "//lingvo/tasks/car:kitti_ap_metric",
         "//lingvo/tasks/car:transform_util",
         # Implicit numpy dependency.
     ],
