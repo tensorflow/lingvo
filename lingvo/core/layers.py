@@ -1201,6 +1201,11 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
       self.CreateChildren('fc', params_fc_layers)
       self.CreateChildren('dropout', params_dropout_layers)
 
+  @property
+  def output_dim(self):
+    """Returns output dimension of the FeedForwardNet."""
+    return self.params.hidden_layer_dims[-1]
+
   def FProp(self, theta, inputs, paddings=None):
     p = self.params
     num_layers = len(self.fc)

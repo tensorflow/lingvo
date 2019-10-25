@@ -415,6 +415,11 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
       dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
       self.CreateChild('residual_dropout', dropout_tpl)
 
+  @property
+  def output_dim(self):
+    """Returns output dimension of the transformer layer."""
+    return self.fflayer.output_dim
+
   def FProp(self, theta, inputs, paddings):
     """Feed-forward, residual and layer-norm.
 
@@ -517,6 +522,12 @@ class TransformerLayer(base_layer.BaseLayer):
       params.input_dim = p.source_dim
       params.output_dim = p.output_dim
       self.CreateChild('fflayer', params)
+
+  @property
+  def output_dim(self):
+    """Returns output dimension of the transformer layer."""
+    # output_dim is equal to p.source_dim when p.output_dim is zero.
+    return self.fflayer.output_dim
 
   def FProp(self,
             theta,

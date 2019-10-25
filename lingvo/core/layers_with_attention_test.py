@@ -32,6 +32,22 @@ from six.moves import range
 
 class LayersWithAttentionTest(test_utils.TestCase):
 
+  def testTransformerFeedForwardLayerConstruction(self):
+    p = layers_with_attention.TransformerFeedForwardLayer.Params()
+    p.name = 'transformer_fflayer_1'
+    p.input_dim = 3
+    p.hidden_dim = 7
+    transformer_fflayer = layers_with_attention.TransformerFeedForwardLayer(p)
+    self.assertEqual(0, p.output_dim)
+    # output_dim = p.input_dim when p.output_dim is zero.
+    self.assertEqual(p.input_dim, transformer_fflayer.output_dim)
+
+    # output_dim equals p.output_dim when p.output_dim is non zero.
+    p.output_dim = 10
+    p.name = 'transformer_fflayer_2'
+    transformer_fflayer = p.Instantiate()
+    self.assertEqual(p.output_dim, transformer_fflayer.output_dim)
+
   def testTransformerFeedForwardLayer(self):
     with self.session(use_gpu=True) as sess:
       tf.set_random_seed(3980847392)
@@ -554,13 +570,21 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
   def testTransformerLayerConstruction(self):
     p = layers_with_attention.TransformerLayer.Params()
-    p.name = 'transformer'
+    p.name = 'transformer_1'
     p.source_dim = 4
     p.tr_fflayer_tpl.hidden_dim = 7
     p.tr_atten_tpl.num_attention_heads = 2
     p.has_aux_atten = True
     p.mask_self_atten = True
-    _ = layers_with_attention.TransformerLayer(p)
+    layer = layers_with_attention.TransformerLayer(p)
+    # output_dim is equal to source_dim when p.output_dim == 0
+    self.assertEqual(0, p.output_dim)
+    self.assertEqual(p.source_dim, layer.output_dim)
+    # output_dim corresponds to p.output_dim when it is non-zero.
+    p.output_dim = 6
+    p.name = 'transformer_2'
+    layer = p.Instantiate()
+    self.assertEqual(p.output_dim, layer.output_dim)
 
   def testTransformerLayerFProp(self):
     with self.session(use_gpu=True) as sess:

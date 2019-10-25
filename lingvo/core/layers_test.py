@@ -2985,6 +2985,8 @@ class FeedForwardNetTest(test_utils.TestCase):
       proj_l = p.Instantiate()
       a = tf.constant(1.0, shape=[20, 10])
       proj_l.FPropDefaultTheta(a)
+      # check output_dim equals last hidden layer dim.
+      self.assertEqual(p.hidden_layer_dims[-1], proj_l.output_dim)
 
       p = layers.FeedForwardNet.Params().Set(
           name='ffn2',
