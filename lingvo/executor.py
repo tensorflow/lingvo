@@ -141,7 +141,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     if issubclass(train_cfg.cls, base_model.SingleTaskModel):
       tf.logging.info('single_task_model')
       assert len(ps_params_dict) == 1
-      self._model_task_name = ps_params_dict.keys()[0]
+      self._model_task_name = list(ps_params_dict.keys())[0]
       self._single_task_mode = True
     elif issubclass(train_cfg.cls, base_model.MultiTaskModel):
       tf.logging.info('multi_task_model')
