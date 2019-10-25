@@ -560,6 +560,11 @@
       <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;residual_dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
 
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">output_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns output dimension of the transformer layer.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">output_dim</span>
+
 <div class="viewcode-block" id="TransformerFeedForwardLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerFeedForwardLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Feed-forward, residual and layer-norm.</span>
 
@@ -662,6 +667,12 @@
       <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
       <span class="n">params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">output_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns output dimension of the transformer layer.&quot;&quot;&quot;</span>
+    <span class="c1"># output_dim is equal to p.source_dim when p.output_dim is zero.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">output_dim</span>
 
 <div class="viewcode-block" id="TransformerLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">theta</span><span class="p">,</span>
