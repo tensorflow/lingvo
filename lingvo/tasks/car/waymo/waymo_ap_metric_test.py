@@ -64,9 +64,8 @@ class APTest(test_utils.TestCase):
 
     m.Update('1234', update_dict)
 
-    waymo_ap = m._AveragePrecisionByDifficulty()
-    self.assertAllClose(waymo_ap['default'][0], 1.)
-    self.assertTrue(np.isnan(waymo_ap['default'][1]))
+    waymo_ap = m.value
+    self.assertAllClose(waymo_ap, 1. / 3.)
 
     # Write a summary.
     summary = m.Summary('foo')

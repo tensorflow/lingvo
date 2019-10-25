@@ -13,16 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Average Precision metric class for Waymo open dataset."""
+"""Average Precision metric class for Waymo open dataset.
+
+The Waymo library provides a metrics breakdown API for a set of breakdowns
+implemented in their library.  This wrapper uses our basic abstraction for
+building AP metrics but only allows breakdowns that are supported in the
+Waymo breakdown API.  Should you want other breakdowns, consider using the
+standard AP metrics implementation with our custom breakdowns.
+"""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 from lingvo import compat as tf
+from lingvo.core import plot
 from lingvo.core import py_utils
 from lingvo.tasks.car import ap_metric
 from lingvo.tasks.car import breakdown_metric
+
 import numpy as np
 from waymo_open_dataset import label_pb2
 from waymo_open_dataset.metrics.ops import py_metrics_ops
@@ -77,20 +86,15 @@ class WaymoAPMetrics(ap_metric.APMetrics):
     self._waymo_metric_config = _BuildWaymoMetricConfig(
         self.metadata, self.params.box_type,
         self.params.waymo_breakdown_metrics)
-    # Add APH metric.
-    metrics_params = breakdown_metric.ByDifficulty.Params().Set(
-        metadata=self.metadata,
-        ap_key='ap_ha_weighted',
-        pr_key='pr_ha_weighted')
-    self._breakdown_metrics['aph'] = breakdown_metric.ByDifficulty(
-        metrics_params)
-
-    # Compute extra breakdown metrics.
+    # Compute only waymo breakdown metrics.
     breakdown_names = config_util.get_breakdown_names_from_config(
         self._waymo_metric_config)
     waymo_params = WaymoBreakdownMetric.Params().Set(
-        metadata=self.metadata, breakdown_list=breakdown_names[1:])
+        metadata=self.metadata, breakdown_list=breakdown_names)
     self._breakdown_metrics['waymo'] = WaymoBreakdownMetric(waymo_params)
+
+    # Remove the base metric.
+    del self._breakdown_metrics['difficulty']
 
   def _GetData(self,
                classid,
@@ -162,7 +166,7 @@ class WaymoAPMetrics(ap_metric.APMetrics):
       scalar_metrics = {'ap': dummy_scalar, 'ap_ha_weighted': dummy_scalar}
       curve_metrics = {'pr': dummy_curve, 'pr_ha_weighted': dummy_curve}
 
-      for i, metric in enumerate(breakdown_names[1:]):
+      for i, metric in enumerate(breakdown_names):
         scalar_metrics['ap_%s' % metric] = dummy_scalar
         scalar_metrics['ap_ha_weighted_%s' % metric] = dummy_scalar
         curve_metrics['pr_%s' % metric] = dummy_curve
@@ -208,30 +212,38 @@ class WaymoAPMetrics(ap_metric.APMetrics):
     scalar_metrics = {'ap': ap[0], 'ap_ha_weighted': ap_ha[0]}
     curve_metrics = {'pr': pr[0], 'pr_ha_weighted': pr_ha[0]}
 
-    for i, metric in enumerate(breakdown_names[1:]):
+    for i, metric in enumerate(breakdown_names):
       # There is a scalar / curve for every breakdown.
-      scalar_metrics['ap_%s' % metric] = ap[i + 1]
-      scalar_metrics['ap_ha_weighted_%s' % metric] = ap_ha[i + 1]
-      curve_metrics['pr_%s' % metric] = pr[i + 1]
-      curve_metrics['pr_ha_weighted_%s' % metric] = pr_ha[i + 1]
+      scalar_metrics['ap_%s' % metric] = ap[i]
+      scalar_metrics['ap_ha_weighted_%s' % metric] = ap_ha[i]
+      curve_metrics['pr_%s' % metric] = pr[i]
+      curve_metrics['pr_ha_weighted_%s' % metric] = pr_ha[i]
     return scalar_metrics, curve_metrics, feed_dict
 
-  def Summary(self, name):
-    ret = super(WaymoAPMetrics, self).Summary(name)
-
+  @property
+  def value(self):
+    """Returns weighted mAP over all eval classes."""
     self._EvaluateIfNecessary()
-    aph = self._breakdown_metrics['aph']._average_precisions  # pylint:disable=protected-access
-    for i, j in enumerate(self.metadata.EvalClassIndices()):
-      classname = self.metadata.ClassNames()[j]
-      for difficulty in self.metadata.DifficultyLevels():
-        tag_str = '{}/{}/APH_{}'.format(name, classname, difficulty)
-        aph_value = aph[difficulty][i]
-        ret.value.add(tag=tag_str, simple_value=aph_value)
+    ap = self._breakdown_metrics['waymo']._average_precisions  # pylint:disable=protected-access
+    breakdown_names = config_util.get_breakdown_names_from_config(
+        self._waymo_metric_config)
 
-    image_summaries = self._breakdown_metrics['aph'].GenerateSummaries(name +
-                                                                       '_aph')
-    for image_summary in image_summaries:
-      ret.value.extend(image_summary.value)
+    num_sum = 0.0
+    denom_sum = 0.0
+    # Compute the average AP over all eval classes.  The first breakdown
+    # is the overall mAP.
+    for class_index in range(len(self.metadata.EvalClassIndices())):
+      num_sum += np.nan_to_num(ap[breakdown_names[0]][class_index])
+      denom_sum += 1.
+    return num_sum / denom_sum
+
+  def Summary(self, name):
+    """Implements custom Summary for Waymo metrics."""
+    self._EvaluateIfNecessary()
+
+    ret = tf.Summary()
+    # Put '.value' first (so it shows up in logs / summaries, etc).
+    ret.value.add(tag='{}/weighted_mAP'.format(name), simple_value=self.value)
 
     ap = self._breakdown_metrics['waymo']._average_precisions  # pylint:disable=protected-access
     aph = self._breakdown_metrics['waymo']._average_precision_headings  # pylint:disable=protected-access
@@ -239,18 +251,34 @@ class WaymoAPMetrics(ap_metric.APMetrics):
         self._waymo_metric_config)
     for i, j in enumerate(self.metadata.EvalClassIndices()):
       classname = self.metadata.ClassNames()[j]
-      for breakdown_name in breakdown_names[1:]:
+      for k, breakdown_name in enumerate(breakdown_names):
         # Skip adding entries for breakdowns that are in a different class.
-        if classname.lower() not in breakdown_name.lower():
+        #
+        # The first breakdown is the overall one, so never skip it.
+        if k > 0 and classname.lower() not in breakdown_name.lower():
           continue
 
-        # Use a different suffix to avoid polluting the main metrics tab.
-        tag_str = '{}_extra/AP_{}'.format(name, breakdown_name)
+        if k == 0:
+          # For the overall mAP, include the class name
+          # and set the breakdown_str to 'default' for backwards compatibility.
+          prefix = '{}/{}'.format(name, classname)
+          breakdown_str = 'default'
+        else:
+          # All breakdowns after the first one are extra and elide
+          # the classname, since it is present in the breakdown_name.
+          prefix = '{}_extra'.format(name)
+          breakdown_str = breakdown_name
+
+        tag_str = '{}/AP_{}'.format(prefix, breakdown_str)
         ap_value = ap[breakdown_name][i]
         ret.value.add(tag=tag_str, simple_value=ap_value)
-        tag_str = '{}_extra/APH_{}'.format(name, breakdown_name)
+        tag_str = '{}/APH_{}'.format(prefix, breakdown_str)
         aph_value = aph[breakdown_name][i]
         ret.value.add(tag=tag_str, simple_value=aph_value)
+
+    image_summaries = self._breakdown_metrics['waymo'].GenerateSummaries(name)
+    for image_summary in image_summaries:
+      ret.value.extend(image_summary.value)
 
     return ret
 
@@ -263,7 +291,7 @@ class WaymoBreakdownMetric(breakdown_metric.BreakdownMetric):
     p = super(WaymoBreakdownMetric, cls).Params()
     p.Define(
         'breakdown_list', [],
-        'A list of breakdown names corresponding to the extra breakdown '
+        'A list of breakdown names corresponding to the breakdown '
         'metrics computed from the Waymo breakdown generator config.')
     return p
 
@@ -290,14 +318,57 @@ class WaymoBreakdownMetric(breakdown_metric.BreakdownMetric):
           [c['pr_ha_weighted_%s' % breakdown_str] for c in curves])
     tf.logging.info('Calculating waymo AP breakdowns: finished')
 
-  # TODO(vrv): Generate image summaries plotting PR curves from the waymo
-  # metrics if we find them useful.
   def GenerateSummaries(self, name):
-    return []
+    """Generate an image summary for precision recall by difficulty."""
+    p = self.params
+
+    image_summaries = []
+    for i, j in enumerate(p.metadata.EvalClassIndices()):
+
+      def _Setter(fig, axes):
+        """Configure the plot for precision recall."""
+        ticks = np.arange(0, 1.05, 0.1)
+        axes.grid(b=False)
+        axes.set_xlabel('Recall')
+        axes.set_xticks(ticks)
+        axes.set_ylabel('Precision')
+        axes.set_yticks(ticks)
+        # TODO(vrv): Add legend indicating number of objects in breakdown.
+        fig.tight_layout()
+
+      classname = p.metadata.ClassNames()[j]
+      for k, breakdown_str in enumerate(p.breakdown_list):
+        # Skip adding entries for breakdowns that are in a different class.
+        #
+        # The first breakdown is the overall one, so never skip it.
+        if k > 0 and classname.lower() not in breakdown_str.lower():
+          continue
+        ps = [self._precision_recall[breakdown_str][i][:, 0]]
+        rs = [self._precision_recall[breakdown_str][i][:, 1]]
+        if k == 0:
+          # Overall class PR.
+          tag_str = '{}/{}/PR'.format(name, classname)
+        else:
+          tag_str = '{}/{}/{}/PR'.format(name, classname, breakdown_str)
+        image_summary = plot.Curve(
+            name=tag_str,
+            figsize=(10, 8),
+            xs=rs[0],
+            ys=np.array(ps).T,
+            setter=_Setter,
+            marker='.',
+            markersize=14,
+            linestyle='-',
+            linewidth=2,
+            alpha=0.5)
+        image_summaries.append(image_summary)
+
+    return image_summaries
 
   # Fill in dummy implementations which are largely
   # unused.  The current implementation does not provide breakdown
-  # image summaries that do bucketing.
+  # image summaries that do bucketing; we assume that the waymo breakdown
+  # implementations will break things down as necessary.
   def AccumulateHistogram(self, result):
     pass
 
