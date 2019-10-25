@@ -1249,9 +1249,6 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           pc_shape = [p.hidden_dim, p.ctx_post_proj_dim]
           pc_b_shape = [p.ctx_post_proj_dim]
         elif p.num_post_proj > 1:
-          if p.packed_input:
-            raise ValueError('For now we do not support packed_input when '
-                             'num_post_proj > 1.')
           pc_shape = [p.hidden_dim, p.ctx_post_proj_dim, p.num_post_proj]
           pc_b_shape = [p.ctx_post_proj_dim, p.num_post_proj]
         else:

@@ -1129,8 +1129,9 @@ class TransformerDecoder(MTBaseDecoder):
       atten_idx = None
       if p.task_emb:
         if p.use_lang_dependent_atten:
-          atten_idx = targets.task_ids[:, 0]
-          atten_idx = self._ExpandToNumHyps(atten_idx, target_time)
+          atten_idx = targets.task_ids
+          # Works for both packed and unpacked inputs.
+          atten_idx = tf.reshape(tf.transpose(atten_idx), [-1])
         input_embs += self.task_emb.EmbLookup(theta.task_emb, targets.task_ids)
 
       if p.model_dim != self._token_emb_dim:
@@ -1293,10 +1294,8 @@ class TransformerDecoder(MTBaseDecoder):
             atten_idx=atten_idx)
         out_prefix_states['layer_%i' % i] = updated_prefix_states
         layer_in = layer_out
-
         # Enforce shape: [batch, src_len]
         probs = tf.squeeze(probs)
-
         # Remove attention weight on last (EOS) token and re-normalize
         # so that last dimension sums to 1. See b/129097156.
         probs_3d = tf.expand_dims(probs, axis=1)
