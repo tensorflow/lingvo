@@ -169,6 +169,11 @@
   <div class="section" id="module-lingvo.tasks.car.waymo.waymo_ap_metric">
 <span id="lingvo-tasks-car-waymo-waymo-ap-metric-module"></span><h1>lingvo.tasks.car.waymo.waymo_ap_metric module<a class="headerlink" href="#module-lingvo.tasks.car.waymo.waymo_ap_metric" title="Permalink to this headline">¶</a></h1>
 <p>Average Precision metric class for Waymo open dataset.</p>
+<p>The Waymo library provides a metrics breakdown API for a set of breakdowns
+implemented in their library.  This wrapper uses our basic abstraction for
+building AP metrics but only allows breakdowns that are supported in the
+Waymo breakdown API.  Should you want other breakdowns, consider using the
+standard AP metrics implementation with our custom breakdowns.</p>
 <dl class="function">
 <dt id="lingvo.tasks.car.waymo.waymo_ap_metric._BuildWaymoMetricConfig">
 <code class="sig-prename descclassname">lingvo.tasks.car.waymo.waymo_ap_metric.</code><code class="sig-name descname">_BuildWaymoMetricConfig</code><span class="sig-paren">(</span><em class="sig-param">metadata</em>, <em class="sig-param">box_type</em>, <em class="sig-param">waymo_breakdown_metrics</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#_BuildWaymoMetricConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric._BuildWaymoMetricConfig" title="Permalink to this definition">¶</a></dt>
@@ -238,17 +243,15 @@ are found with these parameters, returns None.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics.value">
+<em class="property">property </em><code class="sig-name descname">value</code><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics.value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns weighted mAP over all eval classes.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics.Summary">
 <code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoAPMetrics.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics.Summary" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts the current state of this metric to a <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>name</strong> – A string to use as the summary value tag.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> proto.</p>
-</dd>
-</dl>
+<dd><p>Implements custom Summary for Waymo metrics.</p>
 </dd></dl>
 
 </dd></dl>
@@ -282,15 +285,7 @@ APMetrics._ComputeFinalMetrics().</p>
 <dl class="method">
 <dt id="lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.GenerateSummaries">
 <code class="sig-name descname">GenerateSummaries</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_ap_metric.html#WaymoBreakdownMetric.GenerateSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoBreakdownMetric.GenerateSummaries" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate list of image summaries plotting precision-recall analysis.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>name</strong> – string providing scope</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>list of image summaries</p>
-</dd>
-</dl>
+<dd><p>Generate an image summary for precision recall by difficulty.</p>
 </dd></dl>
 
 <dl class="method">

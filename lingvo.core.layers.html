@@ -824,12 +824,12 @@ learnable parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>inputs</strong> – The inputs tensor. It is expected to be of shape [batch, time,
-feature].</p></li>
-<li><p><strong>paddings</strong> – The paddings tensor. It is expected to be of shape [batch, time,
-1], where all but the last dimension match those of inputs. Each value
-is 0 or 1 indicating whether a time step of a sequence is padded in the
-inputs to reach the max length in the batch.</p></li>
+<li><p><strong>inputs</strong> – The inputs tensor. It is expected to be of shape
+[batch, time, feature].</p></li>
+<li><p><strong>paddings</strong> – The paddings tensor. It is expected to be of shape
+[batch, time, 1], where all but the last dimension match inputs. Each
+value is 0 or 1 indicating whether a time step of a sequence is padded
+in the inputs to reach the max length in the batch.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -850,22 +850,38 @@ will be 0 if any of the corresponding input padding is 0.</p>
 <dd><p>Inverts stacking over time.</p>
 <p>Given ‘stacked’ outputs from this StackingOverTime layer,</p>
 <blockquote>
-<div><p>stacked = this_layer.FProp(inputs),</p>
+<div><p>stacked, _ = this_layer.FProp(inputs),</p>
 </div></blockquote>
-<p>this method attempts to reconstruct the original ‘inputs’. If
-stride &lt;= window_size, <code class="xref py py-obj docutils literal notranslate"><span class="pre">Unstack(stacked)</span></code> returns a Tensor that is identical
-to ‘inputs’ but up to stride - 1 frames shorter in the time axis. If
-stride &gt; window_size, the original input cannot be recovered, and a
+<p>this method attempts to reconstruct the original ‘inputs’.</p>
+<p>If stride &gt; window_size, the original input cannot be recovered, and a
 ValueError is raised.</p>
-<p><a class="reference internal" href="#lingvo.core.layers.StackingOverTime.Unstack" title="lingvo.core.layers.StackingOverTime.Unstack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unstack()</span></code></a> can also be used to project the outputs of downstream layers
-back to the original unstacked inputs. For example:</p>
+<p>Otherwise, if right_context + 1 &gt;= stride, this method returns a Tensor that
+is identical to ‘inputs’ but potentially longer due to paddings.</p>
+<p>If right_context + 1 &lt; stride, this method returns a Tensor that may be up
+to <code class="docutils literal notranslate"><span class="pre">`stride</span> <span class="pre">-</span> <span class="pre">right_context</span> <span class="pre">-</span> <span class="pre">1`</span></code> frames shorter than the original input,
+but identical in the frames that are returned. e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">left_context</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">right_context</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">stride</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="nb">input</span> <span class="n">sequence</span><span class="p">:</span>     <span class="mi">1</span> <span class="mi">2</span> <span class="mi">3</span> <span class="mi">4</span> <span class="mi">5</span> <span class="mi">6</span> <span class="mi">7</span> <span class="mi">8</span>
+<span class="n">after</span> <span class="n">padding</span><span class="p">:</span>  <span class="mi">0</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">2</span> <span class="mi">3</span> <span class="mi">4</span> <span class="mi">5</span> <span class="mi">6</span> <span class="mi">7</span> <span class="mi">8</span> <span class="mi">0</span>
+<span class="n">windows</span><span class="p">:</span>
+  <span class="p">[</span><span class="mi">0</span> <span class="mi">0</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="mi">2</span><span class="p">]</span> <span class="mi">3</span> <span class="mi">4</span> <span class="mi">5</span> <span class="mi">6</span> <span class="mi">7</span> <span class="mi">8</span> <span class="mi">0</span>
+   <span class="mi">0</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">2</span> <span class="p">[</span><span class="mi">3</span> <span class="mi">4</span> <span class="p">(</span><span class="mi">5</span><span class="p">)</span> <span class="mi">6</span><span class="p">]</span> <span class="mi">7</span> <span class="mi">8</span> <span class="mi">0</span>
+<span class="n">stacked</span><span class="p">:</span>
+  <span class="p">[[</span><span class="mi">0</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span> <span class="mi">4</span> <span class="mi">5</span> <span class="mi">6</span><span class="p">]]</span>
+<span class="n">unstacked</span><span class="p">:</span>
+  <span class="p">[</span><span class="mi">1</span> <span class="mi">2</span> <span class="mi">3</span> <span class="mi">4</span> <span class="mi">5</span> <span class="mi">6</span><span class="p">],</span> <span class="n">which</span> <span class="ow">is</span> <span class="mi">4</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">=</span> <span class="mi">2</span> <span class="p">(</span><span class="n">stride</span> <span class="o">-</span> <span class="n">right_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="n">frames</span> <span class="n">shorter</span> <span class="n">than</span> <span class="n">the</span> <span class="n">original</span> <span class="nb">input</span><span class="o">.</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="#lingvo.core.layers.StackingOverTime.Unstack" title="lingvo.core.layers.StackingOverTime.Unstack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unstack()</span></code></a> can be used to project the outputs of downstream layers back to
+the shape of the original unstacked inputs. For example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">inputs</span> <span class="o">=</span> <span class="o">...</span>  <span class="c1"># [batch, length, input_dim]</span>
 <span class="c1"># [batch, ceil(length / stride), rnn_dim]</span>
-<span class="n">rnn_out</span> <span class="o">=</span> <span class="n">rnn</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">stacking</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span>
+<span class="n">rnn_out</span> <span class="o">=</span> <span class="n">rnn</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">stacking</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
 <span class="c1"># [batch, length, rnn_dim]</span>
 <span class="n">back_projected_rnn_out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
     <span class="n">stacking</span><span class="o">.</span><span class="n">Unstack</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">rnn_out</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">stacking</span><span class="o">.</span><span class="n">window_size</span><span class="p">])),</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>Note this method does not take or return a separate padding tensor. The
@@ -877,10 +893,8 @@ on the padding of the original FProp inputs).</p>
 to be the output of <a class="reference internal" href="#lingvo.core.layers.StackingOverTime.FProp" title="lingvo.core.layers.StackingOverTime.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a>.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The reconstructed (but truncated) input Tensor, with shape
-[batch, L - (L - 1) % stride, feature_dim] where L is the length of the
-original inputs. The length of the returned Tensor is also, equivalently,
-(stacked_length - 1) * stride + 1.</p>
+<dd class="field-even"><p>The reconstructed input Tensor, with shape
+[batch, (frames - 1) * stride + right_context + 1, feature_dim].</p>
 </dd>
 <dt class="field-odd">Raises</dt>
 <dd class="field-odd"><p><strong>ValueError</strong> – if stride &gt; window_size.</p>
