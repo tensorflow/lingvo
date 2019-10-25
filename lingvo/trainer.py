@@ -1703,7 +1703,8 @@ class RunnerManager(object):
     """Prints out datasets configured for the model."""
     cls = self.model_registry.GetClass(self._model_name)
     datasets = []
-    for name, _ in inspect.getmembers(cls, inspect.ismethod):
+    for name, _ in inspect.getmembers(
+        cls, lambda x: inspect.isfunction(x) or inspect.ismethod(x)):
       if name not in ['GetDatasetParams', 'Model', 'Task', 'ProgramSchedule'
                      ] and not name.startswith('_'):
         datasets += [name]
