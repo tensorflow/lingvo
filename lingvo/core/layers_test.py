@@ -1895,6 +1895,33 @@ class ProjectionLayerTest(test_utils.TestCase):
       for sg, ng in zip(sym_grads, num_grads):
         self.assertAllClose(sg, ng, rtol=1e-06, atol=1e-06)
 
+  def testProjectionLayerFPropUsingMovingAvgInTraining(self):
+    # pylint: disable=bad-whitespace
+    # pyformat: disable
+    expected_output = [[[0.        , 0.03491905],
+                        [0.01192194, 0.09171353],
+                        [0.01156251, 0.        ],
+                        [0.        , 0.00982281]],
+                       [[0.02097072, 0.        ],
+                        [0.00650552, 0.        ],
+                        [0.        , 0.        ],
+                        [0.        , 0.13866161]]]
+    # pyformat: enable
+    # pylint: enable=bad-whitespace
+    for reshape_to_2d in (False, True):
+      actual = self._evalProjectionLayer(
+          reshape_to_2d=reshape_to_2d,
+          expect_bn_fold_weights=False,
+          bn_use_moving_avg_in_training=True)
+      if reshape_to_2d:
+        expected_output = np.reshape(np.array(expected_output), (-1, 2))
+      tf.logging.info('expected = %s', expected_output)
+      tf.logging.info('actual = %s', np.array_repr(actual))
+      self.assertAllClose(expected_output, actual)
+
+
+class StackingOverTimeLayerTest(test_utils.TestCase):
+
   def testStackingOverTimeFProp(self):
     with self.session(use_gpu=True):
       params = layers.StackingOverTime.Params()
@@ -1906,17 +1933,11 @@ class ProjectionLayerTest(test_utils.TestCase):
       stacker = layers.StackingOverTime(params)
       self.assertEqual(stacker.window_size, 3)
 
-      inputs = tf.constant(
-          [
-              [[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]],  # batch 0
-              [[7, 7], [8, 8], [0, 0], [0, 0], [0, 0], [0, 0]]
-          ],  # batch 1
-          dtype=tf.float32)
+      inputs = tf.constant([[[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]],
+                            [[7, 7], [8, 8], [0, 0], [0, 0], [0, 0], [0, 0]]],
+                           dtype=tf.float32)
       paddings = tf.constant(
-          [
-              [[0], [0], [0], [0], [0], [0]],  # batch 0
-              [[0], [0], [1], [1], [1], [1]]
-          ],  # batch 1
+          [[[0], [0], [0], [0], [0], [0]], [[0], [0], [1], [1], [1], [1]]],
           dtype=tf.float32)
 
       outputs, output_paddings = stacker.FProp(inputs, paddings)
@@ -1924,17 +1945,12 @@ class ProjectionLayerTest(test_utils.TestCase):
       print([np.array_repr(outputs.eval())])
 
       expected_outputs = [
-          [[0, 0, 0, 0, 1, 1], [1, 1, 2, 2, 3, 3], [3, 3, 4, 4, 5,
-                                                    5]],  # batch 0
-          [[0, 0, 0, 0, 7, 7], [7, 7, 8, 8, 0, 0], [0, 0, 0, 0, 0,
-                                                    0]]  # batch 1
+          [[0, 0, 0, 0, 1, 1], [1, 1, 2, 2, 3, 3], [3, 3, 4, 4, 5, 5]],
+          [[0, 0, 0, 0, 7, 7], [7, 7, 8, 8, 0, 0], [0, 0, 0, 0, 0, 0]],
       ]
       self.assertAllClose(expected_outputs, outputs.eval())
 
-      expected_output_paddings = [
-          [[0], [0], [0]],  # batch 0
-          [[0], [0], [1]]  # batch 1
-      ]
+      expected_output_paddings = [[[0], [0], [0]], [[0], [0], [1]]]
       self.assertAllClose(expected_output_paddings, output_paddings.eval())
 
   def testStackingOverTimeFProp2(self):
@@ -1984,54 +2000,47 @@ class ProjectionLayerTest(test_utils.TestCase):
       expected_output_paddings = [[[0], [0], [0], [0], [0]]]
       self.assertAllClose(expected_output_paddings, output_paddings.eval())
 
-  def _testUnstack(self, params, inputs):
+  def _testUnstack(self, inputs, **kwargs):
+    params = layers.StackingOverTime.Params().Set(
+        name='stackingOverTime', **kwargs)
     with self.session(use_gpu=True) as sess:
       stacker = params.Instantiate()
       stacked, _ = stacker.FProp(inputs)
       unstacked = stacker.Unstack(stacked)
       inputs, stacked, unstacked = sess.run([inputs, stacked, unstacked])
-      expected_length = (
-          inputs.shape[1] - (inputs.shape[1] - 1) % stacker.params.stride)
-      self.assertAllClose(inputs[:, :expected_length, :], unstacked)
+
+      batch, input_length, depth = inputs.shape
+      stacked_length = stacked.shape[1]
+      stride = stacker.params.stride
+      right_context = stacker.params.right_context
+
+      self.assertAllEqual(
+          unstacked.shape,
+          [batch, (stacked_length - 1) * stride + right_context + 1, depth])
+      if right_context + 1 >= stride:
+        self.assertGreaterEqual(unstacked.shape[1], input_length)
+        self.assertAllClose(inputs, unstacked[:, :input_length])
+      else:
+        self.assertLessEqual(unstacked.shape[1], input_length)
+        # The final up to stride - right_context - 1 values are missing.
+        self.assertLessEqual(input_length - unstacked.shape[1],
+                             stride - right_context - 1)
+        self.assertAllClose(inputs[:, :unstacked.shape[1]], unstacked)
 
   def testStackingOverTimeUnstack(self):
-    params = layers.StackingOverTime.Params()
-    params.name = 'stackingOverTime'
-
     batch_size = 2
     length = 7
     depth = 3
     inputs = tf.reshape(
-        tf.range(batch_size * length * depth), [batch_size, length, depth])
-    self._testUnstack(params.Set(left_context=2, stride=1), inputs)
-    self._testUnstack(params.Set(stride=2), inputs)
-    self._testUnstack(params.Set(stride=2, right_context=3), inputs)
-    self._testUnstack(params.Set(stride=3), inputs)
-    self._testUnstack(params.Set(stride=4, right_context=3), inputs)
-
-  def testProjectionLayerFPropUsingMovingAvgInTraining(self):
-    # pylint: disable=bad-whitespace
-    # pyformat: disable
-    expected_output = [[[0.        , 0.03491905],
-                        [0.01192194, 0.09171353],
-                        [0.01156251, 0.        ],
-                        [0.        , 0.00982281]],
-                       [[0.02097072, 0.        ],
-                        [0.00650552, 0.        ],
-                        [0.        , 0.        ],
-                        [0.        , 0.13866161]]]
-    # pyformat: enable
-    # pylint: enable=bad-whitespace
-    for reshape_to_2d in (False, True):
-      actual = self._evalProjectionLayer(
-          reshape_to_2d=reshape_to_2d,
-          expect_bn_fold_weights=False,
-          bn_use_moving_avg_in_training=True)
-      if reshape_to_2d:
-        expected_output = np.reshape(np.array(expected_output), (-1, 2))
-      tf.logging.info('expected = %s', expected_output)
-      tf.logging.info('actual = %s', np.array_repr(actual))
-      self.assertAllClose(expected_output, actual)
+        tf.cast(tf.range(batch_size * length * depth), tf.float32),
+        [batch_size, length, depth])
+    self._testUnstack(inputs, left_context=2, stride=1)
+    with self.assertRaises(ValueError):
+      self._testUnstack(inputs, stride=2)
+    self._testUnstack(inputs, stride=2, right_context=3)
+    self._testUnstack(inputs, left_context=2, stride=3)
+    self._testUnstack(inputs, stride=4, right_context=3)
+    self._testUnstack(inputs, stride=4, left_context=1, right_context=2)
 
 
 class EmbeddingLayerTest(test_utils.TestCase):

@@ -1300,43 +1300,34 @@ class StackingOverTime(base_layer.BaseLayer):
     if p.left_context == 0 and p.right_context == 0:
       out = inputs
     else:
-      batch = tf.shape(inputs)[0]
-      depth = tf.shape(inputs)[2]
+      inputs_max_len = py_utils.GetShape(inputs, 3)[1]
       # Add zero paddings to the left and right of the input sequence.
-      padded_inputs = inputs
-      if p.left_context > 0:
-        left_padding = tf.cast(
-            tf.fill([batch, p.left_context, depth], pad_value), inputs.dtype)
-        padded_inputs = tf.concat([left_padding, padded_inputs], 1)
-      if p.right_context > 0:
-        right_padding = tf.cast(
-            tf.fill([batch, p.right_context, depth], pad_value), inputs.dtype)
-        padded_inputs = tf.concat([padded_inputs, right_padding], 1)
+      inputs = tf.pad(
+          inputs, [[0, 0], [p.left_context, p.right_context], [0, 0]],
+          constant_values=pad_value)
 
-      # Original sequence length before padding.
-      inputs_max_len = py_utils.GetShape(inputs)[1]
       # Make window_size() copies of the padded sequence with the original
       # sequence length, where each copy is offset by 1 time step.
       pieces = []
       for i in range(self.window_size):
-        pieces.append(padded_inputs[:, i:i + inputs_max_len, :])
+        pieces.append(inputs[:, i:i + inputs_max_len])
       # Apply stacking.
       out = tf.concat(pieces, 2)
 
     # Apply striding.
-    out = out[:, ::p.stride, :]
+    out = out[:, ::p.stride]
     return out
 
   def FProp(self, inputs, paddings=None):
     """Apply the stacking to inputs along the time axis.
 
     Args:
-      inputs: The inputs tensor. It is expected to be of shape [batch, time,
-        feature].
-      paddings: The paddings tensor. It is expected to be of shape [batch, time,
-        1], where all but the last dimension match those of inputs. Each value
-        is 0 or 1 indicating whether a time step of a sequence is padded in the
-        inputs to reach the max length in the batch.
+      inputs: The inputs tensor. It is expected to be of shape
+        [batch, time, feature].
+      paddings: The paddings tensor. It is expected to be of shape
+        [batch, time, 1], where all but the last dimension match inputs. Each
+        value is 0 or 1 indicating whether a time step of a sequence is padded
+        in the inputs to reach the max length in the batch.
 
     Returns:
       (outputs, out_paddings) pair.
@@ -1354,7 +1345,7 @@ class StackingOverTime(base_layer.BaseLayer):
             py_utils.assert_shape_match(tf.shape(inputs), [-1, -1, -1]),
             # Checks the paddings shape has 3 dimensions, and the last one is 1.
             py_utils.assert_shape_match(tf.shape(paddings), [-1, -1, 1]),
-            # Checks the first two dimensions of inputs and paddings shapes match.  # pylint: disable=line-too-long
+            # Checks the first two dimensions of inputs and paddings match.
             py_utils.assert_shape_match(
                 tf.shape(inputs)[:-1],
                 tf.shape(paddings)[:-1])
@@ -1368,7 +1359,7 @@ class StackingOverTime(base_layer.BaseLayer):
       # Then take the minimum padding values within each stacking window, since
       # an output time step becomes a padded one only if all of the underlying
       # stacked steps are padded ones.
-      out_paddings = self._ApplyStack(paddings, pad_value=1.0)
+      out_paddings = self._ApplyStack(paddings, pad_value=1)
       out_paddings = tf.reduce_min(out_paddings, axis=2, keep_dims=True)
 
       return outputs, out_paddings
@@ -1378,24 +1369,42 @@ class StackingOverTime(base_layer.BaseLayer):
 
     Given 'stacked' outputs from this StackingOverTime layer,
 
-      stacked = this_layer.FProp(inputs),
+      stacked, _ = this_layer.FProp(inputs),
 
-    this method attempts to reconstruct the original 'inputs'. If
-    stride <= window_size, `Unstack(stacked)` returns a Tensor that is identical
-    to 'inputs' but up to stride - 1 frames shorter in the time axis. If
-    stride > window_size, the original input cannot be recovered, and a
+    this method attempts to reconstruct the original 'inputs'.
+
+    If stride > window_size, the original input cannot be recovered, and a
     ValueError is raised.
 
-    `Unstack()` can also be used to project the outputs of downstream layers
-    back to the original unstacked inputs. For example::
+    Otherwise, if right_context + 1 >= stride, this method returns a Tensor that
+    is identical to 'inputs' but potentially longer due to paddings.
+
+    If right_context + 1 < stride, this method returns a Tensor that may be up
+    to ```stride - right_context - 1``` frames shorter than the original input,
+    but identical in the frames that are returned. e.g.::
+
+      left_context = 2, right_context = 1, stride = 4
+      input sequence:     1 2 3 4 5 6 7 8
+      after padding:  0 0 1 2 3 4 5 6 7 8 0
+      windows:
+        [0 0 (1) 2] 3 4 5 6 7 8 0
+         0 0 1 2 [3 4 (5) 6] 7 8 0
+      stacked:
+        [[0 0 1 2], [3 4 5 6]]
+      unstacked:
+        [1 2 3 4 5 6], which is 4 - 1 - 1 = 2 (stride - right_context - 1)
+        frames shorter than the original input.
+
+    `Unstack()` can be used to project the outputs of downstream layers back to
+    the shape of the original unstacked inputs. For example::
 
         inputs = ...  # [batch, length, input_dim]
         # [batch, ceil(length / stride), rnn_dim]
-        rnn_out = rnn.FProp(stacking.FProp(inputs))
+        rnn_out = rnn.FProp(stacking.FProp(inputs)[0])
         # [batch, length, rnn_dim]
         back_projected_rnn_out = py_utils.PadOrTrimTo(
             stacking.Unstack(tf.tile(rnn_out, [1, 1, stacking.window_size])),
-            tf.size(inputs))
+            py_utils.GetShape(inputs))
 
     Note this method does not take or return a separate padding tensor. The
     caller is responsible for knowing which of outputs are padding (e.g. based
@@ -1406,10 +1415,8 @@ class StackingOverTime(base_layer.BaseLayer):
         to be the output of `FProp`.
 
     Returns:
-      The reconstructed (but truncated) input Tensor, with shape
-      [batch, L - (L - 1) % stride, feature_dim] where L is the length of the
-      original inputs. The length of the returned Tensor is also, equivalently,
-      (stacked_length - 1) * stride + 1.
+      The reconstructed input Tensor, with shape
+      [batch, (frames - 1) * stride + right_context + 1, feature_dim].
 
     Raises:
       ValueError: if stride > window_size.
@@ -1425,27 +1432,29 @@ class StackingOverTime(base_layer.BaseLayer):
     stacked = tf.reshape(stacked,
                          [batch_size, stacked_length, self.window_size, -1])
 
-    # Determine the length of the original input represented in 'stacked'. This
-    # is the total number of frames in 'stacked', minus the duplicates and any
-    # leading/trailing padding. (This may be up to stride - 1 less than the true
-    # input length.)
-    input_length = (stacked_length - 1) * p.stride + 1
     # Compute the index of the window and frame in 'stacked' where each frame of
     # the original input is located, and extract them with tf.gather_nd.
-    input_indices = tf.range(0, input_length)
-    m = tf.mod(input_indices, p.stride)
-    in_next_window = tf.cast(tf.greater(m, p.right_context), tf.int32)
-    window_index = tf.div(input_indices, p.stride) + in_next_window
-    frame_index = p.left_context + m - p.stride * in_next_window
-    # [input_length, 2]
-    window_and_frame_indices = tf.concat(
-        [window_index[:, None], frame_index[:, None]], axis=1)
-
-    def _GatherOne(stacked_sequence):
-      return tf.gather_nd(stacked_sequence, window_and_frame_indices)
-
-    # [batch_size, input_length, feature_dim]
-    return tf.map_fn(_GatherOne, stacked)
+    # First compute for all except the last window, since these elements have
+    # the potential of being looked up from the next window.
+    input_indices = tf.range(0, (stacked_length - 1) * p.stride)
+    mod = input_indices % p.stride
+    in_next_window = tf.cast(tf.greater(mod, p.right_context), tf.int32)
+    window_index = input_indices // p.stride + in_next_window
+    frame_index = p.left_context + mod - p.stride * in_next_window
+    # Now handle the last window explicitly and concatenate onto the existing
+    # window_index/frame_index tensors.
+    last_window_length = p.right_context + 1
+    window_index = tf.concat(
+        [window_index,
+         tf.fill([last_window_length], stacked_length - 1)],
+        axis=0)
+    frame_index = tf.concat(
+        [frame_index, p.left_context + tf.range(last_window_length)], axis=0)
+    # Stack the indices for tf.gather_nd.
+    window_and_frame_indices = tf.stack([window_index, frame_index], axis=1)
+    window_and_frame_indices = tf.tile(
+        tf.expand_dims(window_and_frame_indices, 0), [batch_size, 1, 1])
+    return tf.gather_nd(stacked, window_and_frame_indices, batch_dims=1)
 
 
 class PoolingLayer(quant_utils.QuantizableLayer):
