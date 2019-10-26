@@ -136,6 +136,12 @@ class Learner(base_layer.BaseLayer):
     """
     return self.optimizer.ApplyPostTrainingLoop(global_step)
 
+  def LearningRate(self, step):
+    p = self.params
+    lrs = self.lr_schedule.Value(step)
+    self._AddScalarSummary('lr_schedule', lrs)
+    return p.learning_rate * lrs
+
   def Apply(self, loss, vmap, gradient_mask=None, gradient_adjuster=None):
     """Computes updates on 'vmap' to optimize 'loss'.
 
@@ -166,6 +172,35 @@ class Learner(base_layer.BaseLayer):
                                                 p.colocate_gradients_with_ops,
                                                 p.gate_gradients)
 
+    var_grads, stats = self.AdjustGradients(
+        var_grads,
+        gradient_mask=gradient_mask,
+        gradient_adjuster=gradient_adjuster)
+    self._var_grads = var_grads
+
+    assert self.theta.global_step is not None, self.theta
+    lr = self.LearningRate(self.theta.global_step)
+
+    var_update_op = self.optimizer.Apply(lr, var_grads)
+    return var_update_op, stats
+
+  def AdjustGradients(self,
+                      var_grads,
+                      gradient_mask=None,
+                      gradient_adjuster=None):
+    """Adjusts gradients according to learner params.
+
+    Args:
+      var_grads: a `.NestedMap` whose values are (var, grad) pairs.
+      gradient_mask: if not None, a dict mapping variable names to a 0/1 scalar.
+      gradient_adjuster: if not None, a function that mutates a given var_grads.
+
+    Returns:
+      (var_grads, stats), where var_grads is a `.NestedMap` whose values
+      (var, grad) pairs representing adjusted gradients, and stats is a
+      `.NestedMap` containing 'has_nan_or_inf' and 'eval_metrics'.
+    """
+    p = self.params
     # L2 regularizer.
     if p.l2_regularizer_weight is not None:
       l2_loss, var_grads = py_utils.AdjustGradientsWithLpLoss(
@@ -183,24 +218,16 @@ class Learner(base_layer.BaseLayer):
       var_grads = py_utils.MaskGradients(var_grads, gradient_mask)
 
     # Apply gradient clipping.
-    scaled_vars = self.ScaleGradients(var_grads, gradient_adjuster)
+    scaled_vars = self.ScaleGradients(
+        var_grads, gradient_adjuster=gradient_adjuster)
     has_nan_or_inf = scaled_vars.has_nan_or_inf
     var_grads = scaled_vars.final_var_grads
 
     # Histogram summary.
     summary_utils.CollectVarHistogram(var_grads)
-    self._var_grads = var_grads
-
-    assert self.theta.global_step is not None, self.theta
-    lrs = self.lr_schedule.Value(self.theta.global_step)
-    self._AddScalarSummary('lr_schedule', lrs)
-    lr = p.learning_rate * lrs
-
-    var_update_op = self.optimizer.Apply(lr, var_grads)
-
     stats = py_utils.NestedMap(
         has_nan_or_inf=has_nan_or_inf, eval_metrics=self._eval_metrics)
-    return var_update_op, stats
+    return var_grads, stats
 
   def _GetGlobalGradScale(self, all_grad_norm, has_nan_or_inf):
     """Returns a scaling factor for all gradients according to their norm.
