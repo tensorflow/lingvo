@@ -281,6 +281,12 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">ApplyPostTrainingLoop</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="Learner.LearningRate"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.LearningRate">[docs]</a>  <span class="k">def</span> <span class="nf">LearningRate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">lrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_AddScalarSummary</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">lrs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">*</span> <span class="n">lrs</span></div>
+
 <div class="viewcode-block" id="Learner.Apply"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">,</span> <span class="n">gradient_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gradient_adjuster</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes updates on &#39;vmap&#39; to optimize &#39;loss&#39;.</span>
 
@@ -311,6 +317,35 @@
                                                 <span class="n">p</span><span class="o">.</span><span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
                                                 <span class="n">p</span><span class="o">.</span><span class="n">gate_gradients</span><span class="p">)</span>
 
+    <span class="n">var_grads</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AdjustGradients</span><span class="p">(</span>
+        <span class="n">var_grads</span><span class="p">,</span>
+        <span class="n">gradient_mask</span><span class="o">=</span><span class="n">gradient_mask</span><span class="p">,</span>
+        <span class="n">gradient_adjuster</span><span class="o">=</span><span class="n">gradient_adjuster</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span> <span class="o">=</span> <span class="n">var_grads</span>
+
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span>
+    <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LearningRate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+
+    <span class="n">var_update_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">var_update_op</span><span class="p">,</span> <span class="n">stats</span></div>
+
+<div class="viewcode-block" id="Learner.AdjustGradients"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.AdjustGradients">[docs]</a>  <span class="k">def</span> <span class="nf">AdjustGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">var_grads</span><span class="p">,</span>
+                      <span class="n">gradient_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">gradient_adjuster</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adjusts gradients according to learner params.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      var_grads: a `.NestedMap` whose values are (var, grad) pairs.</span>
+<span class="sd">      gradient_mask: if not None, a dict mapping variable names to a 0/1 scalar.</span>
+<span class="sd">      gradient_adjuster: if not None, a function that mutates a given var_grads.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      (var_grads, stats), where var_grads is a `.NestedMap` whose values</span>
+<span class="sd">      (var, grad) pairs representing adjusted gradients, and stats is a</span>
+<span class="sd">      `.NestedMap` containing &#39;has_nan_or_inf&#39; and &#39;eval_metrics&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># L2 regularizer.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">l2_regularizer_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">l2_loss</span><span class="p">,</span> <span class="n">var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AdjustGradientsWithLpLoss</span><span class="p">(</span>
@@ -328,24 +363,16 @@
       <span class="n">var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MaskGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">,</span> <span class="n">gradient_mask</span><span class="p">)</span>
 
     <span class="c1"># Apply gradient clipping.</span>
-    <span class="n">scaled_vars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ScaleGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">,</span> <span class="n">gradient_adjuster</span><span class="p">)</span>
+    <span class="n">scaled_vars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ScaleGradients</span><span class="p">(</span>
+        <span class="n">var_grads</span><span class="p">,</span> <span class="n">gradient_adjuster</span><span class="o">=</span><span class="n">gradient_adjuster</span><span class="p">)</span>
     <span class="n">has_nan_or_inf</span> <span class="o">=</span> <span class="n">scaled_vars</span><span class="o">.</span><span class="n">has_nan_or_inf</span>
     <span class="n">var_grads</span> <span class="o">=</span> <span class="n">scaled_vars</span><span class="o">.</span><span class="n">final_var_grads</span>
 
     <span class="c1"># Histogram summary.</span>
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">CollectVarHistogram</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span> <span class="o">=</span> <span class="n">var_grads</span>
-
-    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span>
-    <span class="n">lrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_AddScalarSummary</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">lrs</span><span class="p">)</span>
-    <span class="n">lr</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">*</span> <span class="n">lrs</span>
-
-    <span class="n">var_update_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)</span>
-
     <span class="n">stats</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">has_nan_or_inf</span><span class="o">=</span><span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">var_update_op</span><span class="p">,</span> <span class="n">stats</span></div>
+    <span class="k">return</span> <span class="n">var_grads</span><span class="p">,</span> <span class="n">stats</span></div>
 
 <div class="viewcode-block" id="Learner._GetGlobalGradScale"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._GetGlobalGradScale">[docs]</a>  <span class="k">def</span> <span class="nf">_GetGlobalGradScale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">all_grad_norm</span><span class="p">,</span> <span class="n">has_nan_or_inf</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a scaling factor for all gradients according to their norm.</span>

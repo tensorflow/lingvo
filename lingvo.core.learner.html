@@ -206,6 +206,11 @@ disjoint) subset of variables.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.core.learner.Learner.LearningRate">
+<code class="sig-name descname">LearningRate</code><span class="sig-paren">(</span><em class="sig-param">step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.LearningRate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.learner.Learner.LearningRate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="lingvo.core.learner.Learner.Apply">
 <code class="sig-name descname">Apply</code><span class="sig-paren">(</span><em class="sig-param">loss</em>, <em class="sig-param">vmap</em>, <em class="sig-param">gradient_mask=None</em>, <em class="sig-param">gradient_adjuster=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.Apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.learner.Learner.Apply" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes updates on ‘vmap’ to optimize ‘loss’.</p>
@@ -222,6 +227,26 @@ disjoint) subset of variables.</p>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>(op, stats), where op is a tf.Operation to update variables and stats
 is a NestedMap containing ‘has_nan_or_inf’ and ‘eval_metrics’.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.learner.Learner.AdjustGradients">
+<code class="sig-name descname">AdjustGradients</code><span class="sig-paren">(</span><em class="sig-param">var_grads</em>, <em class="sig-param">gradient_mask=None</em>, <em class="sig-param">gradient_adjuster=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.AdjustGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.learner.Learner.AdjustGradients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adjusts gradients according to learner params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>var_grads</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs.</p></li>
+<li><p><strong>gradient_mask</strong> – if not None, a dict mapping variable names to a 0/1 scalar.</p></li>
+<li><p><strong>gradient_adjuster</strong> – if not None, a function that mutates a given var_grads.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(var_grads, stats), where var_grads is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values
+(var, grad) pairs representing adjusted gradients, and stats is a
+<a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing ‘has_nan_or_inf’ and ‘eval_metrics’.</p>
 </dd>
 </dl>
 </dd></dl>
