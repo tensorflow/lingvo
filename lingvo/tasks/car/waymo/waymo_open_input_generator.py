@@ -407,6 +407,10 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
     detection_difficulties: [p.max_num_objects] - The per-box difficulty level
     for detection task as defined in car.open_dataset.Label.DifficultyLevel.
 
+    combined_detection_difficulties: [p.max_num_objects] - The per-box
+    difficulty level derived via both detection_difficulties (labeler defined)
+    and metric defined (number of points in box).
+
     tracking_difficulties: [p.max_num_objects] - The per-box difficulty level
     for tracking task as defined in car.open_dataset.Label.DifficultyLevel.
 
@@ -445,6 +449,8 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
     feature_map['labels'] = tf.VarLenFeature(dtype=tf.int64)
     feature_map['label_ids'] = tf.VarLenFeature(dtype=tf.string)
     feature_map['detection_difficulties'] = tf.VarLenFeature(dtype=tf.int64)
+    feature_map['combined_detection_difficulties'] = tf.VarLenFeature(
+        dtype=tf.int64)
     feature_map['tracking_difficulties'] = tf.VarLenFeature(dtype=tf.int64)
     feature_map['bboxes_3d'] = tf.VarLenFeature(dtype=tf.float32)
     feature_map['bboxes_3d_num_points'] = tf.VarLenFeature(dtype=tf.int64)
@@ -474,6 +480,9 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
     detection_difficulties = py_utils.PadOrTrimTo(
         tf.cast(_Dense(features['detection_difficulties']), tf.int32),
         [p.max_num_objects])
+    combined_detection_difficulties = py_utils.PadOrTrimTo(
+        tf.cast(_Dense(features['combined_detection_difficulties']), tf.int32),
+        [p.max_num_objects])
     tracking_difficulties = py_utils.PadOrTrimTo(
         tf.cast(_Dense(features['tracking_difficulties']), tf.int32),
         [p.max_num_objects])
@@ -489,6 +498,7 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
         'labels': labels,
         'label_ids': label_ids,
         'detection_difficulties': detection_difficulties,
+        'combined_detection_difficulties': combined_detection_difficulties,
         'tracking_difficulties': tracking_difficulties,
         'bboxes_3d': bboxes_3d,
         'bboxes_3d_mask': bboxes_3d_mask,
@@ -507,6 +517,7 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
         'labels': tf.TensorShape([p.max_num_objects]),
         'label_ids': tf.TensorShape([p.max_num_objects]),
         'detection_difficulties': tf.TensorShape([p.max_num_objects]),
+        'combined_detection_difficulties': tf.TensorShape([p.max_num_objects]),
         'tracking_difficulties': tf.TensorShape([p.max_num_objects]),
         'bboxes_3d': tf.TensorShape([p.max_num_objects, 7]),
         'bboxes_3d_mask': tf.TensorShape([p.max_num_objects]),
@@ -523,6 +534,7 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
     dtypes.labels = tf.int32
     dtypes.label_ids = tf.string
     dtypes.detection_difficulties = tf.int32
+    dtypes.combined_detection_difficulties = tf.int32
     dtypes.tracking_difficulties = tf.int32
     dtypes.bboxes_3d = tf.float32
     dtypes.bboxes_3d_mask = tf.float32

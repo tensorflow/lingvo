@@ -156,7 +156,6 @@ import zlib
 
 import apache_beam as beam
 from lingvo import compat as tf
-from lingvo.tasks.car import geometry
 import numpy as np
 from waymo_open_dataset import dataset_pb2
 from waymo_open_dataset.utils import range_image_utils
@@ -497,6 +496,8 @@ class WaymoOpenDatasetConverter(beam.DoFn):
     label_ids = []
     detection_difficulty_levels = []
     tracking_difficulty_levels = []
+    bboxes_3d_num_points = []
+    combined_detection_difficulty_levels = []
     bboxes = []
     label_md = []
 
@@ -516,17 +517,21 @@ class WaymoOpenDatasetConverter(beam.DoFn):
       label_ids += [tf.compat.as_bytes(label.id)]
       detection_difficulty_levels += [label.detection_difficulty_level]
       tracking_difficulty_levels += [label.tracking_difficulty_level]
+      bboxes_3d_num_points += [label.num_lidar_points_in_box]
 
-    # Calculate the number of points in each ground truth box which are needed
-    # to fill in difficulty levels for each ground truth and to filter boxes
-    # with less points than a configurable minimum.
-    points_xyz = tf.convert_to_tensor(points_xyz, dtype=tf.float32)
-    bboxes_3d = tf.convert_to_tensor(
-        np.array(bboxes).reshape(-1, 7), dtype=tf.float32)
-    points_in_bboxes_mask = geometry.IsWithinBBox3D(points_xyz, bboxes_3d)
-    bboxes_3d_num_points = tf.reduce_sum(
-        tf.cast(points_in_bboxes_mask, tf.int32), axis=0, keepdims=False)
-    bboxes_3d_num_points = bboxes_3d_num_points.numpy().reshape([-1])
+      # Difficulty level is 0 if labeler did not say this was LEVEL_2.
+      if label.detection_difficulty_level == 0:
+        # Use points in box to compute difficulty level.
+        if bboxes_3d_num_points[-1] >= 5:
+          difficulty_level = 1
+        elif bboxes_3d_num_points[-1] >= 1 and bboxes_3d_num_points[-1] < 5:
+          difficulty_level = 2
+        else:
+          # Set difficulty level of "2" for boxes with no points in box.
+          difficulty_level = 2
+      else:
+        difficulty_level = label.detection_difficulty_level
+      combined_detection_difficulty_levels += [difficulty_level]
 
     bboxes = np.array(bboxes).reshape(-1)
     label_md = np.array(label_md).reshape(-1)
@@ -534,12 +539,13 @@ class WaymoOpenDatasetConverter(beam.DoFn):
     feature['label_ids'].bytes_list.value[:] = label_ids
     feature['detection_difficulties'].int64_list.value[:] = (
         detection_difficulty_levels)
+    feature['combined_detection_difficulties'].int64_list.value[:] = (
+        combined_detection_difficulty_levels)
     feature['tracking_difficulties'].int64_list.value[:] = (
         tracking_difficulty_levels)
     feature['bboxes_3d'].float_list.value[:] = list(bboxes)
     feature['label_metadata'].float_list.value[:] = list(label_md)
-    feature['bboxes_3d_num_points'].int64_list.value[:] = list(
-        bboxes_3d_num_points)
+    feature['bboxes_3d_num_points'].int64_list.value[:] = (bboxes_3d_num_points)
 
   def add_no_label_zones(self, feature, no_label_zones):
     """Add no label zones into the output feature map.
