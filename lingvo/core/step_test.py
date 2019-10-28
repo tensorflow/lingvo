@@ -175,6 +175,33 @@ class StepTest(test_utils.TestCase):
                 ['text0in', 'text1in:ztext0', 'text2in:ztext0:ztext1in:ztext0']
         }, state1)
 
+  def testParallelStep(self):
+
+    def PlusConstantParams(n):
+      p = step.StatelessLayerStep.Params()
+      p.name = 'sum'
+      p.layer = builder_layers.FnLayer.Params().Set(fn=lambda x: x + n)
+      return p
+
+    with self.session() as sess:
+      p = step.ParallelStep.Params()
+      p.name = 'concat'
+      p.sub = [PlusConstantParams(1), PlusConstantParams(2)]
+      concat = p.Instantiate()
+
+      prepared = concat.PrepareExternalInputs(concat.theta,
+                                              py_utils.NestedMap())
+      state0 = concat.ZeroState(concat.theta, prepared, 3)
+      step_inputs = py_utils.NestedMap(
+          inputs=tf.constant([[5], [10], [15]], dtype=tf.float32))
+      output, _ = concat.FProp(concat.theta, prepared, step_inputs, None,
+                               state0)
+      output = sess.run(output)
+      # Input is batch size 3: [[5], [10], [15]].
+      # Two separate steps run on each input, +1 and +2, and the result is
+      # concatenated.
+      self.assertAllClose(output.output, [[6, 7], [11, 12], [16, 17]])
+
   def testIteratorStep(self):
     with self.session() as sess:
       p = step.IteratorStep.Params()
@@ -202,7 +229,6 @@ class StepTest(test_utils.TestCase):
       }, {
           'a': [[5, 6], [2, 3]]
       }], outputs)
-
 
 if __name__ == '__main__':
   tf.test.main()

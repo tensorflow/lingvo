@@ -306,6 +306,58 @@ class StackStep(Step):
     return py_utils.NestedMap(output=output), state1
 
 
+class ParallelStep(Step):
+  """Runs many steps on the same input and concatenates their outputs."""
+
+  @classmethod
+  def Params(cls):
+    p = super(ParallelStep, cls).Params()
+    p.Define(
+        'sub', [], 'A list of step params. Each step is '
+        'expected to accept its input as NestedMap(inputs=[]), and '
+        'produce output as NestedMap(output=tensor). '
+        'The external_inputs parameter is passed directly to the '
+        'PrepareExternalInputs method of each sub-step. ')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(ParallelStep, self).__init__(params)
+    p = params
+    with tf.variable_scope(p.name):
+      self.CreateChildren('sub', p.sub)
+
+  def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
+    """Performs inference on N steps at once and concatenates the result.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      prepared_inputs: An output from PrepareExternalInputs.
+      step_inputs: A `.NestedMap` containing a list called 'inputs'.
+      padding: A 0/1 float tensor of shape [batch_size]; 1.0 means that this
+        batch element is empty in this step.
+      state0: The previous recurrent state.
+
+    Returns:
+      A tuple (output, state1):
+
+      - output: A `.NestedMap` containing the output of the top-most step.
+      - state1: The recurrent state to feed to next invocation of this graph.
+    """
+    state1 = py_utils.NestedMap(sub=[None] * len(self.sub))
+    outputs = [None] * len(self.sub)
+
+    for i in range(len(self.sub)):
+      outputs[i], state1.sub[i] = self.sub[i].FProp(theta.sub[i],
+                                                    prepared_inputs.sub[i],
+                                                    step_inputs, padding,
+                                                    state0.sub[i])
+
+    output = py_utils.NestedMap(output=tf.concat(outputs, axis=1))
+    return output, state1
+
+
 # signature: A GraphSignature string defining the input and output parameters
 #   of this step. For example, (inputs=[a,b])->c means that step_inputs
 #   should be NestedMap(inputs=[a,b]), and the output of FProp should be
