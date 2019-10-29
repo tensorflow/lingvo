@@ -163,6 +163,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
@@ -1898,6 +1899,22 @@
              <span class="s1">&#39;Whether to prune the weights in the projection layer&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bias_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
              <span class="s1">&#39;Initialization parameters for bias&#39;</span><span class="p">)</span>
+    <span class="c1"># Add cell-recursive vector into the SRU cells (arxiv.org/abs/1709.02755).</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;pointwise_peephole&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether c_{t-1} should be used to&#39;</span>
+        <span class="s1">&#39;calculate gate values by aggregating gate calculations with its &#39;</span>
+        <span class="s1">&#39;point-wise dot product with a weight vector.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;hidden_scaling_factor&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;scaling factor alpha for hidden layer. See details on alpha in&#39;</span>
+        <span class="s1">&#39;section 3.2 of https://arxiv.org/pdf/1709.02755.pdf&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;uniform_heuristic_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;When set to True, initialize the weight params with uniform &#39;</span>
+        <span class="s1">&#39;distribution of [-sqrt(3/hidden_nodes), +sqrt(3/hidden_nodes)], aka&#39;</span>
+        <span class="s1">&#39;UniformUnitScaling. This initialization has proven to help NLP tasks&#39;</span>
+        <span class="s1">&#39;in arxiv.org/abs/1709.02755. This impacts 1) input weight matrices for&#39;</span>
+        <span class="s1">&#39;gates, 2) projection weight matrices, and 3) cell recursion vectors.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1909,6 +1926,10 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">reset_cell_state</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;SRUCell currently doesnt support &#39;</span>
                                          <span class="s1">&#39;resetting cell state.&#39;</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">uniform_heuristic_init</span><span class="p">:</span>
+      <span class="c1"># Setting init = sqrt(3) / sqrt(hidden) * tf.uniform(-1, 1).</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
+          <span class="n">scale</span><span class="o">=</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">))))</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
       <span class="c1"># Define weights.</span>
@@ -1991,7 +2012,31 @@
               <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;i_t_ln_scale&#39;</span><span class="p">,</span> <span class="n">i_t_ln_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
-      <span class="c1"># Collect some stats</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pointwise_peephole</span><span class="p">:</span>
+        <span class="n">f_t_vector_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;f_t_vector_cell&#39;</span><span class="p">,</span> <span class="n">f_t_vector_cell</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+        <span class="n">r_t_vector_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;r_t_vector_cell&#39;</span><span class="p">,</span> <span class="n">r_t_vector_cell</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_input_forget_gates</span><span class="p">:</span>
+          <span class="n">i_t_vector_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+              <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+              <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+              <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+              <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;i_t_vector_cell&#39;</span><span class="p">,</span> <span class="n">i_t_vector_cell</span><span class="p">,</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+      <span class="c1"># Collect some stats.</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_input_forget_gates</span><span class="p">:</span>
         <span class="n">x_t2</span><span class="p">,</span> <span class="n">resized</span><span class="p">,</span> <span class="n">f_t</span><span class="p">,</span> <span class="n">r_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
             <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -2074,6 +2119,8 @@
           <span class="n">value</span><span class="o">=</span><span class="n">xmw</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
       <span class="n">b_t2</span><span class="p">,</span> <span class="n">b_resized</span><span class="p">,</span> <span class="n">b_f</span><span class="p">,</span> <span class="n">b_r</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
           <span class="n">value</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pointwise_peephole</span><span class="p">:</span>
+        <span class="n">f_t</span> <span class="o">=</span> <span class="n">f_t</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">f_t_vector_cell</span><span class="p">)</span>
       <span class="n">f_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;f_t&#39;</span><span class="p">,</span> <span class="n">f_t</span><span class="p">,</span> <span class="n">b_f</span><span class="p">)</span>
       <span class="n">f_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f_t</span><span class="p">)</span>
       <span class="n">i_t</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">f_t</span>
@@ -2082,19 +2129,22 @@
           <span class="n">value</span><span class="o">=</span><span class="n">xmw</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
       <span class="n">b_t2</span><span class="p">,</span> <span class="n">b_resized</span><span class="p">,</span> <span class="n">b_i</span><span class="p">,</span> <span class="n">b_f</span><span class="p">,</span> <span class="n">b_r</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
           <span class="n">value</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pointwise_peephole</span><span class="p">:</span>
+        <span class="n">f_t</span> <span class="o">=</span> <span class="n">f_t</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">f_t_vector_cell</span><span class="p">)</span>
+        <span class="n">i_t</span> <span class="o">=</span> <span class="n">i_t</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">i_t_vector_cell</span><span class="p">)</span>
       <span class="n">f_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;f_t&#39;</span><span class="p">,</span> <span class="n">f_t</span><span class="p">,</span> <span class="n">b_f</span><span class="p">)</span>
       <span class="n">f_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f_t</span><span class="p">)</span>
       <span class="n">i_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;i_t&#39;</span><span class="p">,</span> <span class="n">i_t</span><span class="p">,</span> <span class="n">b_i</span><span class="p">)</span>
       <span class="n">i_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">i_t</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pointwise_peephole</span><span class="p">:</span>
+      <span class="n">r_t</span> <span class="o">=</span> <span class="n">r_t</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">r_t_vector_cell</span><span class="p">)</span>
     <span class="n">r_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;r_t&#39;</span><span class="p">,</span> <span class="n">r_t</span><span class="p">,</span> <span class="n">b_r</span><span class="p">)</span>
     <span class="n">r_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">r_t</span><span class="p">)</span>
 
     <span class="n">c_t</span> <span class="o">=</span> <span class="n">f_t</span> <span class="o">*</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span> <span class="o">+</span> <span class="n">i_t</span> <span class="o">*</span> <span class="n">x_t2</span>
     <span class="n">c_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;c_t&#39;</span><span class="p">,</span> <span class="n">c_t</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-    <span class="c1"># now it is obvious that these inputs don&#39;t use layer norm.</span>
     <span class="n">resized</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">resized</span><span class="p">,</span> <span class="n">b_resized</span><span class="p">)</span>
     <span class="n">x_t2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">x_t2</span><span class="p">,</span> <span class="n">b_t2</span><span class="p">)</span>
     <span class="c1"># Clip the cell states to reasonable value.</span>
@@ -2102,7 +2152,14 @@
       <span class="n">c_t</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">c_t</span><span class="p">,</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">)</span>
     <span class="c1"># Calculate state outputs.</span>
     <span class="n">g_c_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">c_t</span><span class="p">)</span>
-    <span class="n">h_t</span> <span class="o">=</span> <span class="n">r_t</span> <span class="o">*</span> <span class="n">g_c_t</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">r_t</span><span class="p">)</span> <span class="o">*</span> <span class="n">resized</span>
+    <span class="c1"># Apply scaling factor if needed.</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_scaling_factor</span><span class="p">:</span>
+      <span class="c1"># For the derivations of alpha please refer to variance computation of</span>
+      <span class="c1"># hidden cells h with respect to the variance of input x in appendix A.3</span>
+      <span class="c1"># https://arxiv.org/pdf/1709.02755.pdf.</span>
+      <span class="n">alpha</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="mf">2.0</span><span class="p">))</span>
+    <span class="n">h_t</span> <span class="o">=</span> <span class="n">r_t</span> <span class="o">*</span> <span class="n">g_c_t</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">r_t</span><span class="p">)</span> <span class="o">*</span> <span class="n">resized</span> <span class="o">*</span> <span class="n">alpha</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning_to_projection</span><span class="p">:</span>
