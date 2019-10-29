@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import math
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import hyperparams
@@ -1753,6 +1754,22 @@ class SRUCell(RNNCell):
              'Whether to prune the weights in the projection layer')
     p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
              'Initialization parameters for bias')
+    # Add cell-recursive vector into the SRU cells (arxiv.org/abs/1709.02755).
+    p.Define(
+        'pointwise_peephole', False, 'Whether c_{t-1} should be used to'
+        'calculate gate values by aggregating gate calculations with its '
+        'point-wise dot product with a weight vector.')
+    p.Define(
+        'hidden_scaling_factor', False,
+        'scaling factor alpha for hidden layer. See details on alpha in'
+        'section 3.2 of https://arxiv.org/pdf/1709.02755.pdf')
+    p.Define(
+        'uniform_heuristic_init', False,
+        'When set to True, initialize the weight params with uniform '
+        'distribution of [-sqrt(3/hidden_nodes), +sqrt(3/hidden_nodes)], aka'
+        'UniformUnitScaling. This initialization has proven to help NLP tasks'
+        'in arxiv.org/abs/1709.02755. This impacts 1) input weight matrices for'
+        'gates, 2) projection weight matrices, and 3) cell recursion vectors.')
     return p
 
   @base_layer.initializer
@@ -1764,6 +1781,10 @@ class SRUCell(RNNCell):
     assert p.reset_cell_state is False, ('SRUCell currently doesnt support '
                                          'resetting cell state.')
     assert isinstance(p.cell_value_cap, (int, float))
+    if p.uniform_heuristic_init:
+      # Setting init = sqrt(3) / sqrt(hidden) * tf.uniform(-1, 1).
+      p.params_init = py_utils.WeightInit.Uniform(
+          scale=(math.sqrt(3.0 / float(self.hidden_size))))
 
     with tf.variable_scope(p.name) as scope:
       # Define weights.
@@ -1846,7 +1867,31 @@ class SRUCell(RNNCell):
               collections=self._VariableCollections())
           self.CreateVariable('i_t_ln_scale', i_t_ln_scale, self.AddGlobalVN)
 
-      # Collect some stats
+      if p.pointwise_peephole:
+        f_t_vector_cell = py_utils.WeightParams(
+            shape=[self.hidden_size],
+            init=p.params_init,
+            dtype=p.dtype,
+            collections=self._VariableCollections())
+        self.CreateVariable('f_t_vector_cell', f_t_vector_cell,
+                            self.AddGlobalVN)
+        r_t_vector_cell = py_utils.WeightParams(
+            shape=[self.hidden_size],
+            init=p.params_init,
+            dtype=p.dtype,
+            collections=self._VariableCollections())
+        self.CreateVariable('r_t_vector_cell', r_t_vector_cell,
+                            self.AddGlobalVN)
+        if not p.couple_input_forget_gates:
+          i_t_vector_cell = py_utils.WeightParams(
+              shape=[self.hidden_size],
+              init=p.params_init,
+              dtype=p.dtype,
+              collections=self._VariableCollections())
+          self.CreateVariable('i_t_vector_cell', i_t_vector_cell,
+                              self.AddGlobalVN)
+
+      # Collect some stats.
       if p.couple_input_forget_gates:
         x_t2, resized, f_t, r_t = tf.split(
             value=self.vars.wm, num_or_size_splits=self.num_gates, axis=1)
@@ -1929,6 +1974,8 @@ class SRUCell(RNNCell):
           value=xmw, num_or_size_splits=4, axis=1)
       b_t2, b_resized, b_f, b_r = tf.split(
           value=tf.expand_dims(theta.b, 0), num_or_size_splits=4, axis=1)
+      if p.pointwise_peephole:
+        f_t = f_t + tf.multiply(state0.c, theta.f_t_vector_cell)
       f_t = self.LayerNorm(theta, 'f_t', f_t, b_f)
       f_t = tf.nn.sigmoid(f_t)
       i_t = 1.0 - f_t
@@ -1937,19 +1984,22 @@ class SRUCell(RNNCell):
           value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=5, axis=1)
       b_t2, b_resized, b_i, b_f, b_r = tf.split(
           value=tf.expand_dims(theta.b, 0), num_or_size_splits=5, axis=1)
-
+      if p.pointwise_peephole:
+        f_t = f_t + tf.multiply(state0.c, theta.f_t_vector_cell)
+        i_t = i_t + tf.multiply(state0.c, theta.i_t_vector_cell)
       f_t = self.LayerNorm(theta, 'f_t', f_t, b_f)
       f_t = tf.nn.sigmoid(f_t)
       i_t = self.LayerNorm(theta, 'i_t', i_t, b_i)
       i_t = tf.nn.sigmoid(i_t)
 
+    if p.pointwise_peephole:
+      r_t = r_t + tf.multiply(state0.c, theta.r_t_vector_cell)
     r_t = self.LayerNorm(theta, 'r_t', r_t, b_r)
     r_t = tf.nn.sigmoid(r_t)
 
     c_t = f_t * state0.c + i_t * x_t2
     c_t = self.LayerNorm(theta, 'c_t', c_t, 0)
 
-    # now it is obvious that these inputs don't use layer norm.
     resized = tf.add(resized, b_resized)
     x_t2 = tf.add(x_t2, b_t2)
     # Clip the cell states to reasonable value.
@@ -1957,7 +2007,14 @@ class SRUCell(RNNCell):
       c_t = py_utils.clip_by_value(c_t, -p.cell_value_cap, p.cell_value_cap)
     # Calculate state outputs.
     g_c_t = tf.nn.tanh(c_t)
-    h_t = r_t * g_c_t + (1.0 - r_t) * resized
+    # Apply scaling factor if needed.
+    alpha = 1.0
+    if p.hidden_scaling_factor:
+      # For the derivations of alpha please refer to variance computation of
+      # hidden cells h with respect to the variance of input x in appendix A.3
+      # https://arxiv.org/pdf/1709.02755.pdf.
+      alpha = tf.sqrt(1.0 + tf.exp(p.bias_init.scale * 2.0))
+    h_t = r_t * g_c_t + (1.0 - r_t) * resized * alpha
 
     if p.num_hidden_nodes:
       if p.apply_pruning_to_projection:
