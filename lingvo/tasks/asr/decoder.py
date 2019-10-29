@@ -287,7 +287,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
   @classmethod
   def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
-    """Sets the vocab size in the params.
+    """Updates params with the vocab size and wpm model.
 
     Args:
       p: model params.
@@ -299,8 +299,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     """
     p.emb.vocab_size = vocab_size
     p.softmax.num_classes = vocab_size
-    lm = p.fusion.lm
-    lm = lm.cls.UpdateTargetVocabSize(lm, vocab_size, wpm_model)
+    p.fusion.lm = p.fusion.lm.cls.UpdateTargetVocabSize(p.fusion.lm, vocab_size,
+                                                        wpm_model)
     return p
 
   @base_layer.initializer

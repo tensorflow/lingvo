@@ -976,12 +976,6 @@ class TransformerDecoder(MTBaseDecoder):
       p.softmax.input_dim = p.model_dim
       self.CreateChild('softmax', p.softmax)
 
-  @classmethod
-  def UpdateTargetVocabSize(cls, p, vocab_size):
-    """Updates the params with the input vocab_size and WPM model."""
-    p = super(TransformerDecoder, cls).UpdateTargetVocabSize(p, vocab_size)
-    return p
-
   def _ExpandToNumHyps(self, source_enc_len, num_hyps_per_beam):
     """Repeat each value according to num hyps.
 

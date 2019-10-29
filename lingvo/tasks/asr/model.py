@@ -91,13 +91,6 @@ class AsrModel(base_model.BaseTask):
       if p.frontend:
         self.CreateChild('frontend', p.frontend)
 
-  @classmethod
-  def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
-    """Updates the params with the input vocab_size and wpm model."""
-    p.decoder = p.decoder.cls.UpdateTargetVocabSize(p.decoder, vocab_size,
-                                                    wpm_model)
-    return p
-
   def _GetDecoderTargets(self, input_batch):
     """Returns targets which will be forwarded to the decoder.
 

@@ -255,7 +255,7 @@ class BaseTask(base_layer.BaseLayer):
 
   @classmethod
   def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
-    """Sets the vocab size and wpm model in the params.
+    """Updates params with the vocab size and wpm model.
 
     Args:
       p: model params.
@@ -263,9 +263,11 @@ class BaseTask(base_layer.BaseLayer):
       wpm_model: file name prefix pointing to a wordpiece model.
 
     Returns:
-      Model target vocabulary params updated with the vocab size and wpm model.
+      Model params updated with the vocab size and wpm model.
     """
-    raise NotImplementedError('Abstract method')
+    dp = p.decoder
+    p.decoder = dp.cls.UpdateTargetVocabSize(dp, vocab_size, wpm_model)
+    return p
 
   @base_layer.initializer
   def __init__(self, params):
