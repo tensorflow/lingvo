@@ -1768,7 +1768,7 @@ class RunnerManager(object):
               dtype_override=None),
           export_path=filename_prefix + '_tpu.pbtxt')
     except Exception as e:  # pylint: disable=broad-except
-      tf.logging.info('Error exporting TPU inference graph: %s' % e)
+      tf.logging.error('Error exporting TPU inference graph: %s' % e)
 
   def Start(self):
     """Start the process."""
