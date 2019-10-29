@@ -52,13 +52,14 @@ class DataSource(object):
     Returns:
       A NestedMap containing
 
-      - data: a tuple of tf.Tensor or `.NestedMap` of tf.Tensor same as
-        ``BaseInputGeneratorFromFiles._DataSourceFromFilePattern(file_pattern,
-        input_source_weights=None)``
-      - source_selected: a tensor of size [batch_size, number of data sources]
-      - selected_bprop: a tensor of size [number of data sources]
-      - bprop_variable_filters: containing a list of bprop_variable filters for
-        each source.
+      - data: (Required) a tuple of tf.Tensor or `.NestedMap` of tf.Tensor same
+          as ``BaseInputGeneratorFromFiles._DataSourceFromFilePattern(
+          file_pattern, input_source_weights=None)``
+      - source_selected: (Optional) a tensor of size
+          [batch_size, number of datasources]
+      - selected_bprop: (Optional) a tensor of size [number of data sources]
+      - bprop_variable_filters: (Optional) containing a list of bprop_variable
+          filters for each source.
     """
     raise NotImplementedError()
 
