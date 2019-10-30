@@ -2936,7 +2936,12 @@
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;gmm_offsets&#39;</span><span class="p">,</span> <span class="n">position_offset</span><span class="p">)</span>
 
     <span class="n">new_position</span> <span class="o">=</span> <span class="n">attention_state</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">position_offset</span>
+
+    <span class="c1"># NOTE(jiaye): This capping seems a bad idea because it depends on other</span>
+    <span class="c1"># examples in the same batch, or the overall padding strategy.</span>
+    <span class="c1"># TODO(jiaye): Try removing this.</span>
     <span class="n">new_position</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">new_position</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">source_length</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+
     <span class="n">variances</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddDebugTensor</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;variances&#39;</span><span class="p">)</span>
     <span class="n">priors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddDebugTensor</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;priors&#39;</span><span class="p">)</span>
 
