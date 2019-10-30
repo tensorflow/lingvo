@@ -1231,7 +1231,8 @@ def CreateVariable(name,
                    reuse=None,
                    trainable=True,
                    init_wrapper=None,
-                   collections=None):
+                   collections=None,
+                   default_seed=None):
   """Creates tf.Variable according to param_config.
 
   Args:
@@ -1246,6 +1247,8 @@ def CreateVariable(name,
       determinable.
     collections: Override the default variable collection (
       tf.GraphKeys.GLOBAL_VARIABLES).
+    default_seed: Seed to use for initialization if not specified in params.
+      Used for deterministic initialization in tests.
 
   Returns:
     tf.identity(var), var pair. The tf.identity() node is colocated
@@ -1273,11 +1276,14 @@ def CreateVariable(name,
   if tf.get_default_graph().seed is not None:
     # We are in a program/test which need determistic randomization.
     if seed is None:
-      # We are not given a per-variable random seed. We use hash of
-      # variable name as a stable random seed.
-      with tf.variable_scope(name) as scope:
-        var_name = GetVariableName(scope.name)
-      seed = GenerateSeedFromName(var_name)
+      if default_seed is not None:
+        seed = default_seed
+      else:
+        # We are not given a per-variable random seed. We use hash of
+        # variable name as a stable random seed.
+        with tf.variable_scope(name) as scope:
+          var_name = GetVariableName(scope.name)
+        seed = GenerateSeedFromName(var_name)
 
   if (method in [
       'gaussian_sqrt_dim', 'uniform_sqrt_dim', 'truncated_gaussian_sqrt_dim'

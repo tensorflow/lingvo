@@ -3953,13 +3953,8 @@ class GatedAverageLayerTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       actual_avg = sess.run(avg)
 
-      # pylint: disable=bad-whitespace
-      # pyformat: disable
-      expected_avg = [
-          [ 0.13070658,  0.13070658,  0.13070658,  0.13070658],
-          [ -1.0, -1.0, 1.0 , 1.0]]
-      # pyformat: enable
-      # pylint: enable=bad-whitespace
+      expected_avg = [[0.092766, 0.092766, 0.092766, 0.092766],
+                      [-1., -1., 1., 1.]]
       self.assertEqual(actual_avg.shape, (batch, depth))
       self.assertAllClose(expected_avg, actual_avg, rtol=1e-05, atol=1e-05)
 

@@ -618,7 +618,7 @@ class BaseLayer(tf.Module):
     """Returns the variable's symbolic shape."""
     return self._var_symbolic_shape_map.get(var_name, None)
 
-  def CreateVariable(self, name, var_params, theta_fn=None, *args, **kwargs):
+  def CreateVariable(self, name, var_params, theta_fn=None, **kwargs):
     """Create a variable of this layer according to the parameter `var_params`.
 
     E.g.::
@@ -644,7 +644,6 @@ class BaseLayer(tf.Module):
       theta_fn: A python function that takes a variable's value and returns a
         new value to be used later for computation. Its signature must be
         (tf.Tensor) -> (tf.Tensor).
-      *args: List of args passed to `.py_utils.CreateVariable`.
       **kwargs: Keyword args passed to `.py_utils.CreateVariable`.
     """
     self._CheckName(name)
@@ -657,7 +656,8 @@ class BaseLayer(tf.Module):
           collections=(var_params.collections +
                        [py_utils.SKIP_LP_REGULARIZATION]))
     self._var_symbolic_shape_map[name] = var_params.shape
-    value, var = py_utils.CreateVariable(name, var_params, *args, **kwargs)
+    value, var = py_utils.CreateVariable(
+        name, var_params, default_seed=self.params.random_seed, **kwargs)
     self._private_vars[name] = var
     if theta_fn is not None:
       value = theta_fn(value)

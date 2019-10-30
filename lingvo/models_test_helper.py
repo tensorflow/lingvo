@@ -38,9 +38,11 @@ def _StubOutCreateVariable(variable_cache):
                           reuse=None,
                           trainable=True,
                           init_wrapper=None,
-                          collections=None):
+                          collections=None,
+                          default_seed=None):
     """Return a zero tensor of the right shape instead of creating variable."""
     del reuse
+    del default_seed
     dtype = params.dtype
     shape = py_utils.ToStaticShape(params.shape)
     if init_wrapper:

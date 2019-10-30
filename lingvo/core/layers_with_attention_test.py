@@ -1340,7 +1340,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       latent, atten_probs = sl.FPropDefaultTheta(features)
       tf.global_variables_initializer().run()
       latent_v, atten_probs_v = sess.run([latent, atten_probs])
-      CompareToGoldenSingleFloat(self, 2.361589, np.sum(latent_v))
+      CompareToGoldenSingleFloat(self, -1.208686, np.sum(latent_v))
       CompareToGoldenSingleFloat(self, 2.0, np.sum(atten_probs_v))
 
   def testStyleLayerWithFeedinAttenProbs(self):

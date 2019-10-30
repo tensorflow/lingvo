@@ -693,7 +693,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
               class_weights=1 - paddings, class_ids=targets))
       xent_output_val = sess.run(xent_output)
       print('xformer xent_output_val.avg_xent', xent_output_val.avg_xent)
-      test_utils.CompareToGoldenSingleFloat(self, 1.91814, xent_output_val.avg_xent)  # pyformat: disable pylint: disable=line-too-long
+      test_utils.CompareToGoldenSingleFloat(self, 3.018613, xent_output_val.avg_xent)  # pyformat: disable pylint: disable=line-too-long
       self.assertAllEqual(xent_output_val.per_example_argmax,
                           np.argmax(xent_output_val.logits, axis=-1))
 

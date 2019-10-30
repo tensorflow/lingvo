@@ -209,13 +209,9 @@ class TransformerModelTest(test_utils.TestCase):
         vals += [sess.run((loss, logp))]
 
       print('actual vals = %s' % np.array_repr(np.array(vals)))
-      self.assertAllClose(vals, [
-          [233.337143, 10.370541],
-          [235.853119, 10.367168],
-          [217.87796, 10.375141],
-          [217.822205, 10.372487],
-          [159.483185, 10.37289],
-      ])
+      self.assertAllClose(vals, [[233.57518, 10.381119], [236.10052, 10.378047],
+                                 [217.99896, 10.380901], [217.94647, 10.378406],
+                                 [159.5997, 10.380468]])
 
   def testFPropEvalMode(self):
     with self.session() as sess:
@@ -232,11 +228,11 @@ class TransformerModelTest(test_utils.TestCase):
         vals += [sess.run((loss, logp))]
       print('actual vals = ', vals)
       self.assertAllClose(vals, [
-          [233.337143, 10.370541],
-          [235.853119, 10.367168],
-          [217.87796, 10.375141],
-          [217.822205, 10.372487],
-          [159.483185, 10.37289],
+          [233.57518, 10.381119],
+          [236.10052, 10.378047],
+          [217.99896, 10.380901],
+          [217.94647, 10.378406],
+          [159.5997, 10.380468],
       ])
 
   def testBProp(self):
@@ -255,11 +251,11 @@ class TransformerModelTest(test_utils.TestCase):
         vals += [sess.run((loss, logp, mdl.train_op))[:2]]
       print('BProp actual vals = ', vals)
       expected_vals = [
-          [233.337143, 10.370541],
-          [235.809311, 10.365245],
-          [217.793747, 10.371132],
-          [217.679932, 10.365711],
-          [159.340271, 10.363596],
+          [233.57518, 10.381119],
+          [236.05138, 10.375884],
+          [217.9087, 10.376605],
+          [217.77725, 10.370345],
+          [159.43497, 10.369753],
       ]
       self.assertAllClose(vals, expected_vals)
 

@@ -83,9 +83,9 @@ class LayersTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       output = sess.run(output)
 
-      self.assertAllCloseAccordingToType([[[-0.47327116, 0.99513882]] * batch,
-                                          [[0.82785916, -0.71739358]] * batch],
-                                         output)
+      self.assertAllCloseAccordingToType(
+          [[[2.761079, -3.756719]] * batch, [[-2.623049, 3.3679538]] * batch],
+          output)
 
   def testTransformerStackFPropFp32Fp32(self):
     self._TransformerStackFProp(tf.float32, tf.float32,
@@ -125,18 +125,9 @@ class LayersTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       output = sess.run(output)
       print(repr(output))
-      # pylint: disable=bad-whitespace
-      # pyformat: disable
       self.assertAllCloseAccordingToType(
-          np.array([[[-2.17566538, -0.2821945 ],
-                     [-2.17566514, -0.28219438],
-                     [-2.17566514, -0.28219438]],
-                    [[-0.71516591, -0.90594757],
-                     [-0.71516603, -0.90594769],
-                     [-0.71516603, -0.90594769]]]),
-          output)
-      # pyformat: enable
-      # pylint: enable=bad-whitespace
+          np.array([[[-0.940543, 1.479253]] * batch,
+                    [[-0.413938, -2.550903]] * batch]), output)
 
   def testTransformerStackFPropWithPackedInputs(self):
     # batch = 2. time = 2, depth = 2
@@ -188,18 +179,10 @@ class LayersTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       outputs, _, _ = xformer.FPropDefaultTheta(inputs, paddings)
       out_1, out_2 = sess.run(outputs)
-      # pylint: disable=bad-whitespace
-      # pyformat: disable
-      self.assertAllClose(
-          [[[-0.23663561,  0.99756944]],
-           [[ 0.91392964, -0.85869682]]],
-          out_1)
-      self.assertAllClose(
-          [[[-0.23663561,  0.99756944]],
-           [[ 0.91392964, -0.85869682]]],
-          out_2)
-      # pyformat: enable
-      # pylint: enable=bad-whitespace
+      self.assertAllClose([[[1.38054, -1.37836]], [[-0.811525, 1.183977]]],
+                          out_1)
+      self.assertAllClose([[[1.38054, -1.37836]], [[-0.811525, 1.183977]]],
+                          out_2)
 
   def testTransparentTransformerStackEvalFProp(self):
     # time = 2, batch = 1
@@ -219,18 +202,10 @@ class LayersTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       outputs, _, _ = xformer.FPropDefaultTheta(inputs, paddings)
       out = sess.run(outputs)
-      # pylint: disable=bad-whitespace
-      # pyformat: disable
-      self.assertAllClose(
-          [[[-0.23663561,  0.99756944]],
-           [[ 0.91392964, -0.85869682]]],
-          out[:, :, :, 0])
-      self.assertAllClose(
-          [[[-0.23663561,  0.99756944]],
-           [[ 0.91392964, -0.85869682]]],
-          out[:, :, :, 1])
-      # pyformat: enable
-      # pylint: enable=bad-whitespace
+      self.assertAllClose([[[1.38054, -1.37836]], [[-0.811525, 1.183977]]],
+                          out[:, :, :, 0])
+      self.assertAllClose([[[1.38054, -1.37836]], [[-0.811525, 1.183977]]],
+                          out[:, :, :, 1])
 
   def _TransformerSingleSourceInputs(self, depth=3, dtype=tf.float32):
     np.random.seed(NUMPY_RANDOM_SEED)
@@ -243,7 +218,7 @@ class LayersTest(test_utils.TestCase):
     aux_source_paddings = tf.transpose(
         tf.constant(
             [[0, 1, 0, 1, 0, 1, 0], [1, 0, 1, 0, 1, 0, 1]], dtype=dtype))
-    return (source_vecs, source_padding, aux_source_vecs, aux_source_paddings)
+    return source_vecs, source_padding, aux_source_vecs, aux_source_paddings
 
   def _TransformerMultiSourceInputs(self, depth=3, dtype=tf.float32):
     np.random.seed(NUMPY_RANDOM_SEED)
@@ -358,9 +333,9 @@ class LayersTest(test_utils.TestCase):
 
       tf.global_variables_initializer().run()
       output = sess.run(output)
-      self.assertAllCloseAccordingToType([[[-0.41714936, 1.89849663]] * batch,
-                                          [[1.24795163, -1.43194675]] * batch],
-                                         output)
+      self.assertAllCloseAccordingToType(
+          [[[-2.622666, 3.367474]] * batch, [[2.719156, -3.707336]] * batch],
+          output)
 
   def testMaskedTransformerStackFProp(self):
     batch = 3
@@ -389,7 +364,7 @@ class LayersTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       output = sess.run(output)
       self.assertAllClose(
-          [[[0.327082, 0.942791]] * batch, [[0.82785916, -0.71739358]] * batch],
+          [[[2.761103, -3.756748]] * batch, [[-2.623049, 3.367954]] * batch],
           output)
 
 

@@ -567,7 +567,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
-      CompareToGoldenSingleFloat(self, 15.565945, actual_loss)
+      CompareToGoldenSingleFloat(self, 19.725393, actual_loss)
 
   def test_ExpandToNumHyps(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
@@ -614,7 +614,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
-      CompareToGoldenSingleFloat(self, 15.657612, actual_loss)
+      CompareToGoldenSingleFloat(self, 18.374338, actual_loss)
 
   def testDecoderFPropWithLangDepAtten(self, dtype=tf.float32):
     with self.session(use_gpu=True):
@@ -627,7 +627,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
-      CompareToGoldenSingleFloat(self, 15.732864, actual_loss)
+      CompareToGoldenSingleFloat(self, 16.200066, actual_loss)
 
   def _testExtendStep(self, sess, dec, encoder_outputs, tgts, num_hyps):
     p = self._DecoderParams()
@@ -826,18 +826,22 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def testBeamSearchDecode(self, dtype=tf.float32):
     expected_values = {}
-    expected_values['topk_ids'] = [[2, 0, 0, 0, 0], [6, 2, 0, 0, 0],
-                                   [14, 2, 0, 0, 0], [14, 14, 2, 0, 0],
-                                   [2, 0, 0, 0, 0], [19, 2, 0, 0, 0],
+    expected_values['topk_ids'] = [[5, 2, 0, 0, 0], [17, 2, 0, 0, 0],
+                                   [5, 2, 0, 0, 0], [17, 3, 2, 0, 0],
+                                   [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],
                                    [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
-    expected_values['topk_lens'] = [1, 2, 2, 3, 1, 2, 0, 0]
-    expected_values['topk_scores'] = [[-2.059117, -4.157316],
-                                      [-4.449532, -6.390632],
-                                      [-2.486378, -4.982234], [0., 0.]]
+    expected_values['topk_lens'] = [2, 2, 2, 3, 0, 0, 0, 0]
+    expected_values['topk_scores'] = [[-3.821746, -3.980103],
+                                      [-3.817123, -4.522634], [0., 0.],
+                                      [0., 0.]]
 
-    expected_values['atten_vec_0'] = [0.221406, 0.346385, 0.22003, 0.212177, 0.]
-    expected_values['atten_vec_1'] = [0.216729, 0.332198, 0.23248, 0.218592, 0.]
-    expected_values['normalized_score'] = -4.157315
+    expected_values['atten_vec_0'] = [
+        0.532658, 0.140424, 0.122954, 0.203961, 0.
+    ]
+    expected_values['atten_vec_1'] = [
+        0.067983, 0.532731, 0.284223, 0.115062, 0.
+    ]
+    expected_values['normalized_score'] = -3.980103
 
     self._testBeamSearch(
         expected_values=expected_values,
@@ -847,22 +851,20 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def testBeamSearchDecodeTgtPrefix(self, dtype=tf.float32):
     expected_values = {}
-    expected_values['topk_ids'] = [[2, 0, 0, 0, 0], [6, 2, 0, 0, 0],
-                                   [2, 0, 0, 0, 0], [14, 2, 0, 0, 0],
-                                   [15, 2, 0, 0, 0], [15, 6, 2, 0, 0],
+    expected_values['topk_ids'] = [[5, 2, 0, 0, 0], [1, 2, 0, 0, 0],
+                                   [5, 2, 0, 0, 0], [5, 3, 2, 0, 0],
+                                   [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],
                                    [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
-    expected_values['topk_lens'] = [1, 2, 1, 2, 2, 3, 0, 0]
-    expected_values['topk_scores'] = [[-2.2137618, -4.269911],
-                                      [-2.1830645, -4.233546],
-                                      [-5.1078215, -7.622547], [0., 0.]]
+    expected_values['topk_lens'] = [2, 2, 2, 3, 0, 0, 0, 0]
+    expected_values['topk_scores'] = [[-3.837574, -4.1681],
+                                      [-3.821537, -5.069403], [0., 0.],
+                                      [0., 0.]]
 
-    expected_values['atten_vec_0'] = [
-        0.257150, 0.334206, 0.212230, 0.196411, 0.0
-    ]
+    expected_values['atten_vec_0'] = [0.58009, 0.129324, 0.109171, 0.181414, 0.]
     expected_values['atten_vec_1'] = [
-        0.227123, 0.334039, 0.227740, 0.211095, 0.0
+        0.072272, 0.474015, 0.330433, 0.123279, 0.
     ]
-    expected_values['normalized_score'] = -4.2699108
+    expected_values['normalized_score'] = -4.1681
 
     self._testBeamSearch(
         expected_values=expected_values,
