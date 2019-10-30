@@ -1376,7 +1376,8 @@
                    <span class="n">reuse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                    <span class="n">init_wrapper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                   <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">default_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates tf.Variable according to param_config.</span>
 
 <span class="sd">  Args:</span>
@@ -1391,6 +1392,8 @@
 <span class="sd">      determinable.</span>
 <span class="sd">    collections: Override the default variable collection (</span>
 <span class="sd">      tf.GraphKeys.GLOBAL_VARIABLES).</span>
+<span class="sd">    default_seed: Seed to use for initialization if not specified in params.</span>
+<span class="sd">      Used for deterministic initialization in tests.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    tf.identity(var), var pair. The tf.identity() node is colocated</span>
@@ -1418,11 +1421,14 @@
   <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="c1"># We are in a program/test which need determistic randomization.</span>
     <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="c1"># We are not given a per-variable random seed. We use hash of</span>
-      <span class="c1"># variable name as a stable random seed.</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
-        <span class="n">var_name</span> <span class="o">=</span> <span class="n">GetVariableName</span><span class="p">(</span><span class="n">scope</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-      <span class="n">seed</span> <span class="o">=</span> <span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">default_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">seed</span> <span class="o">=</span> <span class="n">default_seed</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># We are not given a per-variable random seed. We use hash of</span>
+        <span class="c1"># variable name as a stable random seed.</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+          <span class="n">var_name</span> <span class="o">=</span> <span class="n">GetVariableName</span><span class="p">(</span><span class="n">scope</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">seed</span> <span class="o">=</span> <span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="p">(</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
       <span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span>

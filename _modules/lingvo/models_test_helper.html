@@ -183,9 +183,11 @@
                           <span class="n">reuse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                           <span class="n">init_wrapper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                          <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                          <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">default_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return a zero tensor of the right shape instead of creating variable.&quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">reuse</span>
+    <span class="k">del</span> <span class="n">default_seed</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">dtype</span>
     <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">init_wrapper</span><span class="p">:</span>

@@ -763,7 +763,7 @@
     <span class="sd">&quot;&quot;&quot;Returns the variable&#39;s symbolic shape.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_symbolic_shape_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseLayer.CreateVariable"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.CreateVariable">[docs]</a>  <span class="k">def</span> <span class="nf">CreateVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseLayer.CreateVariable"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.CreateVariable">[docs]</a>  <span class="k">def</span> <span class="nf">CreateVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a variable of this layer according to the parameter `var_params`.</span>
 
 <span class="sd">    E.g.::</span>
@@ -789,7 +789,6 @@
 <span class="sd">      theta_fn: A python function that takes a variable&#39;s value and returns a</span>
 <span class="sd">        new value to be used later for computation. Its signature must be</span>
 <span class="sd">        (tf.Tensor) -&gt; (tf.Tensor).</span>
-<span class="sd">      *args: List of args passed to `.py_utils.CreateVariable`.</span>
 <span class="sd">      **kwargs: Keyword args passed to `.py_utils.CreateVariable`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
@@ -802,7 +801,8 @@
           <span class="n">collections</span><span class="o">=</span><span class="p">(</span><span class="n">var_params</span><span class="o">.</span><span class="n">collections</span> <span class="o">+</span>
                        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">]))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_symbolic_shape_map</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_params</span><span class="o">.</span><span class="n">shape</span>
-    <span class="n">value</span><span class="p">,</span> <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">value</span><span class="p">,</span> <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="n">default_seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
     <span class="k">if</span> <span class="n">theta_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">value</span> <span class="o">=</span> <span class="n">theta_fn</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
