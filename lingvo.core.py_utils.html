@@ -549,6 +549,66 @@ represented in the form of <code class="xref py py-obj docutils literal notransl
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.core.py_utils.NestedMap.GetItem">
+<code class="sig-name descname">GetItem</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.GetItem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.GetItem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the value for the nested <code class="xref py py-obj docutils literal notranslate"><span class="pre">key</span></code>.</p>
+<p>Note that indexing lists is not supported, names with underscores will be
+considered as one key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>key</strong> – str of the form
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.</span></code>.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The value for the given nested key.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>KeyError if a key is not present.</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.py_utils.NestedMap.Get">
+<code class="sig-name descname">Get</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">default=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the value for nested <code class="xref py py-obj docutils literal notranslate"><span class="pre">key</span></code>, returns <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> if key does not exist.</p>
+<p>Note that indexing lists is not supported, names with underscores will be
+considered as one key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> – str of the form
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.</span></code>.</p></li>
+<li><p><strong>default</strong> – Optional default value, defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The value for the given nested key or <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> if the key does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.py_utils.NestedMap.Set">
+<code class="sig-name descname">Set</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the value for a nested key, returns <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> if key does not exist.</p>
+<p>Note that indexing lists is not supported, names with underscores will be
+considered as one key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> – str of the form
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.</span></code>.</p></li>
+<li><p><strong>value</strong> – The value to insert.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError if a sub key is not a NestedMap</strong><strong> or </strong><strong>dict.</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.core.py_utils.NestedMap.Transform">
 <code class="sig-name descname">Transform</code><span class="sig-paren">(</span><em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Transform" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fn applied on each value.</p>

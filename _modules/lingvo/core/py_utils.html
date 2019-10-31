@@ -812,6 +812,82 @@
 
     <span class="k">return</span> <span class="n">Expand</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="NestedMap.GetItem"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.GetItem">[docs]</a>  <span class="k">def</span> <span class="nf">GetItem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets the value for the nested `key`.</span>
+
+<span class="sd">    Note that indexing lists is not supported, names with underscores will be</span>
+<span class="sd">    considered as one key.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      key: str of the form</span>
+<span class="sd">        `([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The value for the given nested key.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      KeyError if a key is not present.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span>
+    <span class="c1"># Note: This can&#39;t support lists. List keys are ambiguous as underscore is</span>
+    <span class="c1"># not reserved for list indexing but also allowed to be used in keys.</span>
+    <span class="c1"># E.g., this is a valid nested map where the key &#39;a_0&#39; is not well defined</span>
+    <span class="c1"># {&#39;a_0&#39;: 3, &#39;a&#39;: [4]}.</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+      <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">current</span></div>
+
+<div class="viewcode-block" id="NestedMap.Get"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Get">[docs]</a>  <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets the value for nested `key`, returns `default` if key does not exist.</span>
+
+<span class="sd">    Note that indexing lists is not supported, names with underscores will be</span>
+<span class="sd">    considered as one key.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      key: str of the form</span>
+<span class="sd">        `([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.`.</span>
+<span class="sd">      default: Optional default value, defaults to None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The value for the given nested key or `default` if the key does not exist.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetItem</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="c1"># TypeError is raised when an intermediate item is a list and we try to</span>
+    <span class="c1"># access an element of it with a string.</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">default</span></div>
+
+<div class="viewcode-block" id="NestedMap.Set"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Set">[docs]</a>  <span class="k">def</span> <span class="nf">Set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sets the value for a nested key, returns `default` if key does not exist.</span>
+
+<span class="sd">    Note that indexing lists is not supported, names with underscores will be</span>
+<span class="sd">    considered as one key.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      key: str of the form</span>
+<span class="sd">        `([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.`.</span>
+<span class="sd">      value: The value to insert.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError if a sub key is not a NestedMap or dict.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span>
+    <span class="n">sub_keys</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sub_keys</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CheckKey</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+      <span class="c1"># We have reached the terminal node, set the value.</span>
+      <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sub_keys</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">current</span><span class="p">:</span>
+          <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">)):</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Error while setting key </span><span class="si">{}</span><span class="s1">. Sub key &quot;</span><span class="si">{}</span><span class="s1">&quot; is of type&#39;</span>
+                           <span class="s1">&#39; </span><span class="si">{}</span><span class="s1"> but must be a dict or NestedMap.&#39;</span>
+                           <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">])))</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span></div>
+
 <div class="viewcode-block" id="NestedMap.Transform"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy of this `.NestedMap` with fn applied on each value.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span></div>
