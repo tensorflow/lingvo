@@ -2791,12 +2791,6 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     summary_utils.histogram('gmm_offsets', position_offset)
 
     new_position = attention_state[:, :, 0] + position_offset
-
-    # NOTE(jiaye): This capping seems a bad idea because it depends on other
-    # examples in the same batch, or the overall padding strategy.
-    # TODO(jiaye): Try removing this.
-    new_position = tf.minimum(new_position, tf.cast(source_length, tf.float32))
-
     variances = py_utils.AddDebugTensor(variances, name='variances')
     priors = py_utils.AddDebugTensor(priors, name='priors')
 
