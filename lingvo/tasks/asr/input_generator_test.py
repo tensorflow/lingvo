@@ -56,14 +56,6 @@ def _MakeTfExample(uttid, frames, text):
   return tf.train.Example(features=tf.train.Features(feature=feature))
 
 
-def _LookupNested(nm, nested_key):
-  key_array = nested_key.split('.')
-  val = nm
-  for k in key_array:
-    val = val[k]
-  return val
-
-
 class InputTest(test_utils.TestCase):
 
   def _GenerateExamples(self, output_filepath):
@@ -102,7 +94,7 @@ class InputTest(test_utils.TestCase):
   def _AssertShapesAsExpected(self, shapes, expected):
     for key, expected_shape in sorted(expected.items()):
       self.assertAllEqual(
-          _LookupNested(shapes, key), expected_shape, msg='Shape of %s' % key)
+          shapes.GetItem(key), expected_shape, msg='Shape of %s' % key)
 
   def _TestAsrInput(self, params):
     p = params

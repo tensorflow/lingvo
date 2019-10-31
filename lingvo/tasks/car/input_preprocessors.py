@@ -184,11 +184,7 @@ class EntryPreprocessor(Preprocessor):
     nested_map = nested_map.DeepCopy()
     updated_entries = []
     for prefix in p.prefixes:
-      entry = nested_map
-      for component in prefix.split('.'):
-        if component not in entry:
-          raise KeyError('Invalid prefix: {}'.format(prefix))
-        entry = entry[component]
+      entry = nested_map.GetItem(prefix)
       if not isinstance(entry, py_utils.NestedMap):
         raise TypeError('Prefix key {} selected a {}, not a NestedMap!'.format(
             prefix, type(entry)))

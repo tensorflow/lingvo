@@ -60,6 +60,38 @@ class PyUtilsTest(test_utils.TestCase):
     self.assertNotIsInstance(d.a, py_utils.NestedMap)
     self.assertIsInstance(e.a, py_utils.NestedMap)
 
+  def testNestedMapGetItem(self):
+    nested_map = py_utils.NestedMap()
+    nested_map['a'] = py_utils.NestedMap({'x': 3})
+    nested_map['b'] = py_utils.NestedMap({'y_0': 4, 'y': [3]})
+    self.assertEqual(nested_map.GetItem('a.x'), nested_map.a.x)
+    self.assertEqual(nested_map.GetItem('b.y_0'), 4)
+    with self.assertRaises(KeyError):
+      nested_map.GetItem('o')
+
+  def testNestedMapGet(self):
+    nested_map = py_utils.NestedMap({'a': {'b': 0}})
+    self.assertEqual(nested_map.Get('a.b'), 0)
+    self.assertIsNone(nested_map.Get('a.b.c'))
+    self.assertIsNone(nested_map.Get('x'))
+    self.assertEqual(nested_map.Get('x', 0), 0)
+
+  def testNestedMapSet(self):
+    nested_map = py_utils.NestedMap.FromNestedDict({'a': {'b': 0}})
+    self.assertEqual(nested_map.a.b, 0)
+    # Test if overriding an existing value works.
+    nested_map.Set('a.b', 1)
+    self.assertEqual(nested_map.a.b, 1)
+    # Test if ValueError is raised if an existing intermediate value is not a
+    # NestedMap.
+    with self.assertRaises(ValueError):
+      nested_map.Set('a.b.c', 2)
+    nested_map.Set('a.b', py_utils.NestedMap())
+    # Verify that non-existing intermediate keys are set to NestedMap.
+    nested_map.Set('a.b.x.y', 2)
+    self.assertIsInstance(nested_map.a.b.x, py_utils.NestedMap)
+    self.assertEqual(nested_map.a.b.x.y, 2)
+
   def testCreateVariableBasics(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
       methods = [

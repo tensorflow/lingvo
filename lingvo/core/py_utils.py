@@ -667,6 +667,82 @@ class NestedMap(dict):
 
     return Expand(None, self)
 
+  def GetItem(self, key):
+    """Gets the value for the nested `key`.
+
+    Note that indexing lists is not supported, names with underscores will be
+    considered as one key.
+
+    Args:
+      key: str of the form
+        `([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.`.
+
+    Returns:
+      The value for the given nested key.
+
+    Raises:
+      KeyError if a key is not present.
+    """
+    current = self
+    # Note: This can't support lists. List keys are ambiguous as underscore is
+    # not reserved for list indexing but also allowed to be used in keys.
+    # E.g., this is a valid nested map where the key 'a_0' is not well defined
+    # {'a_0': 3, 'a': [4]}.
+    for k in key.split('.'):
+      current = current[k]
+    return current
+
+  def Get(self, key, default=None):
+    """Gets the value for nested `key`, returns `default` if key does not exist.
+
+    Note that indexing lists is not supported, names with underscores will be
+    considered as one key.
+
+    Args:
+      key: str of the form
+        `([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.`.
+      default: Optional default value, defaults to None.
+
+    Returns:
+      The value for the given nested key or `default` if the key does not exist.
+    """
+    try:
+      return self.GetItem(key)
+    # TypeError is raised when an intermediate item is a list and we try to
+    # access an element of it with a string.
+    except (KeyError, TypeError):
+      return default
+
+  def Set(self, key, value):
+    """Sets the value for a nested key, returns `default` if key does not exist.
+
+    Note that indexing lists is not supported, names with underscores will be
+    considered as one key.
+
+    Args:
+      key: str of the form
+        `([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.`.
+      value: The value to insert.
+
+    Raises:
+      ValueError if a sub key is not a NestedMap or dict.
+    """
+    current = self
+    sub_keys = key.split('.')
+    for i, k in enumerate(sub_keys):
+      self.CheckKey(k)
+      # We have reached the terminal node, set the value.
+      if i == (len(sub_keys) - 1):
+        current[k] = value
+      else:
+        if k not in current:
+          current[k] = NestedMap()
+        if not isinstance(current[k], (dict, NestedMap)):
+          raise ValueError('Error while setting key {}. Sub key "{}" is of type'
+                           ' {} but must be a dict or NestedMap.'
+                           ''.format(key, k, type(current[k])))
+        current = current[k]
+
   def Transform(self, fn):
     """Returns a copy of this `.NestedMap` with fn applied on each value."""
     return Transform(self, fn)
