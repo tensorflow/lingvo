@@ -923,6 +923,10 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       self.CreateChild('bn', bn_params)
     # TODO(yonghui): implement the variational noise logic.
 
+  @classmethod
+  def NumOutputNodes(cls, p):
+    return p.output_dim
+
   @property
   def output_qt_name(self):
     """Name of QTensor used for the output value.
@@ -2934,6 +2938,11 @@ class DropoutLayer(base_layer.BaseLayer):
         noise_shape=noise_shape,
         seed=self.params.random_seed)
 
+  @classmethod
+  def NumOutputNodes(cls, p):
+    # The layer does element-wise processing thus is input-shape agnostic.
+    return
+
   def FProp(self, theta, inputs):
     """Apply dropout to inputs.
 
@@ -3043,6 +3052,10 @@ class LayerNorm(base_layer.BaseLayer):
       return x_norm * (1.0 + scale) + bias
 
     return Normalize(inputs, theta.scale, theta.bias)
+
+  @classmethod
+  def NumOutputNodes(cls, p):
+    return p.input_dim
 
   @classmethod
   def FPropMeta(cls, p, inputs):

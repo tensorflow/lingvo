@@ -420,6 +420,10 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     """Returns output dimension of the transformer layer."""
     return self.fflayer.output_dim
 
+  @classmethod
+  def NumOutputNodes(cls, p):
+    return p.output_dim if p.output_dim else p.input_dim
+
   def FProp(self, theta, inputs, paddings):
     """Feed-forward, residual and layer-norm.
 
@@ -528,6 +532,10 @@ class TransformerLayer(base_layer.BaseLayer):
     """Returns output dimension of the transformer layer."""
     # output_dim is equal to p.source_dim when p.output_dim is zero.
     return self.fflayer.output_dim
+
+  @classmethod
+  def NumOutputNodes(cls, p):
+    return p.output_dim if p.output_dim else p.source_dim
 
   def FProp(self,
             theta,

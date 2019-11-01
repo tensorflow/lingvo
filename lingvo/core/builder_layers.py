@@ -642,7 +642,10 @@ class GraphSignature(object):
       tokens.append(inputs[start:].strip())
     id_regex = re.compile(r'[_a-zA-Z][_a-zA-Z0-9]*(\.[_a-zA-Z][_a-zA-Z0-9]*)*$')
     for token in tokens:
-      assert token in self.symbols or id_regex.match(token), token
+      if not (token in self.symbols or id_regex.match(token)):
+        raise ValueError(
+            'token(%s) is not a symbol(%r) or matched by id_regex.' %
+            (token, self.symbols))
     # Wrapping the tokens in list brackets allows us to parse this using
     # _ConsumeList.
     return ['['] + tokens + [']']
