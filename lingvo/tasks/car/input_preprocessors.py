@@ -397,6 +397,52 @@ class FilterGroundTruthByNumPoints(Preprocessor):
     return dtypes
 
 
+class FilterGroundTruthByDifficulty(Preprocessor):
+  """Removes groundtruth boxes based on detection difficulty.
+
+  This preprocessor expects features to contain the following keys::
+    labels.combined_detection_difficulties of shape [..., L]
+    labels.labels of shape [..., L]
+    labels.bboxes_3d_mask of shape [..., L]
+    labels.unfiltered_bboxes_3d_mask of shape [..., L]
+
+  The preprocessor masks out the bboxes_3d_mask / labels based on whether
+  combined_detection_difficulties is greater than p.difficulty_threshold.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(FilterGroundTruthByDifficulty, cls).Params()
+    p.Define(
+        'background_id', 0, 'The ID of the background class we set '
+        'filtered boxes to. Defaults to 0.')
+    p.Define(
+        'difficulty_threshold', 1,
+        'Filter groundtruth bounding boxes whose detection difficulty is '
+        'greater than `difficulty_threshold`')
+    return p
+
+  def TransformFeatures(self, features):
+    p = self.params
+    bbox_is_valid = tf.less_equal(
+        features.labels.combined_detection_difficulties, p.difficulty_threshold)
+    features.labels.labels = tf.where(
+        bbox_is_valid, features.labels.labels,
+        p.background_id * tf.ones_like(features.labels.labels))
+    features.labels.bboxes_3d_mask *= tf.cast(bbox_is_valid, tf.float32)
+    # TODO(bencaine): When we properly implement Waymo difficulty levels
+    # we should consider removing this.
+    features.labels.unfiltered_bboxes_3d_mask *= tf.cast(
+        bbox_is_valid, tf.float32)
+    return features
+
+  def TransformShapes(self, shapes):
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    return dtypes
+
+
 class CountNumberOfPointsInBoxes3D(Preprocessor):
   """Computes bboxes_3d_num_points.
 
