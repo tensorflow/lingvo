@@ -1068,6 +1068,10 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">bn_params</span><span class="p">)</span>
     <span class="c1"># TODO(yonghui): implement the variational noise logic.</span>
 
+<div class="viewcode-block" id="ProjectionLayer.NumOutputNodes"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer.NumOutputNodes">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">NumOutputNodes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span></div>
+
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">output_qt_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Name of QTensor used for the output value.</span>
@@ -3079,6 +3083,11 @@
         <span class="n">noise_shape</span><span class="o">=</span><span class="n">noise_shape</span><span class="p">,</span>
         <span class="n">seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="DropoutLayer.NumOutputNodes"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DropoutLayer.NumOutputNodes">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">NumOutputNodes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="c1"># The layer does element-wise processing thus is input-shape agnostic.</span>
+    <span class="k">return</span></div>
+
 <div class="viewcode-block" id="DropoutLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DropoutLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply dropout to inputs.</span>
 
@@ -3188,6 +3197,10 @@
       <span class="k">return</span> <span class="n">x_norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">bias</span>
 
     <span class="k">return</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayerNorm.NumOutputNodes"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm.NumOutputNodes">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">NumOutputNodes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span></div>
 
 <div class="viewcode-block" id="LayerNorm.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
