@@ -102,9 +102,10 @@ class InputGeneratorHelperTest(test_utils.TestCase):
     splits = input_generator_helper.SplitTensors(tensor_tuple, num_splits)
 
     with self.session(use_gpu=False) as sess:
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
-                                   'first dim of tensors in xs must be greater '
-                                   'than num_splits'):
+      with self.assertRaisesRegex(
+          tf.errors.InvalidArgumentError,
+          'first dim of tensors in xs must be greater '
+          'than num_splits'):
         sess.run(splits)
 
   def testSplitTensorsOne(self):
@@ -163,9 +164,9 @@ class InputGeneratorHelperTest(test_utils.TestCase):
     tensor_tuple = (t1, t2, t3)
     num_splits = 2
 
-    with self.assertRaisesRegexp(
-        ValueError, 'can\'t split axis of size 2 into pieces of size \[2,1\]'):
-      splits = input_generator_helper.SplitTensors(tensor_tuple, num_splits)
+    with self.assertRaisesRegex(
+        ValueError, r'can\'t split axis of size 2 into pieces of size \[2,1\]'):
+      _ = input_generator_helper.SplitTensors(tensor_tuple, num_splits)
 
   def testSplitDictOfTensorsEven(self):
     with self.session(use_gpu=False) as sess:
@@ -221,7 +222,7 @@ class InputGeneratorHelperTest(test_utils.TestCase):
     tensor_dict = {'a': t1, 'b': t2, 'c': t3}
     num_splits = 2
 
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         ValueError, 'can\'t split axis of size 2 into pieces of size \[2,1\]'):
       splits = input_generator_helper.SplitDictOfTensors(tensor_dict,
                                                          num_splits)

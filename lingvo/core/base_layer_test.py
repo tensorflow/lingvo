@@ -291,10 +291,10 @@ class BaseLayerTest(test_utils.TestCase):
     layer_p.name = 'test'
     layer = layer_p.Instantiate()
 
-    with self.assertRaisesRegexp(AttributeError, 'bad_sub_layer'):
+    with self.assertRaisesRegex(AttributeError, 'bad_sub_layer'):
       _ = layer.bad_sub_layer
 
-    with self.assertRaisesRegexp(AttributeError, 'INTERNAL'):
+    with self.assertRaisesRegex(AttributeError, 'INTERNAL'):
       _ = layer.bad_property
 
   def testIsLayerParams(self):

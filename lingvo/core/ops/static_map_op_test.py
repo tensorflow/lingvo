@@ -44,13 +44,12 @@ class StaticMapOpsTest(test_utils.TestCase):
                               keys=['d', 'f', 'a']).eval())
 
       # Error cases.
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError, 'sizes'):
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'sizes'):
         ops.static_map_string_int(
             x=[['a', 'b', 'c'], ['d', 'e', 'f']],
             keys=['d', 'f', 'a'],
             vals=[1, 2]).eval()
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
-                                   'duplicates'):
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'duplicates'):
         ops.static_map_string_int(
             x=[['a', 'b', 'c'], ['d', 'e', 'f']], keys=['d', 'f', 'd']).eval()
 

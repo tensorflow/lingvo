@@ -1256,7 +1256,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.name = 'merger_layer'
       p.merger_op = 'concat'
       p.source_dim = depth
-      with self.assertRaisesRegexp(
+      with self.assertRaisesRegex(
           ValueError, 'Output dims should be the same length as input dims.*'):
         _ = p.Instantiate()
 

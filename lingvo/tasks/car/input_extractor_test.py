@@ -38,7 +38,7 @@ class InputExtractorTest(test_utils.TestCase):
     p = input_extractor.BaseExtractor.Params(extractors).Set(
         preprocessors=preprocessors,
         preprocessors_order=['count_points', 'missing_key', 'viz_copy'])
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         ValueError,
         r'preprocessor_order specifies keys which were not found .*'):
       p.Instantiate()

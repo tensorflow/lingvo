@@ -53,7 +53,7 @@ class PlotTest(test_utils.TestCase):
   def testScatter3D(self):
     # Passing `zs` means the plot tries to use '3d' projection, which is not
     # installed by default, so raises a ValueError.
-    with self.assertRaisesRegexp(ValueError, 'Unknown projection'):
+    with self.assertRaisesRegex(ValueError, 'Unknown projection'):
       _ = plot.Scatter(
           'summary', (4, 4),
           xs=np.random.rand(10),

@@ -153,15 +153,12 @@ class BaseTaskTest(test_utils.TestCase):
 
     with self.session():
       tf.global_variables_initializer().run()
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
-                                   'is not finite'):
-        self.assertTrue(scaled_grads_map.has_nan_or_inf.eval())
-        self.assertEqual(0., scaled_grads_map.grad_scale.eval())
-        # The final gradient must be finite.
-        self.assertFalse(
-            tf.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
-        self.assertTrue(
-            tf.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
+      self.assertTrue(scaled_grads_map.has_nan_or_inf.eval())
+      self.assertEqual(0., scaled_grads_map.grad_scale.eval())
+      # Fetching the gradient raises an exception with enable_check_numerics.
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError,
+                                  'is not finite'):
+        _ = scaled_grads_map.final_var_grads.a[1].eval()
 
   def testScaleGradientsError(self):
     p = self.TestParams()

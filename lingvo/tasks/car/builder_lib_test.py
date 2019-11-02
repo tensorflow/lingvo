@@ -126,8 +126,8 @@ class BuilderLibTest(test_utils.TestCase):
                     b._Sigmoid('sigmoid'))
     l = p.Instantiate()
     x = tf.constant(1.0)
-    with self.assertRaisesRegexp(ValueError,
-                                 r'Input not a `NestedMap`. Is a .*'):
+    with self.assertRaisesRegex(ValueError,
+                                r'Input not a `NestedMap`. Is a .*'):
       l.FPropDefaultTheta(x)
 
   def testSeqToKey(self):
@@ -347,7 +347,7 @@ class BuilderLibTest(test_utils.TestCase):
 
   def testGINLayerRaisesUnexpectedCombiner(self):
     b = builder_lib.ModelBuilderBase()
-    with self.assertRaisesRegexp(ValueError, 'Unexpected combine method: .*'):
+    with self.assertRaisesRegex(ValueError, 'Unexpected combine method: .*'):
       b._GIN(
           'p', [[5, 2, 6], [6, 8, 7]],
           b._PaddedMax('p_max'),
@@ -356,7 +356,7 @@ class BuilderLibTest(test_utils.TestCase):
 
   def testGINLayerRaisesDimsMismatch(self):
     b = builder_lib.ModelBuilderBase()
-    with self.assertRaisesRegexp(ValueError, 'mlp_dims do not match .*'):
+    with self.assertRaisesRegex(ValueError, 'mlp_dims do not match .*'):
       b._GIN(
           'p', [[5, 2, 6], [6, 8, 7]],
           b._PaddedMax('p_max'),

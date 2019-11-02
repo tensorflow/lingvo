@@ -87,8 +87,8 @@ class ParamsTest(test_utils.TestCase):
   def testDefineExisting(self):
     p = _params.Params()
     p.Define('foo', 1, '')
-    self.assertRaisesRegexp(AttributeError, 'already defined',
-                            lambda: p.Define('foo', 1, ''))
+    self.assertRaisesRegex(AttributeError, 'already defined',
+                           lambda: p.Define('foo', 1, ''))
 
   def testLegalParamNames(self):
     p = _params.Params()
@@ -103,9 +103,9 @@ class ParamsTest(test_utils.TestCase):
 
   def testSetAndGet(self):
     p = _params.Params()
-    self.assertRaisesRegexp(AttributeError, 'foo', lambda: p.Set(foo=4))
+    self.assertRaisesRegex(AttributeError, 'foo', lambda: p.Set(foo=4))
     # We use setattr() because lambda cannot contain explicit assignment.
-    self.assertRaisesRegexp(AttributeError, 'foo', lambda: setattr(p, 'foo', 4))
+    self.assertRaisesRegex(AttributeError, 'foo', lambda: setattr(p, 'foo', 4))
     p.Define('foo', 1, '')
     self.assertEqual(p.foo, 1)
     self.assertEqual(p.Get('foo'), 1)
@@ -120,8 +120,8 @@ class ParamsTest(test_utils.TestCase):
     p.Delete('foo')
     self.assertNotIn('foo', p)
     self.assertNotIn('bar', p)
-    self.assertRaisesRegexp(AttributeError, 'foo', lambda: p.foo)
-    self.assertRaisesRegexp(AttributeError, 'foo', p.Get, 'foo')
+    self.assertRaisesRegex(AttributeError, 'foo', lambda: p.foo)
+    self.assertRaisesRegex(AttributeError, 'foo', p.Get, 'foo')
 
   def testSetAndGetNestedParam(self):
     innermost = _params.Params()
@@ -157,36 +157,36 @@ class ParamsTest(test_utils.TestCase):
     outer.Delete('inner.innermost.zeta')
 
     self.assertEqual(inner.alpha, 3)
-    self.assertRaisesRegexp(AttributeError, 'beta', lambda: outer.beta)
+    self.assertRaisesRegex(AttributeError, 'beta', lambda: outer.beta)
     self.assertEqual(outer.d['foo'], 'baq')
     self.assertEqual(outer.inner.alpha, 3)
     self.assertEqual(outer.inner.innermost.delta, 22)
-    self.assertRaisesRegexp(AttributeError, 'zeta',
-                            lambda: outer.inner.innermost.zeta)
+    self.assertRaisesRegex(AttributeError, 'zeta',
+                           lambda: outer.inner.innermost.zeta)
 
     self.assertEqual(inner.Get('alpha'), 3)
-    self.assertRaisesRegexp(AttributeError, 'beta', outer.Get, 'beta')
+    self.assertRaisesRegex(AttributeError, 'beta', outer.Get, 'beta')
     self.assertEqual(outer.Get('d')['foo'], 'baq')
     self.assertEqual(outer.Get('inner.alpha'), 3)
     self.assertEqual(outer.Get('inner.innermost.delta'), 22)
-    self.assertRaisesRegexp(AttributeError, 'inner.innermost.zeta', outer.Get,
-                            'inner.innermost.zeta')
+    self.assertRaisesRegex(AttributeError, 'inner.innermost.zeta', outer.Get,
+                           'inner.innermost.zeta')
 
     # NOTE(igushev): Finding nested Param object is shared between Get, Set and
     # Delete, so we test only Set.
-    self.assertRaisesRegexp(AttributeError, 'inner\.gamma',
-                            lambda: outer.Set(**{'inner.gamma': 5}))
-    self.assertRaisesRegexp(AttributeError, 'inner\.innermost\.bad',
-                            lambda: outer.Set(**{'inner.innermost.bad': 5}))
-    self.assertRaisesRegexp(AssertionError, '^Cannot introspect',
-                            lambda: outer.Set(**{'d.foo': 'baz'}))
+    self.assertRaisesRegex(AttributeError, r'inner\.gamma',
+                           lambda: outer.Set(**{'inner.gamma': 5}))
+    self.assertRaisesRegex(AttributeError, r'inner\.innermost\.bad',
+                           lambda: outer.Set(**{'inner.innermost.bad': 5}))
+    self.assertRaisesRegex(AssertionError, '^Cannot introspect',
+                           lambda: outer.Set(**{'d.foo': 'baz'}))
 
   def testFreeze(self):
     p = _params.Params()
     self.assertRaises(AssertionError, lambda: p.Define('_immutable', 1, ''))
-    self.assertRaisesRegexp(AttributeError, 'foo', lambda: p.Set(foo=4))
+    self.assertRaisesRegex(AttributeError, 'foo', lambda: p.Set(foo=4))
     # We use setattr() because lambda cannot contain explicit assignment.
-    self.assertRaisesRegexp(AttributeError, 'foo', lambda: setattr(p, 'foo', 4))
+    self.assertRaisesRegex(AttributeError, 'foo', lambda: setattr(p, 'foo', 4))
     p.Define('foo', 1, '')
     p.Define('nested', p.Copy(), '')
     self.assertEqual(p.foo, 1)
@@ -201,7 +201,7 @@ class ParamsTest(test_utils.TestCase):
     self.assertRaises(TypeError, lambda: p.Delete('foo'))
     self.assertEqual(p.foo, 1)
     self.assertRaises(TypeError, lambda: p.Define('bar', 1, ''))
-    self.assertRaisesRegexp(AttributeError, 'bar', p.Get, 'bar')
+    self.assertRaisesRegex(AttributeError, 'bar', p.Get, 'bar')
 
     p.nested.foo = 2
     self.assertEqual(p.foo, 1)

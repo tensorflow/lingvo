@@ -21,6 +21,10 @@ from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_utils
 
+# Disable lint error: The name of ops.assert_shape_match triggers the
+# lint which doesn't apply in this case.
+# pylint:disable=g-error-prone-assert-raises
+
 
 class AssertOpsTest(test_utils.TestCase):
 
@@ -29,13 +33,13 @@ class AssertOpsTest(test_utils.TestCase):
       ops.assert_shape_match([10, 20, 30, 40], [-1, -1, -1, -1]).run()
       ops.assert_shape_match([10, 20, 30, 40], [-1, 20, -1, -1]).run()
       ops.assert_shape_match([10, 20, 30, 40], [-1, 20, -1, 40]).run()
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
-                                   "Yo mismatch"):
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError,
+                                  "Yo mismatch"):
         ops.assert_shape_match([10, 20, 30, 40], [10, 20, 40], "Yo").run()
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
-                                   "Foo mismatch"):
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError,
+                                  "Foo mismatch"):
         ops.assert_shape_match([10, 20, 30, 40], [8, 20, -1, 40], "Foo").run()
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError, "mismatch"):
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError, "mismatch"):
         ops.assert_shape_match([10, 20, 30, 40], [10, 20, 30, 44]).run()
 
   def testSameBatchSize(self):
@@ -48,15 +52,15 @@ class AssertOpsTest(test_utils.TestCase):
       ops.assert_same_dim0([t(2, 3), t(2, 8)]).run()
       ops.assert_same_dim0([t(2, 3)]).run()
       ops.assert_same_dim0([t(2, 3)] * 100).run()
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError, "a scalar"):
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError, "a scalar"):
         ops.assert_same_dim0([t(), t(2, 3)]).run()
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError, "a scalar"):
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError, "a scalar"):
         ops.assert_same_dim0([t(2, 3), t()]).run()
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
-                                   "different dim0"):
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError,
+                                  "different dim0"):
         ops.assert_same_dim0([t(2, 3), t(3, 2)]).run()
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
-                                   "different dim0"):
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError,
+                                  "different dim0"):
         ops.assert_same_dim0([t(2, 3)] * 10 + [t(3, 2)]).run()
 
 

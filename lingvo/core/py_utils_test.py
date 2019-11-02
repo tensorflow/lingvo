@@ -379,7 +379,7 @@ class PyUtilsTest(test_utils.TestCase):
       self.assertAllClose(xv, actual_xv)
       self.assertAllClose(yv, actual_yv)
 
-      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError, 'NaN'):
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'NaN'):
         sess.run(py_utils.CheckNumerics(z))
 
   def testLog(self):
@@ -1354,7 +1354,7 @@ class PadSequenceDimensionTest(test_utils.TestCase):
   def testPadSequenceDimension_ShortPaddingLength(self):
     x = tf.random_normal(shape=(3, 8), seed=123456)
     length = 6
-    with self.assertRaisesRegexp(ValueError, 'Paddings must be non-negative'):
+    with self.assertRaisesRegex(ValueError, 'Paddings must be non-negative'):
       py_utils.PadSequenceDimension(x, length, 0)
 
   def testPadSequenceDimension_4D(self):
@@ -1803,7 +1803,7 @@ class WeightInitTest(test_utils.TestCase):
   def testModification(self):
     """Tests that WeightInit cannot be modified."""
     w_init = py_utils.WeightInit.UniformPositive(1.0)
-    with self.assertRaisesRegexp(TypeError, 'immutable'):
+    with self.assertRaisesRegex(TypeError, 'immutable'):
       w_init.scale = 2.0
 
   def testUniformPositive(self):

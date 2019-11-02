@@ -408,8 +408,8 @@ class RecurrentTest(test_utils.TestCase):
         return next_state, py_utils.NestedMap()
 
       # Run real fprop implementation.
-      with self.assertRaisesRegexp(AssertionError,
-                                   'implicit capture is disabled'):
+      with self.assertRaisesRegex(AssertionError,
+                                  'implicit capture is disabled'):
         unused_real_acc, unused_real_staten = recurrent.Recurrent(
             theta, state0, inputs, CellFn, allow_implicit_capture=False)
 
@@ -488,7 +488,7 @@ class RecurrentTest(test_utils.TestCase):
       inputs = py_utils.NestedMap()
       inputs.coeff = tf.constant([1., 2., 3.])
 
-      with self.assertRaisesRegexp(ValueError, 'stateful.*random_uniform'):
+      with self.assertRaisesRegex(ValueError, 'stateful.*random_uniform'):
         recurrent.Recurrent(theta, state, inputs, Rand, check_stateful_ops=True)
 
   def testNestedCellFn(self):
@@ -523,7 +523,7 @@ class RecurrentTest(test_utils.TestCase):
 
       recurrent.Recurrent(
           theta, state, inputs, Deterministic, check_stateful_ops=True)
-      with self.assertRaisesRegexp(ValueError, 'stateful.*RandWithCoeff'):
+      with self.assertRaisesRegex(ValueError, 'stateful.*RandWithCoeff'):
         recurrent.Recurrent(theta, state, inputs, Rand, check_stateful_ops=True)
 
   def testSeqLenActual(self):

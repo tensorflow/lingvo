@@ -127,16 +127,14 @@ class QuantizableLayerTest(test_utils.TestCase):
         fns.qadd(1, 1, qmin=-1.0)  # Incomplete range args.
       with self.assertRaises(AssertionError):
         fns.qadd(1, 1, qmax=-1.0)  # Incomplete range args.
-      with self.assertRaisesRegexp(AssertionError,
-                                   'first calling TrackQTensor'):
+      with self.assertRaisesRegex(AssertionError, 'first calling TrackQTensor'):
         fns.qadd(1, 1, qt='non_existing')  # Test that qt is resolved.
 
       # Const.
       fns.qtanh(6.0)  # No min/max.
       fns.qtanh(6.0, qmin=-5.0, qmax=6.0)  # Min/max
       fns.qtanh(6.0, qt='test')
-      with self.assertRaisesRegexp(AssertionError,
-                                   'first calling TrackQTensor'):
+      with self.assertRaisesRegex(AssertionError, 'first calling TrackQTensor'):
         fns.qtanh(6.0, qt='non_existing')  # Test that qt has precedence.
 
   def testLayerWithNoQDomain(self):
