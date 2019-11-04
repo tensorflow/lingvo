@@ -179,6 +179,10 @@ class ModelBuilderBase(object):
   def _Fetch(self, name):
     return layers.FetchLayer.Params().Set(name=name)
 
+  def _FirstN(self, name, n):
+    """Return the first n args."""
+    return builder_layers.FirstNLayer.Params().Set(name=name, n=n)
+
   def _ArgIdx(self, name, index):
     return builder_layers.ArgIndexLayer.Params().Set(name=name, idx=index)
 
