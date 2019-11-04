@@ -1248,6 +1248,7 @@ class Decoder(base_runner.BaseRunner):
           '(%f seconds decode postprocess)', num_examples_metric.total_value,
           samples_per_summary,
           time.time() - post_process_start)
+    tf.logging.info('Done decoding ckpt: %s', checkpoint_path)
 
     summaries = {k: v.Summary(k) for k, v in six.iteritems(dec_metrics)}
     elapsed_secs = time.time() - start_time
