@@ -346,9 +346,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">all_params</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetAllRegisteredClasses</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">class_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">all_params</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">LookupError</span><span class="p">(</span><span class="s1">&#39;Known models:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">.</span><span class="se">\n\n</span><span class="s1">&#39;</span>
-                        <span class="s1">&#39;Model </span><span class="si">%s</span><span class="s1"> not found from list of above known models.&#39;</span> <span class="o">%</span>
-                        <span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">all_params</span><span class="o">.</span><span class="n">keys</span><span class="p">())),</span> <span class="n">class_key</span><span class="p">))</span>
+      <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">all_params</span><span class="p">):</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Known model: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">LookupError</span><span class="p">(</span><span class="s1">&#39;Model </span><span class="si">%s</span><span class="s1"> not found from list of above known models.&#39;</span> <span class="o">%</span>
+                        <span class="n">class_key</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">all_params</span><span class="p">[</span><span class="n">class_key</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="_ModelRegistryHelper.GetParams"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetParams">[docs]</a>  <span class="nd">@classmethod</span>
