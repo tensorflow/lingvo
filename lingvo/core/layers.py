@@ -694,6 +694,26 @@ class Conv2DLayer(BaseConv2DLayer):
         padding=padding_algorithm)
 
 
+class ConvNN2DLayer(BaseConv2DLayer):
+  """Convolution layer, based on tf.nn.conv2d instead of tf.nn.convolution.
+
+  tf.nn.convolution is using a different implementation on atrous convolutions,
+  by wrapping the actual convolution with space_to_batch and batch_to_space.
+  This implementation is not supported in tflite conversion, hence we need
+  a different layer for using atrous convolutions.
+  """
+
+  def _EvaluateConvKernel(self, inputs, filter_w, strides, dilation_rate,
+                          padding_algorithm, data_format):
+    p = self.params
+    return tf.nn.conv2d(
+        inputs,
+        filter_w,
+        strides=strides,
+        dilations=p.dilation_rate,
+        data_format='NHWC',
+        padding='SAME')
+
 # Alias of Conv2DLayer (for compatibility with historical uses).
 ConvLayer = Conv2DLayer
 
