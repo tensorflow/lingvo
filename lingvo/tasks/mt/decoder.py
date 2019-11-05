@@ -174,6 +174,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
           xent_loss.per_example_xent, py_utils.GetShape(target_weights))
       per_example_tensors['per_sequence_loss'] = tf.reduce_sum(
           per_example_tensors['per_example_loss'] * target_weights, 0)
+      per_example_tensors['loss'] = per_example_tensors['per_sequence_loss']
       per_example_tensors['logits'] = tf.reshape(
           xent_loss.logits,
           tf.concat([py_utils.GetShape(target_weights), [-1]], 0))
