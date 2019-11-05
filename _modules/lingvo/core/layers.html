@@ -839,6 +839,26 @@
         <span class="n">padding</span><span class="o">=</span><span class="n">padding_algorithm</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="ConvNN2DLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvNN2DLayer">[docs]</a><span class="k">class</span> <span class="nc">ConvNN2DLayer</span><span class="p">(</span><span class="n">BaseConv2DLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Convolution layer, based on tf.nn.conv2d instead of tf.nn.convolution.</span>
+
+<span class="sd">  tf.nn.convolution is using a different implementation on atrous convolutions,</span>
+<span class="sd">  by wrapping the actual convolution with space_to_batch and batch_to_space.</span>
+<span class="sd">  This implementation is not supported in tflite conversion, hence we need</span>
+<span class="sd">  a different layer for using atrous convolutions.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ConvNN2DLayer._EvaluateConvKernel"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvNN2DLayer._EvaluateConvKernel">[docs]</a>  <span class="k">def</span> <span class="nf">_EvaluateConvKernel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">filter_w</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">dilation_rate</span><span class="p">,</span>
+                          <span class="n">padding_algorithm</span><span class="p">,</span> <span class="n">data_format</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span>
+        <span class="n">filter_w</span><span class="p">,</span>
+        <span class="n">strides</span><span class="o">=</span><span class="n">strides</span><span class="p">,</span>
+        <span class="n">dilations</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
+        <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
+        <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;SAME&#39;</span><span class="p">)</span></div></div>
+
 <span class="c1"># Alias of Conv2DLayer (for compatibility with historical uses).</span>
 <span class="n">ConvLayer</span> <span class="o">=</span> <span class="n">Conv2DLayer</span>
 

@@ -453,6 +453,38 @@ expected to be of shape [batch, time].</p></li>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.core.layers.ConvNN2DLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">ConvNN2DLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ConvNN2DLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ConvNN2DLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.BaseConv2DLayer" title="lingvo.core.layers.BaseConv2DLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.BaseConv2DLayer</span></code></a></p>
+<p>Convolution layer, based on tf.nn.conv2d instead of tf.nn.convolution.</p>
+<p>tf.nn.convolution is using a different implementation on atrous convolutions,
+by wrapping the actual convolution with space_to_batch and batch_to_space.
+This implementation is not supported in tflite conversion, hence we need
+a different layer for using atrous convolutions.</p>
+<dl class="method">
+<dt id="lingvo.core.layers.ConvNN2DLayer._EvaluateConvKernel">
+<code class="sig-name descname">_EvaluateConvKernel</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">filter_w</em>, <em class="sig-param">strides</em>, <em class="sig-param">dilation_rate</em>, <em class="sig-param">padding_algorithm</em>, <em class="sig-param">data_format</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ConvNN2DLayer._EvaluateConvKernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ConvNN2DLayer._EvaluateConvKernel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the lower level convolution kernel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – As to tf.nn.convolution.</p></li>
+<li><p><strong>filter_w</strong> – As to tf.nn.depthwise_conv2d.</p></li>
+<li><p><strong>strides</strong> – As to tf.nn.convolution.</p></li>
+<li><p><strong>dilation_rate</strong> – As to tf.nn.convolution.</p></li>
+<li><p><strong>padding_algorithm</strong> – As to tf.nn.convolution (padding argument).</p></li>
+<li><p><strong>data_format</strong> – As to tf.nn.convolution.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Convolution kernel output.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="attribute">
 <dt id="lingvo.core.layers.ConvLayer">
 <code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">ConvLayer</code><a class="headerlink" href="#lingvo.core.layers.ConvLayer" title="Permalink to this definition">¶</a></dt>
