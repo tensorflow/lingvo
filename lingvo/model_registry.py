@@ -201,9 +201,10 @@ class _ModelRegistryHelper(object):
     """
     all_params = cls.GetAllRegisteredClasses()
     if class_key not in all_params:
-      raise LookupError('Known models:\n%s.\n\n'
-                        'Model %s not found from list of above known models.' %
-                        ('\n'.join(sorted(all_params.keys())), class_key))
+      for k in sorted(all_params):
+        tf.logging.info('Known model: %s', k)
+      raise LookupError('Model %s not found from list of above known models.' %
+                        class_key)
     return all_params[class_key]
 
   @classmethod
