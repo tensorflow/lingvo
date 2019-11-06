@@ -40,7 +40,7 @@ REQUIRED_PACKAGES = [
     'sklearn',
     'sympy',
     'tensorflow-gpu',
-    'waymo-od-tf2-0',
+    'waymo-open-dataset-2-0-0',
 ]
 
 

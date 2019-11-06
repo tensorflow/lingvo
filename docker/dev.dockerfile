@@ -89,7 +89,7 @@ RUN pip3 --no-cache-dir install tensorflow-gpu
 
 # Because this image uses tf2, we install a special
 # version of waymo-open-dataset.
-ARG post_tf_pip_dependencies='waymo-od-tf2-0'
+ARG post_tf_pip_dependencies='waymo-open-dataset-2-0-0'
 RUN pip3 --no-cache-dir install $post_tf_pip_dependencies
 
 # bazel assumes the python executable is "python".
