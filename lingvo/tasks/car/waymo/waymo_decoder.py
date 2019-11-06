@@ -112,6 +112,8 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
         'bboxes_3d_mask': input_labels.bboxes_3d_mask,
         'labels': input_labels.labels,
         'label_ids': input_labels.label_ids,
+        'speed': input_labels.speed,
+        'acceleration': input_labels.acceleration,
         # Fill the following in.
         'source_ids': source_ids,
         'difficulties': input_labels.detection_difficulties,
@@ -206,6 +208,7 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
       gt_bboxes = dec_out_dict.bboxes_3d[batch_idx][gt_mask]
       gt_difficulties = dec_out_dict.difficulties[batch_idx][gt_mask]
       gt_num_points = dec_out_dict.num_points_in_bboxes[batch_idx][gt_mask]
+      gt_speed = dec_out_dict.speed[batch_idx][gt_mask]
 
       for metric_cls in [
           dec_metrics_dict.waymo_metrics, dec_metrics_dict.waymo_metrics_bev
@@ -217,6 +220,7 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
                 groundtruth_bboxes=gt_bboxes,
                 groundtruth_difficulties=gt_difficulties,
                 groundtruth_num_points=gt_num_points,
+                groundtruth_speed=gt_speed,
                 detection_scores=pred_bbox_scores,
                 detection_boxes=pred_bboxes,
                 detection_heights_in_pixels=heights,
@@ -234,6 +238,8 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
           scores=pred_bbox_scores[pd_save_mask],
           gt_labels=dec_out_dict.labels[batch_idx][gt_save_mask],
           gt_label_ids=dec_out_dict.label_ids[batch_idx][gt_save_mask],
+          gt_speed=dec_out_dict.speed[batch_idx][gt_save_mask],
+          gt_acceleration=dec_out_dict.acceleration[batch_idx][gt_save_mask],
           class_ids=class_ids[pd_save_mask],
           gt_bboxes=dec_out_dict.bboxes_3d[batch_idx][gt_save_mask],
           gt_difficulties=dec_out_dict.difficulties[batch_idx][gt_save_mask],

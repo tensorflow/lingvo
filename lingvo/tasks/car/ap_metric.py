@@ -49,10 +49,11 @@ class Boxes3D(object):
         distances=np.empty([0]),
         num_points=np.empty([0]),
         rotations=np.empty([0]),
-        heights_in_pixels=np.empty([0]))
+        heights_in_pixels=np.empty([0]),
+        speeds=np.empty([0, 2]))
 
   def Add(self, img_id, score, box, difficulty, distance, num_points, rotation,
-          height_in_pixels):
+          height_in_pixels, speed):
     """Adds a bbox.
 
     Args:
@@ -65,6 +66,7 @@ class Boxes3D(object):
       rotation: The binned rotation of a box.
       height_in_pixels: The height of the 2D bbox of this object in the camera
         image.
+      speed: A [1 x 2] numpy array with speed of object in world frame.
     """
     if self._size >= self._capacity:
       # resize
@@ -82,6 +84,7 @@ class Boxes3D(object):
     self._buf.num_points[self._size] = num_points
     self._buf.rotations[self._size] = rotation
     self._buf.heights_in_pixels[self._size] = height_in_pixels
+    self._buf.speeds[self._size] = speed
     self._size += 1
 
   def _Resize(self, arr):
@@ -121,6 +124,10 @@ class Boxes3D(object):
   @property
   def heights_in_pixels(self):
     return self._buf.heights_in_pixels[:self._size]
+
+  @property
+  def speeds(self):
+    return self._buf.speeds[:self._size]
 
 
 class APMetrics(BaseMetric):
@@ -189,7 +196,8 @@ class APMetrics(BaseMetric):
 
   def _AddGroundtruth(self, box):
     """Record a ground truth box."""
-    str_imgid, classid, score, box, difficulty, distance, num_points, rot = box
+    (str_imgid, classid, score, box, difficulty, distance, num_points, rot,
+     speed) = box
     imgid = self._GetImageId(str_imgid)
     assert classid > 0 and classid < self.metadata.NumClasses(), (
         '{} vs. {}'.format(classid, self.metadata.NumClasses()))
@@ -198,7 +206,8 @@ class APMetrics(BaseMetric):
     if boxes is None:
       boxes = Boxes3D()
       self._groundtruth[classid] = boxes
-    boxes.Add(imgid, score, box, difficulty, distance, num_points, rot, -1)
+    boxes.Add(imgid, score, box, difficulty, distance, num_points, rot, -1,
+              speed)
     # Invalidate the evaluation.
     self._is_eval_complete = False
 
@@ -241,43 +250,46 @@ class APMetrics(BaseMetric):
     if boxes is not None and distance is not None:
       # Filter bounding boxes based a binned (integer) distance.
       filtered_boxes = None
-      for i, s, b, d, dist, n, r, h in zip(boxes.imgids, boxes.scores,
-                                           boxes.boxes, boxes.difficulties,
-                                           boxes.distances, boxes.num_points,
-                                           boxes.rotations,
-                                           boxes.heights_in_pixels):
+      for i, s, b, d, dist, n, r, h, v in zip(boxes.imgids, boxes.scores,
+                                              boxes.boxes, boxes.difficulties,
+                                              boxes.distances, boxes.num_points,
+                                              boxes.rotations,
+                                              boxes.heights_in_pixels,
+                                              boxes.speeds):
         if dist == distance:
           if filtered_boxes is None:
             filtered_boxes = Boxes3D()
-          filtered_boxes.Add(i, s, b, d, dist, n, r, h)
+          filtered_boxes.Add(i, s, b, d, dist, n, r, h, v)
       boxes = filtered_boxes
 
     if boxes is not None and num_points is not None:
       # Filter bounding boxes based a binned (integer) number of points.
       filtered_boxes = None
-      for i, s, b, d, dist, n, r, h in zip(boxes.imgids, boxes.scores,
-                                           boxes.boxes, boxes.difficulties,
-                                           boxes.distances, boxes.num_points,
-                                           boxes.rotations,
-                                           boxes.heights_in_pixels):
+      for i, s, b, d, dist, n, r, h, v in zip(boxes.imgids, boxes.scores,
+                                              boxes.boxes, boxes.difficulties,
+                                              boxes.distances, boxes.num_points,
+                                              boxes.rotations,
+                                              boxes.heights_in_pixels,
+                                              boxes.speeds):
         if n == num_points:
           if filtered_boxes is None:
             filtered_boxes = Boxes3D()
-          filtered_boxes.Add(i, s, b, d, dist, n, r, h)
+          filtered_boxes.Add(i, s, b, d, dist, n, r, h, v)
       boxes = filtered_boxes
 
     if boxes is not None and rotation is not None:
       # Filter bounding boxes based a binned (integer) rotation.
       filtered_boxes = None
-      for i, s, b, d, dist, n, r, h in zip(boxes.imgids, boxes.scores,
-                                           boxes.boxes, boxes.difficulties,
-                                           boxes.distances, boxes.num_points,
-                                           boxes.rotations,
-                                           boxes.heights_in_pixels):
+      for i, s, b, d, dist, n, r, h, v in zip(boxes.imgids, boxes.scores,
+                                              boxes.boxes, boxes.difficulties,
+                                              boxes.distances, boxes.num_points,
+                                              boxes.rotations,
+                                              boxes.heights_in_pixels,
+                                              boxes.speeds):
         if r == rotation:
           if filtered_boxes is None:
             filtered_boxes = Boxes3D()
-          filtered_boxes.Add(i, s, b, d, dist, n, r, h)
+          filtered_boxes.Add(i, s, b, d, dist, n, r, h, v)
       boxes = filtered_boxes
 
     return boxes
@@ -377,6 +389,9 @@ class APMetrics(BaseMetric):
           groundtruth_num_points - [N]. Number of laser points in bounding
           boxes.
 
+          groundtruth_speed - [N, 2] Speed in (vx, vy) of the ground truth
+            object.
+
           detection_scores - [C, M] - For each class (C classes) we have (up to)
           M predicted boxes.
 
@@ -389,6 +404,9 @@ class APMetrics(BaseMetric):
     """
     n = result.groundtruth_labels.shape[0]
     assert result.groundtruth_bboxes.shape == (n, 7)
+
+    if 'groundtruth_speed' not in result:
+      result.groundtruth_speed = np.zeros((n, 2), dtype=np.float32)
 
     groundtruth_result = py_utils.NestedMap(
         bboxes=result.groundtruth_bboxes,
@@ -418,11 +436,12 @@ class APMetrics(BaseMetric):
       distances = self._breakdown_metrics['distance'].Discretize(
           result.groundtruth_bboxes)
 
-    for label, bbox, difficulty, distance, num_points, rotations in zip(
+    for label, bbox, difficulty, distance, num_points, rotations, speed in zip(
         result.groundtruth_labels, result.groundtruth_bboxes,
-        result.groundtruth_difficulties, distances, num_points, rotations):
+        result.groundtruth_difficulties, distances, num_points, rotations,
+        result.groundtruth_speed):
       self._AddGroundtruth((str_id, label, 1., bbox, difficulty, distance,
-                            num_points, rotations))
+                            num_points, rotations, speed))
 
     c = result.detection_scores.shape[0]
     assert c == self.metadata.NumClasses(), '%s vs. %s' % (
@@ -467,6 +486,7 @@ class APMetrics(BaseMetric):
       # NOTE: The length of this loop can be large (e.g., for an early
       # checkpoint), so any code inside of this for loop should be
       # double-checked for efficiency.
+      dummy_speed = np.zeros((1, 2), dtype=np.float32)
       for box_id in range(non_zero_bboxes.shape[0]):
         boxes_for_class.Add(
             img_id=str_imgid,
@@ -476,7 +496,8 @@ class APMetrics(BaseMetric):
             distance=distances[box_id],
             num_points=0,
             rotation=rotations[box_id],
-            height_in_pixels=non_zero_heights_in_pixels[box_id])
+            height_in_pixels=non_zero_heights_in_pixels[box_id],
+            speed=dummy_speed)
 
   def _EvaluateIfNecessary(self):
     """Evaluate all precision recall metrics."""

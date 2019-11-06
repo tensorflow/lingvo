@@ -136,11 +136,12 @@ class WaymoAPMetrics(ap_metric.APMetrics):
 
     gt_boxes = g.boxes
     gt_imgids = g.imgids
+    gt_speeds = g.speeds
     iou_threshold = self._iou_thresholds[self.metadata.ClassNames()[classid]]
 
     return py_utils.NestedMap(
         iou_threshold=iou_threshold,
-        gt=py_utils.NestedMap(imgid=gt_imgids, bbox=gt_boxes),
+        gt=py_utils.NestedMap(imgid=gt_imgids, bbox=gt_boxes, speed=gt_speeds),
         pd=py_utils.NestedMap(imgid=p.imgids, bbox=p.boxes, score=p.scores))
 
   def _BuildMetric(self, feed_data, classid):
@@ -181,6 +182,9 @@ class WaymoAPMetrics(ap_metric.APMetrics):
     f_gt_imgid = tf.placeholder(tf.int32)
     feed_dict[f_gt_imgid] = feed_data.gt.imgid
 
+    f_gt_speed = tf.placeholder(tf.float32)
+    feed_dict[f_gt_speed] = feed_data.gt.speed
+
     f_pd_bbox = tf.placeholder(tf.float32)
     feed_dict[f_pd_bbox] = feed_data.pd.bbox
 
@@ -204,6 +208,7 @@ class WaymoAPMetrics(ap_metric.APMetrics):
         ground_truth_type=gt_class_ids,
         ground_truth_frame_id=tf.cast(f_gt_imgid, tf.int64),
         ground_truth_difficulty=tf.zeros_like(f_gt_imgid, dtype=tf.uint8),
+        ground_truth_speed=f_gt_speed,
         config=self._waymo_metric_config.SerializeToString())
 
     # All tensors returned by Waymo's metric op have a leading dimension

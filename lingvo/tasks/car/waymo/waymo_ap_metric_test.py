@@ -77,7 +77,7 @@ class APTest(test_utils.TestCase):
   def testWaymoBreakdowns(self):
     metadata = waymo_metadata.WaymoMetadata()
     params = waymo_ap_metric.WaymoAPMetrics.Params(metadata)
-    params.waymo_breakdown_metrics = ['RANGE']
+    params.waymo_breakdown_metrics = ['RANGE', 'VELOCITY']
 
     m = params.Instantiate()
     # Make one update with a perfect box.
@@ -86,6 +86,7 @@ class APTest(test_utils.TestCase):
         groundtruth_bboxes=np.ones(shape=(1, 7)),
         groundtruth_difficulties=np.zeros(shape=(1)),
         groundtruth_num_points=None,
+        groundtruth_speed=np.zeros(shape=(1, 2)),
         detection_scores=np.ones(shape=(5, 1)),
         detection_boxes=np.ones(shape=(5, 1, 7)),
         detection_heights_in_pixels=np.ones(shape=(5, 1)))
@@ -94,7 +95,6 @@ class APTest(test_utils.TestCase):
 
     # Write a summary.
     summary = m.Summary('foo')
-
     # Check that the summary value for default ap and
     # a waymo breakdown version by range is the same.
     for v in summary.value:
@@ -106,9 +106,12 @@ class APTest(test_utils.TestCase):
         aph_bd_val = v.simple_value
       elif v.tag == 'foo/Vehicle/APH_default':
         aph_default_val = v.simple_value
+      elif v.tag == 'foo_extra/AP_VELOCITY_TYPE_VEHICLE_STATIONARY_LEVEL_2':
+        vbd_val = v.simple_value
 
     self.assertEqual(bd_val, default_val)
     self.assertEqual(aph_bd_val, aph_default_val)
+    self.assertEqual(vbd_val, default_val)
 
     # Check that eval classes not evaluated are not present.
     tags = [v.tag for v in summary.value]
