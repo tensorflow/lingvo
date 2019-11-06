@@ -1411,11 +1411,20 @@
 
     <span class="c1"># Pass input params to tasks.</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">))</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="p">))</span>
+
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
       <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">)</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">input</span>
-      <span class="n">v</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">v</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+      <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s1">&#39;Missing input params for task </span><span class="si">%s</span><span class="s1"> !&#39;</span>
+            <span class="s1">&#39;Check that you have the correct datasets &#39;</span>
+            <span class="s1">&#39;passed to DefineMultitaskDatasets.&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">e</span>
+
+    <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">))</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="p">))</span>
 
     <span class="c1"># For compatibility with older API (with p.task_probs)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
