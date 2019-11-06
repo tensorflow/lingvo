@@ -1266,11 +1266,20 @@ class MultiTaskModel(BaseModel):
 
     # Pass input params to tasks.
     assert isinstance(p.input, hyperparams.Params)
-    assert set(dir(p.input)) == set(dir(p.task_params))
+
     for k, v in p.task_params.IterParams():
       assert isinstance(v, hyperparams.Params)
       assert not v.input
-      v.input = p.input.Get(k)
+      try:
+        v.input = p.input.Get(k)
+      except AttributeError as e:
+        tf.logging.error(
+            'Missing input params for task %s !'
+            'Check that you have the correct datasets '
+            'passed to DefineMultitaskDatasets.', k)
+        raise e
+
+    assert set(dir(p.input)) == set(dir(p.task_params))
 
     # For compatibility with older API (with p.task_probs)
     if p.task_schedule is None:

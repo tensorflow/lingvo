@@ -346,6 +346,27 @@ class SingleTaskModelTest(test_utils.TestCase):
 
 class MultiTaskModelTest(test_utils.TestCase):
 
+  def testInitMissingInputParams(self):
+    p = base_model.MultiTaskModel.Params()
+    p.name = 'MultiTaskModel'
+    p0 = BaseTaskTest.TestParams()
+    p0.train.learner = (learner.Learner.Params().Set(name='loss'))
+    p1 = BaseTaskTest.TestParams()
+    p1.train.learner = (learner.Learner.Params().Set(name='loss'))
+
+    p.input = base_model_params.MultiTaskModelParams().Train()
+    p.input.Define('a',
+                   base_input_generator.BaseSequenceInputGenerator.Params(), '')
+
+    p.task_params = hyperparams.Params()
+    p.task_params.Define('a', p0, '')
+    p.task_params.Define('b', p1, '')
+
+    p.task_probs = hyperparams.Params()
+    p.task_probs.Define('a', 0.5, '')
+    p.task_probs.Define('b', 0.5, '')
+    self.assertRaises(AttributeError, p.Instantiate)
+
   def testInit(self):
     p = base_model.MultiTaskModel.Params()
     p.name = 'MultiTaskModel'
