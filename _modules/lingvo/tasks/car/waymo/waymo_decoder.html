@@ -257,6 +257,8 @@
         <span class="s1">&#39;bboxes_3d_mask&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">bboxes_3d_mask</span><span class="p">,</span>
         <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
         <span class="s1">&#39;label_ids&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">label_ids</span><span class="p">,</span>
+        <span class="s1">&#39;speed&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">speed</span><span class="p">,</span>
+        <span class="s1">&#39;acceleration&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">acceleration</span><span class="p">,</span>
         <span class="c1"># Fill the following in.</span>
         <span class="s1">&#39;source_ids&#39;</span><span class="p">:</span> <span class="n">source_ids</span><span class="p">,</span>
         <span class="s1">&#39;difficulties&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">detection_difficulties</span><span class="p">,</span>
@@ -351,6 +353,7 @@
       <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
       <span class="n">gt_difficulties</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
       <span class="n">gt_num_points</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">num_points_in_bboxes</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
+      <span class="n">gt_speed</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">speed</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
 
       <span class="k">for</span> <span class="n">metric_cls</span> <span class="ow">in</span> <span class="p">[</span>
           <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">waymo_metrics</span><span class="p">,</span> <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">waymo_metrics_bev</span>
@@ -362,6 +365,7 @@
                 <span class="n">groundtruth_bboxes</span><span class="o">=</span><span class="n">gt_bboxes</span><span class="p">,</span>
                 <span class="n">groundtruth_difficulties</span><span class="o">=</span><span class="n">gt_difficulties</span><span class="p">,</span>
                 <span class="n">groundtruth_num_points</span><span class="o">=</span><span class="n">gt_num_points</span><span class="p">,</span>
+                <span class="n">groundtruth_speed</span><span class="o">=</span><span class="n">gt_speed</span><span class="p">,</span>
                 <span class="n">detection_scores</span><span class="o">=</span><span class="n">pred_bbox_scores</span><span class="p">,</span>
                 <span class="n">detection_boxes</span><span class="o">=</span><span class="n">pred_bboxes</span><span class="p">,</span>
                 <span class="n">detection_heights_in_pixels</span><span class="o">=</span><span class="n">heights</span><span class="p">,</span>
@@ -379,6 +383,8 @@
           <span class="n">scores</span><span class="o">=</span><span class="n">pred_bbox_scores</span><span class="p">[</span><span class="n">pd_save_mask</span><span class="p">],</span>
           <span class="n">gt_labels</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
           <span class="n">gt_label_ids</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">label_ids</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
+          <span class="n">gt_speed</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">speed</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
+          <span class="n">gt_acceleration</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">acceleration</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
           <span class="n">class_ids</span><span class="o">=</span><span class="n">class_ids</span><span class="p">[</span><span class="n">pd_save_mask</span><span class="p">],</span>
           <span class="n">gt_bboxes</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
           <span class="n">gt_difficulties</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>

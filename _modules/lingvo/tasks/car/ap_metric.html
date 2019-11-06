@@ -194,10 +194,11 @@
         <span class="n">distances</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span>
         <span class="n">num_points</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span>
         <span class="n">rotations</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span>
-        <span class="n">heights_in_pixels</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">heights_in_pixels</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">speeds</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span>
 
 <div class="viewcode-block" id="Boxes3D.Add"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.Boxes3D.Add">[docs]</a>  <span class="k">def</span> <span class="nf">Add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img_id</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rotation</span><span class="p">,</span>
-          <span class="n">height_in_pixels</span><span class="p">):</span>
+          <span class="n">height_in_pixels</span><span class="p">,</span> <span class="n">speed</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Adds a bbox.</span>
 
 <span class="sd">    Args:</span>
@@ -210,6 +211,7 @@
 <span class="sd">      rotation: The binned rotation of a box.</span>
 <span class="sd">      height_in_pixels: The height of the 2D bbox of this object in the camera</span>
 <span class="sd">        image.</span>
+<span class="sd">      speed: A [1 x 2] numpy array with speed of object in world frame.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_capacity</span><span class="p">:</span>
       <span class="c1"># resize</span>
@@ -227,6 +229,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">num_points</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_points</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">rotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">rotation</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">height_in_pixels</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">speeds</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">speed</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">+=</span> <span class="mi">1</span></div>
 
 <div class="viewcode-block" id="Boxes3D._Resize"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.Boxes3D._Resize">[docs]</a>  <span class="k">def</span> <span class="nf">_Resize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arr</span><span class="p">):</span>
@@ -265,7 +268,11 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">heights_in_pixels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">speeds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buf</span><span class="o">.</span><span class="n">speeds</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="APMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics">[docs]</a><span class="k">class</span> <span class="nc">APMetrics</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
@@ -334,7 +341,8 @@
 
 <div class="viewcode-block" id="APMetrics._AddGroundtruth"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics._AddGroundtruth">[docs]</a>  <span class="k">def</span> <span class="nf">_AddGroundtruth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">box</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Record a ground truth box.&quot;&quot;&quot;</span>
-    <span class="n">str_imgid</span><span class="p">,</span> <span class="n">classid</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rot</span> <span class="o">=</span> <span class="n">box</span>
+    <span class="p">(</span><span class="n">str_imgid</span><span class="p">,</span> <span class="n">classid</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rot</span><span class="p">,</span>
+     <span class="n">speed</span><span class="p">)</span> <span class="o">=</span> <span class="n">box</span>
     <span class="n">imgid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetImageId</span><span class="p">(</span><span class="n">str_imgid</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">classid</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">classid</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumClasses</span><span class="p">(),</span> <span class="p">(</span>
         <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">classid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumClasses</span><span class="p">()))</span>
@@ -343,7 +351,8 @@
     <span class="k">if</span> <span class="n">boxes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">boxes</span> <span class="o">=</span> <span class="n">Boxes3D</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_groundtruth</span><span class="p">[</span><span class="n">classid</span><span class="p">]</span> <span class="o">=</span> <span class="n">boxes</span>
-    <span class="n">boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">imgid</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rot</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">imgid</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">box</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rot</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+              <span class="n">speed</span><span class="p">)</span>
     <span class="c1"># Invalidate the evaluation.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_is_eval_complete</span> <span class="o">=</span> <span class="kc">False</span></div>
 
@@ -386,43 +395,46 @@
     <span class="k">if</span> <span class="n">boxes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">distance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="c1"># Filter bounding boxes based a binned (integer) distance.</span>
       <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="kc">None</span>
-      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">boxes</span><span class="o">.</span><span class="n">imgids</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">num_points</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">rotations</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">boxes</span><span class="o">.</span><span class="n">imgids</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">num_points</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">rotations</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">speeds</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">dist</span> <span class="o">==</span> <span class="n">distance</span><span class="p">:</span>
           <span class="k">if</span> <span class="n">filtered_boxes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="n">Boxes3D</span><span class="p">()</span>
-          <span class="n">filtered_boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+          <span class="n">filtered_boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
       <span class="n">boxes</span> <span class="o">=</span> <span class="n">filtered_boxes</span>
 
     <span class="k">if</span> <span class="n">boxes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">num_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="c1"># Filter bounding boxes based a binned (integer) number of points.</span>
       <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="kc">None</span>
-      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">boxes</span><span class="o">.</span><span class="n">imgids</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">num_points</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">rotations</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">boxes</span><span class="o">.</span><span class="n">imgids</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">num_points</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">rotations</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">speeds</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="n">num_points</span><span class="p">:</span>
           <span class="k">if</span> <span class="n">filtered_boxes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="n">Boxes3D</span><span class="p">()</span>
-          <span class="n">filtered_boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+          <span class="n">filtered_boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
       <span class="n">boxes</span> <span class="o">=</span> <span class="n">filtered_boxes</span>
 
     <span class="k">if</span> <span class="n">boxes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">rotation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="c1"># Filter bounding boxes based a binned (integer) rotation.</span>
       <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="kc">None</span>
-      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">boxes</span><span class="o">.</span><span class="n">imgids</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">num_points</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">rotations</span><span class="p">,</span>
-                                           <span class="n">boxes</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">boxes</span><span class="o">.</span><span class="n">imgids</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">difficulties</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span> <span class="n">boxes</span><span class="o">.</span><span class="n">num_points</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">rotations</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">heights_in_pixels</span><span class="p">,</span>
+                                              <span class="n">boxes</span><span class="o">.</span><span class="n">speeds</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">r</span> <span class="o">==</span> <span class="n">rotation</span><span class="p">:</span>
           <span class="k">if</span> <span class="n">filtered_boxes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">filtered_boxes</span> <span class="o">=</span> <span class="n">Boxes3D</span><span class="p">()</span>
-          <span class="n">filtered_boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+          <span class="n">filtered_boxes</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
       <span class="n">boxes</span> <span class="o">=</span> <span class="n">filtered_boxes</span>
 
     <span class="k">return</span> <span class="n">boxes</span></div>
@@ -522,6 +534,9 @@
 <span class="sd">          groundtruth_num_points - [N]. Number of laser points in bounding</span>
 <span class="sd">          boxes.</span>
 
+<span class="sd">          groundtruth_speed - [N, 2] Speed in (vx, vy) of the ground truth</span>
+<span class="sd">            object.</span>
+
 <span class="sd">          detection_scores - [C, M] - For each class (C classes) we have (up to)</span>
 <span class="sd">          M predicted boxes.</span>
 
@@ -534,6 +549,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">n</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_bboxes</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;groundtruth_speed&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+      <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_speed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
     <span class="n">groundtruth_result</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">bboxes</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">groundtruth_bboxes</span><span class="p">,</span>
@@ -563,11 +581,12 @@
       <span class="n">distances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Discretize</span><span class="p">(</span>
           <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_bboxes</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">bbox</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rotations</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">bbox</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rotations</span><span class="p">,</span> <span class="n">speed</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
         <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_labels</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_bboxes</span><span class="p">,</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_difficulties</span><span class="p">,</span> <span class="n">distances</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rotations</span><span class="p">):</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_difficulties</span><span class="p">,</span> <span class="n">distances</span><span class="p">,</span> <span class="n">num_points</span><span class="p">,</span> <span class="n">rotations</span><span class="p">,</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">groundtruth_speed</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_AddGroundtruth</span><span class="p">((</span><span class="n">str_id</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">bbox</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">distance</span><span class="p">,</span>
-                            <span class="n">num_points</span><span class="p">,</span> <span class="n">rotations</span><span class="p">))</span>
+                            <span class="n">num_points</span><span class="p">,</span> <span class="n">rotations</span><span class="p">,</span> <span class="n">speed</span><span class="p">))</span>
 
     <span class="n">c</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">detection_scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">assert</span> <span class="n">c</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumClasses</span><span class="p">(),</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> vs. </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
@@ -612,6 +631,7 @@
       <span class="c1"># NOTE: The length of this loop can be large (e.g., for an early</span>
       <span class="c1"># checkpoint), so any code inside of this for loop should be</span>
       <span class="c1"># double-checked for efficiency.</span>
+      <span class="n">dummy_speed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">box_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">non_zero_bboxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
         <span class="n">boxes_for_class</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span>
             <span class="n">img_id</span><span class="o">=</span><span class="n">str_imgid</span><span class="p">,</span>
@@ -621,7 +641,8 @@
             <span class="n">distance</span><span class="o">=</span><span class="n">distances</span><span class="p">[</span><span class="n">box_id</span><span class="p">],</span>
             <span class="n">num_points</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="n">rotation</span><span class="o">=</span><span class="n">rotations</span><span class="p">[</span><span class="n">box_id</span><span class="p">],</span>
-            <span class="n">height_in_pixels</span><span class="o">=</span><span class="n">non_zero_heights_in_pixels</span><span class="p">[</span><span class="n">box_id</span><span class="p">])</span></div>
+            <span class="n">height_in_pixels</span><span class="o">=</span><span class="n">non_zero_heights_in_pixels</span><span class="p">[</span><span class="n">box_id</span><span class="p">],</span>
+            <span class="n">speed</span><span class="o">=</span><span class="n">dummy_speed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="APMetrics._EvaluateIfNecessary"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics._EvaluateIfNecessary">[docs]</a>  <span class="k">def</span> <span class="nf">_EvaluateIfNecessary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Evaluate all precision recall metrics.&quot;&quot;&quot;</span>

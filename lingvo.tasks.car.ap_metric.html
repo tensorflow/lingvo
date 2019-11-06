@@ -177,7 +177,7 @@ where x, y, z is the center of the box, dx, dy, dz represent the width,
 length, and height of the box, and phi is the rotation of the box.</p>
 <dl class="method">
 <dt id="lingvo.tasks.car.ap_metric.Boxes3D.Add">
-<code class="sig-name descname">Add</code><span class="sig-paren">(</span><em class="sig-param">img_id</em>, <em class="sig-param">score</em>, <em class="sig-param">box</em>, <em class="sig-param">difficulty</em>, <em class="sig-param">distance</em>, <em class="sig-param">num_points</em>, <em class="sig-param">rotation</em>, <em class="sig-param">height_in_pixels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/ap_metric.html#Boxes3D.Add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.ap_metric.Boxes3D.Add" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Add</code><span class="sig-paren">(</span><em class="sig-param">img_id</em>, <em class="sig-param">score</em>, <em class="sig-param">box</em>, <em class="sig-param">difficulty</em>, <em class="sig-param">distance</em>, <em class="sig-param">num_points</em>, <em class="sig-param">rotation</em>, <em class="sig-param">height_in_pixels</em>, <em class="sig-param">speed</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/ap_metric.html#Boxes3D.Add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.ap_metric.Boxes3D.Add" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds a bbox.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -191,6 +191,7 @@ length, and height of the box, and phi is the rotation of the box.</p>
 <li><p><strong>rotation</strong> – The binned rotation of a box.</p></li>
 <li><p><strong>height_in_pixels</strong> – The height of the 2D bbox of this object in the camera
 image.</p></li>
+<li><p><strong>speed</strong> – A [1 x 2] numpy array with speed of object in world frame.</p></li>
 </ul>
 </dd>
 </dl>
@@ -239,6 +240,11 @@ image.</p></li>
 <dl class="method">
 <dt id="lingvo.tasks.car.ap_metric.Boxes3D.heights_in_pixels">
 <em class="property">property </em><code class="sig-name descname">heights_in_pixels</code><a class="headerlink" href="#lingvo.tasks.car.ap_metric.Boxes3D.heights_in_pixels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.ap_metric.Boxes3D.speeds">
+<em class="property">property </em><code class="sig-name descname">speeds</code><a class="headerlink" href="#lingvo.tasks.car.ap_metric.Boxes3D.speeds" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -370,6 +376,10 @@ groundtruth_labels - [N]. Groundtruth boxes’ labels.</p>
 <p>groundtruth_difficulties - [N]. Groundtruth boxes difficulties.</p>
 <p>groundtruth_num_points - [N]. Number of laser points in bounding
 boxes.</p>
+<dl class="simple">
+<dt>groundtruth_speed - [N, 2] Speed in (vx, vy) of the ground truth</dt><dd><p>object.</p>
+</dd>
+</dl>
 <p>detection_scores - [C, M] - For each class (C classes) we have (up to)
 M predicted boxes.</p>
 <p>detection_boxes - [C, M, 7] - [i, j, :] are coordinates for i-th
