@@ -145,12 +145,6 @@ double ComputePolygonArea(const std::vector<Vertex>& convex_polygon) {
 RotatedBox2D::RotatedBox2D(const double cx, const double cy, const double w,
                            const double h, const double heading)
     : cx_(cx), cy_(cy), w_(w), h_(h), heading_(heading) {
-  box_vertices_ = ComputeBoxVertices(cx_, cy_, w_, h_, heading_);
-
-  // Computes the area.
-  const double area = ComputePolygonArea(box_vertices_);
-  area_ = std::fabs(area) <= kEPS ? 0 : area;
-
   // Compute loose bounds on dimensions of box that doesn't require computing
   // full intersection.  We can do this by trying to compute the largest circle
   // swept by rotating the box around its center.  The radius of that circle
@@ -169,9 +163,35 @@ RotatedBox2D::RotatedBox2D(const double cx, const double cy, const double w,
   extreme_box_dim_ |= (w_ >= kMaxBoxDim || h_ >= kMaxBoxDim);
 }
 
-double RotatedBox2D::Area() const { return area_; }
+double RotatedBox2D::Area() const {
+  if (area_ < 0) {
+    const double area = ComputePolygonArea(box_vertices());
+    area_ = std::fabs(area) <= kEPS ? 0 : area;
+  }
+  return area_;
+}
+
+const std::vector<Vertex>& RotatedBox2D::box_vertices() const {
+  if (box_vertices_.empty()) {
+    box_vertices_ = ComputeBoxVertices(cx_, cy_, w_, h_, heading_);
+  }
+
+  return box_vertices_;
+}
+
+bool RotatedBox2D::NonZeroAndValid() const { return !extreme_box_dim_; }
 
 bool RotatedBox2D::MaybeIntersects(const RotatedBox2D& other) const {
+  // If the box dimensions of either box are too small / large,
+  // assume they are not well-formed boxes (otherwise we are
+  // subject to issues due to catastrophic cancellation).
+  if (extreme_box_dim_ || other.extreme_box_dim_) {
+    return false;
+  }
+
+  // Check whether the loose extrema overlap -- if not, then there is
+  // no chance that the two boxes overlap even when computing the true,
+  // more expensive overlap.
   if ((loose_min_x_ > other.loose_max_x_) ||
       (loose_max_x_ < other.loose_min_x_) ||
       (loose_min_y_ > other.loose_max_y_) ||
@@ -190,16 +210,9 @@ double RotatedBox2D::Intersection(const RotatedBox2D& other) const {
     return 0.0;
   }
 
-  // If the box dimensions of either box are too small / large,
-  // assume they are not well-formed boxes (otherwise we are
-  // subject to issues due to catastrophic cancellation).
-  if (extreme_box_dim_ || other.extreme_box_dim_) {
-    return 0.0;
-  }
-
   // Computes the intersection polygon.
   const std::vector<Vertex> intersection_polygon =
-      ComputeIntersectionPoints(box_vertices_, other.box_vertices_);
+      ComputeIntersectionPoints(box_vertices(), other.box_vertices());
   // Computes the intersection area.
   const double intersection_area = ComputePolygonArea(intersection_polygon);
 
@@ -226,6 +239,7 @@ std::vector<Upright3DBox> ParseBoxesFromTensor(const Tensor& boxes_tensor) {
   const auto t_boxes_tensor = boxes_tensor.matrix<float>();
 
   std::vector<Upright3DBox> bboxes3d;
+  bboxes3d.reserve(num_boxes);
   for (int i = 0; i < num_boxes; ++i) {
     const double center_x = t_boxes_tensor(i, 0);
     const double center_y = t_boxes_tensor(i, 1);
@@ -246,7 +260,25 @@ std::vector<Upright3DBox> ParseBoxesFromTensor(const Tensor& boxes_tensor) {
   return bboxes3d;
 }
 
+bool Upright3DBox::NonZeroAndValid() const {
+  // If min is larger than max, the upright box is invalid.
+  //
+  // If the min and max are equal, the height of the box is 0. and thus the box
+  // is zero.
+  if (z_min - z_max >= 0.) {
+    return false;
+  }
+
+  return rbox.NonZeroAndValid();
+}
+
 double Upright3DBox::IoU(const Upright3DBox& other) const {
+  // Check that both boxes are non-zero and valid.  Otherwise,
+  // return 0.
+  if (!NonZeroAndValid() || !other.NonZeroAndValid()) {
+    return 0;
+  }
+
   // Quickly check whether z's overlap; if they don't, we can return 0.
   const double z_inter =
       std::max(.0, std::min(z_max, other.z_max) - std::max(z_min, other.z_min));
@@ -254,45 +286,37 @@ double Upright3DBox::IoU(const Upright3DBox& other) const {
     return 0;
   }
 
-  const double volume_1 = rbox.Area() * (z_max - z_min);
-  const double volume_2 = other.rbox.Area() * (other.z_max - other.z_min);
-  if (volume_1 <= 0 || volume_2 <= 0 || isnan(volume_1) || isnan(volume_2) ||
-      isinf(volume_1) || isinf(volume_2)) {
-    // Does early return here because Intersection requires valid
-    // non-empty boxes.
-    return 0;
-  }
   const double base_inter = rbox.Intersection(other.rbox);
   if (base_inter == 0) {
     return 0;
   }
 
+  const double volume_1 = rbox.Area() * (z_max - z_min);
+  const double volume_2 = other.rbox.Area() * (other.z_max - other.z_min);
   const double volume_inter = base_inter * z_inter;
-
   const double volume_union = volume_1 + volume_2 - volume_inter;
   return volume_inter > 0 ? volume_inter / volume_union : 0;
 }
 
 double Upright3DBox::Overlap(const Upright3DBox& other) const {
+  // Check that both boxes are non-zero and valid.  Otherwise,
+  // return 0.
+  if (!NonZeroAndValid() || !other.NonZeroAndValid()) {
+    return 0;
+  }
+
   const double z_inter =
       std::max(.0, std::min(z_max, other.z_max) - std::max(z_min, other.z_min));
   if (z_inter == 0) {
     return 0;
   }
 
-  const double volume_1 = rbox.Area() * (z_max - z_min);
-  const double volume_2 = other.rbox.Area() * (other.z_max - other.z_min);
-  if (volume_1 <= 0 || volume_2 <= 0 || isnan(volume_1) || isnan(volume_2) ||
-      isinf(volume_1) || isinf(volume_2)) {
-    // Does early return here because Intersection requires valid
-    // non-empty boxes.
-    return 0;
-  }
   const double base_inter = rbox.Intersection(other.rbox);
   if (base_inter == 0) {
     return 0;
   }
 
+  const double volume_1 = rbox.Area() * (z_max - z_min);
   const double volume_inter = base_inter * z_inter;
   // Normalizes intersection of volume by the volume of this box.
   return volume_inter > 0 ? volume_inter / volume_1 : 0;

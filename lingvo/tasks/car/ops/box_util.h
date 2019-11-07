@@ -47,7 +47,14 @@ class RotatedBox2D {
   // Returns the IoU between this box and the given box.
   double IoU(const RotatedBox2D& other) const;
 
+  // Returns true if the box is valid (width and height are not extremely
+  // large or small).
+  bool NonZeroAndValid() const;
+
  private:
+  // Computes / caches box_vertices_ calculation.
+  const std::vector<Vertex>& box_vertices() const;
+
   // Returns true if this box and 'other' might intersect.
   //
   // If this returns false, the two boxes definitely do not intersect.  If this
@@ -71,11 +78,14 @@ class RotatedBox2D {
   // dimension.
   bool extreme_box_dim_ = false;
 
-  // Cached area.
-  double area_ = 0;
+  // The following fields are computed on demand.  They are logically
+  // const.
 
-  // Stores the vertices of the box.
-  std::vector<Vertex> box_vertices_;
+  // Cached area.  Access via Area() public API.
+  mutable double area_ = -1;
+
+  // Stores the vertices of the box.  Access via box_vertices().
+  mutable std::vector<Vertex> box_vertices_;
 };
 
 // A 3D box of 7-DOFs: only allows rotation around the z-axis.
@@ -104,6 +114,10 @@ struct Upright3DBox {
   // Computes overlap: intersection of this box and the given box normalized
   // over the volume of this box.
   double Overlap(const Upright3DBox& other) const;
+
+  // Returns true if the box is valid (width and height are not extremely
+  // large or small, and zmin < zmax).
+  bool NonZeroAndValid() const;
 };
 
 // Converts a [N, 7] tensor to a vector of N Upright3DBox objects.
