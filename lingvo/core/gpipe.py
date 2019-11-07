@@ -407,19 +407,19 @@ class PipeliningLayer(SeqLayer):
     num_cells = len(p.cell_tpl)
     cluster = self.cluster
 
-    # Compute shapes of input and output tenors.
-    input_tenors = _ToTuple(args)
-    mini_batch_size = input_tenors[0].get_shape().as_list()[p.batch_dim]
+    # Compute shapes of input and output tensors.
+    input_tensors = _ToTuple(args)
+    mini_batch_size = input_tensors[0].get_shape().as_list()[p.batch_dim]
     if p.state_dtype:
       state_dtype = p.state_dtype
     else:
-      state_dtype = input_tenors[0].dtype
+      state_dtype = input_tensors[0].dtype
     if p.num_micro_batches > mini_batch_size:
       p.num_micro_batches = mini_batch_size
     micro_batch_size = mini_batch_size // p.num_micro_batches
 
     input_shapes = ()
-    for input_tensor in input_tenors:
+    for input_tensor in input_tensors:
       if input_tensor is not None:
         input_shape = input_tensor.get_shape().as_list()
         input_shape[p.batch_dim] = micro_batch_size
@@ -488,7 +488,7 @@ class PipeliningLayer(SeqLayer):
     cell_out_grads = [lambda x: x] * num_cells
 
     with tf.device(devices[0]):
-      previous = input_tenors
+      previous = input_tensors
       for (name, l) in self._before_layers:
         previous = l.FProp(theta[name], *previous)
         previous = _ToTuple(previous)
@@ -501,12 +501,12 @@ class PipeliningLayer(SeqLayer):
 
       # TODO(huangyp, dehao): apply dehao's trick to reshape the input tensor
       # to [p.num_micro_batches, -1, 128].
-      for output_idx, output_tenor in enumerate(previous):
+      for output_idx, output_tensor in enumerate(previous):
         name = 's{}'.format(output_idx)
-        if output_tenor is not None:
-          output_tenor = tf.stack(
-              tf.split(output_tenor, p.num_micro_batches, axis=p.batch_dim))
-          inputs[name] = output_tenor
+        if output_tensor is not None:
+          output_tensor = tf.stack(
+              tf.split(output_tensor, p.num_micro_batches, axis=p.batch_dim))
+          inputs[name] = output_tensor
 
     output, _ = recurrent.StackedRecurrent(
         devices=devices,

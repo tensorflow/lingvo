@@ -311,7 +311,7 @@ class ParallelRepeatLayer(RepeatLayer):
         to the i-th copy of self.body.FProp.
 
     Returns:
-      The accumulated output_tenors. Each tensor t in the return has the shape
+      The accumulated output_tensors. Each tensor t in the return has the shape
       [p.repeat, ....] and the tuple (t[i] for i in output_tensors) is the
       return tuple of the i-th self.body.FProp.
     """
