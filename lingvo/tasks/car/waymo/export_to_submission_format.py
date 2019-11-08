@@ -83,8 +83,8 @@ def convert_detections(table_path):
       label.box.center_x = box_vec[0]
       label.box.center_y = box_vec[1]
       label.box.center_z = box_vec[2]
-      label.box.width = box_vec[3]
-      label.box.length = box_vec[4]
+      label.box.length = box_vec[3]
+      label.box.width = box_vec[4]
       label.box.height = box_vec[5]
       label.box.heading = box_vec[6]
 
