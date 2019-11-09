@@ -674,7 +674,7 @@
 <div class="viewcode-block" id="Utils3D.ResidualsToBBoxes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.ResidualsToBBoxes">[docs]</a>  <span class="k">def</span> <span class="nf">ResidualsToBBoxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                         <span class="n">anchor_bboxes</span><span class="p">,</span>
                         <span class="n">residuals</span><span class="p">,</span>
-                        <span class="n">min_angle_rad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                        <span class="n">min_angle_rad</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
                         <span class="n">max_angle_rad</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Converts anchor_boxes and residuals to predicted bboxes.</span>
 
@@ -702,8 +702,7 @@
 <span class="sd">      residuals: tf.float32 of the same shape as anchor_bboxes containing</span>
 <span class="sd">        predicted residuals at each anchor location.</span>
 <span class="sd">      min_angle_rad: Scalar with the minimum angle allowed (before wrapping)</span>
-<span class="sd">        in radians. Defaults to 0 for backwards compatibility with previous</span>
-<span class="sd">        sin(theta) encoding.</span>
+<span class="sd">        in radians.</span>
 <span class="sd">      max_angle_rad: Scalar with the maximum angle allowed (before wrapping)</span>
 <span class="sd">        in radians. This value usually should be pi.</span>
 
