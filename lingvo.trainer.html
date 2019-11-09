@@ -355,6 +355,12 @@ directory will be used.</p>
 <dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
 <p>Evaler.</p>
 <dl class="method">
+<dt id="lingvo.trainer.Evaler._CreateCheckpointer">
+<code class="sig-name descname">_CreateCheckpointer</code><span class="sig-paren">(</span><em class="sig-param">train_dir</em>, <em class="sig-param">model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Evaler._CreateCheckpointer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Evaler._CreateCheckpointer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper method for override purposes.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.trainer.Evaler.Start">
 <code class="sig-name descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Evaler.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Evaler.Start" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -397,14 +403,14 @@ directory will be used.</p>
 
 <dl class="function">
 <dt id="lingvo.trainer._GetCheckpointIdForDecodeOut">
-<code class="sig-prename descclassname">lingvo.trainer.</code><code class="sig-name descname">_GetCheckpointIdForDecodeOut</code><span class="sig-paren">(</span><em class="sig-param">checkpoint_path</em>, <em class="sig-param">global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#_GetCheckpointIdForDecodeOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer._GetCheckpointIdForDecodeOut" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.trainer.</code><code class="sig-name descname">_GetCheckpointIdForDecodeOut</code><span class="sig-paren">(</span><em class="sig-param">ckpt_id_from_file</em>, <em class="sig-param">global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#_GetCheckpointIdForDecodeOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer._GetCheckpointIdForDecodeOut" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retrieve the checkpoint id for the decoder out file.</p>
-<p>Finds the checkpoint id in the checkpoint file name and compares to global
+<p>Compares the checkpoint id found in the checkpoint file name to global
 step. If they diverge, uses the retrieved id and prints a warning.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>checkpoint_path</strong> – path to checkpoint file.</p></li>
+<li><p><strong>ckpt_id_from_file</strong> – Checkpoint Id from the checkpoint file path.</p></li>
 <li><p><strong>global_step</strong> – int specifying the global step of the model.</p></li>
 </ul>
 </dd>
@@ -420,6 +426,12 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 <dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
 <p>Decoder.</p>
 <dl class="method">
+<dt id="lingvo.trainer.Decoder._CreateCheckpointer">
+<code class="sig-name descname">_CreateCheckpointer</code><span class="sig-paren">(</span><em class="sig-param">train_dir</em>, <em class="sig-param">model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder._CreateCheckpointer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder._CreateCheckpointer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper method for override purposes.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.trainer.Decoder.Start">
 <code class="sig-name descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder.Start" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -434,6 +446,11 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 <em class="property">classmethod </em><code class="sig-name descname">GetDecodeOutPath</code><span class="sig-paren">(</span><em class="sig-param">decoder_dir</em>, <em class="sig-param">checkpoint_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder.GetDecodeOutPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder.GetDecodeOutPath" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the path to decode out file.</p>
 </dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Decoder.GetCkptIdFromFile">
+<code class="sig-name descname">GetCkptIdFromFile</code><span class="sig-paren">(</span><em class="sig-param">checkpoint_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder.GetCkptIdFromFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder.GetCkptIdFromFile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.trainer.Decoder.DecodeCheckpoint">
@@ -625,6 +642,12 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Evaler._CreateCheckpointer">
+<code class="sig-name descname">_CreateCheckpointer</code><span class="sig-paren">(</span><em class="sig-param">train_dir</em>, <em class="sig-param">model</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Evaler._CreateCheckpointer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper method for override purposes.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.trainer.RunnerManager.Evaler._EvalOnce">
 <code class="sig-name descname">_EvalOnce</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">sess</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Evaler._EvalOnce" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs evaluation for a batch of samples.</p>
@@ -667,6 +690,11 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Decoder.GetCkptIdFromFile">
+<code class="sig-name descname">GetCkptIdFromFile</code><span class="sig-paren">(</span><em class="sig-param">checkpoint_path</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Decoder.GetCkptIdFromFile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="lingvo.trainer.RunnerManager.Decoder.GetDecodeOutPath">
 <em class="property">classmethod </em><code class="sig-name descname">GetDecodeOutPath</code><span class="sig-paren">(</span><em class="sig-param">decoder_dir</em>, <em class="sig-param">checkpoint_id</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Decoder.GetDecodeOutPath" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the path to decode out file.</p>
@@ -676,6 +704,12 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 <dt id="lingvo.trainer.RunnerManager.Decoder.Start">
 <code class="sig-name descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Decoder.Start" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Decoder._CreateCheckpointer">
+<code class="sig-name descname">_CreateCheckpointer</code><span class="sig-paren">(</span><em class="sig-param">train_dir</em>, <em class="sig-param">model</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Decoder._CreateCheckpointer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper method for override purposes.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="lingvo.trainer.RunnerManager.Decoder._Loop">

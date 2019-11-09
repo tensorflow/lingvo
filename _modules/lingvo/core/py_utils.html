@@ -1807,8 +1807,8 @@
   <span class="k">return</span> <span class="n">vars_to_load</span></div>
 
 
-<div class="viewcode-block" id="_OverrideVarsFromCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._OverrideVarsFromCheckpoint">[docs]</a><span class="k">def</span> <span class="nf">_OverrideVarsFromCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">,</span>
-                                <span class="n">variable_loading_rules</span><span class="p">,</span> <span class="n">var_ignore_rules</span><span class="p">):</span>
+<div class="viewcode-block" id="OverrideVarsFromCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.OverrideVarsFromCheckpoint">[docs]</a><span class="k">def</span> <span class="nf">OverrideVarsFromCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">,</span>
+                               <span class="n">variable_loading_rules</span><span class="p">,</span> <span class="n">var_ignore_rules</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Overrides variables from a provided checkpoint.&quot;&quot;&quot;</span>
   <span class="n">vars_to_load</span> <span class="o">=</span> <span class="n">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">variable_loading_rules</span><span class="p">,</span>
                                 <span class="n">var_ignore_rules</span><span class="p">)</span>
@@ -1879,8 +1879,8 @@
     <span class="k">if</span> <span class="n">overlap</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Colliding variables to override: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">overlap</span><span class="p">)</span>
 
-    <span class="n">_OverrideVarsFromCheckpoint</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">,</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                                <span class="n">loading_rules</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">OverrideVarsFromCheckpoint</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">,</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                               <span class="n">loading_rules</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">vars_overridden</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">vars_to_override</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Model variables overridden: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">vars_overridden</span><span class="p">)</span></div>
 
