@@ -42,6 +42,7 @@ from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.tasks.car import builder_lib
+from lingvo.tasks.car import detection_3d_lib
 from lingvo.tasks.car import point_detector
 import numpy as np
 
@@ -219,6 +220,10 @@ class ModelBase(point_detector.PointDetectorBase):
         'squash_rotation_predictions', False,
         'Apply tanh squashing to rotation predictions to ensure outputs '
         'are between (-pi, pi).')
+    p.Define(
+        'use_atan2_heading_loss', False, 'If True, changes the heading loss '
+        'from sin(theta_delta) to atan2(sin(theta_delta), cos(theta_delta)) '
+        'which makes the model produce headings between [-pi to pi].')
 
     p.Define(
         'location_loss_weight', 1.0,
@@ -248,6 +253,7 @@ class ModelBase(point_detector.PointDetectorBase):
   def __init__(self, params):
     super(ModelBase, self).__init__(params)
     p = self.params
+    self._utils = detection_3d_lib.Utils3D()
 
     if len(p.per_class_loss_weight) != p.num_classes:
       raise ValueError('`Need `per_class_loss_weight` to be of len equal '
@@ -385,18 +391,31 @@ class ModelBase(point_detector.PointDetectorBase):
     # rotation loss to be the same independent of direction.
     rotation_delta = (
         predicted_residuals[..., 6:] - anchor_localization_residuals[..., 6:])
-    regression_rotation_loss = self._utils_3d.ScaledHuberLoss(
-        labels=tf.zeros_like(rotation_delta),
-        predictions=tf.sin(rotation_delta),
-        delta=p.huber_loss_delta)
+    if p.use_atan2_heading_loss:
+      atan2_of_delta = tf.atan2(tf.sin(rotation_delta), tf.cos(rotation_delta))
+      regression_rotation_loss = self._utils.ScaledHuberLoss(
+          predictions=atan2_of_delta,
+          labels=tf.zeros_like(atan2_of_delta),
+          delta=1 / (3.**2))
+    else:
+      regression_rotation_loss = self._utils_3d.ScaledHuberLoss(
+          labels=tf.zeros_like(rotation_delta),
+          predictions=tf.sin(rotation_delta),
+          delta=p.huber_loss_delta)
 
     reg_loc_loss = regression_loc_and_dims_loss[..., :3]
     reg_dim_loss = regression_loc_and_dims_loss[..., 3:6]
 
-    gt_bboxes = self._utils_3d.ResidualsToBBoxes(anchor_bboxes,
-                                                 anchor_localization_residuals)
-    predicted_bboxes = self._utils_3d.ResidualsToBBoxes(anchor_bboxes,
-                                                        predicted_residuals)
+    gt_bboxes = self._utils_3d.ResidualsToBBoxes(
+        anchor_bboxes,
+        anchor_localization_residuals,
+        min_angle_rad=-np.pi,
+        max_angle_rad=np.pi)
+    predicted_bboxes = self._utils_3d.ResidualsToBBoxes(
+        anchor_bboxes,
+        predicted_residuals,
+        min_angle_rad=-np.pi,
+        max_angle_rad=np.pi)
 
     # Apply mask to individual losses.
     #
@@ -484,7 +503,10 @@ class ModelBase(point_detector.PointDetectorBase):
 
     # Decode residuals.
     predicted_bboxes = self._utils_3d.ResidualsToBBoxes(
-        input_batch.anchor_bboxes, predictions.residuals)
+        input_batch.anchor_bboxes,
+        predictions.residuals,
+        min_angle_rad=-np.pi,
+        max_angle_rad=np.pi)
 
     # Reshape to [batch_size, num_centers * num_predictions_per_center, ...]
     num_predicted_boxes = num_centers * num_predictions_per_center

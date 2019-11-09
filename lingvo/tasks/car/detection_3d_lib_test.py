@@ -346,7 +346,8 @@ class Utils3DTest(test_utils.TestCase):
     expected_predicted_bboxes = np.asarray([[1, 2, 3, 4, 3, 6, 1.]])
 
     residuals = tf.constant([[0, 0, 0, 0, 0, 0, 1.0]], dtype=tf.float32)
-    predicted_bboxes = utils_3d.ResidualsToBBoxes(anchor_bboxes, residuals)
+    predicted_bboxes = utils_3d.ResidualsToBBoxes(
+        anchor_bboxes, residuals, min_angle_rad=0.0)
 
     with self.session() as sess:
       actual_predicted_bboxes = sess.run(predicted_bboxes)

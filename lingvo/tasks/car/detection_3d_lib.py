@@ -529,7 +529,7 @@ class Utils3D(object):
   def ResidualsToBBoxes(self,
                         anchor_bboxes,
                         residuals,
-                        min_angle_rad=0,
+                        min_angle_rad=-np.pi,
                         max_angle_rad=np.pi):
     r"""Converts anchor_boxes and residuals to predicted bboxes.
 
@@ -557,8 +557,7 @@ class Utils3D(object):
       residuals: tf.float32 of the same shape as anchor_bboxes containing
         predicted residuals at each anchor location.
       min_angle_rad: Scalar with the minimum angle allowed (before wrapping)
-        in radians. Defaults to 0 for backwards compatibility with previous
-        sin(theta) encoding.
+        in radians.
       max_angle_rad: Scalar with the maximum angle allowed (before wrapping)
         in radians. This value usually should be pi.
 
