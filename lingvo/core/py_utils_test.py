@@ -1050,10 +1050,10 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
       variable_loading_rules = [('lenet5/conv0/w/var', 'lenet5/conv0/w/var'),
                                 ('lenet5/conv1/w/var', 'lenet5/conv1/w/var')]
       variable_ignore_rules = []
-      py_utils._OverrideVarsFromCheckpoint(sess, tf.all_variables(),
-                                           checkpoint_path,
-                                           variable_loading_rules,
-                                           variable_ignore_rules)
+      py_utils.OverrideVarsFromCheckpoint(sess, tf.all_variables(),
+                                          checkpoint_path,
+                                          variable_loading_rules,
+                                          variable_ignore_rules)
       self.assertAllClose(
           # Now conv weights have been overwritten but fc bias has not.
           self._GetLeNetVarsFirstVal(sess),
@@ -1076,10 +1076,10 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
       variable_loading_rules = [('lenet5/conv0/w/var', 'lenet5/conv0/w/var'),
                                 ('lenet5/conv1/w/var', 'lenet5/conv1/w/var')]
       variable_ignore_rules = ['lenet5/conv1/w/var']
-      py_utils._OverrideVarsFromCheckpoint(sess, tf.all_variables(),
-                                           checkpoint_path,
-                                           variable_loading_rules,
-                                           variable_ignore_rules)
+      py_utils.OverrideVarsFromCheckpoint(sess, tf.all_variables(),
+                                          checkpoint_path,
+                                          variable_loading_rules,
+                                          variable_ignore_rules)
       self.assertAllClose(
           # Now only conv0 weights have been overridden.
           self._GetLeNetVarsFirstVal(sess),

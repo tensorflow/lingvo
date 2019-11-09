@@ -1662,8 +1662,8 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules):
   return vars_to_load
 
 
-def _OverrideVarsFromCheckpoint(sess, all_vars, checkpoint_path,
-                                variable_loading_rules, var_ignore_rules):
+def OverrideVarsFromCheckpoint(sess, all_vars, checkpoint_path,
+                               variable_loading_rules, var_ignore_rules):
   """Overrides variables from a provided checkpoint."""
   vars_to_load = _GetVarsToLoad(all_vars, variable_loading_rules,
                                 var_ignore_rules)
@@ -1734,8 +1734,8 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
     if overlap:
       raise ValueError('Colliding variables to override: %s' % overlap)
 
-    _OverrideVarsFromCheckpoint(session, all_vars, ckpt_path, loading_rules[0],
-                                loading_rules[1])
+    OverrideVarsFromCheckpoint(session, all_vars, ckpt_path, loading_rules[0],
+                               loading_rules[1])
     vars_overridden.update(vars_to_override)
   tf.logging.info('Model variables overridden: %s', vars_overridden)
 

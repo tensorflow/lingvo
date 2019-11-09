@@ -971,14 +971,17 @@ class Evaler(base_runner.BaseRunner):
       # No queues are allowed for eval models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       assert not self.enqueue_ops
-      self.checkpointer = checkpointer.Checkpointer(self._train_dir,
-                                                    self._model)
+      self.checkpointer = self._CreateCheckpointer(self._train_dir, self._model)
 
     # Saves the graph def.
     self._WriteToLog(self.params.ToText(), self._eval_dir, 'params.txt')
     if self.params.cluster.task == 0:
       tf.train.write_graph(self._graph.as_graph_def(), self._eval_dir,
                            '%s.pbtxt' % self._output_name)
+
+  def _CreateCheckpointer(self, train_dir, model):
+    """Wrapper method for override purposes."""
+    return checkpointer.Checkpointer(train_dir, model)
 
   def Start(self):
     self._RunLoop(self._job_name, self._Loop)
@@ -1094,22 +1097,20 @@ def GetDecoderDir(logdir, decoder_type, model_task_name):
   return os.path.join(logdir, decoder_dir)
 
 
-def _GetCheckpointIdForDecodeOut(checkpoint_path, global_step):
+def _GetCheckpointIdForDecodeOut(ckpt_id_from_file, global_step):
   """Retrieve the checkpoint id for the decoder out file.
 
-  Finds the checkpoint id in the checkpoint file name and compares to global
+  Compares the checkpoint id found in the checkpoint file name to global
   step. If they diverge, uses the retrieved id and prints a warning.
 
   Args:
-   checkpoint_path: path to checkpoint file.
+   ckpt_id_from_file: Checkpoint Id from the checkpoint file path.
    global_step: int specifying the global step of the model.
 
   Returns:
    Checkpoint id as int.
   """
-  ckpt_id_from_file = int(re.sub(r'.*ckpt-', '', checkpoint_path))
   tf.logging.info('Loaded checkpoint is at global step: %d', global_step)
-  tf.logging.info('Checkpoint path: %s', checkpoint_path)
   tf.logging.info('Checkpoint id according to checkpoint path: %d',
                   ckpt_id_from_file)
   if global_step != ckpt_id_from_file:
@@ -1161,8 +1162,7 @@ class Decoder(base_runner.BaseRunner):
       self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for decoder models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
-      self.checkpointer = checkpointer.Checkpointer(self._train_dir,
-                                                    self._model)
+      self.checkpointer = self._CreateCheckpointer(self._train_dir, self._model)
       assert not self.enqueue_ops
 
     # Saves the graph def.
@@ -1170,6 +1170,10 @@ class Decoder(base_runner.BaseRunner):
     if self.params.cluster.task == 0:
       tf.train.write_graph(self._graph.as_graph_def(), self._decoder_dir,
                            '%s.pbtxt' % self._job_name)
+
+  def _CreateCheckpointer(self, train_dir, model):
+    """Wrapper method for override purposes."""
+    return checkpointer.Checkpointer(train_dir, model)
 
   def Start(self):
     self._RunLoop(self._job_name, self._Loop)
@@ -1207,10 +1211,13 @@ class Decoder(base_runner.BaseRunner):
     out_dir = cls._GetTtlDir(decoder_dir, duration='7d')
     return os.path.join(out_dir, 'decoder_out_%09d' % checkpoint_id)
 
+  def GetCkptIdFromFile(self, checkpoint_path):
+    return int(re.sub(r'.*ckpt-', '', checkpoint_path))
+
   def DecodeCheckpoint(self, sess, checkpoint_path):
     """Decodes `samples_per_summary` examples using `checkpoint_path`."""
     p = self._model_task.params
-    ckpt_id_from_file = int(re.sub(r'.*ckpt-', '', checkpoint_path))
+    ckpt_id_from_file = self.GetCkptIdFromFile(checkpoint_path)
     if ckpt_id_from_file < p.eval.start_decoder_after:
       return False
     samples_per_summary = p.eval.decoder_samples_per_summary
@@ -1269,7 +1276,7 @@ class Decoder(base_runner.BaseRunner):
     # global_step and the checkpoint id from the checkpoint file might be
     # different. For consistency of checkpoint filename and decoder_out
     # file, use the checkpoint id as derived from the checkpoint filename.
-    checkpoint_id = _GetCheckpointIdForDecodeOut(checkpoint_path, global_step)
+    checkpoint_id = _GetCheckpointIdForDecodeOut(ckpt_id_from_file, global_step)
     decode_out_path = self.GetDecodeOutPath(self._decoder_dir, checkpoint_id)
 
     decode_finalize_args = base_model.DecodeFinalizeArgs(
