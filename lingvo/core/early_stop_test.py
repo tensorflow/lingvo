@@ -30,6 +30,7 @@ from lingvo.core import test_utils
 class MetricHistoryTest(test_utils.TestCase):
 
   def setUp(self):
+    super(MetricHistoryTest, self).setUp()
     early_stop.MetricHistory._metric_histories_map = {}
 
   def testSetLogdirInMetricHistories(self):
@@ -89,6 +90,10 @@ class MetricHistoryTest(test_utils.TestCase):
 
 
 class EarlyStopTest(test_utils.TestCase):
+
+  def setUp(self):
+    super(EarlyStopTest, self).setUp()
+    early_stop.MetricHistory._metric_histories_map = {}
 
   def testEarlyStopDefaultIsNoOp(self):
     p = early_stop.EarlyStop.Params()
