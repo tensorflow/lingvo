@@ -22,7 +22,7 @@ the following keys and their values:
 
 run_segment: string - The identifier of the driving sequence in the dataset.
 
-run_segment_offset: int64 - The start offset within the run_segment sequence.
+run_start_offset: int64 - The start offset within the run_segment sequence.
 
 time_of_day: string - Categorical description of time of day, e.g., "Day".
 
