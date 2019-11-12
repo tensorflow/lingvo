@@ -574,6 +574,7 @@ class LinearRampupCosineSchedule(BaseLearningRateSchedule):
     p.Define('warmup_init', 0, 'The initial lr value of the warm-up phase.')
     p.Define('warmup_steps', 0, 'Number of warm up steps.')
     p.Define('initial_value', 1.0, 'Initial decay value.')
+    p.Define('final_value', 0., 'Final decay value.')
     p.Define('total_steps', 0, 'Number of steps to reach full decay.')
     return p
 
@@ -585,7 +586,9 @@ class LinearRampupCosineSchedule(BaseLearningRateSchedule):
         LinearLearningRateSchedule.Params().Set(
             start=(0., p.warmup_init), limit=(p.warmup_steps, p.initial_value)),
         CosineSchedule.Params().Set(
-            initial_value=p.initial_value, total_steps=p.total_steps),
+            initial_value=p.initial_value,
+            final_value=p.final_value,
+            total_steps=p.total_steps),
     ]
     self.CreateChild(
         'combine',

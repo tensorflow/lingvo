@@ -493,7 +493,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
 
   def testLinearRampupCosineSchedule(self):
     p = schedule.LinearRampupCosineSchedule.Params().Set(
-        warmup_steps=200, initial_value=2.0, total_steps=400000)
+        warmup_steps=200,
+        initial_value=3.0,
+        final_value=1.0,
+        total_steps=400000)
     with self.session():
       lrs = p.Instantiate()
 
@@ -503,12 +506,12 @@ class LearningRateScheduleTest(test_utils.TestCase):
           pts,
           [
               [0, 0.0],
-              [100, 1.0],
-              [200, 2.0],
-              [100000, math.cos(math.pi / 4) + 1.],  # angle=pi/4
-              [200000, 1.0],  # angle=pi/2, half-way
-              [300000, math.cos(math.pi * 3 / 4) + 1.],  # angle=pi*3/4
-              [400000, 0.0],
+              [100, 1.5],
+              [200, 3.0],
+              [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
+              [200000, 2.0],  # angle=pi/2, half-way
+              [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
+              [400000, 1.0],
           ])
 
   def testPiecewiseSchedule(self):
