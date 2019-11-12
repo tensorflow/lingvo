@@ -719,6 +719,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;warmup_init&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The initial lr value of the warm-up phase.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;warmup_steps&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of warm up steps.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_value&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Initial decay value.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;final_value&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;Final decay value.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;total_steps&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of steps to reach full decay.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -730,7 +731,9 @@
         <span class="n">LinearLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">warmup_init</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">warmup_steps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_value</span><span class="p">)),</span>
         <span class="n">CosineSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">initial_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">initial_value</span><span class="p">,</span> <span class="n">total_steps</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">total_steps</span><span class="p">),</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">initial_value</span><span class="p">,</span>
+            <span class="n">final_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">final_value</span><span class="p">,</span>
+            <span class="n">total_steps</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">total_steps</span><span class="p">),</span>
     <span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span>
         <span class="s1">&#39;combine&#39;</span><span class="p">,</span>
