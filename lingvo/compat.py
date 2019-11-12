@@ -26,6 +26,7 @@ from tensorflow.compat.v1 import *  # pylint:disable=wildcard-import
 from absl import flags
 from absl import logging
 # pylint: disable=g-direct-tensorflow-import
+from tensorflow.python import tf2
 from tensorflow.python.compat import v2_compat
 
 from tensorflow.python.framework import function as _function_lib
@@ -38,7 +39,13 @@ from tensorflow.python.framework import op_def_library as _op_def_library
 from tensorflow.python.framework import op_def_registry as _op_def_registry
 # pylint: enable=g-direct-tensorflow-import
 
-v2_compat.disable_v2_behavior()
+_force_disable_v2 = True
+if _force_disable_v2:
+  v2_compat.disable_v2_behavior()
+elif tf2.enabled():
+  logging.warning("Lingvo does not support TF2 yet. "
+                  "Please disable V2 behavior with tf.disable_v2_behavior(), "
+                  "or proceed at your own risk.")
 Defun = _function_lib.Defun
 
 
