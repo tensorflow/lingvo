@@ -101,15 +101,10 @@ class MatplotlibFigureSummaryTest(test_utils.TestCase):
           'context_manager_figure', self.FIGSIZE, max_outputs=1) as fig:
         batched_data = tf.expand_dims(self.DEFAULT_DATA, 0)  # Batch size 1.
         fig.AddSubplot([batched_data])
-      summary_str = s.run(tf.summary.merge_all())
+      summary_str = s.run(tf.summary.merge_all(scope='context_manager_figure'))
     summary = tf.summary.Summary.FromString(summary_str)
-    print('\n'.join(v.tag for v in summary.value))
-    values = [
-        v for v in summary.value if v.tag == 'context_manager_figure/image'
-    ]
-    print(values)
-    self.assertEqual(len(values), 1)
-    value = values[0]
+    self.assertEqual(len(summary.value), 1)
+    value = summary.value[0]
     self.assertEqual(value.image.width, self.EXPECTED_DPI * self.FIGSIZE[0])
     self.assertEqual(value.image.height, self.EXPECTED_DPI * self.FIGSIZE[1])
     self.assertEqual(value.image.colorspace, 3)
