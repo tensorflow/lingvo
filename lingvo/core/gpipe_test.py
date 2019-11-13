@@ -84,7 +84,9 @@ def _Partition(params, num_splits, *shapes):
   ]
 
 
-def _BuildDummyPipelineCnn(num_splits=4, num_micro_batches=8):
+def _BuildDummyPipelineCnn(num_splits=4,
+                           num_micro_batches=8,
+                           micro_batch_size=None):
   """Construct a dummy layer that consist of 16 3x3 conv layers.
 
   In addition, each conv layer increments a count every time step.
@@ -92,6 +94,7 @@ def _BuildDummyPipelineCnn(num_splits=4, num_micro_batches=8):
   Args:
     num_splits: number of cells for pipeline cnn
     num_micro_batches: number of time steps.
+    micro_batch_size: Size of a micro batch.
 
   Returns:
     A PipeliningLayer layer.
@@ -129,6 +132,7 @@ def _BuildDummyPipelineCnn(num_splits=4, num_micro_batches=8):
     p = PipeliningLayer.Params().Set(
         name='pipeline',
         num_micro_batches=num_micro_batches,
+        micro_batch_size=micro_batch_size,
         cell_tpl=cell_tpl,
         before_tpl=[])
   layer = p.Instantiate()
@@ -137,7 +141,10 @@ def _BuildDummyPipelineCnn(num_splits=4, num_micro_batches=8):
 
 class DummyPipelineCnnTest(test_utils.TestCase):
 
-  def _verify_timestep_counts(self, num_splits, auto_partition=False):
+  def _verify_timestep_counts(self,
+                              num_splits,
+                              auto_partition=False,
+                              micro_batch_size=None):
     num_micro_batches = 8
     batch_size = 16
     with self.session(graph=tf.Graph()) as sess:
@@ -156,7 +163,9 @@ class DummyPipelineCnnTest(test_utils.TestCase):
                                               1]))).Instantiate()
       else:
         net = _BuildDummyPipelineCnn(
-            num_splits=num_splits, num_micro_batches=num_micro_batches)
+            num_splits=num_splits,
+            micro_batch_size=micro_batch_size,
+            num_micro_batches=num_micro_batches)
       endpoints = net.FPropDefaultTheta(inputs)
       if isinstance(endpoints, (list, tuple)):
         logits, aux_logits = endpoints
@@ -184,6 +193,13 @@ class DummyPipelineCnnTest(test_utils.TestCase):
 
   def testDummyPipelineCnnTwoSplits(self):
     self._verify_timestep_counts(num_splits=2)
+
+  def testDummyPipelineCnnTwoSplitsMicroBatchSize1(self):
+    with self.assertRaises(ValueError):
+      self._verify_timestep_counts(num_splits=2, micro_batch_size=1)
+
+  def testDummyPipelineCnnTwoSplitsMicroBatchSize2(self):
+    self._verify_timestep_counts(num_splits=2, micro_batch_size=2)
 
   def testDummyPipelineCnnFourSplits(self):
     self._verify_timestep_counts(num_splits=4)

@@ -336,6 +336,7 @@ class PipeliningLayer(SeqLayer):
   def Params(cls):
     p = super(PipeliningLayer, cls).Params()
     p.Define('num_micro_batches', 1, 'Number of micro batches.')
+    p.Define('micro_batch_size', None, 'Size of a micro batch.')
     p.Define('batch_dim', 0, 'The batch dimension.')
     p.Define('state_dtype', None, 'Externally specify dtype for states.')
     return p
@@ -414,9 +415,15 @@ class PipeliningLayer(SeqLayer):
       state_dtype = p.state_dtype
     else:
       state_dtype = input_tensors[0].dtype
-    if p.num_micro_batches > mini_batch_size:
-      p.num_micro_batches = mini_batch_size
-    micro_batch_size = mini_batch_size // p.num_micro_batches
+
+    micro_batch_size = p.micro_batch_size
+    if not micro_batch_size:
+      if p.num_micro_batches > mini_batch_size:
+        p.num_micro_batches = mini_batch_size
+      micro_batch_size = mini_batch_size // p.num_micro_batches
+    if mini_batch_size is not None:
+      if micro_batch_size * p.num_micro_batches != mini_batch_size:
+        raise ValueError('micro_batch_size * num_micro_batches != batch_size.')
 
     input_shapes = ()
     for input_tensor in input_tensors:
