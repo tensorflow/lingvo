@@ -183,11 +183,13 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">builder_lib</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">detection_3d_lib</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">geometry</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">point_detector</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
@@ -366,9 +368,9 @@
         <span class="s1">&#39;Apply tanh squashing to rotation predictions to ensure outputs &#39;</span>
         <span class="s1">&#39;are between (-pi, pi).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;use_atan2_heading_loss&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, changes the heading loss &#39;</span>
-        <span class="s1">&#39;from sin(theta_delta) to atan2(sin(theta_delta), cos(theta_delta)) &#39;</span>
-        <span class="s1">&#39;which makes the model produce headings between [-pi to pi].&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;direction_aware_rot_loss&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, changes the heading loss &#39;</span>
+        <span class="s1">&#39;from sin(theta_delta) to WrapAngleRad(theta_delta), which makes the &#39;</span>
+        <span class="s1">&#39;model produce headings between [-pi to pi].&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;location_loss_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
@@ -530,23 +532,20 @@
         <span class="n">predictions</span><span class="o">=</span><span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">6</span><span class="p">],</span>
         <span class="n">delta</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">huber_loss_delta</span><span class="p">)</span>
 
-    <span class="c1"># TODO(jngiam): Consider other methods for rotation loss such as softmax</span>
-    <span class="c1"># binning.</span>
-    <span class="c1"># For the rotation loss, we use SmoothL1(sine(delta)), this enables the</span>
-    <span class="c1"># rotation loss to be the same independent of direction.</span>
+    <span class="c1"># Rotation loss is computed on a transform on rotation_delta. For a</span>
+    <span class="c1"># direction aware loss, we simply wrap the angles to -pi to pi; for a loss</span>
+    <span class="c1"># that is symmetric to direction (i.e., rotating by pi), we use a sin</span>
+    <span class="c1"># transform.</span>
+    <span class="n">rotation_delta_transform</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">direction_aware_rot_loss</span><span class="p">:</span>
+      <span class="n">rotation_delta_transform</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+          <span class="n">geometry</span><span class="o">.</span><span class="n">WrapAngleRad</span><span class="p">,</span> <span class="n">min_val</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
     <span class="n">rotation_delta</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">predicted_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span> <span class="o">-</span> <span class="n">anchor_localization_residuals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:])</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_atan2_heading_loss</span><span class="p">:</span>
-      <span class="n">atan2_of_delta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">rotation_delta</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">rotation_delta</span><span class="p">))</span>
-      <span class="n">regression_rotation_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
-          <span class="n">predictions</span><span class="o">=</span><span class="n">atan2_of_delta</span><span class="p">,</span>
-          <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">atan2_of_delta</span><span class="p">),</span>
-          <span class="n">delta</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mf">3.</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">regression_rotation_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
-          <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">rotation_delta</span><span class="p">),</span>
-          <span class="n">predictions</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">rotation_delta</span><span class="p">),</span>
-          <span class="n">delta</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">huber_loss_delta</span><span class="p">)</span>
+    <span class="n">regression_rotation_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils_3d</span><span class="o">.</span><span class="n">ScaledHuberLoss</span><span class="p">(</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">rotation_delta</span><span class="p">),</span>
+        <span class="n">predictions</span><span class="o">=</span><span class="n">rotation_delta_transform</span><span class="p">(</span><span class="n">rotation_delta</span><span class="p">),</span>
+        <span class="n">delta</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">huber_loss_delta</span><span class="p">)</span>
 
     <span class="n">reg_loc_loss</span> <span class="o">=</span> <span class="n">regression_loc_and_dims_loss</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
     <span class="n">reg_dim_loss</span> <span class="o">=</span> <span class="n">regression_loc_and_dims_loss</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
