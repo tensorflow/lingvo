@@ -38,11 +38,13 @@ from __future__ import division
 from __future__ import print_function
 
 import enum
+import functools
 from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.tasks.car import builder_lib
 from lingvo.tasks.car import detection_3d_lib
+from lingvo.tasks.car import geometry
 from lingvo.tasks.car import point_detector
 import numpy as np
 
@@ -221,9 +223,9 @@ class ModelBase(point_detector.PointDetectorBase):
         'Apply tanh squashing to rotation predictions to ensure outputs '
         'are between (-pi, pi).')
     p.Define(
-        'use_atan2_heading_loss', False, 'If True, changes the heading loss '
-        'from sin(theta_delta) to atan2(sin(theta_delta), cos(theta_delta)) '
-        'which makes the model produce headings between [-pi to pi].')
+        'direction_aware_rot_loss', False, 'If True, changes the heading loss '
+        'from sin(theta_delta) to WrapAngleRad(theta_delta), which makes the '
+        'model produce headings between [-pi to pi].')
 
     p.Define(
         'location_loss_weight', 1.0,
@@ -385,23 +387,20 @@ class ModelBase(point_detector.PointDetectorBase):
         predictions=predicted_residuals[..., :6],
         delta=p.huber_loss_delta)
 
-    # TODO(jngiam): Consider other methods for rotation loss such as softmax
-    # binning.
-    # For the rotation loss, we use SmoothL1(sine(delta)), this enables the
-    # rotation loss to be the same independent of direction.
+    # Rotation loss is computed on a transform on rotation_delta. For a
+    # direction aware loss, we simply wrap the angles to -pi to pi; for a loss
+    # that is symmetric to direction (i.e., rotating by pi), we use a sin
+    # transform.
+    rotation_delta_transform = tf.sin
+    if p.direction_aware_rot_loss:
+      rotation_delta_transform = functools.partial(
+          geometry.WrapAngleRad, min_val=-np.pi, max_val=np.pi)
     rotation_delta = (
         predicted_residuals[..., 6:] - anchor_localization_residuals[..., 6:])
-    if p.use_atan2_heading_loss:
-      atan2_of_delta = tf.atan2(tf.sin(rotation_delta), tf.cos(rotation_delta))
-      regression_rotation_loss = self._utils.ScaledHuberLoss(
-          predictions=atan2_of_delta,
-          labels=tf.zeros_like(atan2_of_delta),
-          delta=1 / (3.**2))
-    else:
-      regression_rotation_loss = self._utils_3d.ScaledHuberLoss(
-          labels=tf.zeros_like(rotation_delta),
-          predictions=tf.sin(rotation_delta),
-          delta=p.huber_loss_delta)
+    regression_rotation_loss = self._utils_3d.ScaledHuberLoss(
+        labels=tf.zeros_like(rotation_delta),
+        predictions=rotation_delta_transform(rotation_delta),
+        delta=p.huber_loss_delta)
 
     reg_loc_loss = regression_loc_and_dims_loss[..., :3]
     reg_dim_loss = regression_loc_and_dims_loss[..., 3:6]

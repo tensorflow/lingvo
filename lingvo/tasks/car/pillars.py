@@ -23,6 +23,7 @@ from __future__ import division
 from __future__ import print_function
 
 import enum
+import functools
 from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import layers
@@ -30,6 +31,7 @@ from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.tasks.car import builder_lib
 from lingvo.tasks.car import detection_3d_lib
+from lingvo.tasks.car import geometry
 from lingvo.tasks.car import point_detector
 import numpy as np
 
@@ -303,8 +305,9 @@ class ModelV1(point_detector.PointDetectorBase):
         'If > 0, adds a direction classifier to the model and adds '
         'to the total loss with this weight.')
     p.Define(
-        'use_atan2_heading_loss', False, 'Whether to have the heading loss be '
-        'atan2(sin(theta), cos(theta))')
+        'direction_aware_rot_loss', False, 'If True, changes the heading loss '
+        'from sin(theta_delta) to WrapAngleRad(theta_delta), which makes the '
+        'model produce headings between [-pi to pi].')
 
     p.Define(
         'squash_rotation_predictions', False,
@@ -506,23 +509,20 @@ class ModelV1(point_detector.PointDetectorBase):
         labels=anchor_localization_residuals[..., :6],
         delta=1 / (3.**2))
 
-    # Rotation loss with SmoothL1(sin(delta)).
-    rot_delta = (
-        predicted_residuals[..., 6:] -
-        input_batch.anchor_localization_residuals[..., 6:])
+    # Rotation loss is computed on a transform on rot_delta. For a direction
+    # aware loss, we simply wrap the angles to -pi to pi; for a loss that is
+    # symmetric to direction (i.e., rotating by pi), we use a sin transform.
+    rot_delta_transform = tf.sin
+    if p.direction_aware_rot_loss:
+      rot_delta_transform = functools.partial(
+          geometry.WrapAngleRad, min_val=-np.pi, max_val=np.pi)
 
-    if p.use_atan2_heading_loss:
-      atan2_of_delta = tf.atan2(tf.sin(rot_delta), tf.cos(rot_delta))
-      reg_rot_loss = self._utils.ScaledHuberLoss(
-          predictions=atan2_of_delta,
-          labels=tf.zeros_like(atan2_of_delta),
-          delta=1 / (3.**2))
-    else:
-      # Rotation loss with SmoothL1(sin(delta)).
-      reg_rot_loss = self._utils.ScaledHuberLoss(
-          predictions=tf.sin(rot_delta),
-          labels=tf.zeros_like(rot_delta),
-          delta=1 / (3.**2))
+    rot_delta = (
+        predicted_residuals[..., 6:] - anchor_localization_residuals[..., 6:])
+    reg_rot_loss = self._utils.ScaledHuberLoss(
+        predictions=rot_delta_transform(rot_delta),
+        labels=tf.zeros_like(rot_delta),
+        delta=1 / (3.**2))
 
     # Direction loss
     if p.direction_classifier_weight > 0.0:
@@ -591,7 +591,7 @@ class ModelV1(point_detector.PointDetectorBase):
     }
 
     # Calculate dimension errors
-    min_angle_rad = -np.pi if p.use_atan2_heading_loss else 0
+    min_angle_rad = -np.pi if p.direction_aware_rot_loss else 0
     gt_bboxes = self._utils_3d.ResidualsToBBoxes(
         input_batch.anchor_bboxes,
         anchor_localization_residuals,
@@ -620,7 +620,7 @@ class ModelV1(point_detector.PointDetectorBase):
     _, per_example_dict = self.FPropTower(self.theta, input_batch)
 
     # Decode residuals.
-    min_angle_rad = -np.pi if p.use_atan2_heading_loss else 0
+    min_angle_rad = -np.pi if p.direction_aware_rot_loss else 0
     predicted_bboxes = self._utils.ResidualsToBBoxes(
         input_batch.anchor_bboxes,
         per_example_dict['residuals'],

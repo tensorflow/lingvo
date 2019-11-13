@@ -326,6 +326,7 @@ py_library(
     deps = [
         ":builder_lib",
         ":detection_3d_lib",
+        ":geometry",
         ":point_detector",
         # Implicit enum dependency.
         "//lingvo:compat",
@@ -370,6 +371,7 @@ py_library(
     deps = [
         ":builder_lib",
         ":detection_3d_lib",
+        ":geometry",
         ":point_detector",
         # Implicit enum dependency.
         "//lingvo:compat",
