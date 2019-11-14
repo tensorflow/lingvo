@@ -180,46 +180,69 @@
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask">
-<code class="sig-name descname">_GetMask</code><span class="sig-paren">(</span><em class="sig-param">batch_size</em>, <em class="sig-param">max_length</em>, <em class="sig-param">choose_range</em>, <em class="sig-param">mask_size</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">max_ratio=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._GetMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a fixed size mask starting from a random position.</p>
+<code class="sig-name descname">_GetMask</code><span class="sig-paren">(</span><em class="sig-param">batch_size</em>, <em class="sig-param">choose_range</em>, <em class="sig-param">mask_size</em>, <em class="sig-param">max_length=None</em>, <em class="sig-param">masks_per_frame=0.0</em>, <em class="sig-param">multiplicity=1</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">max_ratio=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._GetMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns fixed size multi-masks starting from random positions.</p>
+<p>A multi-mask is a mask obtained by applying multiple masks.</p>
 <dl class="simple">
-<dt>In this function:</dt><dd><ol class="arabic simple">
-<li><p>Sample random lengths less than max_length with shape (batch_size,).</p></li>
-<li><p>Truncate lengths to a max of range * max_ratio, so that each mask is
-fully contained within the corresponding sequence.</p></li>
-<li><p>Random sample start points with in (choose_range - lengths).</p></li>
-<li><p>Return a mask where (lengths - start points) * mask_size are all zeros.</p></li>
+<dt>This function when max_length is given:</dt><dd><ol class="arabic simple">
+<li><p>Sample random mask lengths less than max_length with shape
+(batch_size, multiplicity).</p></li>
+<li><p>Truncate lengths to a max of (choose_range * max_ratio),
+so that each mask is fully contained within the corresponding sequence.</p></li>
+<li><p>Random sample start points of shape (batch_size, multiplicity)
+with in (choose_range - lengths).</p></li>
+<li><p>For each batch, multiple masks (whose number is given by the
+multiplicity) are constructed.</p></li>
+<li><p>Return a mask of shape (batch_size, mask_size) where masks are
+obtained by composing the masks constructed in step 4).
+If masks_per_frame &gt; 0, the number is given by
+min(masks_per_frame * choose_range, multiplicity).
+If not, all the masks are composed. The masked regions are set to zero.</p></li>
+</ol>
+</dd>
+<dt>This function when max_length is not given:</dt><dd><ol class="arabic simple">
+<li><p>Sample random mask lengths less than (choose_range * max_ratio)
+with shape (batch_size, multiplicity).</p></li>
+<li><p>Proceed to steps 3), 4) and 5) of the above.</p></li>
 </ol>
 </dd>
 </dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>batch_size</strong> – batch size.</p></li>
-<li><p><strong>max_length</strong> – Maximum number of allowed consecutive masked entries.</p></li>
-<li><p><strong>choose_range</strong> – Range within which the masked entries must lie.</p></li>
-<li><p><strong>mask_size</strong> – Size of the mask.</p></li>
+<li><p><strong>batch_size</strong> – Batch size. Integer number.</p></li>
+<li><p><strong>choose_range</strong> – Range within which the masked entries must lie. Tensor of
+shape (batch_size,).</p></li>
+<li><p><strong>mask_size</strong> – Size of the mask. Integer number.</p></li>
+<li><p><strong>max_length</strong> – Maximum number of allowed consecutive masked entries. Integer
+number or None.</p></li>
+<li><p><strong>masks_per_frame</strong> – Number of masks per frame. Float number. If &gt; 0, the
+multiplicity of the mask is set to be masks_per_frame * choose_range.</p></li>
+<li><p><strong>multiplicity</strong> – Maximum number of total masks. Integer number.</p></li>
 <li><p><strong>dtype</strong> – Data type.</p></li>
-<li><p><strong>max_ratio</strong> – Maximum portion of the entire range allowed to be masked.</p></li>
+<li><p><strong>max_ratio</strong> – Maximum portion of the entire range allowed to be masked. Float
+number.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A fixed size mask starting from a random position with shape
-[batch_size, seq_len].</p>
+<dd class="field-even"><p>a fixed size multi-mask starting from a random position with shape
+(batch_size, mask_size).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mask</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask">
-<code class="sig-name descname">_FrequencyMask</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">num_freq=80</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._FrequencyMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FrequencyMask</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._FrequencyMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies frequency masking with given degree to inputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
 num_freq, channels).</p></li>
-<li><p><strong>num_freq</strong> – Number of frequencies.</p></li>
 <li><p><strong>dtype</strong> – Data type.</p></li>
 <li><p><strong>domain_id_index</strong> – domain id index.</p></li>
 </ul>
@@ -232,7 +255,7 @@ num_freq, channels).</p></li>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask">
-<code class="sig-name descname">_TimeMask</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">max_ratio=1.0</em>, <em class="sig-param">time_length=2560</em>, <em class="sig-param">noisify=False</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._TimeMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_TimeMask</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">noisify=False</em>, <em class="sig-param">gaussian_noise=False</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._TimeMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies time masking with given degree to inputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -241,9 +264,8 @@ num_freq, channels).</p></li>
 num_freq, channels).</p></li>
 <li><p><strong>seq_lengths</strong> – The actual sequence lengths which mask been sampled of shape
 (batch_size,).</p></li>
-<li><p><strong>max_ratio</strong> – Maximum portion of the utterance allowed to be time-masked.</p></li>
-<li><p><strong>time_length</strong> – Total length of time series.</p></li>
-<li><p><strong>noisify</strong> – whether to noisify the masked out regions.</p></li>
+<li><p><strong>noisify</strong> – Whether to noisify the masked out regions.</p></li>
+<li><p><strong>gaussian_noise</strong> – Whether to use gaussian noise when noisifying.</p></li>
 <li><p><strong>dtype</strong> – Data type.</p></li>
 <li><p><strong>domain_id_index</strong> – domain id index.</p></li>
 </ul>
@@ -262,13 +284,12 @@ num_freq, channels).</p></li>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork">
-<code class="sig-name descname">_AugmentationNetwork</code><span class="sig-paren">(</span><em class="sig-param">series_length</em>, <em class="sig-param">num_freq</em>, <em class="sig-param">inputs</em>, <em class="sig-param">paddings</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._AugmentationNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AugmentationNetwork</code><span class="sig-paren">(</span><em class="sig-param">series_length</em>, <em class="sig-param">inputs</em>, <em class="sig-param">paddings</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._AugmentationNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns augmented features.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>series_length</strong> – Total length of time series.</p></li>
-<li><p><strong>num_freq</strong> – Number of frequencies.</p></li>
 <li><p><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
 num_freq, channels).</p></li>
 <li><p><strong>paddings</strong> – Batch of padding vectors of shape (batch_size, time_length).</p></li>

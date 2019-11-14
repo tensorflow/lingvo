@@ -167,7 +167,16 @@
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+
+<span class="n">_SPECAUGMENT_ARGS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;freq_mask_max_bins&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;freq_mask_count&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;time_mask_max_frames&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;time_mask_count&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;time_mask_max_ratio&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;time_masks_per_frame&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;use_dynamic_time_mask_max_frames&#39;</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <div class="viewcode-block" id="SpectrumAugmenter"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter">[docs]</a><span class="k">class</span> <span class="nc">SpectrumAugmenter</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -183,20 +192,30 @@
              <span class="s1">&#39;Maximum number of frequency bins of frequency masking.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;freq_mask_count&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
              <span class="s1">&#39;Number of times we apply masking on the frequency axis.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;time_mask_max_frames&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span>
-             <span class="s1">&#39;Maximum number of frames of time masking.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;time_mask_count&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
-             <span class="s1">&#39;Number of times we apply masking on the time axis.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;time_mask_max_frames&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;Maximum number of frames of time masking. &#39;</span>
+        <span class="s1">&#39;Overridden when use_dynamic_time_mask_max_frames = True.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;time_mask_count&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;Number of times we apply masking on the time axis. &#39;</span>
+        <span class="s1">&#39;Acts as upper-bound when time_masks_per_frame &gt; 0.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;time_mask_max_ratio&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
              <span class="s1">&#39;Maximum portion allowed for time masking.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;time_masks_per_frame&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;Ratio of number of time masks to be applied against &#39;</span>
+        <span class="s1">&#39;the number of frames. If &gt; 0, multiplicity of the time mask &#39;</span>
+        <span class="s1">&#39;is determined by time_masks_per_frame * utterance_length.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_dynamic_time_mask_max_frames&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;If true, time_mask_max_frames is determined by &#39;</span>
         <span class="s1">&#39;time_mask_max_ratio * utterance_length.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_noise&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to noisify the time masked region.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gaussian_noise&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Use Gaussian distribution for noise.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;unstack&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-             <span class="s1">&#39;Whether to unstack features before applying SpecAugment&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stack_height&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Number of frames stacked on top of each other&#39;</span><span class="p">)</span>
+             <span class="s1">&#39;Whether to unstack features before applying SpecAugment.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stack_height&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span>
+             <span class="s1">&#39;Number of frames stacked on top of each other.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;domain_ids&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
         <span class="s1">&#39;If domain ids was given, this parameters describe which domain &#39;</span>
@@ -212,97 +231,141 @@
     <span class="nb">super</span><span class="p">(</span><span class="n">SpectrumAugmenter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">num_domains</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">domain_ids</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_domains</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_domains</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">freq_mask_count</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">freq_mask_count</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_domains</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">freq_mask_count</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">freq_mask_count</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_domains</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_domains</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_domains</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_count</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_count</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_domains</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">time_mask_count</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_count</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_domains</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_ratio</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_ratio</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_domains</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_ratio</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_ratio</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_domains</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">use_dynamic_time_mask_max_frames</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">use_dynamic_time_mask_max_frames</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_domains</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">use_dynamic_time_mask_max_frames</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">use_dynamic_time_mask_max_frames</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_domains</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">_SPECAUGMENT_ARGS</span><span class="p">:</span>
+      <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_domains</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_domains</span><span class="p">)</span>
     <span class="c1"># TODO(ngyuzh): adding time warping.</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
 
 <div class="viewcode-block" id="SpectrumAugmenter._GetMask"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask">[docs]</a>  <span class="k">def</span> <span class="nf">_GetMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">batch_size</span><span class="p">,</span>
-               <span class="n">max_length</span><span class="p">,</span>
                <span class="n">choose_range</span><span class="p">,</span>
                <span class="n">mask_size</span><span class="p">,</span>
+               <span class="n">max_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">masks_per_frame</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+               <span class="n">multiplicity</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
                <span class="n">max_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a fixed size mask starting from a random position.</span>
+    <span class="sd">&quot;&quot;&quot;Returns fixed size multi-masks starting from random positions.</span>
 
-<span class="sd">    In this function:</span>
-<span class="sd">      1) Sample random lengths less than max_length with shape (batch_size,).</span>
-<span class="sd">      2) Truncate lengths to a max of range * max_ratio, so that each mask is</span>
-<span class="sd">         fully contained within the corresponding sequence.</span>
-<span class="sd">      3) Random sample start points with in (choose_range - lengths).</span>
-<span class="sd">      4) Return a mask where (lengths - start points) * mask_size are all zeros.</span>
+<span class="sd">    A multi-mask is a mask obtained by applying multiple masks.</span>
+
+<span class="sd">    This function when max_length is given:</span>
+<span class="sd">      1) Sample random mask lengths less than max_length with shape</span>
+<span class="sd">         (batch_size, multiplicity).</span>
+<span class="sd">      2) Truncate lengths to a max of (choose_range * max_ratio),</span>
+<span class="sd">         so that each mask is fully contained within the corresponding sequence.</span>
+<span class="sd">      3) Random sample start points of shape (batch_size, multiplicity)</span>
+<span class="sd">         with in (choose_range - lengths).</span>
+<span class="sd">      4) For each batch, multiple masks (whose number is given by the</span>
+<span class="sd">         multiplicity) are constructed.</span>
+<span class="sd">      5) Return a mask of shape (batch_size, mask_size) where masks are</span>
+<span class="sd">         obtained by composing the masks constructed in step 4).</span>
+<span class="sd">         If masks_per_frame &gt; 0, the number is given by</span>
+<span class="sd">         min(masks_per_frame * choose_range, multiplicity).</span>
+<span class="sd">         If not, all the masks are composed. The masked regions are set to zero.</span>
+
+<span class="sd">    This function when max_length is not given:</span>
+<span class="sd">      1) Sample random mask lengths less than (choose_range * max_ratio)</span>
+<span class="sd">         with shape (batch_size, multiplicity).</span>
+<span class="sd">      2) Proceed to steps 3), 4) and 5) of the above.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      batch_size: batch size.</span>
-<span class="sd">      max_length: Maximum number of allowed consecutive masked entries.</span>
-<span class="sd">      choose_range: Range within which the masked entries must lie.</span>
-<span class="sd">      mask_size: Size of the mask.</span>
+<span class="sd">      batch_size: Batch size. Integer number.</span>
+<span class="sd">      choose_range: Range within which the masked entries must lie. Tensor of</span>
+<span class="sd">        shape (batch_size,).</span>
+<span class="sd">      mask_size: Size of the mask. Integer number.</span>
+<span class="sd">      max_length: Maximum number of allowed consecutive masked entries. Integer</span>
+<span class="sd">        number or None.</span>
+<span class="sd">      masks_per_frame: Number of masks per frame. Float number. If &gt; 0, the</span>
+<span class="sd">        multiplicity of the mask is set to be masks_per_frame * choose_range.</span>
+<span class="sd">      multiplicity: Maximum number of total masks. Integer number.</span>
 <span class="sd">      dtype: Data type.</span>
-<span class="sd">      max_ratio: Maximum portion of the entire range allowed to be masked.</span>
+<span class="sd">      max_ratio: Maximum portion of the entire range allowed to be masked. Float</span>
+<span class="sd">        number.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A fixed size mask starting from a random position with shape</span>
-<span class="sd">      [batch_size, seq_len].</span>
+<span class="sd">      mask: a fixed size multi-mask starting from a random position with shape</span>
+<span class="sd">      (batch_size, mask_size).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Non-empty random seed values are only used for testing</span>
+    <span class="c1"># seed_1 and seed_2 are set separately to avoid correlation of</span>
+    <span class="c1"># mask size and mask position.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">:</span>
+      <span class="n">seed_1</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="n">seed_2</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">seed_1</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
+      <span class="n">seed_2</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
+    <span class="c1"># Sample lengths for multiple masks.</span>
+    <span class="k">if</span> <span class="n">max_length</span> <span class="ow">and</span> <span class="n">max_length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">max_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">max_length</span><span class="p">,</span> <span class="n">dtype</span><span class="p">),</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">max_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">choose_range</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">max_ratio</span>
+    <span class="n">masked_portion</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">multiplicity</span><span class="p">),</span>
+                                       <span class="n">minval</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                                       <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                                       <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+                                       <span class="n">seed</span><span class="o">=</span><span class="n">seed_1</span><span class="p">)</span>
+    <span class="n">masked_frame_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;b,bm-&gt;bm&#39;</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">masked_portion</span><span class="p">)</span>
+    <span class="n">masked_frame_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">masked_frame_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="c1"># Make sure the sampled length was smaller than max_ratio * length_bound.</span>
     <span class="c1"># Note that sampling in this way was biased</span>
     <span class="c1"># (shorter sequence may over-masked.)</span>
+    <span class="n">choose_range</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">choose_range</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">choose_range</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">choose_range</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplicity</span><span class="p">])</span>
     <span class="n">length_bound</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">choose_range</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">length_bound</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">max_ratio</span> <span class="o">*</span> <span class="n">length_bound</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="n">length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">max_length</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">length_bound</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="c1"># Choose starting point</span>
-    <span class="n">random_start</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,),</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">masked_frame_size</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">length_bound</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># Choose starting point.</span>
+    <span class="n">random_start</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">multiplicity</span><span class="p">),</span>
                                      <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-                                     <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+                                     <span class="n">seed</span><span class="o">=</span><span class="n">seed_2</span><span class="p">)</span>
     <span class="n">start_with_in_valid_range</span> <span class="o">=</span> <span class="n">random_start</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
         <span class="p">(</span><span class="n">choose_range</span> <span class="o">-</span> <span class="n">length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">start</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">start_with_in_valid_range</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">length</span> <span class="o">-</span> <span class="mi">1</span>
 
-    <span class="c1"># Shift starting and end point by small value</span>
+    <span class="c1"># Shift starting and end point by small value.</span>
     <span class="n">delta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
     <span class="n">start</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span> <span class="o">-</span> <span class="n">delta</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">mask_size</span><span class="p">])</span>
     <span class="n">end</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span> <span class="o">+</span> <span class="n">delta</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">mask_size</span><span class="p">])</span>
 
-    <span class="c1"># Construct mask</span>
-    <span class="n">diagonal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">mask_size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
-        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+    <span class="c1"># Construct pre-mask of shape (batch_size, multiplicity, mask_size).</span>
+    <span class="n">diagonal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">mask_size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">diagonal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">diagonal</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">multiplicity</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">pre_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">diagonal</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">,</span> <span class="n">diagonal</span> <span class="o">&gt;</span> <span class="n">start</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="c1"># Sum masks with appropriate multiplicity.</span>
+    <span class="k">if</span> <span class="n">masks_per_frame</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">multiplicity_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">multiplicity</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="n">multiplicity_tensor</span> <span class="o">=</span> <span class="n">masks_per_frame</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">choose_range</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">multiplicity_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">multiplicity_weights</span> <span class="o">&lt;</span> <span class="n">multiplicity_tensor</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">pre_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bmt,bm-&gt;bt&#39;</span><span class="p">,</span> <span class="n">pre_mask</span><span class="p">,</span> <span class="n">multiplicity_weights</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">pre_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">pre_mask</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">pre_mask</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
       <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">mask</span></div>
 
 <div class="viewcode-block" id="SpectrumAugmenter._FrequencyMask"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask">[docs]</a>  <span class="k">def</span> <span class="nf">_FrequencyMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                      <span class="n">inputs</span><span class="p">,</span>
-                     <span class="n">num_freq</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
                      <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
                      <span class="n">domain_id_index</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies frequency masking with given degree to inputs.</span>
@@ -310,30 +373,36 @@
 <span class="sd">    Args:</span>
 <span class="sd">      inputs: Batch of input features of shape (batch_size, time_length,</span>
 <span class="sd">        num_freq, channels).</span>
-<span class="sd">      num_freq: Number of frequencies.</span>
 <span class="sd">      dtype: Data type.</span>
 <span class="sd">      domain_id_index: domain id index.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Inputs with random frequency masking applied.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="c1"># If maximum mask length is zero, do nothing</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+
+    <span class="c1"># Mask parameters.</span>
+    <span class="n">freq_mask_max_bins</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+    <span class="n">multiplicity</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_mask_count</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+
+    <span class="c1"># If masking length or count is zero, do nothing.</span>
+    <span class="k">if</span> <span class="n">freq_mask_max_bins</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">multiplicity</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">inputs</span>
-    <span class="c1"># Choose random masked length</span>
-    <span class="n">max_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],),</span>
-                                   <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">],</span>
-                                   <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-                                   <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-    <span class="c1"># Create masks in frequency direction and apply</span>
+
+    <span class="c1"># Arguments to pass to mask generator.</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">num_freq</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">choose_range</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">num_freq</span><span class="p">,</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># Create masks in frequency direction and apply.</span>
     <span class="n">block_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetMask</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-        <span class="n">max_length</span><span class="p">,</span>
-        <span class="n">choose_range</span><span class="o">=</span><span class="n">num_freq</span><span class="p">,</span>
+        <span class="n">choose_range</span><span class="o">=</span><span class="n">choose_range</span><span class="p">,</span>
         <span class="n">mask_size</span><span class="o">=</span><span class="n">num_freq</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="n">freq_mask_max_bins</span><span class="p">,</span>
+        <span class="n">masks_per_frame</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">multiplicity</span><span class="o">=</span><span class="n">multiplicity</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">max_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
     <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bxyc,by-&gt;bxyc&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">block_arrays</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">outputs</span></div>
@@ -341,9 +410,8 @@
 <div class="viewcode-block" id="SpectrumAugmenter._TimeMask"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask">[docs]</a>  <span class="k">def</span> <span class="nf">_TimeMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                 <span class="n">inputs</span><span class="p">,</span>
                 <span class="n">seq_lengths</span><span class="p">,</span>
-                <span class="n">max_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-                <span class="n">time_length</span><span class="o">=</span><span class="mi">2560</span><span class="p">,</span>
                 <span class="n">noisify</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">gaussian_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
                 <span class="n">domain_id_index</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies time masking with given degree to inputs.</span>
@@ -353,9 +421,8 @@
 <span class="sd">        num_freq, channels).</span>
 <span class="sd">      seq_lengths: The actual sequence lengths which mask been sampled of shape</span>
 <span class="sd">        (batch_size,).</span>
-<span class="sd">      max_ratio: Maximum portion of the utterance allowed to be time-masked.</span>
-<span class="sd">      time_length: Total length of time series.</span>
-<span class="sd">      noisify: whether to noisify the masked out regions.</span>
+<span class="sd">      noisify: Whether to noisify the masked out regions.</span>
+<span class="sd">      gaussian_noise: Whether to use gaussian noise when noisifying.</span>
 <span class="sd">      dtype: Data type.</span>
 <span class="sd">      domain_id_index: domain id index.</span>
 
@@ -363,32 +430,36 @@
 <span class="sd">      Inputs with random time masking applied.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="c1"># If maximum mask length is zero, do nothing</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span>
-        <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_dynamic_time_mask_max_frames</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]):</span>
+
+    <span class="c1"># Get time masking parameters.</span>
+    <span class="n">time_mask_max_frames</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+    <span class="n">time_masks_per_frame</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">time_masks_per_frame</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+    <span class="n">use_dynamic_time_mask_max_frames</span> <span class="o">=</span> \
+        <span class="n">p</span><span class="o">.</span><span class="n">use_dynamic_time_mask_max_frames</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+    <span class="n">multiplicity</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">time_mask_count</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+    <span class="n">max_ratio</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_ratio</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+
+    <span class="c1"># If maximum mask length is zero, do nothing.</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">time_mask_max_frames</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">use_dynamic_time_mask_max_frames</span><span class="p">)</span> <span class="ow">or</span>
+        <span class="n">max_ratio</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">inputs</span>
+    <span class="k">if</span> <span class="n">multiplicity</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">inputs</span>
     <span class="n">seq_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">seq_lengths</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="c1"># Choose random masked length</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_dynamic_time_mask_max_frames</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]:</span>
-      <span class="c1"># TODO(ngyuzh): if an utterance is too short, it will never been masked.</span>
-      <span class="n">length_range</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">seq_lengths</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="n">max_ratio</span>
-      <span class="n">max_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
-              <span class="p">(</span><span class="n">batch_size</span><span class="p">,),</span> <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span> <span class="o">*</span> <span class="n">length_range</span><span class="p">,</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">max_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
-          <span class="p">(</span><span class="n">batch_size</span><span class="p">,),</span>
-          <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">],</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-          <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-    <span class="c1"># Create masks in time direction and apply</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">time_length</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="c1"># When using dynamic time mask size, discard upper-bound on</span>
+    <span class="c1"># maximum allowed frames for time mask.</span>
+    <span class="k">if</span> <span class="n">use_dynamic_time_mask_max_frames</span><span class="p">:</span>
+      <span class="n">time_mask_max_frames</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Create masks in time direction and apply.</span>
     <span class="n">block_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetMask</span><span class="p">(</span>
         <span class="n">batch_size</span><span class="p">,</span>
-        <span class="n">max_length</span><span class="p">,</span>
         <span class="n">choose_range</span><span class="o">=</span><span class="n">seq_lengths</span><span class="p">,</span>
         <span class="n">mask_size</span><span class="o">=</span><span class="n">time_length</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="n">time_mask_max_frames</span><span class="p">,</span>
+        <span class="n">masks_per_frame</span><span class="o">=</span><span class="n">time_masks_per_frame</span><span class="p">,</span>
+        <span class="n">multiplicity</span><span class="o">=</span><span class="n">multiplicity</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">max_ratio</span><span class="o">=</span><span class="n">max_ratio</span><span class="p">)</span>
 
@@ -397,12 +468,15 @@
     <span class="k">if</span> <span class="n">noisify</span><span class="p">:</span>
       <span class="c1"># Sample noise with standard deviation with factor * 0.1 + 0.0001</span>
       <span class="c1"># TODO(ngyuzh): Make sure this won&#39;t affect EOS.</span>
-      <span class="n">factor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">((),</span>
-                                 <span class="n">minval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-                                 <span class="n">maxval</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-                                 <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-                                 <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-      <span class="n">stddev</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="mf">0.1</span> <span class="o">+</span> <span class="mf">0.0001</span>
+      <span class="k">if</span> <span class="n">gaussian_noise</span><span class="p">:</span>
+        <span class="n">stddev</span> <span class="o">=</span> <span class="mf">1.0</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">factor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">((),</span>
+                                   <span class="n">minval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                                   <span class="n">maxval</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+                                   <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+                                   <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">stddev</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="mf">0.1</span> <span class="o">+</span> <span class="mf">0.0001</span>
       <span class="n">noise</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
           <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
            <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
@@ -417,6 +491,7 @@
           <span class="mf">1.0</span> <span class="o">-</span> <span class="n">block_arrays</span><span class="p">,</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;einsum_fornoisymasking&#39;</span><span class="p">)</span>
       <span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">outputs_mask</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">outputs</span></div>
 
 <div class="viewcode-block" id="SpectrumAugmenter.UnstackFeatures"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.UnstackFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">UnstackFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_inputs</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">):</span>
@@ -434,7 +509,6 @@
 
 <div class="viewcode-block" id="SpectrumAugmenter._AugmentationNetwork"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork">[docs]</a>  <span class="k">def</span> <span class="nf">_AugmentationNetwork</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                            <span class="n">series_length</span><span class="p">,</span>
-                           <span class="n">num_freq</span><span class="p">,</span>
                            <span class="n">inputs</span><span class="p">,</span>
                            <span class="n">paddings</span><span class="p">,</span>
                            <span class="n">domain_id_index</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
@@ -442,7 +516,6 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      series_length: Total length of time series.</span>
-<span class="sd">      num_freq: Number of frequencies.</span>
 <span class="sd">      inputs: Batch of input features of shape (batch_size, time_length,</span>
 <span class="sd">        num_freq, channels).</span>
 <span class="sd">      paddings: Batch of padding vectors of shape (batch_size, time_length).</span>
@@ -457,34 +530,24 @@
 
     <span class="c1"># Unstack the features.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">unstack</span><span class="p">:</span>
-      <span class="n">stacked_series_length</span> <span class="o">=</span> <span class="n">series_length</span>
       <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UnstackFeatures</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
-      <span class="n">num_freq</span> <span class="o">//=</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_height</span>
-      <span class="n">series_length</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_height</span>
 
     <span class="n">lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_count</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]):</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TimeMask</span><span class="p">(</span>
-          <span class="n">inputs</span><span class="p">,</span>
-          <span class="n">lengths</span><span class="p">,</span>
-          <span class="n">max_ratio</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_ratio</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">],</span>
-          <span class="n">time_length</span><span class="o">=</span><span class="n">series_length</span><span class="p">,</span>
-          <span class="n">noisify</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_noise</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">domain_id_index</span><span class="o">=</span><span class="n">domain_id_index</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">freq_mask_count</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]):</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FrequencyMask</span><span class="p">(</span>
-          <span class="n">inputs</span><span class="p">,</span>
-          <span class="n">num_freq</span><span class="o">=</span><span class="n">num_freq</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">domain_id_index</span><span class="o">=</span><span class="n">domain_id_index</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TimeMask</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span>
+        <span class="n">lengths</span><span class="p">,</span>
+        <span class="n">noisify</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_noise</span><span class="p">,</span>
+        <span class="n">gaussian_noise</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">gaussian_noise</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">domain_id_index</span><span class="o">=</span><span class="n">domain_id_index</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FrequencyMask</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">domain_id_index</span><span class="o">=</span><span class="n">domain_id_index</span><span class="p">)</span>
 
     <span class="c1"># Restack the features after applying specaugment.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">unstack</span><span class="p">:</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">inputs</span><span class="p">,</span>
-          <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">stacked_series_length</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-           <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">3</span><span class="p">]])</span>
+          <span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">series_length</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                   <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">3</span><span class="p">]])</span>
 
     <span class="k">return</span> <span class="n">inputs</span></div>
 
@@ -506,17 +569,17 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="n">batch_size</span><span class="p">,</span> <span class="n">series_length</span><span class="p">,</span> <span class="n">num_freq</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">series_length</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">domain_ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
       <span class="n">augmented_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
       <span class="n">original_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">domain_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">domain_ids</span><span class="p">):</span>
         <span class="n">augmented_domain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AugmentationNetwork</span><span class="p">(</span>
-            <span class="n">series_length</span><span class="p">,</span> <span class="n">num_freq</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">domain_id_index</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">series_length</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">domain_id_index</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
         <span class="n">target_domain</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="n">domain_id</span><span class="p">],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">]),</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="c1"># [batch, time]</span>
+        <span class="c1"># [batch, time].</span>
         <span class="n">domain_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">domain_ids</span><span class="p">,</span> <span class="n">target_domain</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">augmented_domain</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
@@ -533,7 +596,7 @@
       <span class="n">augmented_inputs</span> <span class="o">=</span> <span class="n">original_inputs</span> <span class="o">+</span> <span class="n">augmented_inputs</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">augmented_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AugmentationNetwork</span><span class="p">(</span>
-          <span class="n">series_length</span><span class="p">,</span> <span class="n">num_freq</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">domain_id_index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+          <span class="n">series_length</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">domain_id_index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">augmented_inputs</span><span class="p">,</span> <span class="n">paddings</span></div></div>
 </pre></div>
 
