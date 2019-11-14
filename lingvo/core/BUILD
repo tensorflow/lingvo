@@ -418,10 +418,22 @@ py_library(
     srcs = ["hyperparams.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":hyperparams_py_pb2",
         ":symbolic",
         "//lingvo:compat",
         # Implicit six dependency.
     ],
+)
+
+lingvo_proto_cc(
+    name = "hyperparams_proto",
+    src = "hyperparams.proto",
+)
+
+lingvo_proto_py(
+    name = "hyperparams_py_pb2",
+    src = "hyperparams.proto",
+    deps = [":hyperparams_proto"],
 )
 
 py_test(

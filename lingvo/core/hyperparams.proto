@@ -1,0 +1,36 @@
+syntax = "proto2";
+
+package tensorflow.lingvo;
+
+// This is a top-level entry, typically each entry corresponds to a p.Define()
+// statement in the Python code. The key is the parameter name. It is also used
+// for when the parameter itself is a dictionary.
+message Hyperparam {
+  map<string, HyperparamValue> items = 1;
+}
+
+// This is to serialize a list or tuple of parameters. For example, some
+// parameters are a list of integers. The distinction between list and tuple is
+// by the field name in the HyperparamValue below.
+message HyperparamRepeated {
+  repeated HyperparamValue items = 1;
+}
+
+// Once the repetition is handled (with HyperparamList et al. above), the
+// parameter can either be a recursively set to another set of params via
+// p.Define, or a raw type (such as a string, float, ...).
+message HyperparamValue {
+  oneof kind {
+    // The NoneType is represented by not setting any of the values below.
+    Hyperparam param_val = 1;
+    HyperparamRepeated list_val = 2;
+    HyperparamRepeated tuple_val = 3;
+    Hyperparam dict_val = 4;
+    string type_val = 5;
+    string dtype_val = 6;
+    string string_val = 7;
+    bool bool_val = 8;
+    int64 int_val = 9;
+    float float_val = 10;
+  }
+}

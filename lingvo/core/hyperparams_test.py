@@ -320,6 +320,27 @@ tau : True
 tuple : (2, 3)
 """)
 
+  def testToFromProto(self):
+    outer = _params.Params()
+    outer.Define('integer_val', 1, '')
+    outer.Define('cls_type', type(int), '')
+    inner = _params.Params()
+    inner.Define('float_val', 2.71, '')
+    inner.Define('string_val', 'rosalie et adrien', '')
+    inner.Define('bool_val', True, '')
+    inner.Define('list_of_tuples_of_dicts', [({'string_key': 1729})], '')
+    outer.Define('inner', inner, '')
+
+    rebuilt_outer = _params.InstantiableParams.FromProto(outer.ToProto())
+
+    self.assertEqual(outer.integer_val, rebuilt_outer.integer_val)
+    self.assertEqual(outer.cls_type, rebuilt_outer.cls_type)
+    self.assertNear(outer.inner.float_val, rebuilt_outer.inner.float_val, 1e-6)
+    self.assertEqual(outer.inner.string_val, rebuilt_outer.inner.string_val)
+    self.assertEqual(outer.inner.bool_val, rebuilt_outer.inner.bool_val)
+    self.assertEqual(outer.inner.list_of_tuples_of_dicts,
+                     rebuilt_outer.inner.list_of_tuples_of_dicts)
+
   def testStringEscaping(self):
     p = _params.Params()
     p.Define('bs_end_quote', 'Single\\', '')

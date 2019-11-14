@@ -20,11 +20,13 @@ from __future__ import print_function
 
 import ast
 import copy
+import importlib
 import inspect
 import re
 import sys
 
 import lingvo.compat as tf
+from lingvo.core import hyperparams_pb2
 from lingvo.core import symbolic
 import six
 
@@ -376,6 +378,113 @@ class Params(object):
     """Pythonic dict-like iteration."""
     for name, param in six.iteritems(self._params):
       yield (name, param.Get())
+
+  def ToProto(self):
+    """Writes to a Hyperparams proto.
+
+    Serializes the Hyperparams into a proto that can be then written to disk or
+    sent over the network. Note that serialization is not guaranteed to be
+    unique or stable (this is a feature of protos themselves, not this code), so
+    using it for fingerprinting for example may not be appropriate. Refer to the
+    ToText() method for a serialization approach that Lingvo controls.
+
+    Returns:
+      The serialized params as a Hyperparams proto.
+    """
+
+    def _ToParamValue(val):
+      """Serializes to HyperparamValue proto."""
+      param_pb = hyperparams_pb2.HyperparamValue()
+      if isinstance(val, Params):
+        param_pb.param_val.CopyFrom(_ToParam(val))
+      elif isinstance(val, list):
+        for v in val:
+          param_pb.list_val.items.append(_ToParamValue(v))
+      elif isinstance(val, tuple):
+        for v in val:
+          param_pb.tuple_val.items.append(_ToParamValue(v))
+      elif isinstance(val, dict):
+        for k, v in val.items():
+          param_pb.dict_val.items[k].CopyFrom(_ToParamValue(v))
+      elif isinstance(val, type):
+        param_pb.type_val = inspect.getmodule(val).__name__ + '/' + val.__name__
+      elif isinstance(val, tf.DType):
+        param_pb.dtype_val = val.name
+      elif isinstance(val, str):
+        param_pb.string_val = val
+      elif isinstance(val, bool):
+        param_pb.bool_val = val
+      elif isinstance(val, six.integer_types):
+        param_pb.int_val = val
+      elif isinstance(val, float):
+        param_pb.float_val = val
+      elif val is None:
+        # We represent a NoneType by the absence of any of the oneof.
+        pass
+      else:
+        raise AttributeError('Unsupported type: %s' % type(val))
+      return param_pb
+
+    def _ToParam(val):
+      """Serializes to Hyperparam proto."""
+
+      param_pb = hyperparams_pb2.Hyperparam()
+      for k, v in val.IterParams():
+        param_pb.items[k].CopyFrom(_ToParamValue(v))
+      return param_pb
+
+    return _ToParam(self)
+
+  @classmethod
+  def FromProto(cls, param_pb):
+    """Reads from a Hyperparams proto."""
+
+    def _FromParamValue(param_pb):
+      """Deserializes HyperparamValue proto."""
+
+      which_oneof = param_pb.WhichOneof('kind')
+      if which_oneof == 'param_val':
+        return _FromParam(param_pb.param_val)
+      elif which_oneof == 'list_val':
+        return [_FromParamValue(val) for val in param_pb.list_val.items]
+      elif which_oneof == 'tuple_val':
+        return tuple([_FromParamValue(val) for val in param_pb.tuple_val.items])
+      elif which_oneof == 'dict_val':
+        dict_val = dict()
+        for k in param_pb.dict_val.items:
+          dict_val[k] = _FromParamValue(param_pb.dict_val.items[k])
+        return dict_val
+      elif which_oneof == 'type_val':
+        tokens = param_pb.type_val.split('/')
+        assert len(tokens) == 2
+        return getattr(importlib.import_module(tokens[0]), tokens[1])
+      elif which_oneof == 'dtype_val':
+        return tf.as_dtype(param_pb.dtype_val)
+      elif which_oneof == 'string_val':
+        return param_pb.string_val
+      elif which_oneof == 'int_val':
+        return param_pb.int_val
+      elif which_oneof == 'float_val':
+        return param_pb.float_val
+      elif which_oneof == 'bool_val':
+        return param_pb.bool_val
+      else:
+        # If nothing is set, it's the None type.
+        return None
+
+    def _FromParam(param_pb):
+      """Deserializes Hyperparam proto."""
+
+      params = InstantiableParams()
+      for k in param_pb.items:
+        val = _FromParamValue(param_pb.items[k])
+        if k == 'cls':
+          params.Set(**{k: val})
+        else:
+          params.Define(k, val, '')
+      return params
+
+    return _FromParam(param_pb)
 
   def ToText(self, include_types=False):
     """Encodes params into a simple text format.
