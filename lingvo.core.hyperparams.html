@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.core.inference_graph_exporter module" href="lingvo.core.inference_graph_exporter.html" />
+    <link rel="next" title="lingvo.core.hyperparams_pb2 module" href="lingvo.core.hyperparams_pb2.html" />
     <link rel="prev" title="lingvo.core.gpipe module" href="lingvo.core.gpipe.html" /> 
 </head>
 
@@ -350,6 +350,28 @@ favor of string representations.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.core.hyperparams.Params.ToProto">
+<code class="sig-name descname">ToProto</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.ToProto"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.ToProto" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes to a Hyperparams proto.</p>
+<p>Serializes the Hyperparams into a proto that can be then written to disk or
+sent over the network. Note that serialization is not guaranteed to be
+unique or stable (this is a feature of protos themselves, not this code), so
+using it for fingerprinting for example may not be appropriate. Refer to the
+ToText() method for a serialization approach that Lingvo controls.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The serialized params as a Hyperparams proto.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params.FromProto">
+<em class="property">classmethod </em><code class="sig-name descname">FromProto</code><span class="sig-paren">(</span><em class="sig-param">param_pb</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.FromProto"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.FromProto" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads from a Hyperparams proto.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.core.hyperparams.Params.ToText">
 <code class="sig-name descname">ToText</code><span class="sig-paren">(</span><em class="sig-param">include_types=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.ToText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.ToText" title="Permalink to this definition">¶</a></dt>
 <dd><p>Encodes params into a simple text format.</p>
@@ -437,7 +459,7 @@ class.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.core.inference_graph_exporter.html" class="btn btn-neutral float-right" title="lingvo.core.inference_graph_exporter module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.core.hyperparams_pb2.html" class="btn btn-neutral float-right" title="lingvo.core.hyperparams_pb2 module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="lingvo.core.gpipe.html" class="btn btn-neutral float-left" title="lingvo.core.gpipe module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
