@@ -1547,11 +1547,11 @@
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span>
 
     <span class="c1"># Updates a few params based on flags.</span>
-    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enqueue_max_steps</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enqueue_max_steps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enqueue_max_steps</span>
-    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_max_to_keep</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_max_to_keep</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_max_to_keep</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_max_to_keep</span>
-    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_keep_checkpoint_every_n_hours</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_keep_checkpoint_every_n_hours</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">saver_keep_checkpoint_every_n_hours</span>
     <span class="k">return</span> <span class="n">cfg</span></div>
 
