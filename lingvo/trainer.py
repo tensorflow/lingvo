@@ -1402,11 +1402,11 @@ class RunnerManager(object):
     cfg.cluster = cluster.params
 
     # Updates a few params based on flags.
-    if FLAGS.enqueue_max_steps:
+    if FLAGS.enqueue_max_steps is not None:
       cfg.train.enqueue_max_steps = FLAGS.enqueue_max_steps
-    if FLAGS.saver_max_to_keep:
+    if FLAGS.saver_max_to_keep is not None:
       cfg.train.save_max_to_keep = FLAGS.saver_max_to_keep
-    if FLAGS.saver_keep_checkpoint_every_n_hours:
+    if FLAGS.saver_keep_checkpoint_every_n_hours is not None:
       cfg.train.save_keep_checkpoint_every_n_hours = FLAGS.saver_keep_checkpoint_every_n_hours
     return cfg
 
