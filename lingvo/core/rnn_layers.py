@@ -848,7 +848,7 @@ class FRNNWithAttention(base_layer.BaseLayer):
           atten.ComputeContextVectorWithSource(
               theta.atten, packed_src,
               tf.zeros([batch_size, p.cell.num_output_nodes],
-                       dtype=self.cell.params.dtype), zero_atten_state))
+                       dtype=py_utils.FPropDtype(p)), zero_atten_state))
     return state0
 
   def reset_atten_state(self, theta, state, inputs):
