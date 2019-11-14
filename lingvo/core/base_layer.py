@@ -318,6 +318,18 @@ class BaseLayer(tf.Module):
 
     self.AddExtraTheta('global_step', py_utils.GetGlobalStep())
 
+  def FPropNestedMap(self, theta, input_map):
+    """Forward propagation where input and output are both single NestedMap's.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this
+        layer and its children layers.
+      input_map: A NestedMap containing input to this function.
+    Returns:
+      A single NestedMap of output.
+    """
+    raise NotImplementedError(type(self))
+
   def FPropDefaultTheta(self, *args, **kwargs):
     """Calls `FProp`."""
     return self.FProp(self.theta, *args, **kwargs)
