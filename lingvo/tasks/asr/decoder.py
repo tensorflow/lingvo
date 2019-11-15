@@ -738,7 +738,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     del targets_per_batch_element
     p = self.params
     with tf.name_scope(p.name):
-      if p.label_smoothing is not None:
+      if 'probs' in targets:
+        target_probs = targets.probs
+      elif p.label_smoothing is not None:
         target_probs = self.smoother.FProp(theta.smoother, targets.paddings,
                                            targets.labels, targets.ids)
       else:
