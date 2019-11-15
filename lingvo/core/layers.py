@@ -2370,8 +2370,9 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     seq_length = tf.shape(position)[1]
     num_timescales = p.embedding_dim // 2
     log_timescale_increment = (
-        math.log(float(p.max_timescale) / float(p.min_timescale)) /
-        (tf.cast(num_timescales, py_utils.FPropDtype(p)) - 1))
+        math.log(float(p.max_timescale) / float(p.min_timescale)) / tf.maximum(
+            tf.cast(1.0, py_utils.FPropDtype(p)),
+            tf.cast(num_timescales, py_utils.FPropDtype(p)) - 1))
 
     inv_timescales = p.min_timescale * tf.exp(
         tf.cast(tf.range(num_timescales), py_utils.FPropDtype(p)) *
