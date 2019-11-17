@@ -54,10 +54,6 @@ from lingvo.core import symbolic
 from six.moves import range
 from six.moves import zip
 
-from tensorflow.python.framework import function
-from tensorflow.python.ops import functional_ops
-from tensorflow.python.ops import inplace_ops
-
 DevicePair = collections.namedtuple('DevicePair', ['send', 'recv'])
 
 
@@ -68,8 +64,8 @@ def _AssertIsCompatible(a, b):
 def _AssertSameTensors(list_a, list_b):
   """Asserts that two lists of tensors are the same tensors."""
   assert len(list_a) == len(list_b), (
-      'Expected equal tensor lists but different lengths: %r vs %r' % (list_a,
-                                                                       list_b))
+      'Expected equal tensor lists but different lengths: %r vs %r' %
+      (list_a, list_b))
   for a, b in zip(list_a, list_b):
     assert a is b, (
         'Expected equal tensor lists but at least one differs: %r vs %r' %
@@ -100,8 +96,7 @@ def _Update(nmap_acc, nmap_x, t):
   Args:
     nmap_acc: A `.NestedMap` of tensors. The accumulators.
     nmap_x: A `.NestedMap` of tensors. The update values.
-    t: A scalar integer. Performance is better if 't' is on the device
-      memory.
+    t: A scalar integer. Performance is better if 't' is on the device memory.
 
   Returns:
     A `.NestedMap` of tensors. Say, ret is returned. For each key, we have::
@@ -115,7 +110,7 @@ def _Update(nmap_acc, nmap_x, t):
   lst = []
   for acc, (key, x) in zip(acc_lst, kx_lst):
     with tf.name_scope('update_%s' % key):
-      lst += [inplace_ops.alias_inplace_update(acc, t, tf.expand_dims(x, 0))]
+      lst += [tf.InplaceUpdate(acc, t, tf.expand_dims(x, 0))]
   return nmap_acc.Pack(lst)
 
 
@@ -150,8 +145,8 @@ def _SeqPaddingLength(inputs_nmap):
   """Returns the lengths of paddings at the beginning and end of the sequence.
 
   Args:
-    inputs_nmap: A `.NestedMap` of tensors that may have 'padding'
-                 Every tensor's 0-th dim has the same size.
+    inputs_nmap: A `.NestedMap` of tensors that may have 'padding' Every
+      tensor's 0-th dim has the same size.
 
   Returns:
     padding length at the beginning, padding length at the end
@@ -230,7 +225,7 @@ def _EmptyAcc(slen, nmap):
   """
 
   def Fill(x):
-    return inplace_ops.empty(
+    return tf.Empty(
         tf.concat([[slen], tf.shape(x)], axis=0), x.dtype, init=True)
 
   return nmap.Transform(Fill)
@@ -248,8 +243,7 @@ def _EmptyWithFixShape(shape, nmap):
     same dtype as nmap.key, but with the fixed shape.
   """
 
-  return nmap.Transform(
-      lambda x: inplace_ops.empty(shape, dtype=x.dtype, init=True))
+  return nmap.Transform(lambda x: tf.Empty(shape, dtype=x.dtype, init=True))
 
 
 def _EmptyLike(nmap):
@@ -262,7 +256,7 @@ def _EmptyLike(nmap):
     A `.NestedMap` of tensors. Each tensor has the same shape and dtype as
     its corresponding tensor in nmap. And each tensor is initialized.
   """
-  return nmap.Transform(lambda x: inplace_ops.empty_like(x, init=True))
+  return nmap.Transform(lambda x: tf.EmptyLike(x, init=True))
 
 
 def _Add(nmap_x, nmap_y):
@@ -319,8 +313,8 @@ def _ConvertNoneGradientToZeros(xs, dxs):
 
 
 def _TransformDType(nmap):
-  return nmap.Transform(
-      lambda x: tf.cast(x, tf.int64) if x.dtype == tf.int32 else x)
+  return nmap.Transform(lambda x: tf.cast(x, tf.int64)
+                        if x.dtype == tf.int32 else x)
 
 
 class _Recurrent(object):
@@ -346,26 +340,26 @@ class _Recurrent(object):
       cell_grad: A python function which computes:
          dtheta, dstate0, dinputs[t, :] = cell_grad(
            theta, state0, inputs[t, :], extras, dstate1)
-      stop_fn: A python function which computes:
-        should_stop = stop_fn(t, theta, state0)
+      stop_fn: A python function which computes: should_stop = stop_fn(t, theta,
+        state0)
       theta: weights. A `.NestedMap`.
       state0: initial state. A `.NestedMap`.
       inputs: inputs. A `.NestedMap`.
       extras: A `.NestedMap` of Tensors. The 2nd return value of every
-        invocation of cell_fn is a `.NestedMap` with matching keys and shapes
-        of this 'extras'.
+        invocation of cell_fn is a `.NestedMap` with matching keys and shapes of
+        this 'extras'.
       cell_type: Cell type used in this class.
       accumulator_layer: If provided, then accumulators on this layer will be
         managed such that they carry to the final state in `FProp` and are
         disabled for gradients. Uses the state key `accumulators`.
       implicit_captures: A `.NestedMap` corresponding to implicit captures of
-        the cell_fn. If empty/None, implicit captures are either not present
-        or disallowed.
+        the cell_fn. If empty/None, implicit captures are either not present or
+        disallowed.
       unused_acc_state: If None, we assume every field of acc_state is consumed
         in the following timestamps. If True, None of the acc_state is consumed.
-        And we reduce_sum each timestep's new state into a scalar.
-        Note, this feature should be used with StackedRecurrent where we send
-        out the new state to the other devices.
+        And we reduce_sum each timestep's new state into a scalar. Note, this
+        feature should be used with StackedRecurrent where we send out the new
+        state to the other devices.
     """
     self._theta = theta
     self._state = state0
@@ -438,8 +432,7 @@ class _Recurrent(object):
       theta, state0, inputs, acc_state, acc_extras = Pack(args, fwdloop_sig)
       inputs_t = _Index(inputs, t)  # external input at time step t.
       state1, extras = Pack(
-          Fwd(*Flatten([theta, state0, inputs_t])),
-          [self._state, self._extras])
+          Fwd(*Flatten([theta, state0, inputs_t])), [self._state, self._extras])
       # Saves state1 and extras in their accumulators.
       if not self._unused_acc_state:
         acc_state = _Update(acc_state, state1, t)
@@ -484,6 +477,7 @@ class _Recurrent(object):
       Args:
         op: The forward operation.
         *args: Args to the backward operation (includes implicit captures).
+
       Returns:
         Tuple of derivatives.
       Raises:
@@ -594,7 +588,7 @@ class _Recurrent(object):
         t = tf.cast(pad_begin, tf.int64)
         limit = tf.cast(limit, tf.int64)
 
-      run = functional_ops.While(
+      run = tf.While(
           [t, limit] + Flatten([theta, state0, inputs, acc_state, acc_extras]),
           cond=ForwardLoopCond,
           body=ForwardLoopBody)
@@ -624,8 +618,8 @@ class _Recurrent(object):
       """Backward step."""
       (theta, state0, inputs, extras, d_state1) = Pack(args, bak_sig)
       _SetShapes(theta, bak_sig[0])
-      (dtheta, dstate0, dinputs, dcaptures) = self._cell_grad(
-          theta, state0, inputs, extras, d_state1)
+      (dtheta, dstate0, dinputs,
+       dcaptures) = self._cell_grad(theta, state0, inputs, extras, d_state1)
       _AssertIsCompatible(dtheta, self._theta)
       _AssertIsCompatible(dstate0, self._state)
       _AssertIsCompatible(dinputs, self._inputs)
@@ -639,10 +633,9 @@ class _Recurrent(object):
       # Make sure this function didn't capture anything different than the
       # cell_fn when reflected on at the beginning. Must come after the call
       # to cell_grad() which adds to the captured list.
-      _AssertSameTensors(function.get_extra_inputs(),
-                         self._implicit_captures.Flatten())
+      _AssertSameTensors(tf.GetExtraInputs(), self._implicit_captures.Flatten())
 
-      (captured,) = Pack(function.get_extra_args(), [self._implicit_captures])
+      (captured,) = Pack(tf.GetExtraArgs(), [self._implicit_captures])
       return Flatten(
           _ConvertNoneGradientToZeros([theta, state0, inputs, captured],
                                       [dtheta, dstate0, dinputs, dcaptures]))
@@ -721,7 +714,7 @@ class _Recurrent(object):
       # output, or the original state0 when on time step 0.
       state_from_acc = _Index(acc_state,
                               tf.maximum(tf.constant(0, t.dtype), t - 1))
-      state0 = functional_ops.If(
+      state0 = tf.If(
           tf.equal(t, tf.constant(0, t.dtype)),
           Flatten([state_from_acc, orig_state0]), ReturnOrigState0,
           ReturnAccState)
@@ -747,8 +740,7 @@ class _Recurrent(object):
       # Make sure this function didn't capture anything different than the
       # cell_fn when reflected on at the beginning. Must come after the call
       # to Bak() which adds to the captured list.
-      _AssertSameTensors(function.get_extra_inputs(),
-                         self._implicit_captures.Flatten())
+      _AssertSameTensors(tf.GetExtraInputs(), self._implicit_captures.Flatten())
 
       return [tf.subtract(t, 1), limit] + Flatten([
           theta,
@@ -801,7 +793,7 @@ class _Recurrent(object):
         limit = tf.cast(limit, tf.int32)
       else:
         limit = tf.cast(limit, tf.int64)
-      run = functional_ops.While(
+      run = tf.While(
           [start - 1, limit] + Flatten([
               theta,
               state0,
@@ -823,8 +815,7 @@ class _Recurrent(object):
       # Make sure this function didn't capture anything different than the
       # cell_fn when reflected on at the beginning. Must come after the
       # call to BackwardLoopBody, which adds to the captured list.
-      _AssertSameTensors(function.get_extra_inputs(),
-                         self._implicit_captures.Flatten())
+      _AssertSameTensors(tf.GetExtraInputs(), self._implicit_captures.Flatten())
 
       if self._unused_acc_state:
         # Match the shape of gradient of the init_state.
@@ -932,8 +923,8 @@ def _GetCellGrad(cell_fn,
     theta: weights. A `.NestedMap`.
     state0: initial state. A `.NestedMap`.
     inputs: inputs. A `.NestedMap`.
-    accumulator_layer: Whether the cell function must be run in the context
-      of the given accumulator layer.
+    accumulator_layer: Whether the cell function must be run in the context of
+      the given accumulator layer.
     check_stateful_ops: if True, raise a `ValueError` if cell_fn is stateful.
     allow_implicit_capture: Whether to allow the `cell_fn` to implicitly capture
       tensors.
@@ -967,12 +958,11 @@ def _GetCellGrad(cell_fn,
       # Assert that if captured inputs were given, they match the actual
       # tensors passed to the function we are compiled into. Must come after
       # the call to cell_fn, which does the capture.
-      _AssertSameTensors(function.get_extra_inputs(),
-                         implicit_captures.Flatten())
+      _AssertSameTensors(tf.GetExtraInputs(), implicit_captures.Flatten())
 
       # Extract the internal captured tensor placeholders within the Defun
       # we are running in.
-      (captured,) = Pack(function.get_extra_args(), [implicit_captures])
+      (captured,) = Pack(tf.GetExtraArgs(), [implicit_captures])
       ys = Flatten([state1])
       xs = Flatten([theta, state0, inputs, captured])
       grad_ys = Flatten([dstate1])
@@ -1206,32 +1196,26 @@ def Recurrent(theta,
     state0: initial state. A `.NestedMap`.
     inputs: inputs. A `.NestedMap`.
     cell_fn: A python function which computes::
-
         state1, extras = cell_fn(theta, state0, inputs[t, :])
-
     cell_grad: A python function which computes::
-
         dtheta, dstate0, dinputs[t, :], dcaptured = cell_grad(
-            theta, state0, inputs[t, :], extras, dstate1)
-
-      If there are no captured tensors in `cell_fn`, `dcaptured` can be returned
-      as None. Captured tensors with custom `cell_grad` is currently unsupported
-      so this return value is reserved for future expansion.
+            theta, state0, inputs[t, :], extras, dstate1)  If there are no
+              captured tensors in `cell_fn`, `dcaptured` can be returned as
+              None. Captured tensors with custom `cell_grad` is currently
+              unsupported so this return value is reserved for future expansion.
     cell_type: Cell name to be used.
-    stop_fn: If not None, a python function which computes::
-
-        should_stop = stop_fn(t, theta, state0)
-
-      The function determines whether the recurrent loop should terminate.
-    extras: A `.NestedMap` of Tensors. The 2nd return value of every
-      invocation of `cell_fn` is a `.NestedMap` with matching keys and shapes
-      of `extras`.
+    stop_fn: If not None, a python function which computes::  should_stop =
+      stop_fn(t, theta, state0)  The function determines whether the recurrent
+      loop should terminate.
+    extras: A `.NestedMap` of Tensors. The 2nd return value of every invocation
+      of `cell_fn` is a `.NestedMap` with matching keys and shapes of `extras`.
     check_stateful_ops: if True, raise a `ValueError` if `cell_fn` is stateful.
     accumulator_layer: If provided, then accumulators on this layer will be
       managed such that they carry to the final state in `FProp` and are
       disabled for gradients. Uses the state key `accumulators`.
-    allow_implicit_capture: Whether to allow the `cell_fn` to implicitly
-      capture tensors. Only allowed if an explicit `cell_grad` is not given.
+    allow_implicit_capture: Whether to allow the `cell_fn` to implicitly capture
+      tensors. Only allowed if an explicit `cell_grad` is not given.
+
   Returns:
     `accumulate_state` and the final state.
   """
@@ -1259,9 +1243,10 @@ def Recurrent(theta,
   if accumulator_layer:
     accumulator_layer.accumulators.Transform(lambda x: x.Disable())
 
-  cell_grad, implicit_captures = _GetCellGrad(
-      cell_fn, cell_grad, theta, state0, inputs, accumulator_layer,
-      check_stateful_ops, allow_implicit_capture)
+  cell_grad, implicit_captures = _GetCellGrad(cell_fn, cell_grad, theta, state0,
+                                              inputs, accumulator_layer,
+                                              check_stateful_ops,
+                                              allow_implicit_capture)
 
   with tf.name_scope('recurrent_cellfn_extras'):
     # Derives 'extras' so that we can allocate extras' accumulator.

@@ -30,6 +30,8 @@ from tensorflow.python import tf2
 from tensorflow.python.compat import v2_compat
 
 from tensorflow.python.framework import function as _function_lib
+from tensorflow.python.ops import functional_ops
+from tensorflow.python.ops import inplace_ops
 
 # The following imports are needed to expose private _Send/_Recv ops
 # on TensorFlow 1.X. The could be removed once support for 1.X is dropped.
@@ -46,7 +48,16 @@ elif tf2.enabled():
   logging.warning("Lingvo does not support TF2 yet. "
                   "Please disable V2 behavior with tf.disable_v2_behavior(), "
                   "or proceed at your own risk.")
+
+# Aliases to a few routines lingvo libraries uses often.
 Defun = _function_lib.Defun
+While = functional_ops.While
+If = functional_ops.If
+InplaceUpdate = inplace_ops.alias_inplace_update
+Empty = inplace_ops.empty
+EmptyLike = inplace_ops.empty_like
+GetExtraInputs = _function_lib.get_extra_inputs
+GetExtraArgs = _function_lib.get_extra_args
 
 
 # TODO(slebedev): Remove after there is no need to support 1.X.
