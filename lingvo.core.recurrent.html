@@ -281,8 +281,7 @@ memory.</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>nmap_acc</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors. The accumulators.</p></li>
 <li><p><strong>nmap_x</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors. The update values.</p></li>
-<li><p><strong>t</strong> – A scalar integer. Performance is better if ‘t’ is on the device
-memory.</p></li>
+<li><p><strong>t</strong> – A scalar integer. Performance is better if ‘t’ is on the device memory.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -323,8 +322,8 @@ memory.</p></li>
 <dd><p>Returns the lengths of paddings at the beginning and end of the sequence.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>inputs_nmap</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors that may have ‘padding’
-Every tensor’s 0-th dim has the same size.</p>
+<dd class="field-odd"><p><strong>inputs_nmap</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors that may have ‘padding’ Every
+tensor’s 0-th dim has the same size.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>padding length at the beginning, padding length at the end</p>
@@ -522,8 +521,8 @@ tensors.</p></li>
 <li><p><strong>theta</strong> – weights. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p></li>
 <li><p><strong>state0</strong> – initial state. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p></li>
 <li><p><strong>inputs</strong> – inputs. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p></li>
-<li><p><strong>accumulator_layer</strong> – Whether the cell function must be run in the context
-of the given accumulator layer.</p></li>
+<li><p><strong>accumulator_layer</strong> – Whether the cell function must be run in the context of
+the given accumulator layer.</p></li>
 <li><p><strong>check_stateful_ops</strong> – if True, raise a <code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code> if cell_fn is stateful.</p></li>
 <li><p><strong>allow_implicit_capture</strong> – Whether to allow the <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> to implicitly capture
 tensors.</p></li>
@@ -644,36 +643,36 @@ customized backward function of <code class="xref py py-obj docutils literal not
 <li><p><strong>theta</strong> – weights. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p></li>
 <li><p><strong>state0</strong> – initial state. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p></li>
 <li><p><strong>inputs</strong> – inputs. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p></li>
-<li><p><strong>cell_fn</strong> – <p>A python function which computes:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:])</span>
-</pre></div>
-</div>
+<li><p><strong>cell_fn</strong> – <dl class="simple">
+<dt>A python function which computes::</dt><dd><p>state1, extras = cell_fn(theta, state0, inputs[t, :])</p>
+</dd>
+</dl>
 </p></li>
-<li><p><strong>cell_grad</strong> – <p>A python function which computes:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dcaptured</span> <span class="o">=</span> <span class="n">cell_grad</span><span class="p">(</span>
-    <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:],</span> <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>If there are no captured tensors in <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">dcaptured</span></code> can be returned
-as None. Captured tensors with custom <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_grad</span></code> is currently unsupported
-so this return value is reserved for future expansion.</p>
+<li><p><strong>cell_grad</strong> – <dl class="simple">
+<dt>A python function which computes::</dt><dd><dl class="simple">
+<dt>dtheta, dstate0, dinputs[t, :], dcaptured = cell_grad(</dt><dd><dl class="simple">
+<dt>theta, state0, inputs[t, :], extras, dstate1)  If there are no</dt><dd><p>captured tensors in <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">dcaptured</span></code> can be returned as
+None. Captured tensors with custom <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_grad</span></code> is currently
+unsupported so this return value is reserved for future expansion.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
 </p></li>
 <li><p><strong>cell_type</strong> – Cell name to be used.</p></li>
-<li><p><strong>stop_fn</strong> – <p>If not None, a python function which computes:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">should_stop</span> <span class="o">=</span> <span class="n">stop_fn</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The function determines whether the recurrent loop should terminate.</p>
-</p></li>
-<li><p><strong>extras</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of Tensors. The 2nd return value of every
-invocation of <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with matching keys and shapes
-of <code class="xref py py-obj docutils literal notranslate"><span class="pre">extras</span></code>.</p></li>
+<li><p><strong>stop_fn</strong> – If not None, a python function which computes::  should_stop =
+stop_fn(t, theta, state0)  The function determines whether the recurrent
+loop should terminate.</p></li>
+<li><p><strong>extras</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of Tensors. The 2nd return value of every invocation
+of <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with matching keys and shapes of <code class="xref py py-obj docutils literal notranslate"><span class="pre">extras</span></code>.</p></li>
 <li><p><strong>check_stateful_ops</strong> – if True, raise a <code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code> if <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> is stateful.</p></li>
 <li><p><strong>accumulator_layer</strong> – If provided, then accumulators on this layer will be
 managed such that they carry to the final state in <code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code> and are
 disabled for gradients. Uses the state key <code class="xref py py-obj docutils literal notranslate"><span class="pre">accumulators</span></code>.</p></li>
-<li><p><strong>allow_implicit_capture</strong> – Whether to allow the <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> to implicitly
-capture tensors. Only allowed if an explicit <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_grad</span></code> is not given.</p></li>
+<li><p><strong>allow_implicit_capture</strong> – Whether to allow the <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> to implicitly capture
+tensors. Only allowed if an explicit <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_grad</span></code> is not given.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
