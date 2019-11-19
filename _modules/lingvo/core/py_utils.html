@@ -3070,6 +3070,98 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inputs_length</span><span class="p">,</span> <span class="n">seq_axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">batch_axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="ConcatenatePadddedSequences"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ConcatenatePadddedSequences">[docs]</a><span class="k">def</span> <span class="nf">ConcatenatePadddedSequences</span><span class="p">(</span><span class="n">input0</span><span class="p">,</span> <span class="n">input1</span><span class="p">,</span> <span class="n">padding0</span><span class="p">,</span> <span class="n">padding1</span><span class="p">,</span> <span class="n">seq_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Concatenates input sequences with varying lenghts as defined by paddings.</span>
+
+<span class="sd">  This is a helper function for concatenating 2 batches of input sequences,</span>
+<span class="sd">  where each example in the batch can have different lengths, as defined by</span>
+<span class="sd">  the corresponding paddings. To concatenate correctly, it makes use of</span>
+<span class="sd">  tf.reverse_sequence to partially reverse the sequences before</span>
+<span class="sd">  concatenating them together.</span>
+
+<span class="sd">  NOTE: We assume that the tensors have no leading paddings.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    input0: A tensor of size [batch, max_length, ...] or [max_length, batch,</span>
+<span class="sd">      ...] depending on the value set for axis.</span>
+<span class="sd">    input1:  A tensor of size [batch, max_length, ...] or [max_length, batch,</span>
+<span class="sd">      ...] depending on the value set for axis.</span>
+<span class="sd">    padding0: A Tensor of size [batch, max_length] or [max_length, batch]</span>
+<span class="sd">      corresponding to the padding for input0.</span>
+<span class="sd">    padding1: A Tensor of size [batch, max_length] or [max_length, batch]</span>
+<span class="sd">      corresponding to the padding for input1.</span>
+<span class="sd">    seq_dim: int, the time axis along which the tensors will be concatenated.</span>
+<span class="sd">      Should be 0 or 1. Assumes that batch_dim is 1 - seq_dim.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The concatenation of input0 and input1, and the corresponding padding.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    tf.errors.InvalidArgumentError when seq_dim is not 0 or 1.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">seq_dim</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">seq_dim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;seq_dim must be 0 or 1.&#39;</span><span class="p">)</span>
+  <span class="n">batch_dim</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">seq_dim</span>
+  <span class="c1"># inpu0 and input1 should have the same batch size and same rank.</span>
+  <span class="n">input0</span> <span class="o">=</span> <span class="n">with_dependencies</span><span class="p">([</span>
+      <span class="n">assert_equal</span><span class="p">(</span><span class="n">GetShape</span><span class="p">(</span><span class="n">input0</span><span class="p">)[</span><span class="n">batch_dim</span><span class="p">],</span>
+                   <span class="n">GetShape</span><span class="p">(</span><span class="n">input1</span><span class="p">)[</span><span class="n">batch_dim</span><span class="p">]),</span>
+      <span class="n">assert_equal</span><span class="p">(</span><span class="n">GetRank</span><span class="p">(</span><span class="n">input0</span><span class="p">),</span> <span class="n">GetRank</span><span class="p">(</span><span class="n">input1</span><span class="p">))</span>
+  <span class="p">],</span> <span class="n">input0</span><span class="p">)</span>
+
+  <span class="n">batch_size</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">padding0</span><span class="p">)[</span><span class="n">batch_dim</span><span class="p">]</span>
+  <span class="c1"># batch dimension of inputs and paddings should match.</span>
+  <span class="n">input0</span> <span class="o">=</span> <span class="n">with_dependencies</span><span class="p">([</span>
+      <span class="n">assert_equal</span><span class="p">(</span><span class="n">GetShape</span><span class="p">(</span><span class="n">input0</span><span class="p">)[</span><span class="n">batch_dim</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">),</span>
+      <span class="n">assert_equal</span><span class="p">(</span><span class="n">GetShape</span><span class="p">(</span><span class="n">padding1</span><span class="p">)[</span><span class="n">batch_dim</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">)</span>
+  <span class="p">],</span> <span class="n">input0</span><span class="p">)</span>
+  <span class="n">input0_seq_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">padding0</span><span class="p">)[</span><span class="n">seq_dim</span><span class="p">]],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">]))</span>
+  <span class="n">input1_seq_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">padding1</span><span class="p">)[</span><span class="n">seq_dim</span><span class="p">]],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">]))</span>
+  <span class="c1"># LengthsFromPaddings assumes that paddings is of size [batch, max_length].</span>
+  <span class="k">if</span> <span class="n">seq_dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">seq_length0</span> <span class="o">=</span> <span class="n">LengthsFromPaddings</span><span class="p">(</span><span class="n">padding0</span><span class="p">)</span>
+    <span class="n">seq_length1</span> <span class="o">=</span> <span class="n">LengthsFromPaddings</span><span class="p">(</span><span class="n">padding1</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">seq_length0</span> <span class="o">=</span> <span class="n">LengthsFromPaddings</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">padding0</span><span class="p">))</span>
+    <span class="n">seq_length1</span> <span class="o">=</span> <span class="n">LengthsFromPaddings</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">padding1</span><span class="p">))</span>
+  <span class="c1"># We assume that the tensors have no leading paddings.</span>
+  <span class="c1"># TODO(arunnt): Concatenate tensors with leading paddings correctly.</span>
+  <span class="n">seq_length0</span> <span class="o">=</span> <span class="n">with_dependencies</span><span class="p">([</span>
+      <span class="n">assert_equal</span><span class="p">(</span><span class="n">seq_length0</span><span class="p">,</span>
+                   <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">padding0</span><span class="p">,</span> <span class="n">seq_dim</span><span class="p">)))</span>
+  <span class="p">],</span> <span class="n">seq_length0</span><span class="p">)</span>
+  <span class="n">seq_length1</span> <span class="o">=</span> <span class="n">with_dependencies</span><span class="p">([</span>
+      <span class="n">assert_equal</span><span class="p">(</span><span class="n">seq_length1</span><span class="p">,</span>
+                   <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">padding1</span><span class="p">,</span> <span class="n">seq_dim</span><span class="p">)))</span>
+  <span class="p">],</span> <span class="n">seq_length1</span><span class="p">)</span>
+  <span class="c1"># Concatenate input sequences.</span>
+  <span class="n">reversed_input0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span>
+      <span class="n">input0</span><span class="p">,</span> <span class="n">seq_length0</span><span class="p">,</span> <span class="n">seq_dim</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span> <span class="n">batch_dim</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
+  <span class="n">reversed_input1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span>
+      <span class="n">input1</span><span class="p">,</span> <span class="n">input1_seq_dim</span><span class="p">,</span> <span class="n">seq_dim</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span> <span class="n">batch_dim</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
+  <span class="n">reversed_concat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">reversed_input1</span><span class="p">,</span> <span class="n">reversed_input0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">)</span>
+  <span class="n">concat_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span>
+      <span class="n">reversed_concat</span><span class="p">,</span>
+      <span class="n">seq_length0</span> <span class="o">+</span> <span class="n">input1_seq_dim</span><span class="p">,</span>
+      <span class="n">seq_dim</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span>
+      <span class="n">batch_dim</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
+  <span class="c1"># Concatenate paddings. Note that paddings are always a Tensor of 0s and 1s,</span>
+  <span class="c1"># so, unlike the inputs, we don&#39;t have to reverse padding1, we can simply</span>
+  <span class="c1"># concatenate reversed padding0 and padding1.</span>
+  <span class="n">reversed_padding0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span>
+      <span class="n">padding0</span><span class="p">,</span> <span class="n">input0_seq_dim</span><span class="p">,</span> <span class="n">seq_dim</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span> <span class="n">batch_dim</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
+  <span class="n">reversed_concat_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">reversed_padding0</span><span class="p">,</span> <span class="n">padding1</span><span class="p">],</span>
+                                      <span class="n">axis</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">)</span>
+  <span class="n">concat_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span>
+      <span class="n">reversed_concat_padding</span><span class="p">,</span>
+      <span class="n">input0_seq_dim</span> <span class="o">+</span> <span class="n">seq_length1</span><span class="p">,</span>
+      <span class="n">seq_dim</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span>
+      <span class="n">batch_dim</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">concat_inputs</span><span class="p">,</span> <span class="n">concat_paddings</span></div>
+
+
 <div class="viewcode-block" id="Retry"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Retry">[docs]</a><span class="k">def</span> <span class="nf">Retry</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">retry</span><span class="o">.</span><span class="n">Retry</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 

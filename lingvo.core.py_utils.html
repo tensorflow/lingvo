@@ -1794,6 +1794,40 @@ batch_size, 1].</p></li>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.ConcatenatePadddedSequences">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ConcatenatePadddedSequences</code><span class="sig-paren">(</span><em class="sig-param">input0</em>, <em class="sig-param">input1</em>, <em class="sig-param">padding0</em>, <em class="sig-param">padding1</em>, <em class="sig-param">seq_dim=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ConcatenatePadddedSequences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ConcatenatePadddedSequences" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concatenates input sequences with varying lenghts as defined by paddings.</p>
+<p>This is a helper function for concatenating 2 batches of input sequences,
+where each example in the batch can have different lengths, as defined by
+the corresponding paddings. To concatenate correctly, it makes use of
+tf.reverse_sequence to partially reverse the sequences before
+concatenating them together.</p>
+<p>NOTE: We assume that the tensors have no leading paddings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input0</strong> – A tensor of size [batch, max_length, …] or [max_length, batch,
+…] depending on the value set for axis.</p></li>
+<li><p><strong>input1</strong> – A tensor of size [batch, max_length, …] or [max_length, batch,
+…] depending on the value set for axis.</p></li>
+<li><p><strong>padding0</strong> – A Tensor of size [batch, max_length] or [max_length, batch]
+corresponding to the padding for input0.</p></li>
+<li><p><strong>padding1</strong> – A Tensor of size [batch, max_length] or [max_length, batch]
+corresponding to the padding for input1.</p></li>
+<li><p><strong>seq_dim</strong> – int, the time axis along which the tensors will be concatenated.
+Should be 0 or 1. Assumes that batch_dim is 1 - seq_dim.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The concatenation of input0 and input1, and the corresponding padding.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>tf.errors.InvalidArgumentError when seq_dim is not 0</strong><strong> or </strong><strong>1.</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.Retry">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">Retry</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Retry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Retry" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
