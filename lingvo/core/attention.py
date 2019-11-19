@@ -1116,7 +1116,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
   1. Source vectors (attention keys) are first projected to vectors of dim
      p.hidden_dim.
   2. Query vectors are projected to vectors of dim p.hidden_dim as well.
-  3. Context vectors (attention values) are not projected.
+  3. Context vectors (attention values) are not projected by default, unless
+     `enable_ctx_pre_proj` is True.
   4. Source vectors, query vectors and context vectors are all split into
      p.num_attention_heads chunks.
   5. The inner atten mechanism is computed separately on each of the chunks.
