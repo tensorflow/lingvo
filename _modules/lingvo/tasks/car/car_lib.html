@@ -413,6 +413,7 @@
                          <span class="n">padding</span><span class="p">,</span>
                          <span class="n">num_sampled_points</span><span class="p">,</span>
                          <span class="n">precomputed_squared_distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">num_seeded_points</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                          <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Samples num_sampled_points from points using farthest point sampling.</span>
 
@@ -435,6 +436,10 @@
 <span class="sd">    precomputed_squared_distance: optional tf.Tensor of shape [N, P1, P1] of</span>
 <span class="sd">      distances between each point. if None, distances will be computed on the</span>
 <span class="sd">      fly.</span>
+<span class="sd">    num_seeded_points: If num_seeded_points &gt; 0, then the first</span>
+<span class="sd">      num_seeded_points in points are considered to be seeded in the FPS</span>
+<span class="sd">      sampling. Note that we assume that these points are *not* padded, and do</span>
+<span class="sd">      not check padding when seeding them.</span>
 <span class="sd">    random_seed: optional integer random seed to use with all the random ops.</span>
 
 <span class="sd">  Returns:</span>
@@ -502,6 +507,10 @@
 <span class="sd">      create a random values per point, and then set all padded ones to</span>
 <span class="sd">      some large value (more than the maxval). We then take the min per batch</span>
 <span class="sd">      element to get the first points.</span>
+
+<span class="sd">      Returns:</span>
+<span class="sd">        Tensor containing the index of a random point selected for each example</span>
+<span class="sd">        in the batch.</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="n">random_values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_points</span><span class="p">),</span>
                                         <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -517,6 +526,10 @@
 
 <span class="sd">      We also bias the sampling towards real points by setting the distance</span>
 <span class="sd">      to padded points negative until we are out of real points.</span>
+
+<span class="sd">      Returns:</span>
+<span class="sd">        Tensor containing the index of the next farthest point selected for each</span>
+<span class="sd">        example in the batch.</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="c1"># Set padded points distance to negative so they aren&#39;t selected.</span>
       <span class="n">padding_masked_distance_to_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
@@ -529,9 +542,25 @@
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span>
           <span class="n">padding_masked_distance_to_selected</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">_GetSeededPoint</span><span class="p">():</span>
+      <span class="sd">&quot;&quot;&quot;Select a seeded point.</span>
+
+<span class="sd">      Seeded points are assumed to be at the beginning of the original points.</span>
+
+<span class="sd">      Returns:</span>
+<span class="sd">        Tensor containing the index of the next seeded point to select for each</span>
+<span class="sd">        example in the batch.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">*</span> <span class="n">curr_idx</span>
+
     <span class="c1"># Select indices for this loop iteration.</span>
-    <span class="n">new_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">_GetRandomRealPoint</span><span class="p">,</span> <span class="n">_GetFurthestPoint</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">num_seeded_points</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">new_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="n">num_seeded_points</span><span class="p">),</span> <span class="n">_GetSeededPoint</span><span class="p">,</span>
+          <span class="n">_GetFurthestPoint</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">new_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">_GetRandomRealPoint</span><span class="p">,</span> <span class="n">_GetFurthestPoint</span><span class="p">)</span>
 
     <span class="n">sampled_idx</span> <span class="o">=</span> <span class="n">sampled_idx</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="n">new_selected</span><span class="p">)</span>
 

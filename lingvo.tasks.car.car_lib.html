@@ -325,7 +325,7 @@ on TPU. Investigate why it’s much slower.</p>
 
 <dl class="function">
 <dt id="lingvo.tasks.car.car_lib.FarthestPointSampler">
-<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">FarthestPointSampler</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">padding</em>, <em class="sig-param">num_sampled_points</em>, <em class="sig-param">precomputed_squared_distance=None</em>, <em class="sig-param">random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#FarthestPointSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.FarthestPointSampler" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">FarthestPointSampler</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">padding</em>, <em class="sig-param">num_sampled_points</em>, <em class="sig-param">precomputed_squared_distance=None</em>, <em class="sig-param">num_seeded_points=0</em>, <em class="sig-param">random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#FarthestPointSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.FarthestPointSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Samples num_sampled_points from points using farthest point sampling.</p>
 <p>Algorithm:
 1. Start by selecting a random point and adding to a selected set.
@@ -345,6 +345,10 @@ real, and 1 otherwise.</p></li>
 <li><p><strong>precomputed_squared_distance</strong> – optional tf.Tensor of shape [N, P1, P1] of
 distances between each point. if None, distances will be computed on the
 fly.</p></li>
+<li><p><strong>num_seeded_points</strong> – If num_seeded_points &gt; 0, then the first
+num_seeded_points in points are considered to be seeded in the FPS
+sampling. Note that we assume that these points are <em>not</em> padded, and do
+not check padding when seeding them.</p></li>
 <li><p><strong>random_seed</strong> – optional integer random seed to use with all the random ops.</p></li>
 </ul>
 </dd>
