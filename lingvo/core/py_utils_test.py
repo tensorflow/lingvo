@@ -1625,6 +1625,82 @@ class ReversePaddedSequenceTest(test_utils.TestCase):
       self.assertAllClose(expected_output, actual_output)
 
 
+class ConcatenatePadddedSequencesTest(test_utils.TestCase):
+
+  def _ComputeFloatOutputAndVerify(self,
+                                   input0,
+                                   input1,
+                                   seq_lens0,
+                                   seq_lens1,
+                                   tranpose_input=False):
+    with self.session(use_gpu=False) as sess:
+      expected_output_seq_lens = seq_lens0 + seq_lens1
+      batch_size, input0_seq_dim = input0.shape
+      input1_seq_dim = input1.shape[1]
+      padding0 = 1.0 - tf.sequence_mask(
+          seq_lens0, maxlen=input0_seq_dim, dtype=tf.float32)
+      padding1 = 1.0 - tf.sequence_mask(
+          seq_lens1, maxlen=input1_seq_dim, dtype=tf.float32)
+
+      if tranpose_input:
+        seq_dim = 0
+        tf_input0 = tf.constant(np.transpose(input0))
+        tf_input1 = tf.constant(np.transpose(input1))
+        tf_padding0 = tf.transpose(padding0)
+        tf_padding1 = tf.transpose(padding1)
+      else:
+        seq_dim = 1
+        tf_input0 = tf.constant(input0)
+        tf_input1 = tf.constant(input1)
+        tf_padding0 = padding0
+        tf_padding1 = padding1
+
+      actual_outputs = sess.run(
+          py_utils.ConcatenatePadddedSequences(
+              tf_input0,
+              tf_input1,
+              padding0=tf_padding0,
+              padding1=tf_padding1,
+              seq_dim=seq_dim))
+
+      if tranpose_input:
+        actual_outputs = (np.transpose(actual_outputs[0]),
+                          np.transpose(actual_outputs[1]))
+
+      for batch in range(batch_size):
+        expected_output = np.concatenate((input0[batch, :seq_lens0[batch]],
+                                          input1[batch, :seq_lens1[batch]]))
+        self.assertAllClose(
+            expected_output,
+            actual_outputs[0][batch, :expected_output_seq_lens[batch]])
+        expected_padding = np.ones(
+            (input0_seq_dim + input1_seq_dim,)).astype('float32')
+        expected_padding[:(seq_lens0[batch] + seq_lens1[batch])] = 0.0
+        self.assertAllClose(expected_padding, actual_outputs[1][batch, :])
+
+  def testConcatenateFloatFeatures(self):
+    input0 = np.array([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]).astype('float32')
+    seq_lens0 = np.array([2, 3])
+    input1 = np.array([[11, 12, 13, 14, 15, 16], [16, 17, 18, 19, 20,
+                                                  21]]).astype('float32')
+    seq_lens1 = np.array([4, 5])
+    batch_size, input0_seq_dim = input0.shape
+    input1_seq_dim = input1.shape[1]
+
+    no_padding_seq_lens0 = np.array([input0_seq_dim] * batch_size)
+    no_padding_seq_lens1 = np.array([input1_seq_dim] * batch_size)
+
+    self._ComputeFloatOutputAndVerify(input0, input1, no_padding_seq_lens0,
+                                      no_padding_seq_lens1, False)
+    self._ComputeFloatOutputAndVerify(input0, input1, no_padding_seq_lens0,
+                                      no_padding_seq_lens1, True)
+
+    self._ComputeFloatOutputAndVerify(input0, input1, seq_lens0, seq_lens1,
+                                      False)
+    self._ComputeFloatOutputAndVerify(input0, input1, seq_lens0, seq_lens1,
+                                      True)
+
+
 class RetryTest(test_utils.TestCase):
 
   def testRetry(self):
