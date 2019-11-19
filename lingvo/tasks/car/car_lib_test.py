@@ -306,6 +306,28 @@ class CarLibTest(test_utils.TestCase):
           np.all((closest_idx >= 0) & (closest_idx < 2)),
           msg='Closest index must be among selected indices.')
 
+  def testFarthestPointSamplerSeeded(self):
+    points = tf.constant([
+        [[0, 1, 1], [1, 1, 1], [2, 1, 1], [3, 1, 1], [4, 1, 1], [5, 1, 1]],
+        [[0, 2, 1], [1, 2, 1], [2, 2, 1], [3, 2, 1], [4, 2, 1], [5, 2, 1]],
+        [[0, 2, 3], [1, 2, 3], [2, 2, 3], [3, 2, 3], [4, 2, 3], [5, 2, 3]],
+        [[0, 2, 1], [1, 2, 1], [2, 2, 1], [3, 2, 1], [4, 2, 1], [5, 2, 1]],
+    ], dtype=tf.float32)  # pyformat: disable
+    padding = tf.zeros((4, 6), dtype=tf.float32)
+    selected_idx, closest_idx = car_lib.FarthestPointSampler(
+        points, padding, 3, num_seeded_points=2)
+    with self.session() as sess:
+      selected_idx, closest_idx = sess.run([selected_idx, closest_idx])
+      # First two selected points are seeded.
+      self.assertTrue(np.all(selected_idx[:, 0] == 0))
+      self.assertTrue(np.all(selected_idx[:, 1] == 1))
+      # Third point is the last point since it's farthest.
+      self.assertTrue(np.all(selected_idx[:, 2] == 5))
+      # Closest indices should either be 0, 1 or 2 since we picked 3 points.
+      self.assertTrue(
+          np.all((closest_idx >= 0) & (closest_idx < 3)),
+          msg='Closest index must be among selected indices.')
+
   def testFarthestPointSamplerAllPoints(self):
     points = tf.constant([
         [[0, 1, 1], [1, 1, 1], [2, 1, 1], [3, 1, 1], [4, 1, 1], [5, 1, 1]],

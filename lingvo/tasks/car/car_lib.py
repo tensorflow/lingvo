@@ -268,6 +268,7 @@ def FarthestPointSampler(points,
                          padding,
                          num_sampled_points,
                          precomputed_squared_distance=None,
+                         num_seeded_points=0,
                          random_seed=None):
   """Samples num_sampled_points from points using farthest point sampling.
 
@@ -290,6 +291,10 @@ def FarthestPointSampler(points,
     precomputed_squared_distance: optional tf.Tensor of shape [N, P1, P1] of
       distances between each point. if None, distances will be computed on the
       fly.
+    num_seeded_points: If num_seeded_points > 0, then the first
+      num_seeded_points in points are considered to be seeded in the FPS
+      sampling. Note that we assume that these points are *not* padded, and do
+      not check padding when seeding them.
     random_seed: optional integer random seed to use with all the random ops.
 
   Returns:
@@ -357,6 +362,10 @@ def FarthestPointSampler(points,
       create a random values per point, and then set all padded ones to
       some large value (more than the maxval). We then take the min per batch
       element to get the first points.
+
+      Returns:
+        Tensor containing the index of a random point selected for each example
+        in the batch.
       """
       random_values = tf.random.uniform((batch_size, num_points),
                                         minval=0,
@@ -372,6 +381,10 @@ def FarthestPointSampler(points,
 
       We also bias the sampling towards real points by setting the distance
       to padded points negative until we are out of real points.
+
+      Returns:
+        Tensor containing the index of the next farthest point selected for each
+        example in the batch.
       """
       # Set padded points distance to negative so they aren't selected.
       padding_masked_distance_to_selected = tf.where(
@@ -384,9 +397,25 @@ def FarthestPointSampler(points,
       return tf.argmax(
           padding_masked_distance_to_selected, axis=-1, output_type=tf.int32)
 
+    def _GetSeededPoint():
+      """Select a seeded point.
+
+      Seeded points are assumed to be at the beginning of the original points.
+
+      Returns:
+        Tensor containing the index of the next seeded point to select for each
+        example in the batch.
+      """
+      return tf.ones((batch_size,), dtype=tf.int32) * curr_idx
+
     # Select indices for this loop iteration.
-    new_selected = tf.cond(
-        tf.equal(curr_idx, 0), _GetRandomRealPoint, _GetFurthestPoint)
+    if num_seeded_points > 0:
+      new_selected = tf.cond(
+          tf.less(curr_idx, num_seeded_points), _GetSeededPoint,
+          _GetFurthestPoint)
+    else:
+      new_selected = tf.cond(
+          tf.equal(curr_idx, 0), _GetRandomRealPoint, _GetFurthestPoint)
 
     sampled_idx = sampled_idx.write(curr_idx, new_selected)
 
