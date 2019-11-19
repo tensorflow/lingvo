@@ -654,7 +654,8 @@ with dimensions [target_batch, …]</p></li>
 <li><p>Source vectors (attention keys) are first projected to vectors of dim
 p.hidden_dim.</p></li>
 <li><p>Query vectors are projected to vectors of dim p.hidden_dim as well.</p></li>
-<li><p>Context vectors (attention values) are not projected.</p></li>
+<li><p>Context vectors (attention values) are not projected by default, unless
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">enable_ctx_pre_proj</span></code> is True.</p></li>
 <li><p>Source vectors, query vectors and context vectors are all split into
 p.num_attention_heads chunks.</p></li>
 <li><p>The inner atten mechanism is computed separately on each of the chunks.</p></li>
