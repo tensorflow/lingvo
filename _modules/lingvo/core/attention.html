@@ -1309,6 +1309,10 @@
         <span class="s1">&#39;layers:&#39;</span>
         <span class="s1">&#39;uniform: Use uniform initialization. &#39;</span>
         <span class="s1">&#39;default: Use use the default Xavier initialization.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;attention_head_prob_index&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;If &gt; 0, instead of averaging &#39;</span>
+        <span class="s1">&#39;the probabilities of all attention heads when returning the &#39;</span>
+        <span class="s1">&#39;attention probability, instead return the selected index prob.&#39;</span><span class="p">)</span>
 
     <span class="c1"># Often the attention context output needs to be concated</span>
     <span class="c1"># with tensors from another layer. This allows them to share</span>
@@ -1425,6 +1429,8 @@
       <span class="k">if</span> <span class="ow">not</span> <span class="n">att_p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
         <span class="n">att_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;inner_att&#39;</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">att_p</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
 
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MultiHeadedAttention/PackSource&#39;</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">PackSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -1622,7 +1628,12 @@
         <span class="n">source_length</span><span class="p">,</span> <span class="n">decoder_batch_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_attention_heads</span><span class="p">)</span>
     <span class="c1"># [batch * num_heads, length] =&gt; [batch, num_heads * length].</span>
     <span class="n">zero_att_state</span> <span class="o">=</span> <span class="n">_RecursiveReshape</span><span class="p">(</span><span class="n">zero_att_state</span><span class="p">,</span> <span class="p">[</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">zero_att_state</span>
+    <span class="n">nested_map_zero_att_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">inner</span><span class="o">=</span><span class="n">zero_att_state</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">selected_prob_head</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="n">source_length</span><span class="p">])</span>
+      <span class="n">nested_map_zero_att_state</span><span class="p">[</span>
+          <span class="s1">&#39;selected_attention_head_probs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">selected_prob_head</span>
+    <span class="k">return</span> <span class="n">nested_map_zero_att_state</span>
 
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span>
       <span class="s1">&#39;MultiHeadedAttention/ComputeContextVectorWithSource&#39;</span><span class="p">)</span>
@@ -1642,8 +1653,11 @@
 <span class="sd">      packed_src: A `.NestedMap` object returned by PackSource or</span>
 <span class="sd">        InitForSourcePacked.</span>
 <span class="sd">      query_vec: a tensor of shape [target_batch, query_dim].</span>
-<span class="sd">      attention_state: previous attention state. It is not used in</span>
-<span class="sd">        AdditiveAttention, and is simply passed through.</span>
+<span class="sd">      attention_state: A NestedMap. &#39;inner&#39; contains the inner attention</span>
+<span class="sd">        state. It is not used in AdditiveAttention, and is simply passed</span>
+<span class="sd">        through. Optionally, if attention_head_prob_index &gt;= 0, then</span>
+<span class="sd">        &#39;selected_attention_head_probs&#39; contains the selected attention</span>
+<span class="sd">        probability head.</span>
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step. If</span>
 <span class="sd">        not None, it should be of shape [target_batch_size, source_length].</span>
 <span class="sd">      query_segment_id: a tensor of shape [target_batch].</span>
@@ -1663,8 +1677,9 @@
 
 <span class="sd">      - The attention context vector: [batch_size, context_dim]</span>
 <span class="sd">      - The attention probability vector: [batch_size, time]</span>
-<span class="sd">      - The new attention mechanism state: possibly nested tuple of tensors with</span>
-<span class="sd">        dimensions [target_batch, ...]</span>
+<span class="sd">      - The new attention mechanism state: A nested tuple of tensors with</span>
+<span class="sd">        dimensions [target_batch, ...]. See input &#39;attention_state&#39; for</span>
+<span class="sd">        description of items in the nested tuple.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
@@ -1706,8 +1721,15 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">source_seq_len</span><span class="p">])</span>
     <span class="n">attention_state</span> <span class="o">=</span> <span class="n">_RecursiveReshape</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span>
                                         <span class="p">[</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">att_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">,</span> <span class="n">query_vec_projected</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">,</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+      <span class="k">if</span> <span class="s1">&#39;emit_probs&#39;</span> <span class="ow">in</span> <span class="n">attention_state</span><span class="p">:</span>
+        <span class="n">inner_state</span> <span class="o">=</span> <span class="n">attention_state</span>
+      <span class="k">elif</span> <span class="s1">&#39;inner&#39;</span> <span class="ow">in</span> <span class="n">attention_state</span><span class="p">:</span>
+        <span class="n">inner_state</span> <span class="o">=</span> <span class="n">attention_state</span><span class="o">.</span><span class="n">inner</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">inner_state</span> <span class="o">=</span> <span class="n">attention_state</span>
+    <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">new_inner_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">,</span> <span class="n">query_vec_projected</span><span class="p">,</span> <span class="n">inner_state</span><span class="p">,</span>
         <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span>
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ctx_post_proj</span><span class="p">:</span>
@@ -1749,8 +1771,19 @@
     <span class="c1"># TODO(laurenzo): Use a better named range function (we want to represent</span>
     <span class="c1"># 0..1 probs).</span>
     <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRSoftmax</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">multi_headed_atten_prob</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+      <span class="n">att_state</span> <span class="o">=</span> <span class="n">attention_state</span>
+      <span class="k">if</span> <span class="s1">&#39;emit_probs&#39;</span> <span class="ow">in</span> <span class="n">attention_state</span><span class="p">:</span>
+        <span class="n">att_state</span> <span class="o">=</span> <span class="n">new_inner_state</span>
+      <span class="k">elif</span> <span class="s1">&#39;inner&#39;</span> <span class="ow">in</span> <span class="n">attention_state</span><span class="p">:</span>
+        <span class="n">att_state</span><span class="o">.</span><span class="n">inner</span> <span class="o">=</span> <span class="n">new_inner_state</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">att_state</span> <span class="o">=</span> <span class="n">new_inner_state</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">selected_prob_head</span> <span class="o">=</span> <span class="n">multi_headed_atten_prob</span><span class="p">[:,</span> <span class="n">p</span><span class="o">.</span>
+                                                   <span class="n">attention_head_prob_index</span><span class="p">,</span> <span class="p">:]</span>
+      <span class="n">att_state</span><span class="o">.</span><span class="n">selected_attention_head_probs</span> <span class="o">=</span> <span class="n">selected_prob_head</span>
     <span class="n">att_state</span> <span class="o">=</span> <span class="n">_RecursiveReshape</span><span class="p">(</span><span class="n">att_state</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">att_state</span>
 
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span>
