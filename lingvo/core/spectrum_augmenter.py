@@ -26,12 +26,33 @@ from lingvo.core import py_utils
 _SPECAUGMENT_ARGS = (
     'freq_mask_max_bins',
     'freq_mask_count',
+    'use_dynamic_time_mask_max_frames',
     'time_mask_max_frames',
     'time_mask_count',
     'time_mask_max_ratio',
     'time_masks_per_frame',
-    'use_dynamic_time_mask_max_frames',
+    'time_warp_bound',
+    'time_warp_max_frames',
+    'time_warp_max_ratio',
 )
+
+
+def _hat(x):
+  """Hat function.
+
+  The hat function is a piecewise linear function defined such that
+    1) x < -1: _hat(x) = 0
+    2) -1 <= x < 0: _hat(x) = x + 1
+    3) 0 <= x < 1: _hat(x) = -x + 1
+    4) x > 1 : _hat(x) = 0
+
+  Args:
+    x: A tensor.
+
+  Returns:
+    Tensor obtained by element-wise application of the hat function.
+  """
+  return tf.nn.relu(x + 1) - 2 * tf.nn.relu(x) + tf.nn.relu(x - 1)
 
 
 class SpectrumAugmenter(base_layer.BaseLayer):
@@ -47,6 +68,12 @@ class SpectrumAugmenter(base_layer.BaseLayer):
              'Maximum number of frequency bins of frequency masking.')
     p.Define('freq_mask_count', 1,
              'Number of times we apply masking on the frequency axis.')
+    # TODO(danielspark): Deprecate 'use_dynamic_time_mask_max_frames' and
+    # introduce enum parameter to replace it.
+    p.Define(
+        'use_dynamic_time_mask_max_frames', False,
+        'If true, time_mask_max_frames is determined by '
+        'time_mask_max_ratio * utterance_length.')
     p.Define(
         'time_mask_max_frames', 50, 'Maximum number of frames of time masking. '
         'Overridden when use_dynamic_time_mask_max_frames = True.')
@@ -58,13 +85,20 @@ class SpectrumAugmenter(base_layer.BaseLayer):
              'Maximum portion allowed for time masking.')
     p.Define(
         'time_masks_per_frame', 0.0,
-        'Ratio of number of time masks to be applied against '
-        'the number of frames. If > 0, multiplicity of the time mask '
-        'is determined by time_masks_per_frame * utterance_length.')
+        'Ratio of number of time masks to be applied against the number '
+        'of frames. If > 0, multiplicity of the time mask is determined by '
+        'min(time_masks_per_frame * utterance_length, time_mask_count).')
     p.Define(
-        'use_dynamic_time_mask_max_frames', False,
-        'If true, time_mask_max_frames is determined by '
-        'time_mask_max_ratio * utterance_length.')
+        'time_warp_bound', 'static',
+        'To be set to either `dynamic` or `static`. '
+        'If `dynamic`, time warp bound is determined by '
+        'time_warp_max_ratio * utterance_length. '
+        'If `static`, time warp bound is determined by '
+        'min(time_warp_max_frames, time_warp_max_ratio * utterance_length).')
+    p.Define('time_warp_max_frames', 0,
+             'Maximum number of frames for shifting in time warping.')
+    p.Define('time_warp_max_ratio', 0.0,
+             'Maximum portion of frames for shifting in time warping.')
     p.Define('use_noise', False, 'Whether to noisify the time masked region.')
     p.Define('gaussian_noise', False, 'Use Gaussian distribution for noise.')
     p.Define('unstack', False,
@@ -92,9 +126,9 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         assert len(v) == num_domains
       else:
         setattr(p, field, [v] * num_domains)
-    # TODO(ngyuzh): adding time warping.
     assert p.freq_mask_max_bins[0] > -1
     assert p.time_mask_max_frames[0] > -1
+    assert p.time_warp_max_frames[0] > -1
 
   def _GetMask(self,
                batch_size,
@@ -218,6 +252,218 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       mask = tf.cast(mask, p.fprop_dtype)
 
     return mask
+
+  def _GetWarpMatrix(self,
+                     batch_size,
+                     choose_range,
+                     matrix_size,
+                     max_warp_frames=None,
+                     dtype=tf.float32,
+                     max_ratio=1.0):
+    """Returns warp matrices starting from random positions.
+
+    In this function when max_warp_frames != None:
+      1) Sample random warp displacements from the interval
+         [-max_warp_frames, max_warp_frames) to yield shift tensor
+         with shape (batch_size,).
+      2) Truncate lengths to a maximum magnitude of (choose_range * max_ratio),
+         so that each shift is fully contained within the
+         corresponding sequence.
+      3) Random sample origin points of shape (batch_size, multiplicity)
+         with in [shift, choose_range - shift).
+      4) Return a batch of 1-D linear maps that fix the boundary points and
+         shift the origin point by the shift.
+
+    When max_warp_frames == None:
+      1) Sample random warp displacements with magnitudes less than
+         (choose_range * max_ratio) to yield shift tensor with
+         shape (batch_size,).
+      2) Proceed through steps 3), 4).
+
+    Args:
+      batch_size: Batch size. Integer number.
+      choose_range: Range within which the warp reference points must lie.
+        Tensor of shape (batch_size,).
+      matrix_size: Dimension of vector space warp matrix is applied to. Integer
+        number.
+      max_warp_frames: Upper-bound on the warp distance. Integer or None.
+      dtype: Data type.
+      max_ratio: Maximum ratio between the shift distance and choose_range.
+        Float number.
+
+    Returns:
+      warp_matrix: An array of fixed size warp matrices with shape
+      (batch_size, matrix_size, matrix_size).
+    """
+    p = self.params
+    # Non-empty random seed values are only used for testing
+    # seed_1 and seed_2 are set separately to avoid correlation of
+    # warp magnitude and origin position.
+    if p.random_seed:
+      seed_1 = p.random_seed - 1
+      seed_2 = 2 * p.random_seed + 1
+    else:
+      seed_1 = p.random_seed
+      seed_2 = p.random_seed
+
+    choose_range_dtype = tf.cast(choose_range, dtype=dtype)
+    length_upper_bound = tf.cast(max_ratio * choose_range_dtype, dtype=tf.int32)
+    # Set shift length.
+    if max_warp_frames and max_warp_frames > 0:
+      shift = tf.random.uniform((batch_size,),
+                                minval=-1 * max_warp_frames,
+                                maxval=max_warp_frames + 1,
+                                dtype=tf.int32,
+                                seed=seed_1)
+    else:
+      random_ratio = tf.random.uniform((batch_size,),
+                                       minval=-1.0,
+                                       maxval=1.0,
+                                       seed=seed_1,
+                                       dtype=dtype)
+      shift = tf.cast(random_ratio * tf.cast(length_upper_bound, dtype=dtype),
+                      tf.int32)
+    # Make sure the sampled length was smaller than max_ratio * length_bound.
+    # Note that sampling in this way is biased.
+    # (Shorter sequence may over-masked.)
+    final_shift = tf.maximum(-length_upper_bound,
+                             tf.minimum(shift, length_upper_bound))
+    # Choose origin anchor point.
+    mid_range = tf.cast(choose_range, dtype=tf.int32)
+    mid_range = tf.maximum(choose_range - 2, 0)
+    random_origin = tf.random.uniform((batch_size,), maxval=1.0, seed=seed_2)
+    origin_with_in_valid_range = random_origin * tf.cast(mid_range, dtype=dtype)
+    origin = tf.cast(origin_with_in_valid_range, tf.int32) + 1
+    # Set destination point of the origin anchor point under the warp map.
+    destination = origin + final_shift
+    # Cast origin and destination.
+    origin = tf.cast(origin, dtype=dtype)
+    destination = tf.cast(destination, dtype=dtype)
+
+    return self._ConstructWarpMatrix(
+        batch_size=batch_size,
+        matrix_size=matrix_size,
+        origin=origin,
+        destination=destination,
+        choose_range=choose_range_dtype,
+        dtype=dtype)
+
+  def _ConstructWarpMatrix(self, batch_size, matrix_size, origin, destination,
+                           choose_range, dtype):
+    """Returns warp matrices according to origin, destination and choose_range.
+
+    This function constructs a batch of warp matrices which maps the batch
+    of origin points to the batch of destination points with fixed boundary
+    coordinates at 0 and choose_range.
+
+    The warping function, defined by the origin anchor point `origin`,
+    the destination of the origin anchor point `destination` and the
+    length of the domain in the warping axis `choose_range` is a piecewise
+    linear map that fixes the points 0 and `choose_range` and maps
+    `origin` to `destination`.
+
+    For the warping matrix to be non-singular, destination must lie in the
+    range 1<= destination <= choose_range - 1, so a destination
+    out of this range is adjusted to be in this range before the warping
+    matrix is constructed.
+
+    The warping map can be explicitly written by first defining the slopes:
+      1) slope_0 = origin / destination.
+      2) slope_1 = (choose_range - origin) / (choose_range - destination).
+      3) slope_2 = 1.0.
+
+    Then the origin point orig_i of the mapped coordinate i is given by:
+      1) i < destination: orig_i = slope_0 * i.
+      2) destination <= i < choose_range:
+         orig_i = slope_1 * i - (slope_1 - slope_0) * destination.
+      3) i >= choose_range: orig_i = i.
+
+    Denoting n_i = ceil(orig_i), the warp matrix element warp[i][j] is given by:
+      1) j = n_i: 1 - n_i + orig_i.
+      2) j = n_i - 1: n_i - orig_i.
+      3) Otherwise: 0.
+
+    Applying the warp matrix to an array of pixels, i.e.,
+    warped_pixel[i] = sum_j warp[i][j] * pixel[j], one would get
+    warped_pixel[i] = (n_i-orig_i) pixel[n_i-1] + (1-n_i+orig_i) pixel[n_i].
+
+    Args:
+      batch_size: Batch size. Integer number.
+      matrix_size: Dimension of the vector space the warp matrix is applied to.
+        Integer number.
+      origin: Origin anchor point for warping. Tensor of shape (batch_size,) and
+        data type dtype.
+      destination: Destination of the origin anchor point upon warping. Tensor
+        of shape (batch_size,) and data type dtype.
+      choose_range: Range within which the warp reference points must lie.
+        Tensor of shape (batch_size,) data type dtype.
+      dtype: Data type of origin, destination, choose_range and the output warp
+        matrix.
+
+    Returns:
+      warp_matrix: An array of fixed size warp matrices with shape
+      (batch_size, matrix_size, matrix_size).
+    """
+    p = self.params
+
+    # Entries of destination must be in the range
+    # 1 <= destination <= choose_range - 1
+    # for warp matrix to have non-singular values.
+    destination = tf.minimum(tf.maximum(destination, 1.0), choose_range - 1.0)
+
+    # Construct piece-wise linear function fixing boundary points
+    # specified by zero, choose_range and matrix size and maps
+    # the origin anchor point to the destination.
+    destination_bc = tf.broadcast_to(destination, (matrix_size, batch_size))
+    destination_bc = tf.transpose(destination_bc)
+    choose_range_bc = tf.broadcast_to(choose_range, (matrix_size, batch_size))
+    choose_range_bc = tf.transpose(choose_range_bc)
+
+    # Slopes of piece-wise linear function.
+    slope_0 = origin / destination
+    slope_1 = (choose_range - origin) / (choose_range - destination)
+    slope_2 = 1.0
+
+    # x is a batch of origin matrices.
+    # The origin matrix is the matrix such that
+    # origin[i][j] = Origin coordinate of coordinate i for the warp map.
+    # Denoting the destination of the origin anchor point in the
+    # warp map as "dest," the origin coordinate of point i is given by:
+    # 1) i < dest: slope_0 * i.
+    # 2) dest <= i < choose_range: slope_1 * i - (slope_1 - slope_0) * dest.
+    # 3) i >= choose_range: i.
+    x = tf.broadcast_to(
+        tf.cast(tf.range(matrix_size), dtype=dtype), (batch_size, matrix_size))
+    x = (
+        tf.einsum('b,bi->bi', slope_0, x) + tf.einsum(
+            'b,bi->bi', slope_1 - slope_0, tf.nn.relu(x - destination_bc)) +
+        tf.einsum('b,bi->bi', slope_2 - slope_1,
+                  tf.nn.relu(x - choose_range_bc)))
+    x = tf.broadcast_to(x, (matrix_size, batch_size, matrix_size))
+    x = tf.transpose(x, perm=[1, 2, 0])
+
+    # y is a batch of coordinate matrices.
+    # A coordinate matrix is a matrix such that
+    # coordinate[i][j] = j.
+    y = tf.broadcast_to(
+        tf.cast(tf.range(matrix_size), dtype=dtype),
+        (batch_size, matrix_size, matrix_size))
+    # Warp matrix is obtained by applying hat function element-wise to (x-y).
+    # Denoting the origin point of i under the warp map as orig_i,
+    # and n_i = ceil(orig_i), the warp matrix element warp[i][j] is given by:
+    # 1) j = n_i: 1 - n_i + orig_i.
+    # 2) j = n_i - 1: n_i - orig_i.
+    # 3) Otherwise: 0.
+    # Applying the warp matrix to pixels, i.e.,
+    # warped_pixel[i] = sum_j warp[i][j] * original_pixel[j], one would get
+    # warped_pixel[i] = (n_i - orig_i) * original_pixel[n_i-1]
+    #                   + (1 - n_i + orig_i) * original_pixel[n_i].
+    warp_matrix = x - y
+    warp_matrix = _hat(warp_matrix)
+    if p.fprop_dtype is not None and p.fprop_dtype != dtype:
+      warp_matrix = tf.cast(warp_matrix, p.fprop_dtype)
+
+    return warp_matrix
 
   def _FrequencyMask(self,
                      inputs,
@@ -349,6 +595,54 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     return outputs
 
+  def _TimeWarp(self, inputs, seq_lengths, dtype=tf.float32, domain_id_index=0):
+    """Applies time warping with given degree to inputs.
+
+    Args:
+      inputs: Batch of input features of shape (batch_size, time_length,
+        num_freq, channels).
+      seq_lengths: The actual sequence lengths which mask been sampled of shape
+        (batch_size,).
+      dtype: Data type.
+      domain_id_index: Domain ID index.
+
+    Returns:
+      Inputs with random time warping applied.
+    """
+    p = self.params
+    batch_size, time_length, _, _ = py_utils.GetShape(inputs)
+
+    # Get parameters for warping.
+    time_warp_max_frames = p.time_warp_max_frames[domain_id_index]
+    max_ratio = p.time_warp_max_ratio[domain_id_index]
+    time_warp_bound = p.time_warp_bound[domain_id_index]
+    assert time_warp_bound in ('static', 'dynamic')
+
+    # If maximum warp length is zero, do nothing.
+    if ((time_warp_max_frames == 0 and time_warp_bound == 'static') or
+        max_ratio <= 0.0):
+      return inputs
+    seq_lengths = tf.cast(seq_lengths, tf.int32)
+
+    # Discard upper-bound on time-warp frames when
+    # dynamic time warping is used.
+    if time_warp_bound == 'dynamic':
+      time_warp_max_frames = None
+
+    # Create warping matrix in time direction and apply
+    warp_matrix = self._GetWarpMatrix(
+        batch_size,
+        choose_range=seq_lengths,
+        matrix_size=time_length,
+        max_warp_frames=time_warp_max_frames,
+        dtype=dtype,
+        max_ratio=max_ratio)
+
+    outputs = tf.einsum(
+        'bxyc,bzx->bzyc', inputs, warp_matrix, name='einsum_forwarping')
+
+    return outputs
+
   def UnstackFeatures(self, src_inputs, src_paddings):
     """Unstacks src_input and src_paddings based off stack height."""
     sh = self.params.stack_height
@@ -388,6 +682,8 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       inputs, paddings = self.UnstackFeatures(inputs, paddings)
 
     lengths = tf.reduce_sum(1 - paddings, 1)
+    inputs = self._TimeWarp(
+        inputs, lengths, dtype=dtype, domain_id_index=domain_id_index)
     inputs = self._TimeMask(
         inputs,
         lengths,

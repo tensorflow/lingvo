@@ -338,6 +338,118 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  def testSpectrumAugmenterWarpMatrixConstructor(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (4, 10))
+      origin = tf.cast([2, 4, 4, 5], dtype=tf.float32)
+      destination = tf.cast([3, 2, 6, 8], dtype=tf.float32)
+      choose_range = tf.cast([4, 8, 8, 10], dtype=tf.float32)
+      p = spectrum_augmenter.SpectrumAugmenter.Params()
+      p.name = 'specAug_layers'
+      specaug_layer = p.Instantiate()
+      # pyformat: disable
+      # pylint: disable=bad-whitespace,bad-continuation
+      expected_output = np.array(
+          [[0.0000000, 0.6666667, 1.3333333, 2.0000000, 4.0000000,
+            5.0000000, 6.0000000, 7.0000000, 8.0000000, 9.0000000],
+           [0.0000000, 2.0000000, 4.0000000, 4.6666667, 5.3333333,
+            6.0000000, 6.6666667, 7.3333333, 8.0000000, 9.0000000],
+           [0.0000000, 0.6666667, 1.3333333, 2.0000000, 2.6666667,
+            3.3333333, 4.0000000, 6.0000000, 8.0000000, 9.0000000],
+           [0.0000000, 0.6250000, 1.2500000, 1.8750000, 2.5000000,
+            3.1250000, 3.7500000, 4.3750000, 5.0000000, 7.5000000]])
+      # pylint: enable=bad-whitespace,bad-continuation
+      # pyformat: enable
+      warp_matrix = specaug_layer._ConstructWarpMatrix(
+          batch_size=4,
+          matrix_size=10,
+          origin=origin,
+          destination=destination,
+          choose_range=choose_range,
+          dtype=tf.float32)
+      outputs = tf.einsum('bij,bj->bi', warp_matrix, inputs)
+      actual_layer_output = sess.run(outputs)
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
+  def testSpectrumAugmenterWithTimeWarping(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      tf.set_random_seed(1234)
+      inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (3, 10))
+      inputs = tf.expand_dims(tf.expand_dims(inputs, -1), -1)
+      paddings = []
+      for i in range(3):
+        paddings.append(
+            tf.concat([tf.zeros([1, i + 7]),
+                       tf.ones([1, 3 - i])], axis=1))
+      paddings = tf.concat(paddings, axis=0)
+      p = spectrum_augmenter.SpectrumAugmenter.Params()
+      p.name = 'specAug_layers'
+      p.freq_mask_max_bins = 0
+      p.time_mask_max_frames = 0
+      p.time_warp_max_frames = 8
+      p.time_warp_max_ratio = 1.0
+      p.time_warp_bound = 'static'
+      p.random_seed = 34567
+      specaug_layer = p.Instantiate()
+      # pyformat: disable
+      # pylint: disable=bad-whitespace,bad-continuation
+      expected_output = np.array(
+          [[[[0.0000000]], [[0.6666667]], [[1.3333334]], [[2.0000000]],
+            [[2.6666667]], [[3.3333335]], [[4.0000000]], [[7.0000000]],
+            [[8.0000000]], [[9.0000000]]],
+           [[[0.0000000]], [[3.0000000]], [[6.0000000]], [[6.3333334]],
+            [[6.6666665]], [[7.0000000]], [[7.3333334]], [[7.6666667]],
+            [[8.0000000]], [[9.0000000]]],
+           [[[0.0000000]], [[0.5000000]], [[1.0000000]], [[1.5000000]],
+            [[2.0000000]], [[3.4000000]], [[4.8000000]], [[6.2000000]],
+            [[7.6000000]], [[9.0000000]]]])
+      # pylint: enable=bad-whitespace,bad-continuation
+      # pyformat: enable
+      h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
+      actual_layer_output = sess.run(h)
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
+  def testSpectrumAugmenterWithDynamicTimeWarping(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      tf.set_random_seed(1234)
+      inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (3, 10))
+      inputs = tf.expand_dims(tf.expand_dims(inputs, -1), -1)
+      paddings = []
+      for i in range(3):
+        paddings.append(
+            tf.concat([tf.zeros([1, 2 * i + 5]),
+                       tf.ones([1, 5 - 2 * i])],
+                      axis=1))
+      paddings = tf.concat(paddings, axis=0)
+      p = spectrum_augmenter.SpectrumAugmenter.Params()
+      p.name = 'specAug_layers'
+      p.freq_mask_max_bins = 0
+      p.time_mask_max_frames = 0
+      p.time_warp_max_ratio = 0.5
+      p.time_warp_bound = 'dynamic'
+      p.random_seed = 34567
+      specaug_layer = p.Instantiate()
+      # pyformat: disable
+      # pylint: disable=bad-whitespace,bad-continuation
+      expected_output = np.array(
+          [[[[0.0000000]], [[1.0000000]], [[2.0000000]], [[3.0000000]],
+            [[4.0000000]], [[5.0000000]], [[6.0000000]], [[7.0000000]],
+            [[8.0000000]], [[9.0000000]]],
+           [[[0.0000000]], [[0.8333333]], [[1.6666666]], [[2.5000000]],
+            [[3.3333333]], [[4.1666665]], [[5.0000000]], [[7.0000000]],
+            [[8.0000000]], [[9.0000000]]],
+           [[[0.0000000]], [[2.0000000]], [[2.8750000]], [[3.7500000]],
+            [[4.6250000]], [[5.5000000]], [[6.3750000]], [[7.2500000]],
+            [[8.1250000]], [[9.0000000]]]])
+      # pylint: enable=bad-whitespace,bad-continuation
+      # pyformat: enable
+      h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
+      actual_layer_output = sess.run(h)
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
   def testSpectrumAugmenterUnstacking(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       tf.set_random_seed(1234)
