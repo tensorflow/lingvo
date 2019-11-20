@@ -1164,6 +1164,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         'layers:'
         'uniform: Use uniform initialization. '
         'default: Use use the default Xavier initialization.')
+    p.Define(
+        'attention_head_prob_index', -1, 'If > 0, instead of averaging '
+        'the probabilities of all attention heads when returning the '
+        'attention probability, instead return the selected index prob.')
 
     # Often the attention context output needs to be concated
     # with tensors from another layer. This allows them to share
@@ -1280,6 +1284,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       if not att_p.name:
         att_p.name = 'inner_att'
       self.CreateChild('atten', att_p)
+      if p.attention_head_prob_index >= 0:
+        assert p.attention_head_prob_index < p.num_attention_heads
 
   @py_utils.NameScopeDecorator('MultiHeadedAttention/PackSource')
   def PackSource(self,
@@ -1477,7 +1483,12 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         source_length, decoder_batch_size * self.params.num_attention_heads)
     # [batch * num_heads, length] => [batch, num_heads * length].
     zero_att_state = _RecursiveReshape(zero_att_state, [decoder_batch_size, -1])
-    return zero_att_state
+    nested_map_zero_att_state = py_utils.NestedMap(inner=zero_att_state)
+    if self.params.attention_head_prob_index >= 0:
+      selected_prob_head = tf.zeros([decoder_batch_size, source_length])
+      nested_map_zero_att_state[
+          'selected_attention_head_probs'] = selected_prob_head
+    return nested_map_zero_att_state
 
   @py_utils.NameScopeDecorator(
       'MultiHeadedAttention/ComputeContextVectorWithSource')
@@ -1497,8 +1508,11 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       packed_src: A `.NestedMap` object returned by PackSource or
         InitForSourcePacked.
       query_vec: a tensor of shape [target_batch, query_dim].
-      attention_state: previous attention state. It is not used in
-        AdditiveAttention, and is simply passed through.
+      attention_state: A NestedMap. 'inner' contains the inner attention
+        state. It is not used in AdditiveAttention, and is simply passed
+        through. Optionally, if attention_head_prob_index >= 0, then
+        'selected_attention_head_probs' contains the selected attention
+        probability head.
       per_step_source_padding: Source sequence padding to apply at this step. If
         not None, it should be of shape [target_batch_size, source_length].
       query_segment_id: a tensor of shape [target_batch].
@@ -1518,8 +1532,9 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
 
       - The attention context vector: [batch_size, context_dim]
       - The attention probability vector: [batch_size, time]
-      - The new attention mechanism state: possibly nested tuple of tensors with
-        dimensions [target_batch, ...]
+      - The new attention mechanism state: A nested tuple of tensors with
+        dimensions [target_batch, ...]. See input 'attention_state' for
+        description of items in the nested tuple.
     """
     p = self.params
     fns = self.fns
@@ -1561,8 +1576,15 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         tf.tile(per_step_source_padding, [1, num_heads]), [-1, source_seq_len])
     attention_state = _RecursiveReshape(attention_state,
                                         [batch_size * num_heads, -1])
-    ctx_vec, prob, att_state = self.atten.ComputeContextVectorWithSource(
-        theta.atten, packed_src, query_vec_projected, attention_state,
+    if isinstance(attention_state, py_utils.NestedMap):
+      if 'emit_probs' in attention_state:
+        inner_state = attention_state
+      elif 'inner' in attention_state:
+        inner_state = attention_state.inner
+    else:
+      inner_state = attention_state
+    ctx_vec, prob, new_inner_state = self.atten.ComputeContextVectorWithSource(
+        theta.atten, packed_src, query_vec_projected, inner_state,
         per_step_source_padding, query_segment_id)
     ctx_vec = tf.reshape(ctx_vec, [batch_size, -1])
     if p.enable_ctx_post_proj:
@@ -1604,8 +1626,19 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     # TODO(laurenzo): Use a better named range function (we want to represent
     # 0..1 probs).
     prob = self.QRSoftmax(tf.reduce_mean(multi_headed_atten_prob, 1))
+    if isinstance(attention_state, py_utils.NestedMap):
+      att_state = attention_state
+      if 'emit_probs' in attention_state:
+        att_state = new_inner_state
+      elif 'inner' in attention_state:
+        att_state.inner = new_inner_state
+    else:
+      att_state = new_inner_state
+    if p.attention_head_prob_index >= 0:
+      selected_prob_head = multi_headed_atten_prob[:, p.
+                                                   attention_head_prob_index, :]
+      att_state.selected_attention_head_probs = selected_prob_head
     att_state = _RecursiveReshape(att_state, [batch_size, -1])
-
     return ctx_vec, prob, att_state
 
   @py_utils.NameScopeDecorator(

@@ -961,6 +961,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       # [batch * 2 heads, time]
       atten_init_state = self._attentionStateWithRandomEmitProbabilities(
           atten, 12, 6)
+      print('atten_init_state', atten_init_state)
       tf.global_variables_initializer().run()
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec, atten_init_state)
@@ -1161,6 +1162,49 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
         padding_i = source_padding_p[s_index]
         # Check to make sure prob exists only on valid timesteps.
         self.assertEqual(0.0, np.sum(padding_i * prob_i_out))
+
+  def testMultiHeadedAttentionAttStateSingleProb(self):
+    # source_batch:3, target_batch:6. Test n = 2 case.
+    with self.session(use_gpu=True) as sess:
+      (source_vecs, source_contexts, source_padding, _, query_vec, _,
+       _) = self._MultiHeadedAttentionInputs()
+      iap = attention.DotProductAttention.Params()
+      iap.name = 'dot_atten'
+      params = attention.MultiHeadedAttention.Params().Set(
+          name='multihead_atten',
+          source_dim=4,
+          query_dim=4,
+          hidden_dim=4,
+          inner_atten_params=iap,
+          num_attention_heads=2,
+          use_source_vec_as_attention_value=False,
+          attention_head_prob_index=1)
+      atten = params.Instantiate()
+      atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
+                                source_padding)
+      atten_state = atten.ZeroAttentionState(2, 6)
+      print('atten_state:', atten_state)
+
+      atten_vec, atten_prob, atten_state = atten.ComputeContextVector(
+          atten.theta, query_vec, atten_state)
+      tf.global_variables_initializer().run()
+      atten_vec_out, _, atten_state = sess.run(
+          [atten_vec, atten_prob, atten_state])
+      print('atten_vec_out', np.sum(atten_vec_out, axis=1))
+      print('atten_state', atten_state)
+      self.assertAllClose([
+          2.84679317, 2.36924601, 3.54831171, 2.86487937, 2.3537426, 3.54308939
+      ], np.sum(atten_vec_out, axis=1))
+      expected_prob_atten_state = ([
+          [0.24530524, 0.24182455, 0, 0, 0.2497975, 0.2630728],
+          [0, 0.24692935, 0.23176268, 0.26929834, 0, 0.2520097],
+          [0.28280658, 0.23664463, 0, 0.18057014, 0, 0.29997864],
+          [0.21294391, 0.2421909, 0, 0, 0.2702513, 0.27461392],
+          [0, 0.25139052, 0.24466391, 0.25138932, 0, 0.25255626],
+          [0.25900277, 0.2514635, 0, 0.23059677, 0, 0.25893703]
+      ])
+      self.assertAllClose(expected_prob_atten_state,
+                          atten_state.selected_attention_head_probs)
 
   def testMultiHeadedAttentionAdditive(self):
     self._testMultiHeadedAttentionAdditiveHelper(
