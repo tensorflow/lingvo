@@ -171,12 +171,33 @@
 <span class="n">_SPECAUGMENT_ARGS</span> <span class="o">=</span> <span class="p">(</span>
     <span class="s1">&#39;freq_mask_max_bins&#39;</span><span class="p">,</span>
     <span class="s1">&#39;freq_mask_count&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;use_dynamic_time_mask_max_frames&#39;</span><span class="p">,</span>
     <span class="s1">&#39;time_mask_max_frames&#39;</span><span class="p">,</span>
     <span class="s1">&#39;time_mask_count&#39;</span><span class="p">,</span>
     <span class="s1">&#39;time_mask_max_ratio&#39;</span><span class="p">,</span>
     <span class="s1">&#39;time_masks_per_frame&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;use_dynamic_time_mask_max_frames&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;time_warp_bound&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;time_warp_max_frames&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;time_warp_max_ratio&#39;</span><span class="p">,</span>
 <span class="p">)</span>
+
+
+<div class="viewcode-block" id="_hat"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter._hat">[docs]</a><span class="k">def</span> <span class="nf">_hat</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Hat function.</span>
+
+<span class="sd">  The hat function is a piecewise linear function defined such that</span>
+<span class="sd">    1) x &lt; -1: _hat(x) = 0</span>
+<span class="sd">    2) -1 &lt;= x &lt; 0: _hat(x) = x + 1</span>
+<span class="sd">    3) 0 &lt;= x &lt; 1: _hat(x) = -x + 1</span>
+<span class="sd">    4) x &gt; 1 : _hat(x) = 0</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: A tensor.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Tensor obtained by element-wise application of the hat function.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="SpectrumAugmenter"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter">[docs]</a><span class="k">class</span> <span class="nc">SpectrumAugmenter</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -192,6 +213,12 @@
              <span class="s1">&#39;Maximum number of frequency bins of frequency masking.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;freq_mask_count&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
              <span class="s1">&#39;Number of times we apply masking on the frequency axis.&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO(danielspark): Deprecate &#39;use_dynamic_time_mask_max_frames&#39; and</span>
+    <span class="c1"># introduce enum parameter to replace it.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_dynamic_time_mask_max_frames&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If true, time_mask_max_frames is determined by &#39;</span>
+        <span class="s1">&#39;time_mask_max_ratio * utterance_length.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;time_mask_max_frames&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;Maximum number of frames of time masking. &#39;</span>
         <span class="s1">&#39;Overridden when use_dynamic_time_mask_max_frames = True.&#39;</span><span class="p">)</span>
@@ -203,13 +230,20 @@
              <span class="s1">&#39;Maximum portion allowed for time masking.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;time_masks_per_frame&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
-        <span class="s1">&#39;Ratio of number of time masks to be applied against &#39;</span>
-        <span class="s1">&#39;the number of frames. If &gt; 0, multiplicity of the time mask &#39;</span>
-        <span class="s1">&#39;is determined by time_masks_per_frame * utterance_length.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;Ratio of number of time masks to be applied against the number &#39;</span>
+        <span class="s1">&#39;of frames. If &gt; 0, multiplicity of the time mask is determined by &#39;</span>
+        <span class="s1">&#39;min(time_masks_per_frame * utterance_length, time_mask_count).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;use_dynamic_time_mask_max_frames&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;If true, time_mask_max_frames is determined by &#39;</span>
-        <span class="s1">&#39;time_mask_max_ratio * utterance_length.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;time_warp_bound&#39;</span><span class="p">,</span> <span class="s1">&#39;static&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;To be set to either `dynamic` or `static`. &#39;</span>
+        <span class="s1">&#39;If `dynamic`, time warp bound is determined by &#39;</span>
+        <span class="s1">&#39;time_warp_max_ratio * utterance_length. &#39;</span>
+        <span class="s1">&#39;If `static`, time warp bound is determined by &#39;</span>
+        <span class="s1">&#39;min(time_warp_max_frames, time_warp_max_ratio * utterance_length).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;time_warp_max_frames&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+             <span class="s1">&#39;Maximum number of frames for shifting in time warping.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;time_warp_max_ratio&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+             <span class="s1">&#39;Maximum portion of frames for shifting in time warping.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_noise&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to noisify the time masked region.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gaussian_noise&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Use Gaussian distribution for noise.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;unstack&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -237,9 +271,9 @@
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_domains</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_domains</span><span class="p">)</span>
-    <span class="c1"># TODO(ngyuzh): adding time warping.</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">time_warp_max_frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
 
 <div class="viewcode-block" id="SpectrumAugmenter._GetMask"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask">[docs]</a>  <span class="k">def</span> <span class="nf">_GetMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">batch_size</span><span class="p">,</span>
@@ -363,6 +397,218 @@
       <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">mask</span></div>
+
+<div class="viewcode-block" id="SpectrumAugmenter._GetWarpMatrix"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetWarpMatrix">[docs]</a>  <span class="k">def</span> <span class="nf">_GetWarpMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                     <span class="n">batch_size</span><span class="p">,</span>
+                     <span class="n">choose_range</span><span class="p">,</span>
+                     <span class="n">matrix_size</span><span class="p">,</span>
+                     <span class="n">max_warp_frames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                     <span class="n">max_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns warp matrices starting from random positions.</span>
+
+<span class="sd">    In this function when max_warp_frames != None:</span>
+<span class="sd">      1) Sample random warp displacements from the interval</span>
+<span class="sd">         [-max_warp_frames, max_warp_frames) to yield shift tensor</span>
+<span class="sd">         with shape (batch_size,).</span>
+<span class="sd">      2) Truncate lengths to a maximum magnitude of (choose_range * max_ratio),</span>
+<span class="sd">         so that each shift is fully contained within the</span>
+<span class="sd">         corresponding sequence.</span>
+<span class="sd">      3) Random sample origin points of shape (batch_size, multiplicity)</span>
+<span class="sd">         with in [shift, choose_range - shift).</span>
+<span class="sd">      4) Return a batch of 1-D linear maps that fix the boundary points and</span>
+<span class="sd">         shift the origin point by the shift.</span>
+
+<span class="sd">    When max_warp_frames == None:</span>
+<span class="sd">      1) Sample random warp displacements with magnitudes less than</span>
+<span class="sd">         (choose_range * max_ratio) to yield shift tensor with</span>
+<span class="sd">         shape (batch_size,).</span>
+<span class="sd">      2) Proceed through steps 3), 4).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      batch_size: Batch size. Integer number.</span>
+<span class="sd">      choose_range: Range within which the warp reference points must lie.</span>
+<span class="sd">        Tensor of shape (batch_size,).</span>
+<span class="sd">      matrix_size: Dimension of vector space warp matrix is applied to. Integer</span>
+<span class="sd">        number.</span>
+<span class="sd">      max_warp_frames: Upper-bound on the warp distance. Integer or None.</span>
+<span class="sd">      dtype: Data type.</span>
+<span class="sd">      max_ratio: Maximum ratio between the shift distance and choose_range.</span>
+<span class="sd">        Float number.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      warp_matrix: An array of fixed size warp matrices with shape</span>
+<span class="sd">      (batch_size, matrix_size, matrix_size).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Non-empty random seed values are only used for testing</span>
+    <span class="c1"># seed_1 and seed_2 are set separately to avoid correlation of</span>
+    <span class="c1"># warp magnitude and origin position.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">:</span>
+      <span class="n">seed_1</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">-</span> <span class="mi">1</span>
+      <span class="n">seed_2</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">seed_1</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
+      <span class="n">seed_2</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
+
+    <span class="n">choose_range_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">choose_range</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">length_upper_bound</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">max_ratio</span> <span class="o">*</span> <span class="n">choose_range_dtype</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># Set shift length.</span>
+    <span class="k">if</span> <span class="n">max_warp_frames</span> <span class="ow">and</span> <span class="n">max_warp_frames</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">shift</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,),</span>
+                                <span class="n">minval</span><span class="o">=-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">max_warp_frames</span><span class="p">,</span>
+                                <span class="n">maxval</span><span class="o">=</span><span class="n">max_warp_frames</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                                <span class="n">seed</span><span class="o">=</span><span class="n">seed_1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">random_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,),</span>
+                                       <span class="n">minval</span><span class="o">=-</span><span class="mf">1.0</span><span class="p">,</span>
+                                       <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                                       <span class="n">seed</span><span class="o">=</span><span class="n">seed_1</span><span class="p">,</span>
+                                       <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">shift</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">random_ratio</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">length_upper_bound</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+                      <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># Make sure the sampled length was smaller than max_ratio * length_bound.</span>
+    <span class="c1"># Note that sampling in this way is biased.</span>
+    <span class="c1"># (Shorter sequence may over-masked.)</span>
+    <span class="n">final_shift</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="n">length_upper_bound</span><span class="p">,</span>
+                             <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">shift</span><span class="p">,</span> <span class="n">length_upper_bound</span><span class="p">))</span>
+    <span class="c1"># Choose origin anchor point.</span>
+    <span class="n">mid_range</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">choose_range</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">mid_range</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">choose_range</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">random_origin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,),</span> <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed_2</span><span class="p">)</span>
+    <span class="n">origin_with_in_valid_range</span> <span class="o">=</span> <span class="n">random_origin</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">mid_range</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">origin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">origin_with_in_valid_range</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="c1"># Set destination point of the origin anchor point under the warp map.</span>
+    <span class="n">destination</span> <span class="o">=</span> <span class="n">origin</span> <span class="o">+</span> <span class="n">final_shift</span>
+    <span class="c1"># Cast origin and destination.</span>
+    <span class="n">origin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">destination</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">destination</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConstructWarpMatrix</span><span class="p">(</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">matrix_size</span><span class="o">=</span><span class="n">matrix_size</span><span class="p">,</span>
+        <span class="n">origin</span><span class="o">=</span><span class="n">origin</span><span class="p">,</span>
+        <span class="n">destination</span><span class="o">=</span><span class="n">destination</span><span class="p">,</span>
+        <span class="n">choose_range</span><span class="o">=</span><span class="n">choose_range_dtype</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SpectrumAugmenter._ConstructWarpMatrix"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._ConstructWarpMatrix">[docs]</a>  <span class="k">def</span> <span class="nf">_ConstructWarpMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span>
+                           <span class="n">choose_range</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns warp matrices according to origin, destination and choose_range.</span>
+
+<span class="sd">    This function constructs a batch of warp matrices which maps the batch</span>
+<span class="sd">    of origin points to the batch of destination points with fixed boundary</span>
+<span class="sd">    coordinates at 0 and choose_range.</span>
+
+<span class="sd">    The warping function, defined by the origin anchor point `origin`,</span>
+<span class="sd">    the destination of the origin anchor point `destination` and the</span>
+<span class="sd">    length of the domain in the warping axis `choose_range` is a piecewise</span>
+<span class="sd">    linear map that fixes the points 0 and `choose_range` and maps</span>
+<span class="sd">    `origin` to `destination`.</span>
+
+<span class="sd">    For the warping matrix to be non-singular, destination must lie in the</span>
+<span class="sd">    range 1&lt;= destination &lt;= choose_range - 1, so a destination</span>
+<span class="sd">    out of this range is adjusted to be in this range before the warping</span>
+<span class="sd">    matrix is constructed.</span>
+
+<span class="sd">    The warping map can be explicitly written by first defining the slopes:</span>
+<span class="sd">      1) slope_0 = origin / destination.</span>
+<span class="sd">      2) slope_1 = (choose_range - origin) / (choose_range - destination).</span>
+<span class="sd">      3) slope_2 = 1.0.</span>
+
+<span class="sd">    Then the origin point orig_i of the mapped coordinate i is given by:</span>
+<span class="sd">      1) i &lt; destination: orig_i = slope_0 * i.</span>
+<span class="sd">      2) destination &lt;= i &lt; choose_range:</span>
+<span class="sd">         orig_i = slope_1 * i - (slope_1 - slope_0) * destination.</span>
+<span class="sd">      3) i &gt;= choose_range: orig_i = i.</span>
+
+<span class="sd">    Denoting n_i = ceil(orig_i), the warp matrix element warp[i][j] is given by:</span>
+<span class="sd">      1) j = n_i: 1 - n_i + orig_i.</span>
+<span class="sd">      2) j = n_i - 1: n_i - orig_i.</span>
+<span class="sd">      3) Otherwise: 0.</span>
+
+<span class="sd">    Applying the warp matrix to an array of pixels, i.e.,</span>
+<span class="sd">    warped_pixel[i] = sum_j warp[i][j] * pixel[j], one would get</span>
+<span class="sd">    warped_pixel[i] = (n_i-orig_i) pixel[n_i-1] + (1-n_i+orig_i) pixel[n_i].</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      batch_size: Batch size. Integer number.</span>
+<span class="sd">      matrix_size: Dimension of the vector space the warp matrix is applied to.</span>
+<span class="sd">        Integer number.</span>
+<span class="sd">      origin: Origin anchor point for warping. Tensor of shape (batch_size,) and</span>
+<span class="sd">        data type dtype.</span>
+<span class="sd">      destination: Destination of the origin anchor point upon warping. Tensor</span>
+<span class="sd">        of shape (batch_size,) and data type dtype.</span>
+<span class="sd">      choose_range: Range within which the warp reference points must lie.</span>
+<span class="sd">        Tensor of shape (batch_size,) data type dtype.</span>
+<span class="sd">      dtype: Data type of origin, destination, choose_range and the output warp</span>
+<span class="sd">        matrix.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      warp_matrix: An array of fixed size warp matrices with shape</span>
+<span class="sd">      (batch_size, matrix_size, matrix_size).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># Entries of destination must be in the range</span>
+    <span class="c1"># 1 &lt;= destination &lt;= choose_range - 1</span>
+    <span class="c1"># for warp matrix to have non-singular values.</span>
+    <span class="n">destination</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">destination</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">choose_range</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
+
+    <span class="c1"># Construct piece-wise linear function fixing boundary points</span>
+    <span class="c1"># specified by zero, choose_range and matrix size and maps</span>
+    <span class="c1"># the origin anchor point to the destination.</span>
+    <span class="n">destination_bc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">destination</span><span class="p">,</span> <span class="p">(</span><span class="n">matrix_size</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">))</span>
+    <span class="n">destination_bc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">destination_bc</span><span class="p">)</span>
+    <span class="n">choose_range_bc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">choose_range</span><span class="p">,</span> <span class="p">(</span><span class="n">matrix_size</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">))</span>
+    <span class="n">choose_range_bc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">choose_range_bc</span><span class="p">)</span>
+
+    <span class="c1"># Slopes of piece-wise linear function.</span>
+    <span class="n">slope_0</span> <span class="o">=</span> <span class="n">origin</span> <span class="o">/</span> <span class="n">destination</span>
+    <span class="n">slope_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">choose_range</span> <span class="o">-</span> <span class="n">origin</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">choose_range</span> <span class="o">-</span> <span class="n">destination</span><span class="p">)</span>
+    <span class="n">slope_2</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+    <span class="c1"># x is a batch of origin matrices.</span>
+    <span class="c1"># The origin matrix is the matrix such that</span>
+    <span class="c1"># origin[i][j] = Origin coordinate of coordinate i for the warp map.</span>
+    <span class="c1"># Denoting the destination of the origin anchor point in the</span>
+    <span class="c1"># warp map as &quot;dest,&quot; the origin coordinate of point i is given by:</span>
+    <span class="c1"># 1) i &lt; dest: slope_0 * i.</span>
+    <span class="c1"># 2) dest &lt;= i &lt; choose_range: slope_1 * i - (slope_1 - slope_0) * dest.</span>
+    <span class="c1"># 3) i &gt;= choose_range: i.</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">matrix_size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">))</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;b,bi-&gt;bi&#39;</span><span class="p">,</span> <span class="n">slope_0</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+            <span class="s1">&#39;b,bi-&gt;bi&#39;</span><span class="p">,</span> <span class="n">slope_1</span> <span class="o">-</span> <span class="n">slope_0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">destination_bc</span><span class="p">))</span> <span class="o">+</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;b,bi-&gt;bi&#39;</span><span class="p">,</span> <span class="n">slope_2</span> <span class="o">-</span> <span class="n">slope_1</span><span class="p">,</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">choose_range_bc</span><span class="p">)))</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">matrix_size</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">))</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># y is a batch of coordinate matrices.</span>
+    <span class="c1"># A coordinate matrix is a matrix such that</span>
+    <span class="c1"># coordinate[i][j] = j.</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">matrix_size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">,</span> <span class="n">matrix_size</span><span class="p">))</span>
+    <span class="c1"># Warp matrix is obtained by applying hat function element-wise to (x-y).</span>
+    <span class="c1"># Denoting the origin point of i under the warp map as orig_i,</span>
+    <span class="c1"># and n_i = ceil(orig_i), the warp matrix element warp[i][j] is given by:</span>
+    <span class="c1"># 1) j = n_i: 1 - n_i + orig_i.</span>
+    <span class="c1"># 2) j = n_i - 1: n_i - orig_i.</span>
+    <span class="c1"># 3) Otherwise: 0.</span>
+    <span class="c1"># Applying the warp matrix to pixels, i.e.,</span>
+    <span class="c1"># warped_pixel[i] = sum_j warp[i][j] * original_pixel[j], one would get</span>
+    <span class="c1"># warped_pixel[i] = (n_i - orig_i) * original_pixel[n_i-1]</span>
+    <span class="c1">#                   + (1 - n_i + orig_i) * original_pixel[n_i].</span>
+    <span class="n">warp_matrix</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">y</span>
+    <span class="n">warp_matrix</span> <span class="o">=</span> <span class="n">_hat</span><span class="p">(</span><span class="n">warp_matrix</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">!=</span> <span class="n">dtype</span><span class="p">:</span>
+      <span class="n">warp_matrix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">warp_matrix</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">warp_matrix</span></div>
 
 <div class="viewcode-block" id="SpectrumAugmenter._FrequencyMask"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask">[docs]</a>  <span class="k">def</span> <span class="nf">_FrequencyMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                      <span class="n">inputs</span><span class="p">,</span>
@@ -494,6 +740,54 @@
 
     <span class="k">return</span> <span class="n">outputs</span></div>
 
+<div class="viewcode-block" id="SpectrumAugmenter._TimeWarp"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeWarp">[docs]</a>  <span class="k">def</span> <span class="nf">_TimeWarp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">seq_lengths</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">domain_id_index</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies time warping with given degree to inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      inputs: Batch of input features of shape (batch_size, time_length,</span>
+<span class="sd">        num_freq, channels).</span>
+<span class="sd">      seq_lengths: The actual sequence lengths which mask been sampled of shape</span>
+<span class="sd">        (batch_size,).</span>
+<span class="sd">      dtype: Data type.</span>
+<span class="sd">      domain_id_index: Domain ID index.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Inputs with random time warping applied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">time_length</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="c1"># Get parameters for warping.</span>
+    <span class="n">time_warp_max_frames</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">time_warp_max_frames</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+    <span class="n">max_ratio</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">time_warp_max_ratio</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+    <span class="n">time_warp_bound</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">time_warp_bound</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">time_warp_bound</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;static&#39;</span><span class="p">,</span> <span class="s1">&#39;dynamic&#39;</span><span class="p">)</span>
+
+    <span class="c1"># If maximum warp length is zero, do nothing.</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">time_warp_max_frames</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">time_warp_bound</span> <span class="o">==</span> <span class="s1">&#39;static&#39;</span><span class="p">)</span> <span class="ow">or</span>
+        <span class="n">max_ratio</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">inputs</span>
+    <span class="n">seq_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">seq_lengths</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># Discard upper-bound on time-warp frames when</span>
+    <span class="c1"># dynamic time warping is used.</span>
+    <span class="k">if</span> <span class="n">time_warp_bound</span> <span class="o">==</span> <span class="s1">&#39;dynamic&#39;</span><span class="p">:</span>
+      <span class="n">time_warp_max_frames</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># Create warping matrix in time direction and apply</span>
+    <span class="n">warp_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetWarpMatrix</span><span class="p">(</span>
+        <span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">choose_range</span><span class="o">=</span><span class="n">seq_lengths</span><span class="p">,</span>
+        <span class="n">matrix_size</span><span class="o">=</span><span class="n">time_length</span><span class="p">,</span>
+        <span class="n">max_warp_frames</span><span class="o">=</span><span class="n">time_warp_max_frames</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">max_ratio</span><span class="o">=</span><span class="n">max_ratio</span><span class="p">)</span>
+
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+        <span class="s1">&#39;bxyc,bzx-&gt;bzyc&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">warp_matrix</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;einsum_forwarping&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">outputs</span></div>
+
 <div class="viewcode-block" id="SpectrumAugmenter.UnstackFeatures"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.UnstackFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">UnstackFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_inputs</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Unstacks src_input and src_paddings based off stack height.&quot;&quot;&quot;</span>
     <span class="n">sh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">stack_height</span>
@@ -533,6 +827,8 @@
       <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UnstackFeatures</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
 
     <span class="n">lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TimeWarp</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">domain_id_index</span><span class="o">=</span><span class="n">domain_id_index</span><span class="p">)</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TimeMask</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span>
         <span class="n">lengths</span><span class="p">,</span>

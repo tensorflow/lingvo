@@ -166,6 +166,29 @@
   <div class="section" id="module-lingvo.core.spectrum_augmenter">
 <span id="lingvo-core-spectrum-augmenter-module"></span><h1>lingvo.core.spectrum_augmenter module<a class="headerlink" href="#module-lingvo.core.spectrum_augmenter" title="Permalink to this headline">¶</a></h1>
 <p>Lingvo layers that used for spectrum augmentation.</p>
+<dl class="function">
+<dt id="lingvo.core.spectrum_augmenter._hat">
+<code class="sig-prename descclassname">lingvo.core.spectrum_augmenter.</code><code class="sig-name descname">_hat</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#_hat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter._hat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hat function.</p>
+<dl class="simple">
+<dt>The hat function is a piecewise linear function defined such that</dt><dd><ol class="arabic simple">
+<li><p>x &lt; -1: _hat(x) = 0</p></li>
+<li><p>-1 &lt;= x &lt; 0: _hat(x) = x + 1</p></li>
+<li><p>0 &lt;= x &lt; 1: _hat(x) = -x + 1</p></li>
+<li><p>x &gt; 1 : _hat(x) = 0</p></li>
+</ol>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> – A tensor.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Tensor obtained by element-wise application of the hat function.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="class">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.spectrum_augmenter.</code><code class="sig-name descname">SpectrumAugmenter</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter" title="Permalink to this definition">¶</a></dt>
@@ -235,6 +258,122 @@ number.</p></li>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetWarpMatrix">
+<code class="sig-name descname">_GetWarpMatrix</code><span class="sig-paren">(</span><em class="sig-param">batch_size</em>, <em class="sig-param">choose_range</em>, <em class="sig-param">matrix_size</em>, <em class="sig-param">max_warp_frames=None</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">max_ratio=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._GetWarpMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetWarpMatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns warp matrices starting from random positions.</p>
+<dl class="simple">
+<dt>In this function when max_warp_frames != None:</dt><dd><ol class="arabic simple">
+<li><p>Sample random warp displacements from the interval
+[-max_warp_frames, max_warp_frames) to yield shift tensor
+with shape (batch_size,).</p></li>
+<li><p>Truncate lengths to a maximum magnitude of (choose_range * max_ratio),
+so that each shift is fully contained within the
+corresponding sequence.</p></li>
+<li><p>Random sample origin points of shape (batch_size, multiplicity)
+with in [shift, choose_range - shift).</p></li>
+<li><p>Return a batch of 1-D linear maps that fix the boundary points and
+shift the origin point by the shift.</p></li>
+</ol>
+</dd>
+<dt>When max_warp_frames == None:</dt><dd><ol class="arabic simple">
+<li><p>Sample random warp displacements with magnitudes less than
+(choose_range * max_ratio) to yield shift tensor with
+shape (batch_size,).</p></li>
+<li><p>Proceed through steps 3), 4).</p></li>
+</ol>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch_size</strong> – Batch size. Integer number.</p></li>
+<li><p><strong>choose_range</strong> – Range within which the warp reference points must lie.
+Tensor of shape (batch_size,).</p></li>
+<li><p><strong>matrix_size</strong> – Dimension of vector space warp matrix is applied to. Integer
+number.</p></li>
+<li><p><strong>max_warp_frames</strong> – Upper-bound on the warp distance. Integer or None.</p></li>
+<li><p><strong>dtype</strong> – Data type.</p></li>
+<li><p><strong>max_ratio</strong> – Maximum ratio between the shift distance and choose_range.
+Float number.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An array of fixed size warp matrices with shape
+(batch_size, matrix_size, matrix_size).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>warp_matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._ConstructWarpMatrix">
+<code class="sig-name descname">_ConstructWarpMatrix</code><span class="sig-paren">(</span><em class="sig-param">batch_size</em>, <em class="sig-param">matrix_size</em>, <em class="sig-param">origin</em>, <em class="sig-param">destination</em>, <em class="sig-param">choose_range</em>, <em class="sig-param">dtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._ConstructWarpMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._ConstructWarpMatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns warp matrices according to origin, destination and choose_range.</p>
+<p>This function constructs a batch of warp matrices which maps the batch
+of origin points to the batch of destination points with fixed boundary
+coordinates at 0 and choose_range.</p>
+<p>The warping function, defined by the origin anchor point <code class="xref py py-obj docutils literal notranslate"><span class="pre">origin</span></code>,
+the destination of the origin anchor point <code class="xref py py-obj docutils literal notranslate"><span class="pre">destination</span></code> and the
+length of the domain in the warping axis <code class="xref py py-obj docutils literal notranslate"><span class="pre">choose_range</span></code> is a piecewise
+linear map that fixes the points 0 and <code class="xref py py-obj docutils literal notranslate"><span class="pre">choose_range</span></code> and maps
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">origin</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">destination</span></code>.</p>
+<p>For the warping matrix to be non-singular, destination must lie in the
+range 1&lt;= destination &lt;= choose_range - 1, so a destination
+out of this range is adjusted to be in this range before the warping
+matrix is constructed.</p>
+<dl class="simple">
+<dt>The warping map can be explicitly written by first defining the slopes:</dt><dd><ol class="arabic simple">
+<li><p>slope_0 = origin / destination.</p></li>
+<li><p>slope_1 = (choose_range - origin) / (choose_range - destination).</p></li>
+<li><p>slope_2 = 1.0.</p></li>
+</ol>
+</dd>
+<dt>Then the origin point orig_i of the mapped coordinate i is given by:</dt><dd><ol class="arabic simple">
+<li><p>i &lt; destination: orig_i = slope_0 * i.</p></li>
+<li><p>destination &lt;= i &lt; choose_range:
+orig_i = slope_1 * i - (slope_1 - slope_0) * destination.</p></li>
+<li><p>i &gt;= choose_range: orig_i = i.</p></li>
+</ol>
+</dd>
+<dt>Denoting n_i = ceil(orig_i), the warp matrix element warp[i][j] is given by:</dt><dd><ol class="arabic simple">
+<li><p>j = n_i: 1 - n_i + orig_i.</p></li>
+<li><p>j = n_i - 1: n_i - orig_i.</p></li>
+<li><p>Otherwise: 0.</p></li>
+</ol>
+</dd>
+</dl>
+<p>Applying the warp matrix to an array of pixels, i.e.,
+warped_pixel[i] = sum_j warp[i][j] * pixel[j], one would get
+warped_pixel[i] = (n_i-orig_i) pixel[n_i-1] + (1-n_i+orig_i) pixel[n_i].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch_size</strong> – Batch size. Integer number.</p></li>
+<li><p><strong>matrix_size</strong> – Dimension of the vector space the warp matrix is applied to.
+Integer number.</p></li>
+<li><p><strong>origin</strong> – Origin anchor point for warping. Tensor of shape (batch_size,) and
+data type dtype.</p></li>
+<li><p><strong>destination</strong> – Destination of the origin anchor point upon warping. Tensor
+of shape (batch_size,) and data type dtype.</p></li>
+<li><p><strong>choose_range</strong> – Range within which the warp reference points must lie.
+Tensor of shape (batch_size,) data type dtype.</p></li>
+<li><p><strong>dtype</strong> – Data type of origin, destination, choose_range and the output warp
+matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An array of fixed size warp matrices with shape
+(batch_size, matrix_size, matrix_size).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>warp_matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask">
 <code class="sig-name descname">_FrequencyMask</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._FrequencyMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies frequency masking with given degree to inputs.</p>
@@ -272,6 +411,27 @@ num_freq, channels).</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Inputs with random time masking applied.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeWarp">
+<code class="sig-name descname">_TimeWarp</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._TimeWarp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeWarp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies time warping with given degree to inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
+num_freq, channels).</p></li>
+<li><p><strong>seq_lengths</strong> – The actual sequence lengths which mask been sampled of shape
+(batch_size,).</p></li>
+<li><p><strong>dtype</strong> – Data type.</p></li>
+<li><p><strong>domain_id_index</strong> – Domain ID index.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Inputs with random time warping applied.</p>
 </dd>
 </dl>
 </dd></dl>
