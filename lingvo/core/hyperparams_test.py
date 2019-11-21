@@ -330,6 +330,9 @@ tuple : (2, 3)
     inner.Define('bool_val', True, '')
     inner.Define('list_of_tuples_of_dicts', [({'string_key': 1729})], '')
     outer.Define('inner', inner, '')
+    outer.Define('empty_list', [], '')
+    outer.Define('empty_tuple', (), '')
+    outer.Define('empty_dict', {}, '')
 
     rebuilt_outer = _params.InstantiableParams.FromProto(outer.ToProto())
 
@@ -340,6 +343,9 @@ tuple : (2, 3)
     self.assertEqual(outer.inner.bool_val, rebuilt_outer.inner.bool_val)
     self.assertEqual(outer.inner.list_of_tuples_of_dicts,
                      rebuilt_outer.inner.list_of_tuples_of_dicts)
+    self.assertEqual(outer.empty_list, rebuilt_outer.empty_list)
+    self.assertEqual(outer.empty_tuple, rebuilt_outer.empty_tuple)
+    self.assertEqual(outer.empty_dict, rebuilt_outer.empty_dict)
 
   def testStringEscaping(self):
     p = _params.Params()
