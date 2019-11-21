@@ -32,26 +32,22 @@ FLAGS = tf.flags.FLAGS
 @model_registry.RegisterSingleTaskModel
 class DummyModel(base_model_params.SingleTaskModelParams):
 
-  @classmethod
-  def Train(cls):
+  def Train(self):
     p = base_input_generator.BaseInputGenerator.Params()
     p.name = 'Train'
     return p
 
-  @classmethod
-  def Dev(cls):
+  def Dev(self):
     p = base_input_generator.BaseInputGenerator.Params()
     p.name = 'Dev'
     return p
 
-  @classmethod
-  def Test(cls):
+  def Test(self):
     p = base_input_generator.BaseInputGenerator.Params()
     p.name = 'Test'
     return p
 
-  @classmethod
-  def Task(cls):
+  def Task(self):
     p = base_model.BaseTask.Params()
     p.name = 'DummyModel'
     return p
