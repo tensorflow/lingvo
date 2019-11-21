@@ -85,8 +85,12 @@ class FieldsExtractor(base_layer.BaseLayer):
     return p
 
   def FeatureMap(self):
-    """Return an dictionary from tf.Example feature names to Features."""
+    """Return a dictionary from tf.Example feature names to Features."""
     raise NotImplementedError()
+
+  def ContextMap(self):
+    """Return a dict mapping tf.SequenceExample context names to Features."""
+    return {}
 
   def Extract(self, features):
     """Given 'feature' (Sparse)Tensors, output Tensors for consumption.

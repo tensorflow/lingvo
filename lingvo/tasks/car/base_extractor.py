@@ -26,14 +26,22 @@ from lingvo.core import generic_input
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 
-
 # Items exceeding this value will be dropped and not sent to the trainer.
 BUCKET_UPPER_BOUND = 9999
 
 
-def _ParseSequenceExample(record, feature_map):
-  _, features = tf.parse_single_sequence_example(
-      serialized=record, context_features=None, sequence_features=feature_map)
+def _ParseSequenceExample(record, feature_map, context_map):
+  """Parse a SequenceExample, adding the context features to the features."""
+  context, features = tf.parse_single_sequence_example(
+      serialized=record,
+      context_features=context_map,
+      sequence_features=feature_map)
+  # Add all keys from context to features. Keys must not overlap.
+  common_keys = set(context.keys()) & set(features.keys())
+  if common_keys:
+    raise ValueError(
+        'Keys {} are present in context and features.'.format(common_keys))
+  features.update(context)
   return features
 
 
@@ -170,13 +178,19 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
       - extracted: a NestedMap of Tensors extracted.
     """
     feature_map = {}
+    context_map = {}
     self._extractors.Transform(lambda e: feature_map.update(e.FeatureMap()))
+    if self.params.record_type == 'SEQUENCE_EXAMPLE':
+      self._extractors.Transform(lambda e: context_map.update(e.ContextMap()))
 
     if self.params.record_type not in _PARSING_FUNCTIONS:
       raise ValueError('Invalid record_type: {}'.format(
           self.params.record_type))
     parsing_fn = _PARSING_FUNCTIONS[self.params.record_type]
-    features = parsing_fn(record, feature_map)
+    if self.params.record_type == 'SEQUENCE_EXAMPLE':
+      features = parsing_fn(record, feature_map, context_map)
+    else:
+      features = parsing_fn(record, feature_map)
 
     def ExtractAndFilter(e):
       with tf.name_scope(e.params.name):
