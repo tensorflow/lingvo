@@ -18,6 +18,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import tensorflow as tf
+from tensorflow.compat.v2 import *  # pylint:disable=wildcard-import, g-bad-import-order
+
+# Import of v1 symbols will be removed when all symbols are migrated to v2
+# and tf.compat.v1. So after the migration only v2 symbols and some tf.compat.v1
+# symbols are used in the codebase.
 from tensorflow.compat.v1 import *  # pylint:disable=wildcard-import
 
 # Import absl.flags and absl.logging to overwrite the Tensorflow ones.
@@ -58,6 +64,32 @@ Empty = inplace_ops.empty
 EmptyLike = inplace_ops.empty_like
 GetExtraInputs = _function_lib.get_extra_inputs
 GetExtraArgs = _function_lib.get_extra_args
+# V1 symbols used in the codebase, and can be migrated to the v2 version later.
+# pylint: disable=undefined-variable
+variable_scope = tf.compat.v1.variable_scope
+get_variable = tf.compat.v1.get_variable
+get_variable_scope = tf.compat.v1.get_variable_scope
+train.get_or_create_global_step = tf.compat.v1.train.get_or_create_global_step
+train.get_global_step = tf.compat.v1.train.get_global_step
+where = tf.compat.v1.where
+get_collection = tf.compat.v1.get_collection
+global_variables_initializer = tf.compat.v1.global_variables_initializer
+assign = tf.compat.v1.assign
+trainable_variables = tf.compat.v1.trainable_variables
+set_random_seed = tf.compat.v1.set_random_seed
+resource_loader = tf.compat.v1.resource_loader
+train.Optimizer = tf.compat.v1.train.Optimizer
+test.get_temp_dir = tf.compat.v1.test.get_temp_dir
+test.mock = tf.compat.v1.test.mock
+Session = tf.compat.v1.Session
+gfile = tf.compat.v1.gfile
+summary.FileWriter = tf.compat.v1.summary.FileWriter
+container = tf.compat.v1.container
+device = tf.compat.v1.device
+get_default_graph = tf.compat.v1.get_default_graph
+Dimension = tf.compat.v1.Dimension
+
+# pylint: enable=undefined-variable
 
 
 # TODO(slebedev): Remove after there is no need to support 1.X.
