@@ -178,7 +178,7 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">device_assignment_lib</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 
 
-<span class="k">def</span> <span class="nf">GetExecutorParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">cluster_params</span><span class="p">,</span> <span class="n">model_registry</span><span class="p">):</span>
+<div class="viewcode-block" id="GetExecutorParams"><a class="viewcode-back" href="../../lingvo.executor.html#lingvo.executor.GetExecutorParams">[docs]</a><span class="k">def</span> <span class="nf">GetExecutorParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">cluster_params</span><span class="p">,</span> <span class="n">model_registry</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Get the params needed to instantiate the Executor.</span>
 
 <span class="sd">  Args:</span>
@@ -236,10 +236,10 @@
         <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span><span class="n">eval_dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">task_eval_params</span>
       <span class="n">ps_params_dict</span><span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">program_schedule_params</span>
 
-  <span class="k">return</span> <span class="n">ps_params_dict</span><span class="p">,</span> <span class="n">train_cfg</span>
+  <span class="k">return</span> <span class="n">ps_params_dict</span><span class="p">,</span> <span class="n">train_cfg</span></div>
 
 
-<span class="k">class</span> <span class="nc">ExecutorTpu</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
+<div class="viewcode-block" id="ExecutorTpu"><a class="viewcode-back" href="../../lingvo.executor.html#lingvo.executor.ExecutorTpu">[docs]</a><span class="k">class</span> <span class="nc">ExecutorTpu</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;This is an experimental BaseRunner that does arbitrary multi-program execution on a TPU.</span>
 
 <span class="sd">  Overview of operation:</span>
@@ -383,11 +383,11 @@
             <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
             <span class="n">save_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ExecutorTpu.Start"><a class="viewcode-back" href="../../lingvo.executor.html#lingvo.executor.ExecutorTpu.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Run training.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;executor_tpu&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;executor_tpu&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ExecutorTpu._Loop"><a class="viewcode-back" href="../../lingvo.executor.html#lingvo.executor.ExecutorTpu._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span>
         <span class="n">cluster_def</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
@@ -421,7 +421,7 @@
 
         <span class="c1"># TODO(blee): More complex saving rules. Currently, we assume</span>
         <span class="c1"># we save after every task&#39;s program schedule execution.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
