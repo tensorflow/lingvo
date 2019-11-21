@@ -171,14 +171,22 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 
-
 <span class="c1"># Items exceeding this value will be dropped and not sent to the trainer.</span>
 <span class="n">BUCKET_UPPER_BOUND</span> <span class="o">=</span> <span class="mi">9999</span>
 
 
-<div class="viewcode-block" id="_ParseSequenceExample"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._ParseSequenceExample">[docs]</a><span class="k">def</span> <span class="nf">_ParseSequenceExample</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">):</span>
-  <span class="n">_</span><span class="p">,</span> <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_sequence_example</span><span class="p">(</span>
-      <span class="n">serialized</span><span class="o">=</span><span class="n">record</span><span class="p">,</span> <span class="n">context_features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sequence_features</span><span class="o">=</span><span class="n">feature_map</span><span class="p">)</span>
+<div class="viewcode-block" id="_ParseSequenceExample"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._ParseSequenceExample">[docs]</a><span class="k">def</span> <span class="nf">_ParseSequenceExample</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">,</span> <span class="n">context_map</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Parse a SequenceExample, adding the context features to the features.&quot;&quot;&quot;</span>
+  <span class="n">context</span><span class="p">,</span> <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_sequence_example</span><span class="p">(</span>
+      <span class="n">serialized</span><span class="o">=</span><span class="n">record</span><span class="p">,</span>
+      <span class="n">context_features</span><span class="o">=</span><span class="n">context_map</span><span class="p">,</span>
+      <span class="n">sequence_features</span><span class="o">=</span><span class="n">feature_map</span><span class="p">)</span>
+  <span class="c1"># Add all keys from context to features. Keys must not overlap.</span>
+  <span class="n">common_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+  <span class="k">if</span> <span class="n">common_keys</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s1">&#39;Keys </span><span class="si">{}</span><span class="s1"> are present in context and features.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">common_keys</span><span class="p">))</span>
+  <span class="n">features</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">features</span></div>
 
 
@@ -315,13 +323,19 @@
 <span class="sd">      - extracted: a NestedMap of Tensors extracted.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">context_map</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">feature_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">FeatureMap</span><span class="p">()))</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span> <span class="o">==</span> <span class="s1">&#39;SEQUENCE_EXAMPLE&#39;</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">context_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">ContextMap</span><span class="p">()))</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_PARSING_FUNCTIONS</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid record_type: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span><span class="p">))</span>
     <span class="n">parsing_fn</span> <span class="o">=</span> <span class="n">_PARSING_FUNCTIONS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span><span class="p">]</span>
-    <span class="n">features</span> <span class="o">=</span> <span class="n">parsing_fn</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span> <span class="o">==</span> <span class="s1">&#39;SEQUENCE_EXAMPLE&#39;</span><span class="p">:</span>
+      <span class="n">features</span> <span class="o">=</span> <span class="n">parsing_fn</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">,</span> <span class="n">context_map</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">features</span> <span class="o">=</span> <span class="n">parsing_fn</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">ExtractAndFilter</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
