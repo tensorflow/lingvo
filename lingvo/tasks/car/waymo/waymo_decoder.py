@@ -97,8 +97,8 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
       PostProcessDecodeOut.
     """
     del model_outputs
-    input_labels = input_batch.decoder_copy.labels
-    input_lasers = input_batch.decoder_copy.lasers
+    input_labels = input_batch.labels
+    input_lasers = input_batch.lasers
     input_metadata = input_batch.metadata
     source_ids = tf.string_join([
         input_metadata.run_segment,

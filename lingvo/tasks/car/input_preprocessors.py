@@ -3239,8 +3239,8 @@ class SparseSampler(Preprocessor):
 
     points = py_utils.HasShape(features.lasers.points_xyz, [-1, 3])
     if 'points_padding' in features.lasers:
-      raise ValueError(
-          'SparseSampler preprocessor does not support padded lasers.')
+      points_mask = 1 - features.lasers.points_padding
+      points = tf.boolean_mask(points, points_mask)
 
     # If num_points < num_centers, pad points to have at least num_centers
     # points.
