@@ -78,37 +78,39 @@ class BaseModelsTest(test_utils.TestCase):
     _StubOutCreateVariable(self._variable_cache)
 
   def _testOneModelParams(self, registry, name):
-    p = registry.GetParams(name, 'Train')
-    self.assertTrue(issubclass(p.cls, base_model.BaseModel))
-    self.assertTrue(p.model is not None)
-    p.cluster.mode = 'sync'
-    p.cluster.job = 'decoder'
-    p.cluster.decoder.replicas = 1
-    with p.cluster.Instantiate(), tf.Graph().as_default():
-      # Instantiate the params class, to help catch errors in layer constructors
-      # due to misconfigurations.
-      p = p.Instantiate().params
+    with tf.Graph().as_default():
+      p = registry.GetParams(name, 'Train')
+      self.assertTrue(issubclass(p.cls, base_model.BaseModel))
+      self.assertIsNot(p.model, None)
+      p.cluster.mode = 'sync'
+      p.cluster.job = 'decoder'
+      p.cluster.decoder.replicas = 1
+      with p.cluster.Instantiate():
+        # Instantiate the params class, to help catch errors in layer
+        # constructors due to misconfigurations.
+        p = p.Instantiate().params
 
-    for dataset in ('Train', 'Dev', 'Test'):
-      input_p = registry.GetParams(name, dataset).input
-      if issubclass(p.cls, base_model.SingleTaskModel):
-        self.assertTrue(
-            issubclass(input_p.cls, base_input_generator.BaseInputGenerator),
-            'Error in %s' % dataset)
-        if (dataset != 'Train') and issubclass(
-            input_p.cls, base_input_generator.BaseSequenceInputGenerator) and (
-                input_p.num_samples != 0):
-          self.assertEquals(
-              input_p.num_batcher_threads, 1,
-              'num_batcher_threads too large in %s. Decoder '
-              'or eval runs over this set might not span '
-              'exactly one epoch.' % dataset)
-      else:
-        self.assertTrue(issubclass(p.cls, base_model.MultiTaskModel))
-        for _, v in input_p.IterParams():
+      for dataset in ('Train', 'Dev', 'Test'):
+        input_p = registry.GetParams(name, dataset).input
+        if issubclass(p.cls, base_model.SingleTaskModel):
           self.assertTrue(
-              issubclass(v.cls, base_input_generator.BaseInputGenerator),
+              issubclass(input_p.cls, base_input_generator.BaseInputGenerator),
               'Error in %s' % dataset)
+          if (dataset != 'Train') and issubclass(
+              input_p.cls,
+              base_input_generator.BaseSequenceInputGenerator) and (
+                  input_p.num_samples != 0):
+            self.assertEqual(
+                input_p.num_batcher_threads, 1,
+                'num_batcher_threads too large in %s. Decoder '
+                'or eval runs over this set might not span '
+                'exactly one epoch.' % dataset)
+        else:
+          self.assertTrue(issubclass(p.cls, base_model.MultiTaskModel))
+          for _, v in input_p.IterParams():
+            self.assertTrue(
+                issubclass(v.cls, base_input_generator.BaseInputGenerator),
+                'Error in %s' % dataset)
 
   @classmethod
   def CreateTestMethodsForAllRegisteredModels(cls,
