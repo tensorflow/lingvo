@@ -3384,8 +3384,8 @@
 
     <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_xyz</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
     <span class="k">if</span> <span class="s1">&#39;points_padding&#39;</span> <span class="ow">in</span> <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="s1">&#39;SparseSampler preprocessor does not support padded lasers.&#39;</span><span class="p">)</span>
+      <span class="n">points_mask</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_padding</span>
+      <span class="n">points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">points_mask</span><span class="p">)</span>
 
     <span class="c1"># If num_points &lt; num_centers, pad points to have at least num_centers</span>
     <span class="c1"># points.</span>
