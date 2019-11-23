@@ -173,6 +173,64 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       self.assertAllEqual(expected_ids, ids)
       self.assertAllEqual(expected_lens, lens)
 
+  def testTargetSequenceSamplerWithVariables(self):
+    with self.session(use_gpu=False) as sess:
+      np.random.seed(9384758)
+      tf.set_random_seed(8274758)
+      hidden_dim = 8
+      vocab_size = 12
+      src_len = 5
+      tgt_len = 7
+      batch_size = 2
+
+      def InitBeamSearchCallBack(unused_theta, unused_encoder_outputs,
+                                 num_hyps_per_beam):
+        self.assertEqual(1, num_hyps_per_beam)
+        logits = tf.zeros((batch_size, vocab_size), dtype=tf.float32)
+        return (py_utils.NestedMap(log_probs=logits),
+                py_utils.NestedMap(step=tf.constant(0)))
+
+      def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
+                                    unused_step_ids, states, num_hyps_per_beam):
+        self.assertEqual(1, num_hyps_per_beam)
+        hidden = tf.random.stateless_normal([batch_size, hidden_dim],
+                                            seed=[8273747, 9])
+        # A stateful 'dense' layer.
+        dense = tf.keras.layers.Dense(vocab_size, input_shape=hidden.shape)
+        log_probs = tf.nn.log_softmax(dense(hidden))
+        return (py_utils.NestedMap(log_probs=log_probs),
+                py_utils.NestedMap(step=states.step + 1))
+
+      def PostBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
+                                     unused_new_step_ids, states):
+        return states
+
+      src_enc = tf.random.stateless_normal([src_len, batch_size, 8],
+                                           seed=[982774838, 9])
+      src_enc_padding = tf.constant(
+          [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
+          dtype=tf.float32)
+      encoder_outputs = py_utils.NestedMap(
+          encoded=src_enc, padding=src_enc_padding)
+
+      theta = py_utils.NestedMap()
+      random_seed = tf.constant(123)
+      p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
+          name='bsh', target_seq_len=tgt_len)
+      seq_sampler = p.Instantiate()
+      decoder_output = seq_sampler.Sample(theta, encoder_outputs, random_seed,
+                                          InitBeamSearchCallBack,
+                                          PreBeamSearchStepCallback,
+                                          PostBeamSearchStepCallback)
+
+      sess.run(tf.global_variables_initializer())
+      ids, lens = sess.run([
+          decoder_output.ids,
+          tf.reduce_sum(1 - decoder_output.paddings, 1),
+      ])
+      print(np.array_repr(ids))
+      print(np.array_repr(lens))
+
 
 if __name__ == '__main__':
   tf.test.main()

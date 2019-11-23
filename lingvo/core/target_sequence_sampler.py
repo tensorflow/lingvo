@@ -137,8 +137,12 @@ class TargetSequenceSampler(base_layer.BaseLayer):
                                              state1.ids, bs_state1)
       return state1, py_utils.NestedMap()
 
-    accumulated_states, _ = recurrent.Recurrent(recurrent_theta,
-                                                recurrent_state0, inputs, Step)
+    accumulated_states, _ = recurrent.Recurrent(
+        recurrent_theta,
+        recurrent_state0,
+        inputs,
+        Step,
+        allow_implicit_capture=True)
     result = py_utils.NestedMap(
         logits=tf.transpose(accumulated_states.logits, [1, 0, 2]),
         ids=tf.transpose(accumulated_states.ids))
