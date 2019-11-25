@@ -191,9 +191,12 @@ class WaymoFrameMetadataExtractor(input_extractor.FieldsExtractor):
 class WaymoImageExtractor(input_extractor.FieldsExtractor):
   """Extracts the camera image data from a WaymoOD tf.Example.
 
-   Emits:
-    images: [height, width, 3] - Images from the corresponding cameras.
-    The cameras are [FRONT, FRONT_LEFT, FRONT_RIGHT, SIDE_LEFT, SIDE_RIGHT].
+   The cameras are [FRONT, FRONT_LEFT, FRONT_RIGHT, SIDE_LEFT, SIDE_RIGHT].
+
+   Emits dictionary, where each camera is a key (camera name) and the value is
+   a NestedMap containing:
+
+    image: [height, width, 3] - Images from the corresponding cameras.
 
     intrinsics: [9] - Instrinsics of the camera.
 
@@ -250,11 +253,8 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
 
   def _Extract(self, features):
     """Returns the image Tensor."""
-    outputs = {}
+    outputs = py_utils.NestedMap()
     p = self.params
-
-    outputs['frame_pose'] = tf.reshape(_Dense(features['pose']), [4, 4])
-
     for camera_name in p.camera_names:
       image_shape = tf.reshape(
           _Dense(features['image_%s_shape' % camera_name]), [-1])
@@ -270,32 +270,32 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
       pose = tf.reshape(_Dense(features['image_%s_pose' % camera_name]), [4, 4])
       velocity = tf.reshape(
           _Dense(features['image_%s_velocity' % camera_name]), [6])
-      outputs['%s' % camera_name] = image
-      outputs['%s_intrinsics' % camera_name] = intrinsics
-      outputs['%s_extrinsics' % camera_name] = extrinsics
-      outputs['%s_pose' % camera_name] = pose
-      outputs['%s_velocity' % camera_name] = velocity
 
-      outputs['%s_rolling_shutter_direction' %
-              camera_name] = features['camera_%s_rolling_shutter_direction' %
-                                      camera_name]
+      outputs[camera_name] = py_utils.NestedMap()
+      outputs[camera_name]['image'] = image
+      outputs[camera_name]['intrinsics'] = intrinsics
+      outputs[camera_name]['extrinsics'] = extrinsics
+      outputs[camera_name]['pose'] = pose
+      outputs[camera_name]['velocity'] = velocity
+      outputs[camera_name]['rolling_shutter_direction'] = features[
+          'camera_%s_rolling_shutter_direction' % camera_name]
 
       for feat in [
           'shutter', 'camera_trigger_time', 'camera_readout_done_time',
           'pose_timestamp'
       ]:
-        outputs['%s_%s' % (camera_name, feat)] = features['image_%s_%s' %
-                                                          (camera_name, feat)]
+        outputs[camera_name][feat] = features['image_%s_%s' %
+                                              (camera_name, feat)]
 
-    return py_utils.NestedMap(outputs)
+    return outputs
 
   def Shape(self):
     """Shape of images."""
     p = self.params
-    shapes = {'frame_pose': tf.TensorShape([4, 4])}
-
+    shapes = py_utils.NestedMap()
     for camera_name in p.camera_names:
-      shapes['%s' % camera_name] = tf.TensorShape(p.image_shape)
+      shapes[camera_name] = py_utils.NestedMap()
+      shapes[camera_name]['image'] = tf.TensorShape(p.image_shape)
       # 1d Array of [f_u, f_v, c_u, c_v, k{1, 2}, p{1, 2}, k{3}].
       # Note that this intrinsic corresponds to the images after scaling.
       # Camera model: pinhole camera.
@@ -303,36 +303,37 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
       # Radial distortion coefficients: k1, k2, k3.
       # Tangential distortion coefficients: p1, p2.
       # k_{1, 2, 3}, p_{1, 2} follows the same definition as OpenCV.
-      shapes['%s_intrinsics' % camera_name] = tf.TensorShape([9])
-      shapes['%s_extrinsics' % camera_name] = tf.TensorShape([4, 4])
-      shapes['%s_pose' % camera_name] = tf.TensorShape([4, 4])
-      shapes['%s_velocity' % camera_name] = tf.TensorShape([6])
+      shapes[camera_name]['intrinsics'] = tf.TensorShape([9])
+      shapes[camera_name]['extrinsics'] = tf.TensorShape([4, 4])
+      shapes[camera_name]['pose'] = tf.TensorShape([4, 4])
+      shapes[camera_name]['velocity'] = tf.TensorShape([6])
       for feat in [
           'pose_timestamp', 'shutter', 'camera_trigger_time',
           'camera_readout_done_time'
       ]:
-        shapes['%s_%s' % (camera_name, feat)] = tf.TensorShape([])
-      shapes['%s_rolling_shutter_direction' % camera_name] = tf.TensorShape([])
+        shapes[camera_name][feat] = tf.TensorShape([])
+      shapes[camera_name]['rolling_shutter_direction'] = tf.TensorShape([])
 
-    return py_utils.NestedMap(shapes)
+    return shapes
 
   def DType(self):
     """Dtypes of images."""
     p = self.params
-    dtypes = {'frame_pose': tf.float32}
+    dtypes = py_utils.NestedMap()
     for camera_name in p.camera_names:
-      dtypes['%s' % camera_name] = tf.uint8
-      dtypes['%s_intrinsics' % camera_name] = tf.float32
-      dtypes['%s_extrinsics' % camera_name] = tf.float32
-      dtypes['%s_pose' % camera_name] = tf.float32
-      dtypes['%s_velocity' % camera_name] = tf.float32
+      dtypes[camera_name] = py_utils.NestedMap()
+      dtypes[camera_name]['image'] = tf.uint8
+      dtypes[camera_name]['intrinsics'] = tf.float32
+      dtypes[camera_name]['extrinsics'] = tf.float32
+      dtypes[camera_name]['pose'] = tf.float32
+      dtypes[camera_name]['velocity'] = tf.float32
       for feat in [
           'pose_timestamp', 'shutter', 'camera_trigger_time',
           'camera_readout_done_time'
       ]:
-        dtypes['%s_%s' % (camera_name, feat)] = tf.float32
-      dtypes['%s_rolling_shutter_direction' % camera_name] = tf.int64
-    return py_utils.NestedMap(dtypes)
+        dtypes[camera_name][feat] = tf.float32
+      dtypes[camera_name]['rolling_shutter_direction'] = tf.int64
+    return dtypes
 
 
 class WaymoLaserExtractor(input_extractor.LaserExtractor):
