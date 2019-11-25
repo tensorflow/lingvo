@@ -314,17 +314,22 @@ precision_recall: A <code class="xref py py-obj docutils literal notranslate"><s
 
 <dl class="function">
 <dt id="lingvo.tasks.car.ops.sample_points">
-<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">sample_points</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">center_selector</em>, <em class="sig-param">neighbor_sampler</em>, <em class="sig-param">num_centers</em>, <em class="sig-param">center_z_min</em>, <em class="sig-param">center_z_max</em>, <em class="sig-param">num_neighbors</em>, <em class="sig-param">max_distance</em>, <em class="sig-param">random_seed=-1</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.sample_points" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">sample_points</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">points_padding</em>, <em class="sig-param">center_selector</em>, <em class="sig-param">neighbor_sampler</em>, <em class="sig-param">num_centers</em>, <em class="sig-param">center_z_min</em>, <em class="sig-param">center_z_max</em>, <em class="sig-param">num_neighbors</em>, <em class="sig-param">max_distance</em>, <em class="sig-param">random_seed=-1</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.sample_points" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sample points among ‘points’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>points</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
-[N, K]. N - the number of points; K - the number of dimensions
-of each point.</p></li>
+[B, N, K]. B is the batch size; N is the number of points; K is the
+number of dimensions of each point.</p></li>
+<li><p><strong>points_padding</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+[B, N]. 0/1 padding of points. If points_padding[b, i] is 0.,
+points[b, i, :] are valid point coordinates. Otherwise, point[b, i, :] are
+all zeros.</p></li>
 <li><p><strong>center_selector</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Valid options - ‘farthest’, ‘uniform’.</p></li>
 <li><p><strong>neighbor_sampler</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Valid options - ‘uniform’, ‘closest’.</p></li>
-<li><p><strong>num_centers</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. The number of centers to sample (M).</p></li>
+<li><p><strong>num_centers</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+The number of centers to sample for each batch example (M).</p></li>
 <li><p><strong>center_z_min</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
 Points with z less than center_z_min are not considered for
 center selection.</p></li>
@@ -341,11 +346,16 @@ threshold are not considered to be in the neighborhood.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (center_padding, center, indices, padding).</p>
-<p>center_padding: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [M].
-center: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. [M]. the indices of selected centers.
-indices: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. [M, P]. the indices of selected points.
-padding: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [M, P]. 0/1 padding of indices.</p>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (center, center_padding, indices, indices_padding).</p>
+<p>center: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. [B, M]. the indices of selected centers.
+center_padding: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [B, M]. If center_padding[b, i] is 0., center[b, i],</p>
+<blockquote>
+<div><p>indices[b, i, :] and indices_padding[b, i, :] are valid sampled center.
+Otherwise, center_padding[b, i] is 1.0, and center[b, i] and indices[b, i, :]
+are all zeros while indices_padding[b, i, :] are all 1.0.</p>
+</div></blockquote>
+<p>indices: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. [B, M, P]. the indices of selected points.
+indices_padding: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [B, M, P]. 0/1 padding of indices.</p>
 </p>
 </dd>
 </dl>
