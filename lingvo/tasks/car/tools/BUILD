@@ -22,6 +22,29 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "create_kitti_crop_dataset",
+    srcs = [
+        "create_kitti_crop_dataset.py",
+    ],
+    python_version = "PY3",
+    deps = [
+        # Implicit absl.app dependency.
+        # Implicit absl.flags dependency.
+        # Implicit apache_beam dependency.
+        "//lingvo:compat",
+        "//lingvo:model_registry",
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:py_utils",
+        "//lingvo/tasks/car:geometry",
+        "//lingvo/tasks/car:input_extractor",
+        "//lingvo/tasks/car/params",
+        "//lingvo/tools:beam_utils",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+    ],
+)
+
 py_library(
     name = "kitti_data",
     srcs = ["kitti_data.py"],
