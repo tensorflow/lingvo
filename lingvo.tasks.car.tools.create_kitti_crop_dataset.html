@@ -1,0 +1,326 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.tools.create_kitti_crop_dataset module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.car.tools.export_kitti_detection module" href="lingvo.tasks.car.tools.export_kitti_detection.html" />
+    <link rel="prev" title="lingvo.tasks.car.tools.compare_params_main module" href="lingvo.tasks.car.tools.compare_params_main.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.html">lingvo.tasks.car package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.car.tools.html">lingvo.tasks.car.tools package</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.tools.create_kitti_crop_dataset module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.tasks.car.tools.create_kitti_crop_dataset.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.car.tools.create_kitti_crop_dataset">
+<span id="lingvo-tasks-car-tools-create-kitti-crop-dataset-module"></span><h1>lingvo.tasks.car.tools.create_kitti_crop_dataset module<a class="headerlink" href="#module-lingvo.tasks.car.tools.create_kitti_crop_dataset" title="Permalink to this headline">¶</a></h1>
+<p>Creates KITTI Classification dataset out of the KITTI Object detection data.</p>
+<div class="section" id="produces-tfrecords-with-the-following-format">
+<h2>Produces TFRecords with the following format:<a class="headerlink" href="#produces-tfrecords-with-the-following-format" title="Permalink to this headline">¶</a></h2>
+<dl>
+<dt>Values:</dt><dd><p>num_points: Int64 scalar with the number of points in that box.</p>
+<p>points: Float list of 3D locations (X, Y, Z) per point.</p>
+<p>points_feature: Float list of per-point feature (reflectance scalar).</p>
+<p>bbox_3d: Float list of the 7 box coordinates. bboxes_3d[0:3] is the absolute
+center location in meters. bboxes_3d[3:6] is the bbox dimensions in meters,
+and bboxes_3d[6] is the rotation in radians.</p>
+<p>label: An Int64 scalar with the class label id.</p>
+<p>text: A bytelist with the string name of the class.</p>
+<p>difficulty: An Int64 scalar with the difficulty level of the object.</p>
+<p>occlusion: An Int64 scalar with the occlusion level of the object.</p>
+<p>scene_id: An Int64 scalar with the original scene id the object is from.</p>
+<p>bbox_id: An Int64 scalar with which number bounding box the object is from.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="note-all-scalars-are-wrapped-in-a-list-of-len-1">
+<h2>Note: All scalars are wrapped in a list of len 1.<a class="headerlink" href="#note-all-scalars-are-wrapped-in-a-list-of-len-1" title="Permalink to this headline">¶</a></h2>
+<p>IMPORTANT: Depending on your model, you may or may not want to enable
+preprocessors to export for data augmentation. If unsure, do <em>not</em> run with
+preprocessors as that might add additional data augmentation steps.</p>
+<p>To run:</p>
+<dl class="simple">
+<dt>bazel run -c opt </dt><dd><p>//lingvo/tasks/car/tools:create_kitti_crop_dataset –model_name=car.kitti.PillarsModelV1 –norun_preprocessors –input_file_pattern=/path/to/kitti/train_pattern –output_file_pattern=/path/to/output/gt_objects&#64;100</p>
+</dd>
+</dl>
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset._GetFilteredBoundingBoxData">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.create_kitti_crop_dataset.</code><code class="sig-name descname">_GetFilteredBoundingBoxData</code><span class="sig-paren">(</span><em class="sig-param">kitti_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_GetFilteredBoundingBoxData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._GetFilteredBoundingBoxData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a single batch element of data, process it for writing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>kitti_data</strong> – A NestedMap of KITTI input generator returned data with a batch
+size of 1.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap of all the output data we need to write per bounding box
+cropped pointclouds.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.tools.create_kitti_crop_dataset.</code><code class="sig-name descname">_ProcessShard</code><span class="sig-paren">(</span><em class="sig-param">model_name</em>, <em class="sig-param">split</em>, <em class="sig-param">run_preprocessors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_ProcessShard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">apache_beam.transforms.core.DoFn</span></code></p>
+<p>Process a given shard.</p>
+<dl class="method">
+<dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard._create_graph">
+<code class="sig-name descname">_create_graph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_ProcessShard._create_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard._create_graph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard._ToTFExampleProto">
+<code class="sig-name descname">_ToTFExampleProto</code><span class="sig-paren">(</span><em class="sig-param">filtered_data</em>, <em class="sig-param">bbox_idx</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_ProcessShard._ToTFExampleProto"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard._ToTFExampleProto" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard.process">
+<code class="sig-name descname">process</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_ProcessShard.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method to use for processing elements.</p>
+<p>This is invoked by <code class="docutils literal notranslate"><span class="pre">DoFnRunner</span></code> for each element of a input
+<code class="docutils literal notranslate"><span class="pre">PCollection</span></code>.</p>
+<p>If specified, following default arguments are used by the <code class="docutils literal notranslate"><span class="pre">DoFnRunner</span></code> to
+be able to pass the parameters correctly.</p>
+<p><code class="docutils literal notranslate"><span class="pre">DoFn.ElementParam</span></code>: element to be processed, should not be mutated.
+<code class="docutils literal notranslate"><span class="pre">DoFn.SideInputParam</span></code>: a side input that may be used when processing.
+<code class="docutils literal notranslate"><span class="pre">DoFn.TimestampParam</span></code>: timestamp of the input element.
+<code class="docutils literal notranslate"><span class="pre">DoFn.WindowParam</span></code>: <code class="docutils literal notranslate"><span class="pre">Window</span></code> the input element belongs to.
+<code class="docutils literal notranslate"><span class="pre">DoFn.TimerParam</span></code>: a <code class="docutils literal notranslate"><span class="pre">userstate.RuntimeTimer</span></code> object defined by the spec
+of the parameter.
+<code class="docutils literal notranslate"><span class="pre">DoFn.StateParam</span></code>: a <code class="docutils literal notranslate"><span class="pre">userstate.RuntimeState</span></code> object defined by the spec
+of the parameter.
+<code class="docutils literal notranslate"><span class="pre">DoFn.KeyParam</span></code>: key associated with the element.
+<code class="docutils literal notranslate"><span class="pre">DoFn.RestrictionParam</span></code>: an <code class="docutils literal notranslate"><span class="pre">iobase.RestrictionTracker</span></code> will be
+provided here to allow treatment as a Splittable <code class="docutils literal notranslate"><span class="pre">DoFn</span></code>. The restriction
+tracker will be derived from the restriction provider in the parameter.
+<code class="docutils literal notranslate"><span class="pre">DoFn.WatermarkReporterParam</span></code>: a function that can be used to report
+output watermark of Splittable <code class="docutils literal notranslate"><span class="pre">DoFn</span></code> implementations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>element</strong> – The element to be processed</p></li>
+<li><p><strong>*args</strong> – side inputs</p></li>
+<li><p><strong>**kwargs</strong> – other keyword arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An Iterable of output elements.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset.main">
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.create_kitti_crop_dataset.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.tasks.car.tools.export_kitti_detection.html" class="btn btn-neutral float-right" title="lingvo.tasks.car.tools.export_kitti_detection module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.tasks.car.tools.compare_params_main.html" class="btn btn-neutral float-left" title="lingvo.tasks.car.tools.compare_params_main module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

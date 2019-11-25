@@ -1,0 +1,464 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.car.tools.create_kitti_crop_dataset &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.car.tools.create_kitti_crop_dataset</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.car.tools.create_kitti_crop_dataset</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;Creates KITTI Classification dataset out of the KITTI Object detection data.</span>
+
+<span class="sd">Produces TFRecords with the following format:</span>
+<span class="sd">--------------------------------------------------------------------------------</span>
+
+<span class="sd">Values:</span>
+<span class="sd">  num_points: Int64 scalar with the number of points in that box.</span>
+
+<span class="sd">  points: Float list of 3D locations (X, Y, Z) per point.</span>
+
+<span class="sd">  points_feature: Float list of per-point feature (reflectance scalar).</span>
+
+<span class="sd">  bbox_3d: Float list of the 7 box coordinates. bboxes_3d[0:3] is the absolute</span>
+<span class="sd">  center location in meters. bboxes_3d[3:6] is the bbox dimensions in meters,</span>
+<span class="sd">  and bboxes_3d[6] is the rotation in radians.</span>
+
+<span class="sd">  label: An Int64 scalar with the class label id.</span>
+
+<span class="sd">  text: A bytelist with the string name of the class.</span>
+
+<span class="sd">  difficulty: An Int64 scalar with the difficulty level of the object.</span>
+
+<span class="sd">  occlusion: An Int64 scalar with the occlusion level of the object.</span>
+
+<span class="sd">  scene_id: An Int64 scalar with the original scene id the object is from.</span>
+
+<span class="sd">  bbox_id: An Int64 scalar with which number bounding box the object is from.</span>
+
+
+<span class="sd">Note: All scalars are wrapped in a list of len 1.</span>
+<span class="sd">--------------------------------------------------------------------------------</span>
+
+<span class="sd">IMPORTANT: Depending on your model, you may or may not want to enable</span>
+<span class="sd">preprocessors to export for data augmentation. If unsure, do *not* run with</span>
+<span class="sd">preprocessors as that might add additional data augmentation steps.</span>
+
+<span class="sd">To run:</span>
+
+<span class="sd">bazel run -c opt \</span>
+<span class="sd">  //lingvo/tasks/car/tools:create_kitti_crop_dataset \</span>
+<span class="sd">  --model_name=car.kitti.PillarsModelV1 \</span>
+<span class="sd">  --norun_preprocessors \</span>
+<span class="sd">  --input_file_pattern=/path/to/kitti/train_pattern \</span>
+<span class="sd">  --output_file_pattern=/path/to/output/gt_objects@100</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">app</span>
+<span class="kn">from</span> <span class="nn">absl</span> <span class="k">import</span> <span class="n">flags</span>
+
+<span class="kn">import</span> <span class="nn">apache_beam</span> <span class="k">as</span> <span class="nn">beam</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_registry</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">geometry</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">input_extractor</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car.params</span> <span class="k">import</span> <span class="n">kitti</span>  <span class="c1"># pylint: disable=unused-import</span>
+<span class="kn">from</span> <span class="nn">lingvo.tools</span> <span class="k">import</span> <span class="n">beam_utils</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+
+
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;input_file_pattern&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Where to get the data.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;output_file_pattern&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s1">&#39;Output directory + prefix where to write files.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;model_name&#39;</span><span class="p">,</span> <span class="s1">&#39;car.kitti.PillarsModelV1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Name of registered model whose input pipeline &#39;</span>
+    <span class="s1">&#39;will be used to mine groundtruth objects from.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_enum</span><span class="p">(</span><span class="s1">&#39;split&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span> <span class="s1">&#39;Dev&#39;</span><span class="p">],</span>
+                  <span class="s1">&#39;Split of data to generate GT objects from&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;run_preprocessors&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Whether to run the preprocessors when extracting data. &#39;</span>
+    <span class="s1">&#39;Leave this as False if you are generating data for the &#39;</span>
+    <span class="s1">&#39;purposes of analysis. If you are generating data for ground &#39;</span>
+    <span class="s1">&#39;truth bbox augmentation, enable this.&#39;</span><span class="p">)</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="_GetFilteredBoundingBoxData"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.create_kitti_crop_dataset.html#lingvo.tasks.car.tools.create_kitti_crop_dataset._GetFilteredBoundingBoxData">[docs]</a><span class="k">def</span> <span class="nf">_GetFilteredBoundingBoxData</span><span class="p">(</span><span class="n">kitti_data</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Given a single batch element of data, process it for writing.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    kitti_data: A NestedMap of KITTI input generator returned data with a batch</span>
+<span class="sd">      size of 1.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A NestedMap of all the output data we need to write per bounding box</span>
+<span class="sd">    cropped pointclouds.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_xyz</span>
+  <span class="n">points_feature</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span>
+  <span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d</span>
+  <span class="n">bboxes_3d_mask</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_mask</span>
+  <span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">bboxes_3d</span><span class="p">,</span> <span class="n">bboxes_3d_mask</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="s1">&#39;points_padding&#39;</span> <span class="ow">in</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">lasers</span><span class="p">:</span>
+    <span class="n">points_validity_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">kitti_data</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_padding</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                                   <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">points_validity_mask</span><span class="p">)</span>
+    <span class="n">points_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">points_feature</span><span class="p">,</span> <span class="n">points_validity_mask</span><span class="p">)</span>
+
+  <span class="n">points_in_bboxes_mask</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">IsWithinBBox3D</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">bboxes_3d</span><span class="p">)</span>
+
+  <span class="n">output_map</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+  <span class="c1"># Points and features contain the whole pointcloud, which we will use</span>
+  <span class="c1"># per box boolean masks later in _ToTFExampleProto to subselect data per box.</span>
+  <span class="n">output_map</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">points</span>
+  <span class="n">output_map</span><span class="o">.</span><span class="n">points_feature</span> <span class="o">=</span> <span class="n">points_feature</span>
+  <span class="n">output_map</span><span class="o">.</span><span class="n">points_in_bboxes_mask</span> <span class="o">=</span> <span class="n">points_in_bboxes_mask</span>
+
+  <span class="n">output_map</span><span class="o">.</span><span class="n">source_id</span> <span class="o">=</span> <span class="n">kitti_data</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">source_id</span>
+
+  <span class="c1"># Add additional data</span>
+  <span class="n">output_keys</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="s1">&#39;bboxes_3d&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;labels&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;texts&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;occlusion&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;difficulties&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;truncation&#39;</span><span class="p">,</span>
+  <span class="p">]</span>
+  <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">output_keys</span><span class="p">:</span>
+    <span class="n">output_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">kitti_data</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">key</span><span class="p">],</span>
+                                      <span class="n">kitti_data</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_mask</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">output_map</span></div>
+
+
+<div class="viewcode-block" id="_ProcessShard"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.create_kitti_crop_dataset.html#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard">[docs]</a><span class="k">class</span> <span class="nc">_ProcessShard</span><span class="p">(</span><span class="n">beam</span><span class="o">.</span><span class="n">DoFn</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Process a given shard.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">run_preprocessors</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span> <span class="o">=</span> <span class="n">model_name</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_split</span> <span class="o">=</span> <span class="n">split</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_run_preprocessors</span> <span class="o">=</span> <span class="n">run_preprocessors</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># Create a cluster configuration assuming evaluation; the input pipelines</span>
+    <span class="c1"># need to know the cluster job type to set up the outputs correctly.</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;evaler&#39;</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">evaler</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="_ProcessShard._create_graph"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.create_kitti_crop_dataset.html#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard._create_graph">[docs]</a>  <span class="k">def</span> <span class="nf">_create_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">:</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split</span><span class="p">)</span>
+      <span class="n">cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="c1"># Turn off label filtering so the database contains</span>
+      <span class="c1"># all objects.</span>
+      <span class="n">cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">filter_labels</span> <span class="o">=</span> <span class="kc">None</span>
+
+      <span class="c1"># Disable preprocessors if they are not required.</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_preprocessors</span><span class="p">:</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">preprocessors_order</span> <span class="o">=</span> <span class="p">[]</span>
+
+      <span class="n">graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+      <span class="k">with</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+        <span class="n">inp</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_elem</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+        <span class="n">bucket</span><span class="p">,</span> <span class="n">batch</span> <span class="o">=</span> <span class="n">inp</span><span class="o">.</span><span class="n">ExtractUsingExtractors</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_elem</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filtered_data</span> <span class="o">=</span> <span class="n">_GetFilteredBoundingBoxData</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bucket</span> <span class="o">=</span> <span class="n">bucket</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_ProcessShard._ToTFExampleProto"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.create_kitti_crop_dataset.html#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard._ToTFExampleProto">[docs]</a>  <span class="k">def</span> <span class="nf">_ToTFExampleProto</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filtered_data</span><span class="p">,</span> <span class="n">bbox_idx</span><span class="p">):</span>
+    <span class="n">num_boxes</span> <span class="o">=</span> <span class="n">filtered_data</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">bbox_idx</span> <span class="o">&gt;=</span> <span class="n">num_boxes</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`bbox_id` should be &lt; num_boxes&#39;</span><span class="p">)</span>
+    <span class="n">bbox_mask</span> <span class="o">=</span> <span class="n">filtered_data</span><span class="o">.</span><span class="n">points_in_bboxes_mask</span><span class="p">[:,</span> <span class="n">bbox_idx</span><span class="p">]</span>
+
+    <span class="n">num_points</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">filtered_data</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">bbox_mask</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">()</span>
+    <span class="n">feature</span> <span class="o">=</span> <span class="n">example</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">feature</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;num_points&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">num_points</span><span class="p">]</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;points&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">filtered_data</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">bbox_mask</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;points_feature&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">filtered_data</span><span class="o">.</span><span class="n">points_feature</span><span class="p">[</span><span class="n">bbox_mask</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="c1"># Note: bbox_3d, label, text, difficulty are singular, which is inconsistent</span>
+    <span class="c1"># with the original KITTI data, but that is because each example</span>
+    <span class="c1"># has only one bounding box, one label, one text, one difficulty.</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;bbox_3d&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">filtered_data</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="n">bbox_idx</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">filtered_data</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">bbox_idx</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">bytes_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">filtered_data</span><span class="o">.</span><span class="n">texts</span><span class="p">[</span><span class="n">bbox_idx</span><span class="p">]]</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;difficulty&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">filtered_data</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[</span><span class="n">bbox_idx</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;occlusion&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">filtered_data</span><span class="o">.</span><span class="n">occlusion</span><span class="p">[</span><span class="n">bbox_idx</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;scene_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">filtered_data</span><span class="o">.</span><span class="n">source_id</span><span class="p">)]</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;bbox_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">bbox_idx</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">example</span></div>
+
+<div class="viewcode-block" id="_ProcessShard.process"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.create_kitti_crop_dataset.html#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard.process">[docs]</a>  <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_create_graph</span><span class="p">()</span>
+    <span class="n">elem_str</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">()</span>
+
+    <span class="n">b</span><span class="p">,</span> <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_filtered_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bucket</span><span class="p">],</span>
+                               <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_elem</span><span class="p">:</span> <span class="n">elem_str</span><span class="p">})</span>
+    <span class="k">if</span> <span class="n">bucket</span> <span class="o">&gt;</span> <span class="n">input_extractor</span><span class="o">.</span><span class="n">BUCKET_UPPER_BOUND</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="c1"># Flatten the batch.</span>
+    <span class="n">flatten</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">flatten</span><span class="p">:</span>
+      <span class="k">return</span>
+
+    <span class="n">num_boxes</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># For each box, get the pointcloud and write it as an example.</span>
+    <span class="k">for</span> <span class="n">bbox_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_boxes</span><span class="p">):</span>
+      <span class="n">tf_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ToTFExampleProto</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">bbox_id</span><span class="p">)</span>
+      <span class="k">yield</span> <span class="n">tf_example</span></div></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.tools.create_kitti_crop_dataset.html#lingvo.tasks.car.tools.create_kitti_crop_dataset.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">_</span><span class="p">):</span>
+  <span class="n">beam_utils</span><span class="o">.</span><span class="n">BeamInit</span><span class="p">()</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">output_file_pattern</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Must provide an output_file_pattern&#39;</span><span class="p">)</span>
+
+  <span class="n">reader</span> <span class="o">=</span> <span class="n">beam</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ReadFromTFRecord</span><span class="p">(</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">input_file_pattern</span><span class="p">,</span> <span class="n">coder</span><span class="o">=</span><span class="n">beam</span><span class="o">.</span><span class="n">coders</span><span class="o">.</span><span class="n">ProtoCoder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">))</span>
+
+  <span class="n">model_name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_name</span>
+  <span class="n">split</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">split</span>
+  <span class="n">run_preprocessors</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_preprocessors</span>
+
+  <span class="k">with</span> <span class="n">beam_utils</span><span class="o">.</span><span class="n">GetPipelineRoot</span><span class="p">()</span> <span class="k">as</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">root</span>
+        <span class="o">|</span> <span class="s1">&#39;Read&#39;</span> <span class="o">&gt;&gt;</span> <span class="n">reader</span>
+        <span class="o">|</span> <span class="s1">&#39;ToTFExample&#39;</span> <span class="o">&gt;&gt;</span> <span class="n">beam</span><span class="o">.</span><span class="n">ParDo</span><span class="p">(</span>
+            <span class="n">_ProcessShard</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">run_preprocessors</span><span class="p">))</span>
+        <span class="o">|</span> <span class="s1">&#39;Reshuffle&#39;</span> <span class="o">&gt;&gt;</span> <span class="n">beam</span><span class="o">.</span><span class="n">Reshuffle</span><span class="p">()</span>
+        <span class="o">|</span> <span class="s1">&#39;Write&#39;</span> <span class="o">&gt;&gt;</span> <span class="n">beam</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">WriteToTFRecord</span><span class="p">(</span>
+            <span class="n">FLAGS</span><span class="o">.</span><span class="n">output_file_pattern</span><span class="p">,</span>
+            <span class="n">coder</span><span class="o">=</span><span class="n">beam</span><span class="o">.</span><span class="n">coders</span><span class="o">.</span><span class="n">ProtoCoder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">)))</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
