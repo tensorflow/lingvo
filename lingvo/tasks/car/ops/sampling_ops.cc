@@ -54,11 +54,11 @@ class SamplePointsOp : public OpKernel {
 
   void Compute(OpKernelContext* ctx) override {
     PSUtils ps(opts_);
-    auto ret = ps.Sample(ctx->input(0));
-    ctx->set_output(0, ret.center_padding);
-    ctx->set_output(1, ret.center);
+    auto ret = ps.Sample(ctx->input(0), ctx->input(1));
+    ctx->set_output(0, ret.center);
+    ctx->set_output(1, ret.center_padding);
     ctx->set_output(2, ret.indices);
-    ctx->set_output(3, ret.padding);
+    ctx->set_output(3, ret.indices_padding);
   }
 
  private:

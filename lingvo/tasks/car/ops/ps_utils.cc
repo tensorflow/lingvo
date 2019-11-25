@@ -12,6 +12,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
+#include "lingvo/tasks/car/ops/ps_utils.h"
+
 #include <algorithm>
 #include <limits>
 #include <numeric>
@@ -19,7 +21,6 @@ limitations under the License.
 #include <vector>
 
 #include "lingvo/core/ops/mutex.h"
-#include "lingvo/tasks/car/ops/ps_utils.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
@@ -235,70 +236,83 @@ T Square(T x) {
 }
 
 template <typename Selector, typename Sampler>
-PSUtils::Result PSUtils::DoSampling(const Tensor& points) const {
-  // Points must be a matrix.
-  DCHECK(TensorShapeUtils::IsMatrix(points.shape()));
+PSUtils::Result PSUtils::DoSampling(const Tensor& points,
+                                    const Tensor& points_padding) const {
+  // Points must be of rank 3, and padding must be a matrix.
+  DCHECK_EQ(points.dims(), 3);
+  DCHECK_EQ(points_padding.dims(), 2);
   // 3D points.
-  DCHECK_EQ(points.dim_size(1), 3);
-  auto points_t = points.matrix<float>();
-  const int64 num_points = points.dim_size(0);
+  DCHECK_EQ(points.dim_size(2), 3);
+  DCHECK_EQ(points.dim_size(0), points_padding.dim_size(0));
+  DCHECK_EQ(points.dim_size(1), points_padding.dim_size(1));
+
+  auto points_t = points.tensor<float, 3>();
+  auto points_padding_t = points_padding.matrix<float>();
+  const int64 batch_size = points.dim_size(0);
+  const int64 num_points = points.dim_size(1);
 
   Result result;
-  result.center_padding = Tensor(DT_FLOAT, {opts_.num_centers});
-  result.center = Tensor(DT_INT32, {opts_.num_centers});
-  result.indices = Tensor(DT_INT32, {opts_.num_centers, opts_.num_neighbors});
-  result.padding = Tensor(DT_FLOAT, {opts_.num_centers, opts_.num_neighbors});
+  result.center = Tensor(DT_INT32, {batch_size, opts_.num_centers});
+  result.center_padding = Tensor(DT_FLOAT, {batch_size, opts_.num_centers});
+  result.indices =
+      Tensor(DT_INT32, {batch_size, opts_.num_centers, opts_.num_neighbors});
+  result.indices_padding =
+      Tensor(DT_FLOAT, {batch_size, opts_.num_centers, opts_.num_neighbors});
 
-  auto center_padding_t = result.center_padding.vec<float>();
-  auto center_t = result.center.vec<int32>();
+  auto center_t = result.center.matrix<int32>();
   center_t.setConstant(0);
-  auto indices_t = result.indices.matrix<int32>();
+  auto center_padding_t = result.center_padding.matrix<float>();
+  auto indices_t = result.indices.tensor<int32, 3>();
   indices_t.setConstant(0);
-  auto padding_t = result.padding.matrix<float>();
+  auto padding_t = result.indices_padding.tensor<float, 3>();
   padding_t.setConstant(1.0);
 
   // Max distance squared as the threshold.
   const float threshold = Square(opts_.max_dist);
 
-  std::vector<bool> candidates(num_points);
-  for (int i = 0; i < num_points; ++i) {
-    candidates[i] = (opts_.center_z_min <= points_t(i, 2)) &&
-                    (points_t(i, 2) <= opts_.center_z_max);
-  }
-
-  Selector selector(candidates, Seed());
-  Sampler sampler(opts_.num_neighbors, Seed());
-
-  for (int i = 0; i < opts_.num_centers; ++i) {
-    // Pick a point as i-th center.
-    auto k = selector.Get();
-    if (k < 0) {
-      center_padding_t(i) = 1.0;
-      continue;
+  for (int cur_batch = 0; cur_batch < batch_size; ++cur_batch) {
+    std::vector<bool> candidates(num_points);
+    for (int i = 0; i < num_points; ++i) {
+      candidates[i] = (points_padding_t(cur_batch, i) == 0.0) &&
+                      (opts_.center_z_min <= points_t(cur_batch, i, 2)) &&
+                      (points_t(cur_batch, i, 2) <= opts_.center_z_max);
     }
-    center_padding_t(i) = 0.0;
-    center_t(i) = k;
 
-    // Goes through all points. If j-th point is within a radius of center, adds
-    // it to the sampler.
-    sampler.Reset();
-    for (int j = 0; j < num_points; ++j) {
-      auto ss_xy = Square(points_t(k, 0) - points_t(j, 0)) +
-                   Square(points_t(k, 1) - points_t(j, 1));
-      auto z = points_t(j, 2);
-      auto ss_xyz = ss_xy + Square(points_t(k, 2) - z);
-      if (ss_xyz <= threshold) {
-        sampler.Add(j, ss_xyz);
+    Selector selector(candidates, Seed());
+    Sampler sampler(opts_.num_neighbors, Seed());
+
+    for (int i = 0; i < opts_.num_centers; ++i) {
+      // Pick a point as i-th center.
+      auto k = selector.Get();
+      if (k < 0) {
+        center_padding_t(cur_batch, i) = 1.0;
+        continue;
       }
-      selector.Update(j, ss_xy);
-    }
+      center_padding_t(cur_batch, i) = 0.0;
+      center_t(cur_batch, i) = k;
 
-    auto ids = sampler.Get();
-    CHECK_LE(0, ids.size());
-    CHECK_LE(ids.size(), opts_.num_neighbors);
-    for (int j = 0; j < ids.size(); ++j) {
-      indices_t(i, j) = ids[j].id;
-      padding_t(i, j) = 0.0f;
+      // Goes through all points. If j-th point is within a radius of center,
+      // adds it to the sampler.
+      sampler.Reset();
+      for (int j = 0; j < num_points; ++j) {
+        auto ss_xy =
+            Square(points_t(cur_batch, k, 0) - points_t(cur_batch, j, 0)) +
+            Square(points_t(cur_batch, k, 1) - points_t(cur_batch, j, 1));
+        auto z = points_t(cur_batch, j, 2);
+        auto ss_xyz = ss_xy + Square(points_t(cur_batch, k, 2) - z);
+        if (ss_xyz <= threshold) {
+          sampler.Add(j, ss_xyz);
+        }
+        selector.Update(j, ss_xy);
+      }
+
+      auto ids = sampler.Get();
+      CHECK_LE(0, ids.size());
+      CHECK_LE(ids.size(), opts_.num_neighbors);
+      for (int j = 0; j < ids.size(); ++j) {
+        indices_t(cur_batch, i, j) = ids[j].id;
+        padding_t(cur_batch, i, j) = 0.0f;
+      }
     }
   }
 
@@ -320,22 +334,23 @@ string PSUtils::Options::DebugString() const {
   // clang-format on
 }
 
-PSUtils::Result PSUtils::Sample(const Tensor& points) const {
+PSUtils::Result PSUtils::Sample(const Tensor& points,
+                                const Tensor& points_padding) const {
   if (opts_.cmethod == Options::C_UNIFORM &&
       opts_.nmethod == Options::N_UNIFORM) {
-    return DoSampling<UniformSelector, UniformSampler>(points);
+    return DoSampling<UniformSelector, UniformSampler>(points, points_padding);
   }
   if (opts_.cmethod == Options::C_UNIFORM &&
       opts_.nmethod == Options::N_CLOSEST) {
-    return DoSampling<UniformSelector, TopKSampler>(points);
+    return DoSampling<UniformSelector, TopKSampler>(points, points_padding);
   }
   if (opts_.cmethod == Options::C_FARTHEST &&
       opts_.nmethod == Options::N_UNIFORM) {
-    return DoSampling<FarthestSelector, UniformSampler>(points);
+    return DoSampling<FarthestSelector, UniformSampler>(points, points_padding);
   }
   CHECK_EQ(opts_.cmethod, Options::C_FARTHEST);
   CHECK_EQ(opts_.nmethod, Options::N_CLOSEST);
-  return DoSampling<FarthestSelector, TopKSampler>(points);
+  return DoSampling<FarthestSelector, TopKSampler>(points, points_padding);
 }
 
 }  // namespace car

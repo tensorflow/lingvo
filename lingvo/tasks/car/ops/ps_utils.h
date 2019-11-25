@@ -62,21 +62,21 @@ class PSUtils {
   // Samples centers within 'points' (3D) and creates neighborhood for each
   // center.
   struct Result {
+    // [num_centers]. Indices of the center points.
+    Tensor center;
+
     // [num_centers]. 0/1 paddings indicating that 0 means i-th center is a real
     // sampled center point, while 1 means otherwise.
     Tensor center_padding;
 
-    // [num_centers]. Indices of the center points.
-    Tensor center;
-
     // [num_centers, num_neighbors]. Indices of neighbors.
     Tensor indices;
 
-    // indices[i, j] is a real point if and only if padding[i, j] is
-    // 0. Otherwise, padding[i, j] is 1.0.
-    Tensor padding;
+    // indices[i, j] is a real point if and only if indices_padding[i, j] is
+    // 0. Otherwise, indices_padding[i, j] is 1.0.
+    Tensor indices_padding;
   };
-  Result Sample(const Tensor& points) const;
+  Result Sample(const Tensor& points, const Tensor& points_padding) const;
 
  private:
   const Options opts_;
@@ -84,7 +84,7 @@ class PSUtils {
   uint64 Seed() const;
 
   template <typename Selector, typename Sampler>
-  Result DoSampling(const Tensor& points) const;
+  Result DoSampling(const Tensor& points, const Tensor& points_padding) const;
 };
 
 }  // namespace car

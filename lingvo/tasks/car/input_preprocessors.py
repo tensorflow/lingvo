@@ -3249,8 +3249,9 @@ class SparseSampler(Preprocessor):
     zeros = tf.zeros([required_num_points - num_points, 3])
     points = tf.concat([points, zeros], axis=0)
 
-    center_paddings, centers, indices, paddings = ops.sample_points(
-        points=points,
+    centers, center_paddings, indices, indices_paddings = ops.sample_points(
+        points=tf.expand_dims(points, 0),
+        points_padding=tf.zeros([1, required_num_points], tf.float32),
         center_selector=p.center_selector,
         neighbor_sampler=p.neighbor_sampler,
         num_centers=p.num_centers,
@@ -3259,10 +3260,10 @@ class SparseSampler(Preprocessor):
         num_neighbors=p.num_neighbors,
         max_distance=p.max_distance,
         random_seed=p.random_seed if p.random_seed else -1)
-    center_paddings = py_utils.HasShape(center_paddings, [n])
-    centers = py_utils.HasShape(centers, [n])
-    indices = py_utils.HasShape(indices, [n, m])
-    paddings = py_utils.HasShape(paddings, [n, m])
+    centers = py_utils.HasShape(centers, [1, n])[0, :]
+    center_paddings = py_utils.HasShape(center_paddings, [1, n])[0, :]
+    indices = py_utils.HasShape(indices, [1, n, m])[0, :]
+    indices_paddings = py_utils.HasShape(indices_paddings, [1, n, m])[0, :]
     features.cell_center_padding = center_paddings
     features.cell_center_xyz = py_utils.HasShape(
         tf.gather(points, centers), [n, 3])
@@ -3270,7 +3271,7 @@ class SparseSampler(Preprocessor):
     features.cell_points_xyz = py_utils.HasShape(
         tf.gather(points, indices), [n, m, 3])
     features.cell_feature = tf.gather(features.lasers.points_feature, indices)
-    features.cell_points_padding = paddings
+    features.cell_points_padding = indices_paddings
     return features
 
   def TransformShapes(self, shapes):

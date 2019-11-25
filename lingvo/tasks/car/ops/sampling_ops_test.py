@@ -36,12 +36,14 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
       ('farthest_closest', 'farthest', 'closest'),
   ])
   def testBasic(self, cmethod, nmethod):
-    n, m, k = 10000, 128, 128
+    b, n, m, k = 3, 10000, 128, 128
     g = tf.Graph()
     with g.as_default():
-      points = tf.random.uniform(shape=(n, 3))
-      center_padding, center, indices, padding = ops.sample_points(
+      points = tf.random.uniform(shape=(b, n, 3))
+      points_padding = tf.zeros(shape=(b, n))
+      center, center_padding, indices, indices_padding = ops.sample_points(
           points=points,
+          points_padding=points_padding,
           center_selector=cmethod,
           neighbor_sampler=nmethod,
           num_centers=m,
@@ -51,22 +53,22 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
           max_distance=0.25)
 
     # Ensure shapes are known at graph construction.
-    self.assertListEqual(center_padding.shape.as_list(), [m])
-    self.assertListEqual(center.shape.as_list(), [m])
-    self.assertListEqual(indices.shape.as_list(), [m, k])
-    self.assertListEqual(padding.shape.as_list(), [m, k])
+    self.assertListEqual(center.shape.as_list(), [b, m])
+    self.assertListEqual(center_padding.shape.as_list(), [b, m])
+    self.assertListEqual(indices.shape.as_list(), [b, m, k])
+    self.assertListEqual(indices_padding.shape.as_list(), [b, m, k])
 
     with self.session(graph=g) as sess:
-      cp, c, i, p = sess.run([center_padding, center, indices, padding])
+      cp, c, i, p = sess.run([center_padding, center, indices, indices_padding])
 
     # Very basic validity checking.
-    self.assertEqual(cp.shape, (m,))
+    self.assertEqual(cp.shape, (b, m))
     self.assertTrue(np.all(cp == 0.0))
-    self.assertEqual(c.shape, (m,))
+    self.assertEqual(c.shape, (b, m))
     self.assertTrue(np.all(np.logical_and(0 <= c, c < n)))
-    self.assertEqual(i.shape, (m, k))
+    self.assertEqual(i.shape, (b, m, k))
     self.assertTrue(np.all(np.logical_and(0 <= i, i < n)))
-    self.assertEqual(p.shape, (m, k))
+    self.assertEqual(p.shape, (b, m, k))
     self.assertTrue(np.all(np.logical_or(0. == p, 1. == p)))
 
   @parameterized.named_parameters([
@@ -76,12 +78,14 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
       ('farthest_closest', 'farthest', 'closest'),
   ])
   def testZFilter(self, cmethod, nmethod):
-    n, m, k = 10000, 128, 128
+    b, n, m, k = 1, 10000, 128, 128
     g = tf.Graph()
     with g.as_default():
-      points = tf.random.uniform(shape=(n, 3))
-      center_padding, center, indices, padding = ops.sample_points(
+      points = tf.random.uniform(shape=(b, n, 3))
+      points_padding = tf.zeros(shape=(b, n))
+      center, center_padding, indices, indices_padding = ops.sample_points(
           points=points,
+          points_padding=points_padding,
           center_selector=cmethod,
           neighbor_sampler=nmethod,
           num_centers=m,
@@ -91,10 +95,10 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
           max_distance=0.25)
 
     # Ensure shapes are known at graph construction.
-    self.assertListEqual(center_padding.shape.as_list(), [m])
-    self.assertListEqual(center.shape.as_list(), [m])
-    self.assertListEqual(indices.shape.as_list(), [m, k])
-    self.assertListEqual(padding.shape.as_list(), [m, k])
+    self.assertListEqual(center.shape.as_list(), [b, m])
+    self.assertListEqual(center_padding.shape.as_list(), [b, m])
+    self.assertListEqual(indices.shape.as_list(), [b, m, k])
+    self.assertListEqual(indices_padding.shape.as_list(), [b, m, k])
 
     with self.session(graph=g) as sess:
       c1, p1 = sess.run([center, points])
@@ -105,10 +109,10 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
     self.assertGreater(np.setdiff1d(c1, c2).size, 0)
 
     # Centers should be filtered by z range.
-    self.assertTrue((0.25 <= p1[c1, 2]).all())
-    self.assertTrue((p1[c1, 2] <= 0.75).all())
-    self.assertTrue((0.25 <= p2[c2, 2]).all())
-    self.assertTrue((p2[c2, 2] <= 0.75).all())
+    self.assertTrue((0.25 <= p1[0, c1[0], 2]).all())
+    self.assertTrue((p1[0, c1[0], 2] <= 0.75).all())
+    self.assertTrue((0.25 <= p2[0, c2[0], 2]).all())
+    self.assertTrue((p2[0, c2[0], 2] <= 0.75).all())
 
   @parameterized.named_parameters([
       ('uniform_uniform', 'uniform', 'uniform'),
@@ -117,12 +121,14 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
       ('farthest_closest', 'farthest', 'closest'),
   ])
   def testSampleFewerCentersThanPoints(self, cmethod, nmethod):
-    n, m, k = 100, 128, 8
+    b, n, m, k = 1, 100, 128, 8
     g = tf.Graph()
     with g.as_default():
-      points = tf.random.uniform(shape=(n, 3))
-      center_padding, center, indices, padding = ops.sample_points(
+      points = tf.random.uniform(shape=(b, n, 3))
+      points_padding = tf.zeros(shape=(b, n))
+      center, center_padding, indices, indices_padding = ops.sample_points(
           points=points,
+          points_padding=points_padding,
           center_selector=cmethod,
           neighbor_sampler=nmethod,
           num_centers=m,
@@ -132,19 +138,19 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
           max_distance=0.25)
 
     # Ensure shapes are known at graph construction.
-    self.assertListEqual(center_padding.shape.as_list(), [m])
-    self.assertListEqual(center.shape.as_list(), [m])
-    self.assertListEqual(indices.shape.as_list(), [m, k])
-    self.assertListEqual(padding.shape.as_list(), [m, k])
+    self.assertListEqual(center.shape.as_list(), [b, m])
+    self.assertListEqual(center_padding.shape.as_list(), [b, m])
+    self.assertListEqual(indices.shape.as_list(), [b, m, k])
+    self.assertListEqual(indices_padding.shape.as_list(), [b, m, k])
 
     with self.session(graph=g) as sess:
       p, c = sess.run([center_padding, center])
 
-    self.assertAllEqual(p[:n], np.zeros([n]))
-    self.assertAllEqual(p[n:], np.ones([m - n]))
-    tf.logging.info('c[:n]=%s', c[:n])
-    self.assertAllEqual(np.sort(c[:n]), np.arange(n))
-    self.assertAllEqual(c[n:], np.zeros([m - n]))
+    self.assertAllEqual(p[0, :n], np.zeros([n]))
+    self.assertAllEqual(p[0, n:], np.ones([m - n]))
+    tf.logging.info('c[:n]=%s', c[0, :n])
+    self.assertAllEqual(np.sort(c[0, :n]), np.arange(n))
+    self.assertAllEqual(c[0, n:], np.zeros([m - n]))
 
 
 if __name__ == '__main__':

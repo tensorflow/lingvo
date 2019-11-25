@@ -180,10 +180,11 @@ algorithm: string. One of ["KITTI", "VOC"]. See this paper "Supervised
 // TODO(vrv): Convert some of the attrs to inputs.
 REGISTER_OP("SamplePoints")
     .Input("points: float")
-    .Output("center_padding: float")
+    .Input("points_padding: float")
     .Output("center: int32")
+    .Output("center_padding: float")
     .Output("indices: int32")
-    .Output("padding: float")
+    .Output("indices_padding: float")
     .Attr("center_selector: string")
     .Attr("neighbor_sampler: string")
     .Attr("num_centers: int")
@@ -193,31 +194,37 @@ REGISTER_OP("SamplePoints")
     .Attr("max_distance: float")
     .Attr("random_seed: int = -1")
     .SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
+      shape_inference::ShapeHandle points;
+      TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 3, &points));
+      shape_inference::DimensionHandle batch_size = c->Dim(points, 0);
+
       int num_centers, num_neighbors;
       TF_RETURN_IF_ERROR(c->GetAttr("num_centers", &num_centers));
       TF_RETURN_IF_ERROR(c->GetAttr("num_neighbors", &num_neighbors));
-      c->set_output(0, c->MakeShape({num_centers}));
-      c->set_output(1, c->MakeShape({num_centers}));
-      c->set_output(2, c->MakeShape({num_centers, num_neighbors}));
-      c->set_output(3, c->MakeShape({num_centers, num_neighbors}));
+      c->set_output(0, c->MakeShape({batch_size, num_centers}));
+      c->set_output(1, c->MakeShape({batch_size, num_centers}));
+      c->set_output(2, c->MakeShape({batch_size, num_centers, num_neighbors}));
+      c->set_output(3, c->MakeShape({batch_size, num_centers, num_neighbors}));
       return ::tensorflow::Status::OK();
     })
     .Doc(R"doc(
 Sample points among 'points'.
 
-center_padding: [M]. If center_padding[i] is 0., center[i], indices[i, :] and
-padding[i, :] are valid sampled center. Otherwise, center_padding[i] is 1.0,
-and center[i] and indices[i, :] are all zeros while padding[i, :] are all 1.0.
-
-points: [N, K]. N - the number of points; K - the number of dimensions
-  of each point.
-center_padding: [M].
-center: [M]. the indices of selected centers.
-indices: [M, P]. the indices of selected points.
-padding: [M, P]. 0/1 padding of indices.
+points: [B, N, K]. B is the batch size; N is the number of points; K is the
+  number of dimensions of each point.
+points_padding: [B, N]. 0/1 padding of points. If points_padding[b, i] is 0.,
+  points[b, i, :] are valid point coordinates. Otherwise, point[b, i, :] are
+  all zeros.
+center: [B, M]. the indices of selected centers.
+center_padding: [B, M]. If center_padding[b, i] is 0., center[b, i],
+  indices[b, i, :] and indices_padding[b, i, :] are valid sampled center.
+  Otherwise, center_padding[b, i] is 1.0, and center[b, i] and indices[b, i, :]
+  are all zeros while indices_padding[b, i, :] are all 1.0.
+indices: [B, M, P]. the indices of selected points.
+indices_padding: [B, M, P]. 0/1 padding of indices.
 center_selector: Valid options - 'farthest', 'uniform'.
 neighbor_sampler: Valid options - 'uniform', 'closest'.
-num_centers: The number of centers to sample (M).
+num_centers: The number of centers to sample for each batch example (M).
 center_z_min: Points with z less than center_z_min are not considered for
  center selection.
 center_z_max: Points with z greater than center_z_max are not considered
