@@ -252,9 +252,11 @@ e.g., “sunny”.</p>
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.waymo.waymo_open_input_generator.</code><code class="sig-name descname">WaymoImageExtractor</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_open_input_generator.html#WaymoImageExtractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoImageExtractor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor" title="lingvo.tasks.car.input_extractor.FieldsExtractor"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_extractor.FieldsExtractor</span></code></a></p>
 <p>Extracts the camera image data from a WaymoOD tf.Example.</p>
-<dl>
-<dt>Emits:</dt><dd><p>images: [height, width, 3] - Images from the corresponding cameras.
-The cameras are [FRONT, FRONT_LEFT, FRONT_RIGHT, SIDE_LEFT, SIDE_RIGHT].</p>
+<p>The cameras are [FRONT, FRONT_LEFT, FRONT_RIGHT, SIDE_LEFT, SIDE_RIGHT].</p>
+<p>Emits dictionary, where each camera is a key (camera name) and the value is
+a NestedMap containing:</p>
+<blockquote>
+<div><p>image: [height, width, 3] - Images from the corresponding cameras.</p>
 <p>intrinsics: [9] - Instrinsics of the camera.</p>
 <p>extrinsics: [4, 4] - Extrinsics of the camera</p>
 <p>pose: [4, 4] - Pose of the camera when the corresponding image is taken.</p>
@@ -262,8 +264,7 @@ The cameras are [FRONT, FRONT_LEFT, FRONT_RIGHT, SIDE_LEFT, SIDE_RIGHT].</p>
 taken. The first three numbers (vx, vy, vz) are velocities in world frame,
 in m/s. The last three numbers (roll, pitch, yaw) are the rotation rates
 in vehicle frame, in rad/s.</p>
-</dd>
-</dl>
+</div></blockquote>
 <dl class="method">
 <dt id="lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoImageExtractor.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/waymo_open_input_generator.html#WaymoImageExtractor.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoImageExtractor.Params" title="Permalink to this definition">¶</a></dt>
