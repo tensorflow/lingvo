@@ -207,7 +207,16 @@
 <span class="sd">     high self-similarity. This is the use case for non-autoregressive decoder</span>
 <span class="sd">     self-attention Transformer Layers. Can be activated by setting `is_masked`</span>
 <span class="sd">     flag of this layer and setting `mask_type=&quot;eye&quot;`.</span>
-
+<span class="sd">  6. Masked Multi-Headed Self-Attention, where attention keys, attention values</span>
+<span class="sd">     and queries all come from the same previous layer output, but:</span>
+<span class="sd">     . rightward activations are masked to prevent information flow from future.</span>
+<span class="sd">     . leftward activations are also masked to prevent information flow from</span>
+<span class="sd">     past tokens that are beyond the N-gram context [K-N+1, K-1] when predicting</span>
+<span class="sd">     the target token in position K. This is the use case for decoder</span>
+<span class="sd">     self-attention Transformer Layers in N-gram mode. Can be activated by</span>
+<span class="sd">     setting `is_masked` flag of this layer, and setting both</span>
+<span class="sd">     `mask_type=&quot;ngram&quot;` and `mask_ngram_order=N-1` to use as context only the</span>
+<span class="sd">     previous N-1 tokens (as expected for an N-gram model).</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="TransformerAttentionLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerAttentionLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -219,15 +228,20 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_attention_heads&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;Number of attention heads.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;is_masked&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set, uses masked MultiHeadedAttention.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;mask_ngram_order&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;N-gram order, relevant only when&#39;</span>
+        <span class="s1">&#39;`mask_type` is set to &quot;ngram&quot;.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;mask_type&#39;</span><span class="p">,</span> <span class="s1">&#39;future&#39;</span><span class="p">,</span> <span class="s1">&#39;Type of attention mask if `is_masked` is&#39;</span>
         <span class="s1">&#39;set. Either &quot;future&quot; for masking out attention to future&#39;</span>
-        <span class="s1">&#39;positions or &quot;eye&quot; for masking out the token itself.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;positions or &quot;eye&quot; for masking out the token itself, or &quot;ngram&quot; for&#39;</span>
+        <span class="s1">&#39;bounding the left context to the previous N-1 tokens, where N is set&#39;</span>
+        <span class="s1">&#39;by `mask_ngram_order`.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;atten_tpl&#39;</span><span class="p">,</span>
         <span class="n">attention</span><span class="o">.</span><span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">use_source_vec_as_attention_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">enable_ctx_post_proj</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-        <span class="s1">&#39;Multi-Headed Dot-Attention default params&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;Multi-Headed Dot-Attention default params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;atten_dropout_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="s1">&#39;Probability at which we apply dropout to the attention probs. &#39;</span>
@@ -260,7 +274,7 @@
       <span class="n">p</span><span class="o">.</span><span class="n">context_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;future&#39;</span><span class="p">,</span> <span class="s1">&#39;eye&#39;</span><span class="p">]</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;future&#39;</span><span class="p">,</span> <span class="s1">&#39;eye&#39;</span><span class="p">,</span> <span class="s1">&#39;ngram&#39;</span><span class="p">]</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="c1"># Initialize multi-headed attention</span>
@@ -336,12 +350,19 @@
       <span class="n">target_time</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">target_bs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
 
+      <span class="c1"># Padding is complemented, so time indexes that we want to mask out</span>
+      <span class="c1"># receive padding weight 1.0.</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_type</span> <span class="o">==</span> <span class="s1">&#39;future&#39;</span><span class="p">:</span>
         <span class="n">padding</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">matrix_band_part</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_time</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
             <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
       <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_type</span> <span class="o">==</span> <span class="s1">&#39;eye&#39;</span><span class="p">:</span>
         <span class="n">padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_time</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+      <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_type</span> <span class="o">==</span> <span class="s1">&#39;ngram&#39;</span><span class="p">:</span>  <span class="c1"># Maybe apply N-gram mask.</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_ngram_order</span>
+        <span class="n">padding</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">matrix_band_part</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_time</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">mask_ngram_order</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">target_time</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
 
       <span class="c1"># [time,  batch, time]</span>
       <span class="n">causal_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">target_bs</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
@@ -414,19 +435,39 @@
 <span class="sd">      state `.NestedMap`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># Compute per_step_source_padding. Padding is complemented, so time indexes</span>
+    <span class="c1"># that we want to mask out receive padding weight 1.0.</span>
+    <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">source_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">zero_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">source_seq_len</span><span class="p">],</span>
+                           <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="n">ones_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">zero_padding</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">source_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">zero_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">source_seq_len</span><span class="p">],</span>
-                             <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
       <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">source_seq_len</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">source_seq_len</span><span class="p">],</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>
-          <span class="n">zero_padding</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">zero_padding</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-      <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+          <span class="n">zero_padding</span><span class="p">,</span> <span class="n">ones_padding</span><span class="p">)</span>
+      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+          <span class="p">[</span><span class="n">query_batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="c1"># Maybe apply N-gram masking.</span>
+    <span class="c1"># TODO(ciprianchelba): As pointed out by miachen, to get the expected</span>
+    <span class="c1"># speed-up we should go with per_step_source_padding=None here, and</span>
+    <span class="c1"># everytime we update the prefix_states, we not only extend one step, but</span>
+    <span class="c1"># also only keep the prefix_states for the most recent N steps instead of</span>
+    <span class="c1"># the prefix states all the way from step 0.</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_type</span> <span class="o">==</span> <span class="s1">&#39;ngram&#39;</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_ngram_order</span>
+      <span class="n">idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">source_seq_len</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_ngram_order</span><span class="p">)</span>
+      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">source_seq_len</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">source_seq_len</span><span class="p">],</span> <span class="n">idx</span><span class="p">)),</span>
+          <span class="n">ones_padding</span><span class="p">,</span> <span class="n">zero_padding</span><span class="p">)</span>
       <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
           <span class="p">[</span><span class="n">query_batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="kc">None</span>
+
     <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_prob</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithCachedSource</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
         <span class="n">extended_packed_src</span><span class="p">,</span>

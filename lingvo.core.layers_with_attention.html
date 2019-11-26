@@ -201,6 +201,16 @@ activations for the current position are masked to reduce the impact of
 high self-similarity. This is the use case for non-autoregressive decoder
 self-attention Transformer Layers. Can be activated by setting <code class="xref py py-obj docutils literal notranslate"><span class="pre">is_masked</span></code>
 flag of this layer and setting <code class="xref py py-obj docutils literal notranslate"><span class="pre">mask_type=&quot;eye&quot;</span></code>.</p></li>
+<li><p>Masked Multi-Headed Self-Attention, where attention keys, attention values
+and queries all come from the same previous layer output, but:
+. rightward activations are masked to prevent information flow from future.
+. leftward activations are also masked to prevent information flow from
+past tokens that are beyond the N-gram context [K-N+1, K-1] when predicting
+the target token in position K. This is the use case for decoder
+self-attention Transformer Layers in N-gram mode. Can be activated by
+setting <code class="xref py py-obj docutils literal notranslate"><span class="pre">is_masked</span></code> flag of this layer, and setting both
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">mask_type=&quot;ngram&quot;</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">mask_ngram_order=N-1</span></code> to use as context only the
+previous N-1 tokens (as expected for an N-gram model).</p></li>
 </ol>
 <dl class="method">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.Params">
