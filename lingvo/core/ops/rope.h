@@ -30,6 +30,8 @@ class Rope : public std::string {
   void AppendTo(std::string* dst) const {
     dst->append(*this);
   }
+
+  std::string ToString() const { return *this; }
 };
 
 }  // namespace lingvo

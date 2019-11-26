@@ -301,7 +301,7 @@ class BeamSearchStepOp : public OpKernel {
                  input_data.size());
         }
       } else if (input.dtype() == DT_STRING) {
-        output->flat<string>() = input.flat<string>();
+        output->flat<tstring>() = input.flat<tstring>();
       }
     }
     return output;
@@ -573,7 +573,7 @@ class BeamSearchStepOp : public OpKernel {
     auto t_out_scores = out_scores->matrix<float>();
     auto t_out_hyps = out_hyps->matrix<int>();
     auto t_out_prev_hyps = out_prev_hyps->matrix<int>();
-    auto t_out_done_hyps = out_done_hyps->matrix<string>();
+    auto t_out_done_hyps = out_done_hyps->matrix<tstring>();
     auto t_out_atten_probs = out_atten_probs->tensor<float, 3>();
     auto t_all_done = all_done->scalar<bool>();
 
@@ -700,7 +700,7 @@ class TopKTerminatedHypsOp : public OpKernel {
                      k, /* unused epsilon id */ -1));
     // Each mutex is used to protect corresponding topk_vec.
     std::vector<mutex> mu_vec(num_beams);
-    auto t_done_hyps = in_done_hyps.matrix<string>();
+    auto t_done_hyps = in_done_hyps.matrix<tstring>();
     // The thread sharding is along hyps_size.
     Shard(kNumWorkers, workers, hyps_size, 1000 * num_steps,
           [&](int64 start, int64 limit) {
@@ -731,7 +731,7 @@ class TopKTerminatedHypsOp : public OpKernel {
             }
           });
 
-    auto t_topk_hyps = topk_hyps->matrix<string>();
+    auto t_topk_hyps = topk_hyps->matrix<tstring>();
     for (int i = 0; i < num_beams; ++i) {
       auto ith_topk = topk_vec[i].Get();
       CHECK_LE(ith_topk.size(), k);
@@ -836,7 +836,7 @@ class UnpackHypOp : public OpKernel {
 
   void Compute(OpKernelContext* ctx) override {
     const Tensor& in_hyps = ctx->input(0);
-    const auto& t_in_hyps = in_hyps.flat<string>();
+    const auto& t_in_hyps = in_hyps.flat<tstring>();
     const int batch_size = t_in_hyps.size();
     std::vector<Hypothesis> hyps(batch_size);
     for (int i = 0; i < batch_size; ++i) {
@@ -991,7 +991,7 @@ class HypsFromBeamSearchOuts : public OpKernel {
 
     Tensor* out_hyps;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, hyps.shape(), &out_hyps));
-    auto out_hyps_t = out_hyps->matrix<string>();
+    auto out_hyps_t = out_hyps->matrix<tstring>();
 
     // Use the same thread pool as topk operator.
     static thread::ThreadPool* workers =

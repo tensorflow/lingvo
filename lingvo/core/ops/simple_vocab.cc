@@ -161,13 +161,13 @@ class VocabTokenToIdOp : public OpKernel {
     Tensor* id;
     OP_REQUIRES_OK(ctx, ctx->allocate_output("id", token->shape(), &id));
     if (token->dims() == 0) {
-      id->scalar<int32>()() = vocab_.TokenToId(token->scalar<string>()());
+      id->scalar<int32>()() = vocab_.TokenToId(token->scalar<tstring>()());
     } else {
       OP_REQUIRES(
           ctx, token->dims() == 1,
           errors::InvalidArgument("Input must be a scalar or 1D tensor."));
       for (int i = 0; i < token->dim_size(0); i++) {
-        id->vec<int32>()(i) = vocab_.TokenToId(token->vec<string>()(i));
+        id->vec<int32>()(i) = vocab_.TokenToId(token->vec<tstring>()(i));
       }
     }
   }
@@ -196,13 +196,13 @@ class VocabIdToTokenOp : public OpKernel {
     Tensor* token;
     OP_REQUIRES_OK(ctx, ctx->allocate_output("token", id->shape(), &token));
     if (id->dims() == 0) {
-      token->scalar<string>()() = vocab_.IdToToken(id->scalar<int32>()());
+      token->scalar<tstring>()() = vocab_.IdToToken(id->scalar<int32>()());
     } else {
       OP_REQUIRES(
           ctx, id->dims() == 1,
           errors::InvalidArgument("Input must be a scalar or 1D tensor."));
       for (int i = 0; i < id->dim_size(0); i++) {
-        token->vec<string>()(i) = vocab_.IdToToken(id->vec<int32>()(i));
+        token->vec<tstring>()(i) = vocab_.IdToToken(id->vec<int32>()(i));
       }
     }
   }
@@ -232,13 +232,13 @@ class TokenInVocabOp : public OpKernel {
     OP_REQUIRES_OK(ctx,
                    ctx->allocate_output("result", token->shape(), &result));
     if (token->dims() == 0) {
-      result->scalar<bool>()() = vocab_.InVocab(token->scalar<string>()());
+      result->scalar<bool>()() = vocab_.InVocab(token->scalar<tstring>()());
     } else {
       OP_REQUIRES(
           ctx, token->dims() == 1,
           errors::InvalidArgument("Input must be a scalar or 1D tensor."));
       for (int i = 0; i < token->dim_size(0); i++) {
-        result->vec<bool>()(i) = vocab_.InVocab(token->vec<string>()(i));
+        result->vec<bool>()(i) = vocab_.InVocab(token->vec<tstring>()(i));
       }
     }
   }

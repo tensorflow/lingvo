@@ -56,7 +56,7 @@ class StrToVocabTokensOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override {
     const Tensor* labels;
     OP_REQUIRES_OK(ctx, ctx->input("labels", &labels));
-    const auto& t_label = labels->vec<string>();
+    const auto& t_label = labels->vec<tstring>();
     const int32 b_size = labels->dim_size(0);
     Tensor token_ids(DT_INT32, TensorShape({b_size, maxlen_}));
     Tensor target_ids(DT_INT32, TensorShape({b_size, maxlen_}));
@@ -177,7 +177,7 @@ class NgramIdToTokenOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({batch}), &out));
     const auto& t_ids = token_ids->matrix<int32>();
     const auto& t_seq_lens = seq_lengths->vec<int32>();
-    auto t_out = out->template vec<string>();
+    auto t_out = out->template vec<tstring>();
     for (int i = 0; i < batch; ++i) {
       const int len_i = std::max(0, t_seq_lens(i));
       std::vector<int32> ids_i(len_i);
@@ -235,7 +235,7 @@ class BpeIdsToWordsOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({batch}), &out));
     const auto& t_ids = token_ids->matrix<int32>();
     const auto& t_seq_lens = seq_lengths->vec<int32>();
-    auto t_out = out->template vec<string>();
+    auto t_out = out->template vec<tstring>();
     for (int i = 0; i < batch; ++i) {
       const int len_i = std::max(0, t_seq_lens(i));
       std::vector<string> labels;
@@ -293,7 +293,7 @@ class BpeWordsToIdsOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override {
     const Tensor* labels;
     OP_REQUIRES_OK(ctx, ctx->input("labels", &labels));
-    const auto& t_label = labels->vec<string>();
+    const auto& t_label = labels->vec<tstring>();
     const int32 b_size = labels->dim_size(0);
     Tensor* token_ids = nullptr;
     Tensor* target_ids = nullptr;

@@ -52,7 +52,7 @@ class TestRP : public RecordProcessor {
     const string val = string(record.value);
     *bucket_key = val.size();
     Tensor t(DT_STRING, {});
-    record.value.AppendTo(&t.scalar<string>()());
+    t.scalar<tstring>()().append(record.value.ToString());
     Tensor ids(DT_STRING, {1});
     auto lab = ids.flat<tensorflow::tstring>();
     lab(0) = absl::StrCat(record.source_id);
@@ -68,8 +68,8 @@ class TestRP : public RecordProcessor {
     Tensor t(DT_STRING, {n});
     Tensor source_ids(DT_STRING, {n});
     for (int i = 0; i < samples.size(); ++i) {
-      t.flat<string>()(i) = samples[i][0].scalar<string>()();
-      source_ids.flat<string>()(i) = samples[i][1].scalar<string>()();
+      t.flat<tstring>()(i) = samples[i][0].scalar<tstring>()();
+      source_ids.flat<tstring>()(i) = samples[i][1].scalar<tstring>()();
     }
     batch->clear();
     batch->push_back(std::move(t));
@@ -107,13 +107,13 @@ TEST(RecordBatcher, Basic) {
     ASSERT_LE(source_ids.dim_size(0), bopts.bucket_batch_limit[bucket_id]);
     int maxlen = 0;
     for (int j = 0; j < t.dim_size(0); ++j) {
-      auto len = t.vec<string>()(j).size();
+      auto len = t.vec<tstring>()(j).size();
       EXPECT_LE(len, bopts.bucket_upper_bound[bucket_id]);
       if (bucket_id != 0) {
         EXPECT_LT(bopts.bucket_upper_bound[bucket_id - 1], len);
       }
       maxlen = std::max<int>(maxlen, len);
-      ASSERT_EQ(source_ids.vec<string>()(j), "0");
+      ASSERT_EQ(source_ids.vec<tstring>()(j), "0");
     }
     VLOG(1) << bucket_id << " " << t.dim_size(0) << " " << maxlen;
   }
@@ -146,7 +146,7 @@ TEST(RecordBatcher, BasicMultiThread) {
     ASSERT_LE(t.dim_size(0), bopts.bucket_batch_limit[bucket_id]);
     int maxlen = 0;
     for (int j = 0; j < t.dim_size(0); ++j) {
-      auto len = t.vec<string>()(j).size();
+      auto len = t.vec<tstring>()(j).size();
       EXPECT_LE(len, bopts.bucket_upper_bound[bucket_id]);
       if (bucket_id != 0) {
         EXPECT_LT(bopts.bucket_upper_bound[bucket_id - 1], len);
@@ -195,7 +195,7 @@ TEST(RecordBatcher, LearnBuckets) {
     const Tensor& t = batch[0];
     int maxlen = 0;
     for (int j = 0; j < t.dim_size(0); ++j) {
-      int len = t.vec<string>()(j).size();
+      int len = t.vec<tstring>()(j).size();
       maxlen = std::max<int>(maxlen, len);
     }
     maxlens[bucket_id] += maxlen;
@@ -241,7 +241,7 @@ TEST(RecordBatcher, FullEpoch) {
     TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
     const Tensor& t = batch[0];
     for (int j = 0; j < t.dim_size(0); ++j) {
-      records.push_back(t.vec<string>()(j));
+      records.push_back(t.vec<tstring>()(j));
     }
   }
   ASSERT_EQ(N, records.size());
@@ -279,7 +279,7 @@ TEST(RecordBatcher, CaptureYielderStatus) {
       const Tensor& t = batch[i];
       if (t.dtype() == DT_STRING) {
         for (int j = 0; j < t.dim_size(0); ++j) {
-          records.push_back(t.vec<string>()(j));
+          records.push_back(t.vec<tstring>()(j));
         }
       }
     }

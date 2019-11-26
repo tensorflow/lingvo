@@ -34,7 +34,7 @@ void Iota(std::vector<T>* vec) {
 }
 
 template <>
-void Iota<string>(std::vector<string>* vec) {
+void Iota<tstring>(std::vector<tstring>* vec) {
   // Do nothing.
 }
 
@@ -96,22 +96,22 @@ class StaticMapOp : public OpKernel {
 };
 
 REGISTER_KERNEL_BUILDER(Name("StaticMapStringInt").Device(DEVICE_CPU),
-                        StaticMapOp<string, int32>);
+                        StaticMapOp<tstring, int32>);
 REGISTER_KERNEL_BUILDER(Name("StaticMapIntString").Device(DEVICE_CPU),
-                        StaticMapOp<int32, string>);
+                        StaticMapOp<int32, tstring>);
 
 #if GOOGLE_CUDA
 REGISTER_KERNEL_BUILDER(Name("StaticMapStringInt")
                             .Device(DEVICE_GPU)
                             .HostMemory("x")
                             .HostMemory("y"),
-                        StaticMapOp<string, int32>);
+                        StaticMapOp<tstring, int32>);
 
 REGISTER_KERNEL_BUILDER(Name("StaticMapIntString")
                             .Device(DEVICE_GPU)
                             .HostMemory("x")
                             .HostMemory("y"),
-                        StaticMapOp<int32, string>);
+                        StaticMapOp<int32, tstring>);
 #endif
 
 }  // namespace

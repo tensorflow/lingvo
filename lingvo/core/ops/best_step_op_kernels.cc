@@ -52,10 +52,11 @@ class BestStepOp : public OpKernel {
       ::std::unique_ptr<RecordReader> reader(new RecordReader(file.get()));
 
       uint64 offset = 0;
-      string raw_proto;
+      tstring raw_proto;
       while (reader->ReadRecord(&offset, &raw_proto).ok()) {
         Event event;
-        CHECK(::tensorflow::ParseProtoUnlimited(&event, raw_proto));
+        CHECK(::tensorflow::ParseProtoUnlimited(&event, raw_proto.data(),
+                                                raw_proto.size()));
         if (event.what_case() != Event::WhatCase::kSummary) {
           continue;
         }

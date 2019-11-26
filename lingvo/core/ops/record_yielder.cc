@@ -250,7 +250,7 @@ class TFRecordIterator : public RecordIterator {
   std::unique_ptr<RandomAccessFile> file_;
   io::SequentialRecordReader reader_;
   int64 num_ = 0;
-  string record_;
+  tstring record_;
 
   io::RecordReaderOptions ReaderOptions(const string& compression_type) {
     auto opts =
