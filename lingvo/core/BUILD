@@ -420,6 +420,7 @@ py_library(
     deps = [
         ":hyperparams_py_pb2",
         ":symbolic",
+        # Implicit python proto dependency.
         "//lingvo:compat",
         # Implicit six dependency.
     ],

@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import hyperparams as _params
+from lingvo.core import hyperparams_pb2
 from lingvo.core import symbolic
 from lingvo.core import test_utils
 from six.moves import zip
@@ -265,6 +266,8 @@ class ParamsTest(test_utils.TestCase):
     outer.Define('complex_dict_escape', {'a': 'abc"\'\ndef'}, '')
     outer.Define('some_class', complex(0, 1), '')
     outer.Define('optional_bool', None, '')
+    # Arbitrarily use HyperparameterValue as some example proto.
+    outer.Define('proto', hyperparams_pb2.HyperparamValue(int_val=42), '')
 
     self.assertEqual(
         '\n' + outer.ToText(), r"""
@@ -280,6 +283,7 @@ list_of_params[0].bar : 2.71
 list_of_params[0].baz : 'hello'
 optional_bool : NoneType
 plain_dict : {'a': 10}
+proto : { int_val: 42 }
 seqlen : [10, {'bar': 2.71, 'baz': 'hello'}, 30]
 some_class : complex
 tau : False
@@ -314,6 +318,7 @@ list_of_params[0].bar : 2.72
 list_of_params[0].baz : 'hello'
 optional_bool : True
 plain_dict : {'x': 0.3}
+proto : { int_val: 42 }
 seqlen : [1, 2.0, '3', [4]]
 some_class : complex
 tau : True

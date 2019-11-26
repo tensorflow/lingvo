@@ -30,6 +30,9 @@ from lingvo.core import hyperparams_pb2
 from lingvo.core import symbolic
 import six
 
+from google.protobuf import message
+from google.protobuf import text_format
+
 
 def _QuoteString(s):
   """Quotes a string with appropriate quotes and escaping.
@@ -526,6 +529,8 @@ class Params(object):
         return val
       if isinstance(val, tf.DType):
         return val.name
+      if isinstance(val, message.Message):
+        return '{ %s }' % text_format.MessageToString(val, as_one_line=True)
       if isinstance(val, type):
         return 'type/' + inspect.getmodule(val).__name__ + '/' + val.__name__
       return type(val).__name__
