@@ -472,6 +472,18 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     dec = decoder.TransformerDecoder(p)
     self.assertIsInstance(dec, p.cls)
 
+  def testDecoderWithNgramMaskConstruction(self):
+    p = self._DecoderParams()
+    # Turn on N-gram masking in the TransformerLayer.
+    # Before doing so though copy the self-attention params to avoid
+    # the auxilliary attention being masked as well.
+    p.trans_tpl.tr_aux_atten_tpl = p.trans_tpl.tr_atten_tpl.Copy()
+    p.trans_tpl.tr_atten_tpl.is_masked = True
+    p.trans_tpl.tr_atten_tpl.mask_ngram_order = 3
+    p.trans_tpl.tr_atten_tpl.mask_type = 'ngram'
+    dec = decoder.TransformerDecoder(p)
+    self.assertIsInstance(dec, p.cls)
+
   def testDecoderConstructionWithTplList(self):
     p = self._DecoderParams()
     p.trans_tpl = [p.trans_tpl.Copy(), p.trans_tpl.Copy()]
@@ -705,6 +717,23 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     with self.session(use_gpu=True) as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype)
+      dec = decoder.TransformerDecoder(p)
+      encoder_outputs, targets, num_hyps = (
+          self._InputsForAttentionTest(dtype=dtype))
+
+      self._testExtendStep(sess, dec, encoder_outputs, targets, num_hyps)
+
+  def testDecoderWithNgramMaskExtendStep(self, dtype=tf.float32):
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(dtype=dtype)
+      # Turn on N-gram masking in the TransformerLayer.
+      # Before doing so though copy the self-attention params to avoid
+      # the auxilliary attention being masked as well.
+      p.trans_tpl.tr_aux_atten_tpl = p.trans_tpl.tr_atten_tpl.Copy()
+      p.trans_tpl.tr_atten_tpl.is_masked = True
+      p.trans_tpl.tr_atten_tpl.mask_ngram_order = 3
+      p.trans_tpl.tr_atten_tpl.mask_type = 'ngram'
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, num_hyps = (
           self._InputsForAttentionTest(dtype=dtype))

@@ -62,7 +62,16 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
      high self-similarity. This is the use case for non-autoregressive decoder
      self-attention Transformer Layers. Can be activated by setting `is_masked`
      flag of this layer and setting `mask_type="eye"`.
-
+  6. Masked Multi-Headed Self-Attention, where attention keys, attention values
+     and queries all come from the same previous layer output, but:
+     . rightward activations are masked to prevent information flow from future.
+     . leftward activations are also masked to prevent information flow from
+     past tokens that are beyond the N-gram context [K-N+1, K-1] when predicting
+     the target token in position K. This is the use case for decoder
+     self-attention Transformer Layers in N-gram mode. Can be activated by
+     setting `is_masked` flag of this layer, and setting both
+     `mask_type="ngram"` and `mask_ngram_order=N-1` to use as context only the
+     previous N-1 tokens (as expected for an N-gram model).
   """
 
   @classmethod
@@ -74,15 +83,20 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p.Define('num_attention_heads', 8, 'Number of attention heads.')
     p.Define('is_masked', False, 'If set, uses masked MultiHeadedAttention.')
     p.Define(
+        'mask_ngram_order', 0, 'N-gram order, relevant only when'
+        '`mask_type` is set to "ngram".')
+    p.Define(
         'mask_type', 'future', 'Type of attention mask if `is_masked` is'
         'set. Either "future" for masking out attention to future'
-        'positions or "eye" for masking out the token itself.')
-    p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
+        'positions or "eye" for masking out the token itself, or "ngram" for'
+        'bounding the left context to the previous N-1 tokens, where N is set'
+        'by `mask_ngram_order`.')
+    p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params.')
     p.Define(
         'atten_tpl',
         attention.MultiHeadedAttention.Params().Set(
             use_source_vec_as_attention_value=False, enable_ctx_post_proj=True),
-        'Multi-Headed Dot-Attention default params')
+        'Multi-Headed Dot-Attention default params.')
     p.Define(
         'atten_dropout_prob', 0.0,
         'Probability at which we apply dropout to the attention probs. '
@@ -115,7 +129,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       p.context_dim = p.source_dim
 
     if p.is_masked:
-      assert p.mask_type in ['future', 'eye']
+      assert p.mask_type in ['future', 'eye', 'ngram']
 
     with tf.variable_scope(p.name):
       # Initialize multi-headed attention
@@ -191,12 +205,19 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       target_time = tf.shape(query_vec)[0]
       target_bs = tf.shape(query_vec)[1]
 
+      # Padding is complemented, so time indexes that we want to mask out
+      # receive padding weight 1.0.
       if p.mask_type == 'future':
         padding = 1.0 - tf.matrix_band_part(
             tf.ones([target_time, target_time], dtype=py_utils.FPropDtype(p)),
             -1, 0)
       elif p.mask_type == 'eye':
         padding = tf.eye(target_time, target_time, dtype=py_utils.FPropDtype(p))
+      elif p.mask_type == 'ngram':  # Maybe apply N-gram mask.
+        assert p.mask_ngram_order
+        padding = 1.0 - tf.matrix_band_part(
+            tf.ones([target_time, target_time], dtype=py_utils.FPropDtype(p)),
+            tf.minimum(p.mask_ngram_order - 1, target_time - 1), 0)
 
       # [time,  batch, time]
       causal_padding = tf.tile(tf.expand_dims(padding, 1), [1, target_bs, 1])
@@ -269,19 +290,39 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       state `.NestedMap`.
     """
     p = self.params
+
+    # Compute per_step_source_padding. Padding is complemented, so time indexes
+    # that we want to mask out receive padding weight 1.0.
+    query_batch_size = tf.shape(query_vec)[0]
+    source_seq_len = tf.shape(extended_packed_src.source_vecs)[0]
+    zero_padding = tf.fill([source_seq_len],
+                           tf.constant(0.0, dtype=query_vec.dtype))
+    ones_padding = tf.ones_like(zero_padding, dtype=query_vec.dtype)
     if t is not None:
-      source_seq_len = tf.shape(extended_packed_src.source_vecs)[0]
-      zero_padding = tf.fill([source_seq_len],
-                             tf.constant(0.0, dtype=query_vec.dtype))
       per_step_source_padding = tf.where(
           tf.less(tf.range(source_seq_len), tf.fill([source_seq_len], t + 1)),
-          zero_padding, tf.ones_like(zero_padding, dtype=query_vec.dtype))
-      query_batch_size = tf.shape(query_vec)[0]
+          zero_padding, ones_padding)
+      per_step_source_padding = tf.tile(
+          tf.expand_dims(per_step_source_padding, axis=0),
+          [query_batch_size, 1])
+    # Maybe apply N-gram masking.
+    # TODO(ciprianchelba): As pointed out by miachen, to get the expected
+    # speed-up we should go with per_step_source_padding=None here, and
+    # everytime we update the prefix_states, we not only extend one step, but
+    # also only keep the prefix_states for the most recent N steps instead of
+    # the prefix states all the way from step 0.
+    elif p.is_masked and p.mask_type == 'ngram':
+      assert p.mask_ngram_order
+      idx = tf.maximum(0, source_seq_len - p.mask_ngram_order)
+      per_step_source_padding = tf.where(
+          tf.less(tf.range(source_seq_len), tf.fill([source_seq_len], idx)),
+          ones_padding, zero_padding)
       per_step_source_padding = tf.tile(
           tf.expand_dims(per_step_source_padding, axis=0),
           [query_batch_size, 1])
     else:
       per_step_source_padding = None
+
     ctx_vec, atten_prob, _ = self.atten.ComputeContextVectorWithCachedSource(
         theta.atten,
         extended_packed_src,
