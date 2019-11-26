@@ -46,6 +46,7 @@ class BaseTokenizer(base_layer.BaseLayer):
     p.Define('target_unk_id', 0, 'Target unknown token id.')
     p.Define('target_sos_id', 1, 'Target start of sequence id.')
     p.Define('target_eos_id', 2, 'Target end of sequence id.')
+    p.Define('target_wb_id', -1, 'Target word boundary id.')
     return p
 
   @base_layer.initializer
