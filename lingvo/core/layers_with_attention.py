@@ -507,6 +507,8 @@ class TransformerLayer(base_layer.BaseLayer):
     p.Define('tr_atten_tpl',
              TransformerAttentionLayer.Params().Set(num_attention_heads=8),
              'Transformer Attention Layer params.')
+    p.Define('tr_post_ln_tpl', None,
+             '(Optional) Layer norm at end of transformer layer.')
     p.Define('tr_fflayer_tpl',
              TransformerFeedForwardLayer.Params().Set(hidden_dim=2048),
              'Transformer Feed-Forward Layer params.')
@@ -567,6 +569,13 @@ class TransformerLayer(base_layer.BaseLayer):
       params.input_dim = p.source_dim
       params.output_dim = p.output_dim
       self.CreateChild('fflayer', params)
+
+      # Initialize output layer norm
+      if p.tr_post_ln_tpl:
+        params = p.tr_post_ln_tpl.Copy()
+        params.name = 'tr_post_layer_norm'
+        params.input_dim = p.source_dim
+        self.CreateChild('layer_norm', params)
 
   @property
   def output_dim(self):
@@ -649,6 +658,8 @@ class TransformerLayer(base_layer.BaseLayer):
                                                  aux_segment_id, **kwargs)
 
     h = self.fflayer.FProp(theta.fflayer, atten_vec, source_paddings)
+    if p.tr_post_ln_tpl:
+      h = self.layer_norm.FProp(theta.layer_norm, h)
     return h, atten_prob
 
   def ExtendStep(self,
