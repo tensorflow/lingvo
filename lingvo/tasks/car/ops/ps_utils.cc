@@ -295,15 +295,17 @@ PSUtils::Result PSUtils::DoSampling(const Tensor& points,
       // adds it to the sampler.
       sampler.Reset();
       for (int j = 0; j < num_points; ++j) {
-        auto ss_xy =
-            Square(points_t(cur_batch, k, 0) - points_t(cur_batch, j, 0)) +
-            Square(points_t(cur_batch, k, 1) - points_t(cur_batch, j, 1));
-        auto z = points_t(cur_batch, j, 2);
-        auto ss_xyz = ss_xy + Square(points_t(cur_batch, k, 2) - z);
-        if (ss_xyz <= threshold) {
-          sampler.Add(j, ss_xyz);
+        if (points_padding_t(cur_batch, j) == 0.0) {
+          auto ss_xy =
+              Square(points_t(cur_batch, k, 0) - points_t(cur_batch, j, 0)) +
+              Square(points_t(cur_batch, k, 1) - points_t(cur_batch, j, 1));
+          auto z = points_t(cur_batch, j, 2);
+          auto ss_xyz = ss_xy + Square(points_t(cur_batch, k, 2) - z);
+          if (ss_xyz <= threshold) {
+            sampler.Add(j, ss_xyz);
+          }
+          selector.Update(j, ss_xy);
         }
-        selector.Update(j, ss_xy);
       }
 
       auto ids = sampler.Get();
