@@ -160,15 +160,15 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Metrics for 3D detection problems.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
-<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">metrics</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">plot</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">summary</span>
-<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">transform_util</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">metrics</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">plot</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">summary</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">transform_util</span>
 <span class="kn">import</span> <span class="nn">matplotlib.colors</span> <span class="k">as</span> <span class="nn">matplotlib_colors</span>
 <span class="kn">import</span> <span class="nn">matplotlib.patches</span> <span class="k">as</span> <span class="nn">matplotlib_patches</span>
 <span class="kn">import</span> <span class="nn">matplotlib.patheffects</span> <span class="k">as</span> <span class="nn">path_effects</span>
@@ -176,7 +176,7 @@
 <span class="kn">import</span> <span class="nn">PIL.Image</span> <span class="k">as</span> <span class="nn">Image</span>
 <span class="kn">import</span> <span class="nn">PIL.ImageDraw</span> <span class="k">as</span> <span class="nn">ImageDraw</span>
 <span class="kn">import</span> <span class="nn">PIL.ImageFont</span> <span class="k">as</span> <span class="nn">ImageFont</span>
-<span class="kn">from</span> <span class="nn">tensorboard.plugins.mesh</span> <span class="k">import</span> <span class="n">summary</span> <span class="k">as</span> <span class="n">mesh_summary</span>
+<span class="kn">from</span> <span class="nn">tensorboard.plugins.mesh</span> <span class="kn">import</span> <span class="n">summary</span> <span class="k">as</span> <span class="n">mesh_summary</span>
 
 
 <div class="viewcode-block" id="TopDownVisualizationMetric"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_metrics.html#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric">[docs]</a><span class="k">class</span> <span class="nc">TopDownVisualizationMetric</span><span class="p">(</span><span class="n">metrics</span><span class="o">.</span><span class="n">BaseMetric</span><span class="p">):</span>
@@ -215,7 +215,7 @@
 <span class="sd">  with a different color per class.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">top_down_transform</span><span class="p">,</span>
                <span class="n">class_id_to_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">image_height</span><span class="o">=</span><span class="mi">1536</span><span class="p">,</span>
@@ -445,7 +445,7 @@
   <span class="c1"># Distance from car after which we consider all points equally far.</span>
   <span class="n">_MAX_DISTANCE_METERS</span> <span class="o">=</span> <span class="mf">40.</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampler_num_samples</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampler_num_samples</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Init.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sampler</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">UniformSampler</span><span class="p">(</span><span class="n">num_samples</span><span class="o">=</span><span class="n">sampler_num_samples</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span> <span class="o">=</span> <span class="kc">None</span>
@@ -530,7 +530,7 @@
 
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">),</span>
                <span class="n">bbox_score_threshold</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
                <span class="n">sampler_num_samples</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>

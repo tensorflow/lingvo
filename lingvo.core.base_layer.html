@@ -584,7 +584,7 @@ extra theta.</p></li>
 <code class="sig-name descname">CreateVariable</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">var_params</em>, <em class="sig-param">theta_fn=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.CreateVariable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.CreateVariable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a variable of this layer according to the parameter <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_params</span></code>.</p>
 <p>E.g.:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>    <span class="c1"># A layer&#39;s constructor</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>    <span class="c1"># A layer&#39;s constructor</span>
   <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
       <span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">]))</span>
 </pre></div>
@@ -593,7 +593,7 @@ extra theta.</p></li>
 variable’s value before used by the forward computation. E.g., to
 add the global variational noise according to this layer’s
 parameter, one can do:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>    <span class="c1"># A layer&#39;s constructor</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>    <span class="c1"># A layer&#39;s constructor</span>
   <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
     <span class="n">name</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span>
     <span class="n">var_params</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>

@@ -160,17 +160,17 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Helper classes for computing performance metrics.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">plot</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">scorers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">plot</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">scorers</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 <span class="k">try</span><span class="p">:</span>
   <span class="c1"># pylint: disable=g-import-not-at-top</span>
   <span class="kn">import</span> <span class="nn">sklearn.metrics</span>
@@ -211,7 +211,7 @@
 <div class="viewcode-block" id="AverageMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.AverageMetric">[docs]</a><span class="k">class</span> <span class="nc">AverageMetric</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Class to compute a weighted (arithmetic) average value metric.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_total_value</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_total_weight</span> <span class="o">=</span> <span class="mf">0.0</span>
 
@@ -248,7 +248,7 @@
 <div class="viewcode-block" id="F1Metric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.F1Metric">[docs]</a><span class="k">class</span> <span class="nc">F1Metric</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Class to compute F1 metrics.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_true_pos</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_false_pos</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_false_neg</span> <span class="o">=</span> <span class="mf">0.0</span>
@@ -281,7 +281,7 @@
 <div class="viewcode-block" id="CorpusBleuMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.CorpusBleuMetric">[docs]</a><span class="k">class</span> <span class="nc">CorpusBleuMetric</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Metric class to compute the corpus-level BLEU score.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_scorer</span> <span class="o">=</span> <span class="n">scorers</span><span class="o">.</span><span class="n">BleuScorer</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 <div class="viewcode-block" id="CorpusBleuMetric.Update"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.CorpusBleuMetric.Update">[docs]</a>  <span class="k">def</span> <span class="nf">Update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_str</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">):</span>
@@ -317,7 +317,7 @@
 <span class="sd">  instead).</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_max_metrics</span> <span class="o">=</span> <span class="mi">51</span>
 
@@ -406,7 +406,7 @@
 <div class="viewcode-block" id="AUCMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.AUCMetric">[docs]</a><span class="k">class</span> <span class="nc">AUCMetric</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Class to compute the AUC score for binary classification.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;roc&#39;</span><span class="p">,</span> <span class="n">samples</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;roc&#39;</span><span class="p">,</span> <span class="n">samples</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructor of the class.</span>
 
 <span class="sd">    Args:</span>

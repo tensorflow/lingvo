@@ -160,12 +160,12 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Utilities for symbolic computation.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">threading</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 <span class="kn">import</span> <span class="nn">sympy</span>
 
 
@@ -189,7 +189,7 @@
 <div class="viewcode-block" id="_LocalSymbolToValueStack"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic._LocalSymbolToValueStack">[docs]</a><span class="k">class</span> <span class="nc">_LocalSymbolToValueStack</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A thread-local stack of symbol-to-value dicts.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">_LocalSymbolToValueStack</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">value_type</span> <span class="ow">in</span> <span class="n">VALUE_TYPES</span><span class="p">:</span>
@@ -212,7 +212,7 @@
 
   <span class="n">_local_stack</span> <span class="o">=</span> <span class="n">_LocalSymbolToValueStack</span><span class="p">()</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value_type</span><span class="p">,</span> <span class="n">symbol_to_value_map</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value_type</span><span class="p">,</span> <span class="n">symbol_to_value_map</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates a new symbol to value map.</span>
 
 <span class="sd">    Args:</span>
@@ -228,10 +228,10 @@
   <span class="k">def</span> <span class="nf">Stack</span><span class="p">(</span><span class="n">value_type</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">SymbolToValueMap</span><span class="o">.</span><span class="n">_local_stack</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="n">value_type</span><span class="p">]</span></div>
 
-  <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">Stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value_type</span><span class="p">)</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">merged</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_arg</span><span class="p">,</span> <span class="n">value_arg</span><span class="p">,</span> <span class="n">traceback_arg</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_arg</span><span class="p">,</span> <span class="n">value_arg</span><span class="p">,</span> <span class="n">traceback_arg</span><span class="p">):</span>
     <span class="n">stack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Stack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value_type</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">stack</span>
     <span class="k">assert</span> <span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">merged</span>

@@ -167,22 +167,22 @@
 <span class="sd">standard AP metrics implementation with our custom breakdowns.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
-<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">plot</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">ap_metric</span>
-<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="k">import</span> <span class="n">breakdown_metric</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">plot</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">ap_metric</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">breakdown_metric</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">waymo_open_dataset</span> <span class="k">import</span> <span class="n">label_pb2</span>
-<span class="kn">from</span> <span class="nn">waymo_open_dataset.metrics.ops</span> <span class="k">import</span> <span class="n">py_metrics_ops</span>
-<span class="kn">from</span> <span class="nn">waymo_open_dataset.metrics.python</span> <span class="k">import</span> <span class="n">config_util_py</span> <span class="k">as</span> <span class="n">config_util</span>
-<span class="kn">from</span> <span class="nn">waymo_open_dataset.protos</span> <span class="k">import</span> <span class="n">breakdown_pb2</span>
-<span class="kn">from</span> <span class="nn">waymo_open_dataset.protos</span> <span class="k">import</span> <span class="n">metrics_pb2</span>
+<span class="kn">from</span> <span class="nn">waymo_open_dataset</span> <span class="kn">import</span> <span class="n">label_pb2</span>
+<span class="kn">from</span> <span class="nn">waymo_open_dataset.metrics.ops</span> <span class="kn">import</span> <span class="n">py_metrics_ops</span>
+<span class="kn">from</span> <span class="nn">waymo_open_dataset.metrics.python</span> <span class="kn">import</span> <span class="n">config_util_py</span> <span class="k">as</span> <span class="n">config_util</span>
+<span class="kn">from</span> <span class="nn">waymo_open_dataset.protos</span> <span class="kn">import</span> <span class="n">breakdown_pb2</span>
+<span class="kn">from</span> <span class="nn">waymo_open_dataset.protos</span> <span class="kn">import</span> <span class="n">metrics_pb2</span>
 
 
 <div class="viewcode-block" id="_BuildWaymoMetricConfig"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_ap_metric.html#lingvo.tasks.car.waymo.waymo_ap_metric._BuildWaymoMetricConfig">[docs]</a><span class="k">def</span> <span class="nf">_BuildWaymoMetricConfig</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">box_type</span><span class="p">,</span> <span class="n">waymo_breakdown_metrics</span><span class="p">):</span>
@@ -226,7 +226,7 @@
         <span class="s1">&#39;as `RANGE` or `OBJECT_TYPE`.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">WaymoAPMetrics</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_waymo_metric_config</span> <span class="o">=</span> <span class="n">_BuildWaymoMetricConfig</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">box_type</span><span class="p">,</span>
@@ -445,7 +445,7 @@
         <span class="s1">&#39;metrics computed from the Waymo breakdown generator config.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">WaymoBreakdownMetric</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_average_precision_headings</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall_headings</span> <span class="o">=</span> <span class="p">{}</span>

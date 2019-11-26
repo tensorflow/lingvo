@@ -160,14 +160,14 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Helper classes for computing scores.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 
 <div class="viewcode-block" id="_IsUnicode"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers._IsUnicode">[docs]</a><span class="k">def</span> <span class="nf">_IsUnicode</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
@@ -200,7 +200,7 @@
   <span class="n">_BPE_SEPARATOR</span> <span class="o">=</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="s1">&#39;@@ &#39;</span><span class="p">)</span>
   <span class="n">_WPM_SEPARATOR</span> <span class="o">=</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\xe2\x96\x81</span><span class="s1">&#39;</span><span class="p">)</span>  <span class="c1"># Same for SPM.</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">separator_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">separator_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_separator_type</span> <span class="o">=</span> <span class="n">separator_type</span>
 
 <div class="viewcode-block" id="Unsegmenter._UnsegmentWpm"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.Unsegmenter._UnsegmentWpm">[docs]</a>  <span class="k">def</span> <span class="nf">_UnsegmentWpm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
@@ -210,7 +210,7 @@
 <div class="viewcode-block" id="Unsegmenter._UnsegmentBpe"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.Unsegmenter._UnsegmentBpe">[docs]</a>  <span class="k">def</span> <span class="nf">_UnsegmentBpe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_BPE_SEPARATOR</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
 
-  <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_separator_type</span> <span class="o">==</span> <span class="s1">&#39;bpe&#39;</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_UnsegmentBpe</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
     <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_separator_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;wpm&#39;</span><span class="p">,</span> <span class="s1">&#39;spm&#39;</span><span class="p">]:</span>
@@ -236,7 +236,7 @@
 <span class="sd">  0.6687...</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_ngram</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">separator_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_ngram</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">separator_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_max_ngram</span> <span class="o">=</span> <span class="n">max_ngram</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_hyp_ngram_matches</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_ngram</span><span class="p">)]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_hyp_ngram_counts</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_ngram</span><span class="p">)]</span>

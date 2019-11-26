@@ -293,24 +293,24 @@
 <span class="sd">unused.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">zlib</span>
 
 <span class="kn">import</span> <span class="nn">apache_beam</span> <span class="k">as</span> <span class="nn">beam</span>
-<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">waymo_open_dataset</span> <span class="k">import</span> <span class="n">dataset_pb2</span>
-<span class="kn">from</span> <span class="nn">waymo_open_dataset.utils</span> <span class="k">import</span> <span class="n">range_image_utils</span>
-<span class="kn">from</span> <span class="nn">waymo_open_dataset.utils</span> <span class="k">import</span> <span class="n">transform_utils</span>
+<span class="kn">from</span> <span class="nn">waymo_open_dataset</span> <span class="kn">import</span> <span class="n">dataset_pb2</span>
+<span class="kn">from</span> <span class="nn">waymo_open_dataset.utils</span> <span class="kn">import</span> <span class="n">range_image_utils</span>
+<span class="kn">from</span> <span class="nn">waymo_open_dataset.utils</span> <span class="kn">import</span> <span class="n">transform_utils</span>
 
 
 <div class="viewcode-block" id="WaymoOpenDatasetConverter"><a class="viewcode-back" href="../../../../../../lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.html#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter">[docs]</a><span class="k">class</span> <span class="nc">WaymoOpenDatasetConverter</span><span class="p">(</span><span class="n">beam</span><span class="o">.</span><span class="n">DoFn</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Converts WaymoOpenDataset into tf.Examples.  See file docstring.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emitter_fn</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emitter_fn</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_emitter_fn</span> <span class="o">=</span> <span class="n">emitter_fn</span>
 
 <div class="viewcode-block" id="WaymoOpenDatasetConverter.process"><a class="viewcode-back" href="../../../../../../lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.html#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.process">[docs]</a>  <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
