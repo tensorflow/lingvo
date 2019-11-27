@@ -554,14 +554,16 @@
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">*</span> <span class="n">curr_idx</span>
 
     <span class="c1"># Select indices for this loop iteration.</span>
-    <span class="k">if</span> <span class="n">num_seeded_points</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">new_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">_Seeded</span><span class="p">():</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="n">num_seeded_points</span><span class="p">),</span> <span class="n">_GetSeededPoint</span><span class="p">,</span>
           <span class="n">_GetFurthestPoint</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">new_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+
+    <span class="k">def</span> <span class="nf">_Real</span><span class="p">():</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">_GetRandomRealPoint</span><span class="p">,</span> <span class="n">_GetFurthestPoint</span><span class="p">)</span>
 
+    <span class="n">new_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">num_seeded_points</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">_Seeded</span><span class="p">,</span> <span class="n">_Real</span><span class="p">)</span>
     <span class="n">sampled_idx</span> <span class="o">=</span> <span class="n">sampled_idx</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">curr_idx</span><span class="p">,</span> <span class="n">new_selected</span><span class="p">)</span>
 
     <span class="c1"># Extract the distance to the latest point selected to update</span>

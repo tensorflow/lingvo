@@ -1156,6 +1156,11 @@
 <span class="sd">  and optionally points_padding of shape [P] corresponding to the padding.</span>
 <span class="sd">  if points_padding is None, then all points are considered valid.</span>
 
+<span class="sd">  If lasers.num_seeded_points of shape [] is provided, it indicates that the</span>
+<span class="sd">  first num_seeded_points of lasers.points_xyz should be used as seeds for</span>
+<span class="sd">  farthest point sampling (e.g., always chosen).  Currently the concept</span>
+<span class="sd">  of seeding is not implemented for anything but farthest point sampling.</span>
+
 <span class="sd">  Adds the following features:</span>
 <span class="sd">    anchor_centers: [num_cell_centers, 3] - Floating point output containing the</span>
 <span class="sd">      center (x, y, z) locations for tiling anchor boxes.</span>
@@ -1194,13 +1199,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;features_preparation_layers&#39;</span><span class="p">,</span>
                             <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">)</span>
 
-<div class="viewcode-block" id="SparseCenterSelector._FarthestPointSampleCenters"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCenterSelector._FarthestPointSampleCenters">[docs]</a>  <span class="k">def</span> <span class="nf">_FarthestPointSampleCenters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points_xyz</span><span class="p">):</span>
+<div class="viewcode-block" id="SparseCenterSelector._FarthestPointSampleCenters"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCenterSelector._FarthestPointSampleCenters">[docs]</a>  <span class="k">def</span> <span class="nf">_FarthestPointSampleCenters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points_xyz</span><span class="p">,</span> <span class="n">num_seeded_points</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Samples centers with Farthest Point Sampling.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      points_xyz: An unpadded tf.float32 Tensor of shape [P, 3] with per point</span>
 <span class="sd">        (x, y, z) locations. We expect any padded points to be removed before</span>
 <span class="sd">        this function is called.</span>
+<span class="sd">      num_seeded_points: integer indicating how many of the first</span>
+<span class="sd">        num_seeded_points points in points_xyz should be considered</span>
+<span class="sd">        as seeds for FPS (always chosen).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tf.float32 Tensor of shape [p.num_cell_centers, 3] with selected centers</span>
@@ -1216,10 +1224,12 @@
     <span class="n">points_xy</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="n">padded_num_points</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
     <span class="n">points_padding</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
         <span class="n">points_padding</span><span class="p">,</span> <span class="p">[</span><span class="n">padded_num_points</span><span class="p">],</span> <span class="n">pad_val</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+
     <span class="n">sampled_idx</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">car_lib</span><span class="o">.</span><span class="n">FarthestPointSampler</span><span class="p">(</span>
         <span class="n">points_xy</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
         <span class="n">points_padding</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
         <span class="n">p</span><span class="o">.</span><span class="n">num_cell_centers</span><span class="p">,</span>
+        <span class="n">num_seeded_points</span><span class="o">=</span><span class="n">num_seeded_points</span><span class="p">,</span>
         <span class="n">random_seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="n">sampled_idx</span> <span class="o">=</span> <span class="n">sampled_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
 
@@ -1251,11 +1261,14 @@
                       <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">p</span><span class="o">.</span><span class="n">num_cell_centers</span><span class="p">,</span> <span class="mi">1</span><span class="p">))],</span>
                      <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SparseCenterSelector._SampleCenters"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCenterSelector._SampleCenters">[docs]</a>  <span class="k">def</span> <span class="nf">_SampleCenters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points_xyz</span><span class="p">):</span>
+<div class="viewcode-block" id="SparseCenterSelector._SampleCenters"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCenterSelector._SampleCenters">[docs]</a>  <span class="k">def</span> <span class="nf">_SampleCenters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points_xyz</span><span class="p">,</span> <span class="n">num_seeded_points</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">sampling_method</span> <span class="o">==</span> <span class="s1">&#39;farthest_point&#39;</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FarthestPointSampleCenters</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FarthestPointSampleCenters</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">,</span> <span class="n">num_seeded_points</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">sampling_method</span> <span class="o">==</span> <span class="s1">&#39;random_uniform&#39;</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">num_seeded_points</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s1">&#39;Random sampling with seeded points not yet implemented.&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RandomUniformSampleCenters</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Param `sampling_method` must be one of </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -1267,14 +1280,17 @@
     <span class="n">prepared_features</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">prep_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">:</span>
       <span class="n">prepared_features</span> <span class="o">=</span> <span class="n">prep_layer</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">prepared_features</span><span class="p">)</span>
-    <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">prepared_features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_xyz</span>
 
-    <span class="k">if</span> <span class="s1">&#39;points_padding&#39;</span> <span class="ow">in</span> <span class="n">prepared_features</span><span class="o">.</span><span class="n">lasers</span><span class="p">:</span>
-      <span class="n">points_padding</span> <span class="o">=</span> <span class="n">prepared_features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_padding</span>
+    <span class="n">num_seeded_points</span> <span class="o">=</span> <span class="n">prepared_features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;num_seeded_points&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">points_data</span> <span class="o">=</span> <span class="n">prepared_features</span><span class="o">.</span><span class="n">lasers</span>
+
+    <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">points_data</span><span class="o">.</span><span class="n">points_xyz</span>
+    <span class="k">if</span> <span class="s1">&#39;points_padding&#39;</span> <span class="ow">in</span> <span class="n">points_data</span><span class="p">:</span>
+      <span class="n">points_padding</span> <span class="o">=</span> <span class="n">points_data</span><span class="o">.</span><span class="n">points_padding</span>
       <span class="n">points_mask</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">points_padding</span>
       <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">,</span> <span class="n">points_mask</span><span class="p">)</span>
 
-    <span class="n">centers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SampleCenters</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">)</span>
+    <span class="n">centers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SampleCenters</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">,</span> <span class="n">num_seeded_points</span><span class="p">)</span>
     <span class="n">centers</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_cell_centers</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
 
     <span class="n">features</span><span class="o">.</span><span class="n">anchor_centers</span> <span class="o">=</span> <span class="n">centers</span>
@@ -3366,6 +3382,13 @@
              <span class="s1">&#39;Valid options - uniform, closest.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_centers&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s1">&#39;The number of centers to sample.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;features_preparation_layers&#39;</span><span class="p">,</span> <span class="p">[],</span>
+        <span class="s1">&#39;A list of Params for layers to run on the features before &#39;</span>
+        <span class="s1">&#39;performing farthest point sampling. For example, one may wish to &#39;</span>
+        <span class="s1">&#39;drop points out of frustum for KITTI before selecting centers. &#39;</span>
+        <span class="s1">&#39;Note that these layers will not mutate the original features, &#39;</span>
+        <span class="s1">&#39;instead, a copy will be made.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;keep_z_range&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span>
         <span class="s1">&#39;Only points that have z coordinates within this range are kept. &#39;</span>
         <span class="s1">&#39;Approximate ground-removal can be performed by specifying a &#39;</span>
@@ -3378,13 +3401,29 @@
         <span class="s1">&#39;neighborhood.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">SparseSampler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;features_preparation_layers&#39;</span><span class="p">,</span>
+                            <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">)</span>
+
 <div class="viewcode-block" id="SparseSampler.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseSampler.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_centers</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_neighbors</span>
 
-    <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_xyz</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
-    <span class="k">if</span> <span class="s1">&#39;points_padding&#39;</span> <span class="ow">in</span> <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="p">:</span>
-      <span class="n">points_mask</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_padding</span>
+    <span class="n">prepared_features</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">prep_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">:</span>
+        <span class="n">prepared_features</span> <span class="o">=</span> <span class="n">prep_layer</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">prepared_features</span><span class="p">)</span>
+
+    <span class="n">points_data</span> <span class="o">=</span> <span class="n">prepared_features</span><span class="o">.</span><span class="n">lasers</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">points_data</span><span class="o">.</span><span class="n">points_xyz</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="s1">&#39;points_padding&#39;</span> <span class="ow">in</span> <span class="n">points_data</span><span class="p">:</span>
+      <span class="n">points_mask</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">points_data</span><span class="o">.</span><span class="n">points_padding</span>
       <span class="n">points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">points_mask</span><span class="p">)</span>
 
     <span class="c1"># If num_points &lt; num_centers, pad points to have at least num_centers</span>
@@ -3394,9 +3433,11 @@
     <span class="n">zeros</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">required_num_points</span> <span class="o">-</span> <span class="n">num_points</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
     <span class="n">points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">points</span><span class="p">,</span> <span class="n">zeros</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
+    <span class="n">num_seeded_points</span> <span class="o">=</span> <span class="n">points_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;num_seeded_points&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">centers</span><span class="p">,</span> <span class="n">center_paddings</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">indices_paddings</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span>
         <span class="n">points</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
         <span class="n">points_padding</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="n">required_num_points</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="n">num_seeded_points</span><span class="o">=</span><span class="n">num_seeded_points</span><span class="p">,</span>
         <span class="n">center_selector</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">center_selector</span><span class="p">,</span>
         <span class="n">neighbor_sampler</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">neighbor_sampler</span><span class="p">,</span>
         <span class="n">num_centers</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_centers</span><span class="p">,</span>
@@ -3415,7 +3456,7 @@
     <span class="n">features</span><span class="o">.</span><span class="n">anchor_centers</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">cell_center_xyz</span>
     <span class="n">features</span><span class="o">.</span><span class="n">cell_points_xyz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">indices</span><span class="p">),</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
-    <span class="n">features</span><span class="o">.</span><span class="n">cell_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
+    <span class="n">features</span><span class="o">.</span><span class="n">cell_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">points_data</span><span class="o">.</span><span class="n">points_feature</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
     <span class="n">features</span><span class="o">.</span><span class="n">cell_points_padding</span> <span class="o">=</span> <span class="n">indices_paddings</span>
     <span class="k">return</span> <span class="n">features</span></div>
 

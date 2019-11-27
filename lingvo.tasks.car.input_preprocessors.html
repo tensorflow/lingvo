@@ -1159,6 +1159,10 @@ features.</p>
 - lasers.points_xyz of shape [P, 3]</p>
 <p>and optionally points_padding of shape [P] corresponding to the padding.
 if points_padding is None, then all points are considered valid.</p>
+<p>If lasers.num_seeded_points of shape [] is provided, it indicates that the
+first num_seeded_points of lasers.points_xyz should be used as seeds for
+farthest point sampling (e.g., always chosen).  Currently the concept
+of seeding is not implemented for anything but farthest point sampling.</p>
 <dl class="simple">
 <dt>Adds the following features:</dt><dd><dl class="simple">
 <dt>anchor_centers: [num_cell_centers, 3] - Floating point output containing the</dt><dd><p>center (x, y, z) locations for tiling anchor boxes.</p>
@@ -1181,13 +1185,18 @@ if points_padding is None, then all points are considered valid.</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.car.input_preprocessors.SparseCenterSelector._FarthestPointSampleCenters">
-<code class="sig-name descname">_FarthestPointSampleCenters</code><span class="sig-paren">(</span><em class="sig-param">points_xyz</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#SparseCenterSelector._FarthestPointSampleCenters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.SparseCenterSelector._FarthestPointSampleCenters" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FarthestPointSampleCenters</code><span class="sig-paren">(</span><em class="sig-param">points_xyz</em>, <em class="sig-param">num_seeded_points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#SparseCenterSelector._FarthestPointSampleCenters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.SparseCenterSelector._FarthestPointSampleCenters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Samples centers with Farthest Point Sampling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>points_xyz</strong> – An unpadded tf.float32 Tensor of shape [P, 3] with per point
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points_xyz</strong> – An unpadded tf.float32 Tensor of shape [P, 3] with per point
 (x, y, z) locations. We expect any padded points to be removed before
-this function is called.</p>
+this function is called.</p></li>
+<li><p><strong>num_seeded_points</strong> – integer indicating how many of the first
+num_seeded_points points in points_xyz should be considered
+as seeds for FPS (always chosen).</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A tf.float32 Tensor of shape [p.num_cell_centers, 3] with selected centers
@@ -1215,7 +1224,7 @@ to use as anchors.</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.car.input_preprocessors.SparseCenterSelector._SampleCenters">
-<code class="sig-name descname">_SampleCenters</code><span class="sig-paren">(</span><em class="sig-param">points_xyz</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#SparseCenterSelector._SampleCenters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.SparseCenterSelector._SampleCenters" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_SampleCenters</code><span class="sig-paren">(</span><em class="sig-param">points_xyz</em>, <em class="sig-param">num_seeded_points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#SparseCenterSelector._SampleCenters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.SparseCenterSelector._SampleCenters" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -2756,7 +2765,7 @@ features.</p>
 
 <dl class="class">
 <dt id="lingvo.tasks.car.input_preprocessors.SparseSampler">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.input_preprocessors.</code><code class="sig-name descname">SparseSampler</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#SparseSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.SparseSampler" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.input_preprocessors.</code><code class="sig-name descname">SparseSampler</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#SparseSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.SparseSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.input_preprocessors.Preprocessor" title="lingvo.tasks.car.input_preprocessors.Preprocessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_preprocessors.Preprocessor</span></code></a></p>
 <p>Fused SparseCenterSelector and SparseCellGatherFeatures.</p>
 <p>This preprocessor expects features to contain the following keys:
