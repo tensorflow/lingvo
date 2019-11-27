@@ -237,7 +237,8 @@ T Square(T x) {
 
 template <typename Selector, typename Sampler>
 PSUtils::Result PSUtils::DoSampling(const Tensor& points,
-                                    const Tensor& points_padding) const {
+                                    const Tensor& points_padding,
+                                    const int32 num_seeded_points) const {
   // Points must be of rank 3, and padding must be a matrix.
   DCHECK_EQ(points.dims(), 3);
   DCHECK_EQ(points_padding.dims(), 2);
@@ -273,9 +274,12 @@ PSUtils::Result PSUtils::DoSampling(const Tensor& points,
   for (int cur_batch = 0; cur_batch < batch_size; ++cur_batch) {
     std::vector<bool> candidates(num_points);
     for (int i = 0; i < num_points; ++i) {
-      candidates[i] = (points_padding_t(cur_batch, i) == 0.0) &&
-                      (opts_.center_z_min <= points_t(cur_batch, i, 2)) &&
-                      (points_t(cur_batch, i, 2) <= opts_.center_z_max);
+      // The first num_seeded_points are not candidates of the selector, because
+      // they are always selected.
+      candidates[i] =
+          (i >= num_seeded_points && points_padding_t(cur_batch, i) == 0.0) &&
+          (opts_.center_z_min <= points_t(cur_batch, i, 2)) &&
+          (points_t(cur_batch, i, 2) <= opts_.center_z_max);
     }
 
     Selector selector(candidates, Seed());
@@ -283,7 +287,14 @@ PSUtils::Result PSUtils::DoSampling(const Tensor& points,
 
     for (int i = 0; i < opts_.num_centers; ++i) {
       // Pick a point as i-th center.
-      auto k = selector.Get();
+      int k;
+      if (i < num_seeded_points) {
+        k = i;
+      } else {
+        // Pick a point as i-th center.
+        k = selector.Get();
+      }
+
       if (k < 0) {
         center_padding_t(cur_batch, i) = 1.0;
         continue;
@@ -291,10 +302,10 @@ PSUtils::Result PSUtils::DoSampling(const Tensor& points,
       center_padding_t(cur_batch, i) = 0.0;
       center_t(cur_batch, i) = k;
 
-      // Goes through all points. If j-th point is within a radius of center,
-      // adds it to the sampler.
+      // Goes through all *non-seeded* points. If j-th point is within a radius
+      // of center, adds it to the sampler.
       sampler.Reset();
-      for (int j = 0; j < num_points; ++j) {
+      for (int j = num_seeded_points; j < num_points; ++j) {
         if (points_padding_t(cur_batch, j) == 0.0) {
           auto ss_xy =
               Square(points_t(cur_batch, k, 0) - points_t(cur_batch, j, 0)) +
@@ -337,22 +348,31 @@ string PSUtils::Options::DebugString() const {
 }
 
 PSUtils::Result PSUtils::Sample(const Tensor& points,
-                                const Tensor& points_padding) const {
+                                const Tensor& points_padding,
+                                const int32 num_seeded_points) const {
   if (opts_.cmethod == Options::C_UNIFORM &&
       opts_.nmethod == Options::N_UNIFORM) {
-    return DoSampling<UniformSelector, UniformSampler>(points, points_padding);
+    CHECK_EQ(num_seeded_points, 0)
+        << "Seeding only supported for Farthest Point Sampling";
+    return DoSampling<UniformSelector, UniformSampler>(points, points_padding,
+                                                       num_seeded_points);
   }
   if (opts_.cmethod == Options::C_UNIFORM &&
       opts_.nmethod == Options::N_CLOSEST) {
-    return DoSampling<UniformSelector, TopKSampler>(points, points_padding);
+    CHECK_EQ(num_seeded_points, 0)
+        << "Seeding only supported for Farthest Point Sampling";
+    return DoSampling<UniformSelector, TopKSampler>(points, points_padding,
+                                                    num_seeded_points);
   }
   if (opts_.cmethod == Options::C_FARTHEST &&
       opts_.nmethod == Options::N_UNIFORM) {
-    return DoSampling<FarthestSelector, UniformSampler>(points, points_padding);
+    return DoSampling<FarthestSelector, UniformSampler>(points, points_padding,
+                                                        num_seeded_points);
   }
   CHECK_EQ(opts_.cmethod, Options::C_FARTHEST);
   CHECK_EQ(opts_.nmethod, Options::N_CLOSEST);
-  return DoSampling<FarthestSelector, TopKSampler>(points, points_padding);
+  return DoSampling<FarthestSelector, TopKSampler>(points, points_padding,
+                                                   num_seeded_points);
 }
 
 }  // namespace car

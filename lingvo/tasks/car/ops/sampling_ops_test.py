@@ -44,6 +44,7 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
       center, center_padding, indices, indices_padding = ops.sample_points(
           points=points,
           points_padding=points_padding,
+          num_seeded_points=0,
           center_selector=cmethod,
           neighbor_sampler=nmethod,
           num_centers=m,
@@ -86,6 +87,7 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
       center, center_padding, indices, indices_padding = ops.sample_points(
           points=points,
           points_padding=points_padding,
+          num_seeded_points=0,
           center_selector=cmethod,
           neighbor_sampler=nmethod,
           num_centers=m,
@@ -129,6 +131,7 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
       center, center_padding, indices, indices_padding = ops.sample_points(
           points=points,
           points_padding=points_padding,
+          num_seeded_points=0,
           center_selector=cmethod,
           neighbor_sampler=nmethod,
           num_centers=m,

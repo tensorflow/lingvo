@@ -61,6 +61,10 @@ class PSUtils {
 
   // Samples centers within 'points' (3D) and creates neighborhood for each
   // center.
+  //
+  // If num_seeded_points is > 0, then the first num_seeded_points are used as
+  // seeds for the center selection component of sampling, but are ignored for
+  // neighborhood selection.
   struct Result {
     // [num_centers]. Indices of the center points.
     Tensor center;
@@ -76,7 +80,8 @@ class PSUtils {
     // 0. Otherwise, indices_padding[i, j] is 1.0.
     Tensor indices_padding;
   };
-  Result Sample(const Tensor& points, const Tensor& points_padding) const;
+  Result Sample(const Tensor& points, const Tensor& points_padding,
+                const int32 num_seeded_points) const;
 
  private:
   const Options opts_;
@@ -84,7 +89,8 @@ class PSUtils {
   uint64 Seed() const;
 
   template <typename Selector, typename Sampler>
-  Result DoSampling(const Tensor& points, const Tensor& points_padding) const;
+  Result DoSampling(const Tensor& points, const Tensor& points_padding,
+                    const int32 num_seeded_points) const;
 };
 
 }  // namespace car

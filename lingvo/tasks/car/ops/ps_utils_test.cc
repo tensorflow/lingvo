@@ -140,7 +140,7 @@ TEST(PSUtilsTest, Uniform_Uniform) {
   Tensor points;
   Tensor points_padding;
   GeneratePoints(3, 8, 100, &points, &points_padding);
-  auto ret = fu.Sample(points, points_padding);
+  auto ret = fu.Sample(points, points_padding, 0);
   Log(points, ret);
   // Generated points will correspond to clusters like:
   // (0, 0), (0, 0.001), (0, 0.002), ...
@@ -169,7 +169,7 @@ TEST(PSUtilsTest, Uniform_Closest) {
   Tensor points;
   Tensor points_padding;
   GeneratePoints(3, 8, 100, &points, &points_padding);
-  auto ret = fu.Sample(points, points_padding);
+  auto ret = fu.Sample(points, points_padding, 0);
   Log(points, ret);
   // Some clusters are sampled more than once.
   EXPECT_EQ(GetCenters(points, ret),
@@ -190,7 +190,7 @@ TEST(PSUtilsTest, Farthest_Uniform) {
   Tensor points;
   Tensor points_padding;
   GeneratePoints(3, 8, 100, &points, &points_padding);
-  auto ret = fu.Sample(points, points_padding);
+  auto ret = fu.Sample(points, points_padding, 0);
   Log(points, ret);
   // Generated points will correspond to clusters like:
   // (0, 0), (0, 0.001), (0, 0.002), ...
@@ -221,7 +221,7 @@ TEST(PSUtilsTest, Farthest_Closest) {
   Tensor points;
   Tensor points_padding;
   GeneratePoints(3, 8, 100, &points, &points_padding);
-  auto ret = fu.Sample(points, points_padding);
+  auto ret = fu.Sample(points, points_padding, 0);
   Log(points, ret);
   // All 8 clusters are covered.
   EXPECT_EQ(
@@ -230,6 +230,47 @@ TEST(PSUtilsTest, Farthest_Closest) {
           {3, 7, 0, 5, 1, 6, 4, 2,     // 1st example.
            6, 0, 3, 1, 4, 5, 2, 0,     // 2nd example, last one is a duplicate.
            3, 0, 5, 1, 4, 2, 0, 1}));  // 3rd example, last two are duplicates.
+}
+
+TEST(PSUtilsTest, TestSeeded) {
+  PSUtils::Options opts;
+  opts.cmethod = PSUtils::Options::C_FARTHEST;
+  opts.nmethod = PSUtils::Options::N_CLOSEST;
+  opts.num_centers = 4;
+  opts.num_neighbors = 2;
+  opts.max_dist = 10.0;
+  opts.random_seed = 12345;
+  PSUtils fu(opts);
+
+  // Six points along a line: (0, 1, 2, 3, 4, 5).
+  Tensor points(DT_FLOAT, {1, 6, 3});
+  Tensor points_padding(DT_FLOAT, {1, 6});
+  auto points_t = points.tensor<float, 3>();
+  auto points_padding_t = points_padding.matrix<float>();
+  points_padding_t.setConstant(0.0);
+  for (int i = 0; i < 6; ++i) {
+    points_t(0, i, 0) = i;
+    points_t(0, i, 1) = 0;
+    points_t(0, i, 2) = 0;
+  }
+
+  // Choose the first two points as the seed (0, and 1).
+  auto ret = fu.Sample(points, points_padding, 2);
+  Log(points, ret);
+
+  // The first two are always chosen, and then the next one is 5, since it is
+  // the farthest from 0 and 1.  The remaining is the middle point between 1 and
+  // 5.
+  auto center_t = ret.center.matrix<int32>();
+  EXPECT_EQ(points_t(0, center_t(0, 0), 0), 0.);
+  EXPECT_EQ(points_t(0, center_t(0, 1), 0), 1.);
+  EXPECT_EQ(points_t(0, center_t(0, 2), 0), 5.);
+  EXPECT_EQ(points_t(0, center_t(0, 3), 0), 3.);
+
+  // Seeded points are not neighbors; the closest neighbor of the seeded
+  // point is 2., not 1.
+  auto indices_t = ret.indices.tensor<int32, 3>();
+  EXPECT_EQ(points_t(0, indices_t(0, 0, 0), 0), 2.);
 }
 
 void BM_Farthest(int iters, int num_centers, int num_neighbors) {
@@ -249,7 +290,7 @@ void BM_Farthest(int iters, int num_centers, int num_neighbors) {
   GeneratePoints(1, 1000, 100, &points, &points_padding);
   testing::StartTiming();
   for (int i = 0; i < iters; ++i) {
-    auto ret = fu.Sample(points, points_padding);
+    auto ret = fu.Sample(points, points_padding, 0);
   }
 }
 

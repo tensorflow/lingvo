@@ -181,6 +181,7 @@ algorithm: string. One of ["KITTI", "VOC"]. See this paper "Supervised
 REGISTER_OP("SamplePoints")
     .Input("points: float")
     .Input("points_padding: float")
+    .Input("num_seeded_points: int32")
     .Output("center: int32")
     .Output("center_padding: float")
     .Output("indices: int32")
@@ -215,6 +216,10 @@ points: [B, N, K]. B is the batch size; N is the number of points; K is the
 points_padding: [B, N]. 0/1 padding of points. If points_padding[b, i] is 0.,
   points[b, i, :] are valid point coordinates. Otherwise, point[b, i, :] are
   all zeros.
+num_seeded_points: If num_seeded_points > 0, then the first
+  num_seeded_points in points are considered to be seeded in the FPS
+  sampling. Note that we assume that these points are *not* padded, and do
+  not check padding when seeding them.
 center: [B, M]. the indices of selected centers.
 center_padding: [B, M]. If center_padding[b, i] is 0., center[b, i],
   indices[b, i, :] and indices_padding[b, i, :] are valid sampled center.

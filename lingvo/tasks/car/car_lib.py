@@ -409,14 +409,16 @@ def FarthestPointSampler(points,
       return tf.ones((batch_size,), dtype=tf.int32) * curr_idx
 
     # Select indices for this loop iteration.
-    if num_seeded_points > 0:
-      new_selected = tf.cond(
+    def _Seeded():
+      return tf.cond(
           tf.less(curr_idx, num_seeded_points), _GetSeededPoint,
           _GetFurthestPoint)
-    else:
-      new_selected = tf.cond(
+
+    def _Real():
+      return tf.cond(
           tf.equal(curr_idx, 0), _GetRandomRealPoint, _GetFurthestPoint)
 
+    new_selected = tf.cond(tf.greater(num_seeded_points, 0), _Seeded, _Real)
     sampled_idx = sampled_idx.write(curr_idx, new_selected)
 
     # Extract the distance to the latest point selected to update

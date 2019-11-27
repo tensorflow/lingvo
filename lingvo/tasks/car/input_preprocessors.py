@@ -1011,6 +1011,11 @@ class SparseCenterSelector(Preprocessor):
   and optionally points_padding of shape [P] corresponding to the padding.
   if points_padding is None, then all points are considered valid.
 
+  If lasers.num_seeded_points of shape [] is provided, it indicates that the
+  first num_seeded_points of lasers.points_xyz should be used as seeds for
+  farthest point sampling (e.g., always chosen).  Currently the concept
+  of seeding is not implemented for anything but farthest point sampling.
+
   Adds the following features:
     anchor_centers: [num_cell_centers, 3] - Floating point output containing the
       center (x, y, z) locations for tiling anchor boxes.
@@ -1049,13 +1054,16 @@ class SparseCenterSelector(Preprocessor):
         self.CreateChildren('features_preparation_layers',
                             p.features_preparation_layers)
 
-  def _FarthestPointSampleCenters(self, points_xyz):
+  def _FarthestPointSampleCenters(self, points_xyz, num_seeded_points):
     """Samples centers with Farthest Point Sampling.
 
     Args:
       points_xyz: An unpadded tf.float32 Tensor of shape [P, 3] with per point
         (x, y, z) locations. We expect any padded points to be removed before
         this function is called.
+      num_seeded_points: integer indicating how many of the first
+        num_seeded_points points in points_xyz should be considered
+        as seeds for FPS (always chosen).
 
     Returns:
       A tf.float32 Tensor of shape [p.num_cell_centers, 3] with selected centers
@@ -1071,10 +1079,12 @@ class SparseCenterSelector(Preprocessor):
     points_xy = py_utils.PadOrTrimTo(points_xyz[:, :2], [padded_num_points, 2])
     points_padding = py_utils.PadOrTrimTo(
         points_padding, [padded_num_points], pad_val=1.0)
+
     sampled_idx, _ = car_lib.FarthestPointSampler(
         points_xy[tf.newaxis, ...],
         points_padding[tf.newaxis, ...],
         p.num_cell_centers,
+        num_seeded_points=num_seeded_points,
         random_seed=p.random_seed)
     sampled_idx = sampled_idx[0, :]
 
@@ -1106,11 +1116,14 @@ class SparseCenterSelector(Preprocessor):
                       tf.zeros((p.num_cell_centers, 1))],
                      axis=-1)
 
-  def _SampleCenters(self, points_xyz):
+  def _SampleCenters(self, points_xyz, num_seeded_points):
     p = self.params
     if p.sampling_method == 'farthest_point':
-      return self._FarthestPointSampleCenters(points_xyz)
+      return self._FarthestPointSampleCenters(points_xyz, num_seeded_points)
     elif p.sampling_method == 'random_uniform':
+      if num_seeded_points > 0:
+        raise NotImplementedError(
+            'Random sampling with seeded points not yet implemented.')
       return self._RandomUniformSampleCenters(points_xyz)
     else:
       raise ValueError('Param `sampling_method` must be one of {}.'.format(
@@ -1122,14 +1135,17 @@ class SparseCenterSelector(Preprocessor):
     prepared_features = features.DeepCopy()
     for prep_layer in self.features_preparation_layers:
       prepared_features = prep_layer.FPropDefaultTheta(prepared_features)
-    points_xyz = prepared_features.lasers.points_xyz
 
-    if 'points_padding' in prepared_features.lasers:
-      points_padding = prepared_features.lasers.points_padding
+    num_seeded_points = prepared_features.lasers.get('num_seeded_points', 0)
+    points_data = prepared_features.lasers
+
+    points_xyz = points_data.points_xyz
+    if 'points_padding' in points_data:
+      points_padding = points_data.points_padding
       points_mask = 1 - points_padding
       points_xyz = tf.boolean_mask(points_xyz, points_mask)
 
-    centers = self._SampleCenters(points_xyz)
+    centers = self._SampleCenters(points_xyz, num_seeded_points)
     centers = py_utils.HasShape(centers, [p.num_cell_centers, 3])
 
     features.anchor_centers = centers
@@ -3221,6 +3237,13 @@ class SparseSampler(Preprocessor):
              'Valid options - uniform, closest.')
     p.Define('num_centers', 16, 'The number of centers to sample.')
     p.Define(
+        'features_preparation_layers', [],
+        'A list of Params for layers to run on the features before '
+        'performing farthest point sampling. For example, one may wish to '
+        'drop points out of frustum for KITTI before selecting centers. '
+        'Note that these layers will not mutate the original features, '
+        'instead, a copy will be made.')
+    p.Define(
         'keep_z_range', (-np.inf, np.inf),
         'Only points that have z coordinates within this range are kept. '
         'Approximate ground-removal can be performed by specifying a '
@@ -3233,13 +3256,29 @@ class SparseSampler(Preprocessor):
         'neighborhood.')
     return p
 
+  @base_layer.initializer
+  def __init__(self, params):
+    super(SparseSampler, self).__init__(params)
+    p = self.params
+    with tf.variable_scope(p.name):
+      if p.features_preparation_layers:
+        self.CreateChildren('features_preparation_layers',
+                            p.features_preparation_layers)
+
   def TransformFeatures(self, features):
     p = self.params
     n, m = p.num_centers, p.num_neighbors
 
-    points = py_utils.HasShape(features.lasers.points_xyz, [-1, 3])
-    if 'points_padding' in features.lasers:
-      points_mask = 1 - features.lasers.points_padding
+    prepared_features = features.DeepCopy()
+    if p.features_preparation_layers:
+      for prep_layer in self.features_preparation_layers:
+        prepared_features = prep_layer.FPropDefaultTheta(prepared_features)
+
+    points_data = prepared_features.lasers
+    points = py_utils.HasShape(points_data.points_xyz, [-1, 3])
+
+    if 'points_padding' in points_data:
+      points_mask = 1 - points_data.points_padding
       points = tf.boolean_mask(points, points_mask)
 
     # If num_points < num_centers, pad points to have at least num_centers
@@ -3249,9 +3288,11 @@ class SparseSampler(Preprocessor):
     zeros = tf.zeros([required_num_points - num_points, 3])
     points = tf.concat([points, zeros], axis=0)
 
+    num_seeded_points = points_data.get('num_seeded_points', 0)
     centers, center_paddings, indices, indices_paddings = ops.sample_points(
         points=tf.expand_dims(points, 0),
         points_padding=tf.zeros([1, required_num_points], tf.float32),
+        num_seeded_points=num_seeded_points,
         center_selector=p.center_selector,
         neighbor_sampler=p.neighbor_sampler,
         num_centers=p.num_centers,
@@ -3270,7 +3311,7 @@ class SparseSampler(Preprocessor):
     features.anchor_centers = features.cell_center_xyz
     features.cell_points_xyz = py_utils.HasShape(
         tf.gather(points, indices), [n, m, 3])
-    features.cell_feature = tf.gather(features.lasers.points_feature, indices)
+    features.cell_feature = tf.gather(points_data.points_feature, indices)
     features.cell_points_padding = indices_paddings
     return features
 
