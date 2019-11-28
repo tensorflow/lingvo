@@ -157,6 +157,7 @@ py_library(
         "//lingvo/core:recurrent",
         "//lingvo/core:rnn_cell",
         "//lingvo/core:summary_utils",
+        "//lingvo/core:symbolic",
         # Implicit matplotlib dependency.
         # Implicit six dependency.
     ],

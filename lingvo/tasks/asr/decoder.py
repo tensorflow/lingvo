@@ -31,6 +31,7 @@ from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import rnn_cell
 from lingvo.core import summary_utils
+from lingvo.core import symbolic
 from lingvo.tasks.asr import contextualizer_base
 from lingvo.tasks.asr import decoder_utils
 from lingvo.tasks.asr import fusion
@@ -331,7 +332,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     with tf.variable_scope(name):
       self.CreateChild('contextualizer', p.contextualizer)
       atten_context_dim = self._GetAttenContextDim()
-      assert atten_context_dim > 0
+      assert symbolic.IsExpr(atten_context_dim) or atten_context_dim > 0
 
       p.emb.dtype = p.dtype
       p.emb.embedding_dim = p.emb_dim

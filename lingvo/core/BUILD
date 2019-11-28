@@ -24,6 +24,7 @@ py_library(
         ":py_utils",
         ":quant_utils",
         ":summary_utils",
+        ":symbolic",
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],

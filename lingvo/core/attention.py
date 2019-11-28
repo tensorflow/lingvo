@@ -25,6 +25,7 @@ from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import summary_utils
+from lingvo.core import symbolic
 
 import numpy as np
 
@@ -683,8 +684,10 @@ class AdditiveAttention(BaseAttentionLayer):
     def EncodeSource(src_w, vecs, ctxs):
       time, batch = py_utils.GetShape(vecs, 2)
       ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
+      # source_dim can be a symbolic expression.
       transformed_vecs = tf.reshape(
-          py_utils.Matmul(tf.reshape(vecs, [-1, p.source_dim]), src_w),
+          py_utils.Matmul(
+              tf.reshape(vecs, [-1, symbolic.ToStatic(p.source_dim)]), src_w),
           [time, batch, -1])
       transposed_ctxs = tf.transpose(ctxs, [1, 0, 2])
       return transformed_vecs, transposed_ctxs

@@ -29,6 +29,7 @@ from lingvo.core import base_layer
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 from lingvo.core import recurrent
+from lingvo.core import symbolic
 from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.tasks.image.params import mnist  # pylint: disable=unused-import
@@ -132,6 +133,31 @@ class PyUtilsTest(test_utils.TestCase):
         v1_v = v1.eval()
         v2_v = v2.eval()
         self.assertAllEqual(v1_v, v2_v)
+
+  def testCreateVariableWithSymbols(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      dim_symbol = symbolic.Symbol('dim')
+      shape = [2, 3, dim_symbol * 2]
+
+      with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES, {dim_symbol: 2}):
+        pc = py_utils.WeightParams(shape, py_utils.WeightInit.Gaussian(),
+                                   tf.float32, ['col1', 'col2'])
+        var = py_utils.CreateVariable('var', pc)[0]
+
+      # To reuse existing variables
+      tf.get_variable_scope().reuse_variables()
+
+      new_dim_symbol = symbolic.Symbol('new_dim')
+      # Same shape as above but from different symbol.
+      shape = [2, 3, new_dim_symbol * 2]
+      with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES,
+                                     {new_dim_symbol: 2}):
+        pc = py_utils.WeightParams(shape, py_utils.WeightInit.Gaussian(),
+                                   tf.float32, ['col1', 'col2'])
+        var_copy = py_utils.CreateVariable('var', pc)[0]
+
+      tf.global_variables_initializer().run()
+      self.assertAllEqual(var.eval(), var_copy.eval())
 
   def testCreateVariableUniform(self):
     with self.session(use_gpu=False, graph=tf.Graph()):

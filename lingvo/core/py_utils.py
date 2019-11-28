@@ -1335,6 +1335,7 @@ def CreateVariable(name,
   assert isinstance(p, hyperparams.Params)
   dtype = p.dtype
   shape = tf.TensorShape(ToStaticShape(p.shape)).as_list()
+  p.Set(shape=shape)
   dim0 = 1
   if shape:
     assert all([dim_size > 0 for dim_size in shape]), shape
