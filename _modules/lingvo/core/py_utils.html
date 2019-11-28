@@ -1480,6 +1480,7 @@
   <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">)</span>
   <span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
   <span class="n">shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">ToStaticShape</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
   <span class="n">dim0</span> <span class="o">=</span> <span class="mi">1</span>
   <span class="k">if</span> <span class="n">shape</span><span class="p">:</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">dim_size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">dim_size</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">]),</span> <span class="n">shape</span>

@@ -176,6 +176,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">recurrent</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">rnn_cell</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="kn">import</span> <span class="n">contextualizer_base</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="kn">import</span> <span class="n">decoder_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="kn">import</span> <span class="n">fusion</span>
@@ -476,7 +477,7 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;contextualizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">contextualizer</span><span class="p">)</span>
       <span class="n">atten_context_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetAttenContextDim</span><span class="p">()</span>
-      <span class="k">assert</span> <span class="n">atten_context_dim</span> <span class="o">&gt;</span> <span class="mi">0</span>
+      <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">IsExpr</span><span class="p">(</span><span class="n">atten_context_dim</span><span class="p">)</span> <span class="ow">or</span> <span class="n">atten_context_dim</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
       <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
       <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_dim</span>
