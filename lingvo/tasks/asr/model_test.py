@@ -18,8 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-import re
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
@@ -33,8 +31,6 @@ from lingvo.tasks.asr import input_generator
 from lingvo.tasks.asr import model
 from lingvo.tasks.asr import model_test_input_generator as tig
 import numpy as np
-import six
-from six.moves import range
 
 
 class DecoderForTest(decoder.AsrDecoder):
@@ -123,7 +119,7 @@ class AsrModelTest(test_utils.TestCase):
           'test_mdl/dec/softmax/weight_0/var:0',
           'test_mdl/dec/softmax/bias_0/var:0'
       ]
-      self.assertEqual(sorted(expected_var_names), sorted(actual_var_names))
+      self.assertCountEqual(expected_var_names, actual_var_names)
 
   def testDecode(self):
     with self.session(use_gpu=False) as sess:
@@ -159,6 +155,7 @@ class AsrModelTest(test_utils.TestCase):
         'norm_wer_errors': [[0, 0], [1, 1]],
         'norm_wer_words': [[4, 4], [1, 1]],
     }
+    fake_dec_out = {k: np.array(v) for k, v in fake_dec_out.items()}
     metrics_dict = mdl.CreateDecoderMetrics()
     key_value_pairs = mdl.PostProcessDecodeOut(fake_dec_out, metrics_dict)
 
@@ -192,6 +189,7 @@ class AsrModelTest(test_utils.TestCase):
         'norm_wer_errors': [[0], [1]],
         'norm_wer_words': [[4], [3]],
     }
+    fake_dec_out = {k: np.array(v) for k, v in fake_dec_out.items()}
     metrics_dict = mdl.CreateDecoderMetrics()
     kv_pairs = mdl.PostProcessDecodeOut(fake_dec_out, metrics_dict)
 
@@ -217,6 +215,7 @@ class AsrModelTest(test_utils.TestCase):
         'norm_wer_errors': [[0], [1]],
         'norm_wer_words': [[4], [3]],
     }
+    fake_dec_out = {k: np.array(v) for k, v in fake_dec_out.items()}
     metrics_dict = mdl.CreateDecoderMetrics()
     kv_pairs = mdl.PostProcessDecodeOut(fake_dec_out, metrics_dict)
 
@@ -242,6 +241,7 @@ class AsrModelTest(test_utils.TestCase):
         'norm_wer_errors': [[1], [0]],
         'norm_wer_words': [[0], [4]],
     }
+    fake_dec_out = {k: np.array(v) for k, v in fake_dec_out.items()}
     metrics_dict = mdl.CreateDecoderMetrics()
     mdl.PostProcessDecodeOut(fake_dec_out, metrics_dict)
 
@@ -404,12 +404,12 @@ class AsrModelTest(test_utils.TestCase):
       p = _CreateModelParamsForTest()
       mdl = p.Instantiate()
       subgraphs = mdl.Inference()
-      self.assertTrue('default' in subgraphs)
+      self.assertIn('default', subgraphs)
 
       fetches, feeds = subgraphs['default']
-      self.assertTrue('wav' in feeds)
+      self.assertIn('wav', feeds)
       for name in ['hypotheses', 'scores', 'src_frames', 'encoder_frames']:
-        self.assertTrue(name in fetches)
+        self.assertIn(name, fetches)
 
       with open(
           test_helper.test_src_dir_path('tools/testdata/gan_or_vae.16k.wav'),

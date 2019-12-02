@@ -56,6 +56,11 @@ class AsrModel(base_model.BaseTask):
         'ASR frontend to extract features from input. Defaults to no frontend '
         'which means that features are taken directly from the input.')
 
+    p.Define(
+        'include_auxiliary_metrics', True,
+        'In addition to simple WER, also computes oracle WER, SACC, TER, etc. '
+        'Turning off this option will speed up the decoder job.')
+
     tp = p.train
     tp.lr_schedule = (
         schedule.PiecewiseConstantLearningRateSchedule.Params().Set(
@@ -293,13 +298,17 @@ class AsrModel(base_model.BaseTask):
   def CreateDecoderMetrics(self):
     base_metrics = {
         'num_samples_in_batch': metrics.AverageMetric(),
-        'wer': metrics.AverageMetric(),  # Word error rate.
         'norm_wer': metrics.AverageMetric(),  # Normalized word error rate.
-        'sacc': metrics.AverageMetric(),  # Sentence accuracy.
-        'ter': metrics.AverageMetric(),  # Token error rate.
         'corpus_bleu': metrics.CorpusBleuMetric(),
-        'oracle_norm_wer': metrics.AverageMetric(),
     }
+
+    if self.params.include_auxiliary_metrics:
+      base_metrics.update({
+          'wer': metrics.AverageMetric(),  # Word error rate.
+          'sacc': metrics.AverageMetric(),  # Sentence accuracy.
+          'ter': metrics.AverageMetric(),  # Token error rate.
+          'oracle_norm_wer': metrics.AverageMetric(),
+      })
 
     # Add any additional metrics that should be computed.
     base_metrics.update(self.CreateAdditionalDecoderMetrics())
@@ -346,71 +355,76 @@ class AsrModel(base_model.BaseTask):
           return_ids.append(ref_ids[i])
       return return_ids
 
+    total_norm_wer_errs = norm_wer_errors[:, 0].sum()
+    total_norm_wer_words = norm_wer_words[:, 0].sum()
+
+    dec_metrics_dict['norm_wer'].Update(
+        total_norm_wer_errs / total_norm_wer_words, total_norm_wer_words)
+
+    for ref_str, hyps in zip(transcripts, topk_decoded):
+      filtered_ref = decoder_utils.FilterNoise(ref_str)
+      filtered_ref = decoder_utils.FilterEpsilon(filtered_ref)
+      filtered_hyp = decoder_utils.FilterNoise(hyps[0])
+      filtered_hyp = decoder_utils.FilterEpsilon(filtered_hyp)
+      dec_metrics_dict['corpus_bleu'].Update(filtered_ref, filtered_hyp)
+
     total_errs = 0
     total_oracle_errs = 0
     total_ref_words = 0
     total_token_errs = 0
     total_ref_tokens = 0
-    total_norm_wer_errs = 0
-    total_norm_wer_words = 0
     total_accurate_sentences = 0
     key_value_pairs = []
-    for i in range(len(transcripts)):
-      ref_str = transcripts[i]
-      if not py_utils.use_tpu():
-        tf.logging.info('utt_id: %s', utt_id[i])
-      tf.logging.info('  ref_str: %s', ref_str)
-      hyps = topk_decoded[i]
-      ref_ids = GetRefIds(target_labels[i], target_paddings[i])
-      hyp_index = i * p.decoder.beam_search.num_hyps_per_beam
-      top_hyp_ids = topk_ids[hyp_index][:topk_lens[hyp_index]]
-      tf.logging.info('  ref_ids: %s', ref_ids)
-      tf.logging.info('  top_hyp_ids: %s', top_hyp_ids)
-      total_ref_tokens += len(ref_ids)
-      _, _, _, token_errs = decoder_utils.EditDistanceInIds(
-          ref_ids, top_hyp_ids)
-      total_token_errs += token_errs
 
-      assert p.decoder.beam_search.num_hyps_per_beam == len(hyps)
-      filtered_ref = decoder_utils.FilterNoise(ref_str)
-      filtered_ref = decoder_utils.FilterEpsilon(filtered_ref)
-      oracle_errs = norm_wer_errors[i][0]
-      for n, (score, hyp_str) in enumerate(zip(topk_scores[i], hyps)):
-        tf.logging.info('  %f: %s', score, hyp_str)
-        filtered_hyp = decoder_utils.FilterNoise(hyp_str)
-        filtered_hyp = decoder_utils.FilterEpsilon(filtered_hyp)
-        ins, subs, dels, errs = decoder_utils.EditDistance(
-            filtered_ref, filtered_hyp)
-        # Note that these numbers are not consistent with what is used to
-        # compute normalized WER.  In particular, these numbers will be inflated
-        # when the transcript contains punctuation.
-        tf.logging.info('  ins: %d, subs: %d, del: %d, total: %d', ins, subs,
-                        dels, errs)
-        hyp_norm_wer_errors = norm_wer_errors[i][n]
-        hyp_norm_wer_words = norm_wer_words[i][n]
-        # Only aggregate scores of the top hypothesis.
-        if n == 0:
-          total_errs += errs
-          total_ref_words += len(decoder_utils.Tokenize(filtered_ref))
-          total_norm_wer_errs += hyp_norm_wer_errors
-          if hyp_norm_wer_errors == 0:
-            total_accurate_sentences += 1
-          total_norm_wer_words += hyp_norm_wer_words
-          dec_metrics_dict['corpus_bleu'].Update(filtered_ref, filtered_hyp)
-        if hyp_norm_wer_errors < oracle_errs:
-          oracle_errs = hyp_norm_wer_errors
-      total_oracle_errs += oracle_errs
+    if p.include_auxiliary_metrics:
+      for i in range(len(transcripts)):
+        ref_str = transcripts[i]
+        if not py_utils.use_tpu():
+          tf.logging.info('utt_id: %s', utt_id[i])
+        tf.logging.info('  ref_str: %s', ref_str)
+        hyps = topk_decoded[i]
+        ref_ids = GetRefIds(target_labels[i], target_paddings[i])
+        hyp_index = i * p.decoder.beam_search.num_hyps_per_beam
+        top_hyp_ids = topk_ids[hyp_index][:topk_lens[hyp_index]]
+        tf.logging.info('  ref_ids: %s', ref_ids)
+        tf.logging.info('  top_hyp_ids: %s', top_hyp_ids)
+        total_ref_tokens += len(ref_ids)
+        _, _, _, token_errs = decoder_utils.EditDistanceInIds(
+            ref_ids, top_hyp_ids)
+        total_token_errs += token_errs
 
-    dec_metrics_dict['wer'].Update(total_errs / total_ref_words,
-                                   total_ref_words)
-    dec_metrics_dict['oracle_norm_wer'].Update(
-        total_oracle_errs / total_ref_words, total_ref_words)
-    dec_metrics_dict['sacc'].Update(total_accurate_sentences / len(transcripts),
-                                    len(transcripts))
-    dec_metrics_dict['norm_wer'].Update(
-        total_norm_wer_errs / total_norm_wer_words, total_norm_wer_words)
-    dec_metrics_dict['ter'].Update(total_token_errs / total_ref_tokens,
-                                   total_ref_tokens)
+        assert p.decoder.beam_search.num_hyps_per_beam == len(hyps)
+        filtered_ref = decoder_utils.FilterNoise(ref_str)
+        filtered_ref = decoder_utils.FilterEpsilon(filtered_ref)
+        oracle_errs = norm_wer_errors[i][0]
+        for n, (score, hyp_str) in enumerate(zip(topk_scores[i], hyps)):
+          tf.logging.info('  %f: %s', score, hyp_str)
+          filtered_hyp = decoder_utils.FilterNoise(hyp_str)
+          filtered_hyp = decoder_utils.FilterEpsilon(filtered_hyp)
+          ins, subs, dels, errs = decoder_utils.EditDistance(
+              filtered_ref, filtered_hyp)
+          # Note that these numbers are not consistent with what is used to
+          # compute normalized WER.  In particular, these numbers will be
+          # inflated when the transcript contains punctuation.
+          tf.logging.info('  ins: %d, subs: %d, del: %d, total: %d', ins, subs,
+                          dels, errs)
+          # Only aggregate scores of the top hypothesis.
+          if n == 0:
+            total_errs += errs
+            total_ref_words += len(decoder_utils.Tokenize(filtered_ref))
+            if norm_wer_errors[i, n] == 0:
+              total_accurate_sentences += 1
+          oracle_errs = min(oracle_errs, norm_wer_errors[i, n])
+        total_oracle_errs += oracle_errs
+
+      dec_metrics_dict['wer'].Update(total_errs / total_ref_words,
+                                     total_ref_words)
+      dec_metrics_dict['oracle_norm_wer'].Update(
+          total_oracle_errs / total_ref_words, total_ref_words)
+      dec_metrics_dict['sacc'].Update(
+          total_accurate_sentences / len(transcripts), len(transcripts))
+      dec_metrics_dict['ter'].Update(total_token_errs / total_ref_tokens,
+                                     total_ref_tokens)
 
     # Update any additional metrics.
     dec_metrics_dict = self.UpdateAdditionalMetrics(dec_out_dict,
