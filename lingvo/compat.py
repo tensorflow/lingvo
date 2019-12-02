@@ -51,7 +51,7 @@ _force_disable_v2 = True
 if _force_disable_v2:
   v2_compat.disable_v2_behavior()
 elif tf2.enabled():
-  logging.warning("Lingvo does not support TF2 yet. "
+  logging.warning("Lingvo does not support all TF2 behaviors yet. "
                   "Please disable V2 behavior with tf.disable_v2_behavior(), "
                   "or proceed at your own risk.")
 
