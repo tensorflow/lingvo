@@ -1039,6 +1039,9 @@ class SparseCenterSelector(Preprocessor):
     p.Define(
         'sampling_method', 'farthest_point',
         'Which sampling method to use. One of {}'.format(cls._SAMPLING_METHODS))
+    p.Define(
+        'fix_z_to_zero', True, 'Whether to fix z to 0 when retrieving the '
+        'center xyz coordinates.')
     return p
 
   @base_layer.initializer
@@ -1089,10 +1092,14 @@ class SparseCenterSelector(Preprocessor):
     sampled_idx = sampled_idx[0, :]
 
     # Gather centers.
-    centers = tf.concat([
-        tf.gather(points_xy, sampled_idx),
-        tf.zeros((p.num_cell_centers, 1)),
-    ], axis=-1)  # pyformat: disable
+    if p.fix_z_to_zero:
+      centers = tf.concat([
+          tf.gather(points_xy, sampled_idx),
+          tf.zeros((p.num_cell_centers, 1)),
+      ], axis=-1)  # pyformat: disable
+    else:
+      centers = tf.gather(points_xyz, sampled_idx)
+
     return centers
 
   def _RandomUniformSampleCenters(self, points_xyz):
