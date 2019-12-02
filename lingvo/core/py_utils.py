@@ -1503,16 +1503,17 @@ def CreateVariable(name,
   else:
     var = GetVar()
 
+  var_ref = var.experimental_ref()  # For key in dict/set.
   all_vars = _get_all_vars()
-  if var in all_vars:
+  if var_ref in all_vars:
     tf.logging.info('Reusing var %s', var.name)
-    cached = all_vars[var]
+    cached = all_vars[var_ref]
     assert cached == p, ('Cached config:\n %s vs new config:\n %s' %
                          (cached.ToText(), p.ToText()))
   else:
     tf.logging.info('Creating var %s shape=%s on device %s', var.name,
                     var.shape, var.device)
-    all_vars[var] = p.Copy()
+    all_vars[var_ref] = p.Copy()
     for col in p.collections:
       tf.add_to_collection(col, var)
 
@@ -1713,7 +1714,7 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
   if len(ckpts_loading_rules) > 1:
     tf.logging.info('Overriding vars from multiple checkpoints.')
 
-  vars_overridden = set()
+  var_refs_overridden = set()
   for ckpt_path, loading_rules in ckpts_loading_rules.items():
     tf.logging.info('Overriding vars from checkpoint: %s', ckpt_path)
 
@@ -1726,19 +1727,19 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
                        ckpt_path)
 
     # Filter the model variables to be overridden.
-    vars_to_override = [
-        var[1]
+    var_refs_to_override = [
+        var[1].experimental_ref()
         for var in _GetVarsToLoad(all_vars, loading_rules[0], loading_rules[1])
     ]
 
-    overlap = set.intersection(vars_overridden, vars_to_override)
-    if overlap:
-      raise ValueError('Colliding variables to override: %s' % overlap)
+    overlap_refs = set.intersection(var_refs_overridden, var_refs_to_override)
+    if overlap_refs:
+      raise ValueError('Colliding variables to override: %s' % overlap_refs)
 
     OverrideVarsFromCheckpoint(session, all_vars, ckpt_path, loading_rules[0],
                                loading_rules[1])
-    vars_overridden.update(vars_to_override)
-  tf.logging.info('Model variables overridden: %s', vars_overridden)
+    var_refs_overridden.update(var_refs_to_override)
+  tf.logging.info('Model variables overridden: %s', var_refs_overridden)
 
 
 def ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
