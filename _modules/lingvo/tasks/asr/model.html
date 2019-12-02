@@ -201,6 +201,11 @@
         <span class="s1">&#39;ASR frontend to extract features from input. Defaults to no frontend &#39;</span>
         <span class="s1">&#39;which means that features are taken directly from the input.&#39;</span><span class="p">)</span>
 
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;include_auxiliary_metrics&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;In addition to simple WER, also computes oracle WER, SACC, TER, etc. &#39;</span>
+        <span class="s1">&#39;Turning off this option will speed up the decoder job.&#39;</span><span class="p">)</span>
+
     <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">schedule</span><span class="o">.</span><span class="n">PiecewiseConstantLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
@@ -438,13 +443,17 @@
 <div class="viewcode-block" id="AsrModel.CreateDecoderMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">base_metrics</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
-        <span class="s1">&#39;wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Word error rate.</span>
         <span class="s1">&#39;norm_wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Normalized word error rate.</span>
-        <span class="s1">&#39;sacc&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Sentence accuracy.</span>
-        <span class="s1">&#39;ter&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Token error rate.</span>
         <span class="s1">&#39;corpus_bleu&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">CorpusBleuMetric</span><span class="p">(),</span>
-        <span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
     <span class="p">}</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">include_auxiliary_metrics</span><span class="p">:</span>
+      <span class="n">base_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+          <span class="s1">&#39;wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Word error rate.</span>
+          <span class="s1">&#39;sacc&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Sentence accuracy.</span>
+          <span class="s1">&#39;ter&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Token error rate.</span>
+          <span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
+      <span class="p">})</span>
 
     <span class="c1"># Add any additional metrics that should be computed.</span>
     <span class="n">base_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">CreateAdditionalDecoderMetrics</span><span class="p">())</span>
@@ -491,71 +500,76 @@
           <span class="n">return_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">return_ids</span>
 
+    <span class="n">total_norm_wer_errs</span> <span class="o">=</span> <span class="n">norm_wer_errors</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">total_norm_wer_words</span> <span class="o">=</span> <span class="n">norm_wer_words</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+        <span class="n">total_norm_wer_errs</span> <span class="o">/</span> <span class="n">total_norm_wer_words</span><span class="p">,</span> <span class="n">total_norm_wer_words</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">ref_str</span><span class="p">,</span> <span class="n">hyps</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">transcripts</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">):</span>
+      <span class="n">filtered_ref</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterNoise</span><span class="p">(</span><span class="n">ref_str</span><span class="p">)</span>
+      <span class="n">filtered_ref</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterEpsilon</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">)</span>
+      <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterNoise</span><span class="p">(</span><span class="n">hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterEpsilon</span><span class="p">(</span><span class="n">filtered_hyp</span><span class="p">)</span>
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;corpus_bleu&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
+
     <span class="n">total_errs</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">total_oracle_errs</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">total_ref_words</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">total_token_errs</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">total_ref_tokens</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">total_norm_wer_errs</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">total_norm_wer_words</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">total_accurate_sentences</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">key_value_pairs</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)):</span>
-      <span class="n">ref_str</span> <span class="o">=</span> <span class="n">transcripts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utt_id: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">utt_id</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ref_str: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ref_str</span><span class="p">)</span>
-      <span class="n">hyps</span> <span class="o">=</span> <span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-      <span class="n">ref_ids</span> <span class="o">=</span> <span class="n">GetRefIds</span><span class="p">(</span><span class="n">target_labels</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">target_paddings</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-      <span class="n">hyp_index</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span>
-      <span class="n">top_hyp_ids</span> <span class="o">=</span> <span class="n">topk_ids</span><span class="p">[</span><span class="n">hyp_index</span><span class="p">][:</span><span class="n">topk_lens</span><span class="p">[</span><span class="n">hyp_index</span><span class="p">]]</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ref_ids: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ref_ids</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  top_hyp_ids: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">top_hyp_ids</span><span class="p">)</span>
-      <span class="n">total_ref_tokens</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">)</span>
-      <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">token_errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistanceInIds</span><span class="p">(</span>
-          <span class="n">ref_ids</span><span class="p">,</span> <span class="n">top_hyp_ids</span><span class="p">)</span>
-      <span class="n">total_token_errs</span> <span class="o">+=</span> <span class="n">token_errs</span>
 
-      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyps</span><span class="p">)</span>
-      <span class="n">filtered_ref</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterNoise</span><span class="p">(</span><span class="n">ref_str</span><span class="p">)</span>
-      <span class="n">filtered_ref</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterEpsilon</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">)</span>
-      <span class="n">oracle_errs</span> <span class="o">=</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-      <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hyps</span><span class="p">)):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  </span><span class="si">%f</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">)</span>
-        <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterNoise</span><span class="p">(</span><span class="n">hyp_str</span><span class="p">)</span>
-        <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterEpsilon</span><span class="p">(</span><span class="n">filtered_hyp</span><span class="p">)</span>
-        <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistance</span><span class="p">(</span>
-            <span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
-        <span class="c1"># Note that these numbers are not consistent with what is used to</span>
-        <span class="c1"># compute normalized WER.  In particular, these numbers will be inflated</span>
-        <span class="c1"># when the transcript contains punctuation.</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ins: </span><span class="si">%d</span><span class="s1">, subs: </span><span class="si">%d</span><span class="s1">, del: </span><span class="si">%d</span><span class="s1">, total: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span>
-                        <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span><span class="p">)</span>
-        <span class="n">hyp_norm_wer_errors</span> <span class="o">=</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">n</span><span class="p">]</span>
-        <span class="n">hyp_norm_wer_words</span> <span class="o">=</span> <span class="n">norm_wer_words</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">n</span><span class="p">]</span>
-        <span class="c1"># Only aggregate scores of the top hypothesis.</span>
-        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="n">total_errs</span> <span class="o">+=</span> <span class="n">errs</span>
-          <span class="n">total_ref_words</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">decoder_utils</span><span class="o">.</span><span class="n">Tokenize</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">))</span>
-          <span class="n">total_norm_wer_errs</span> <span class="o">+=</span> <span class="n">hyp_norm_wer_errors</span>
-          <span class="k">if</span> <span class="n">hyp_norm_wer_errors</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">total_accurate_sentences</span> <span class="o">+=</span> <span class="mi">1</span>
-          <span class="n">total_norm_wer_words</span> <span class="o">+=</span> <span class="n">hyp_norm_wer_words</span>
-          <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;corpus_bleu&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">hyp_norm_wer_errors</span> <span class="o">&lt;</span> <span class="n">oracle_errs</span><span class="p">:</span>
-          <span class="n">oracle_errs</span> <span class="o">=</span> <span class="n">hyp_norm_wer_errors</span>
-      <span class="n">total_oracle_errs</span> <span class="o">+=</span> <span class="n">oracle_errs</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">include_auxiliary_metrics</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)):</span>
+        <span class="n">ref_str</span> <span class="o">=</span> <span class="n">transcripts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utt_id: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">utt_id</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ref_str: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ref_str</span><span class="p">)</span>
+        <span class="n">hyps</span> <span class="o">=</span> <span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">ref_ids</span> <span class="o">=</span> <span class="n">GetRefIds</span><span class="p">(</span><span class="n">target_labels</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">target_paddings</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">hyp_index</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span>
+        <span class="n">top_hyp_ids</span> <span class="o">=</span> <span class="n">topk_ids</span><span class="p">[</span><span class="n">hyp_index</span><span class="p">][:</span><span class="n">topk_lens</span><span class="p">[</span><span class="n">hyp_index</span><span class="p">]]</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ref_ids: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ref_ids</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  top_hyp_ids: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">top_hyp_ids</span><span class="p">)</span>
+        <span class="n">total_ref_tokens</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">token_errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistanceInIds</span><span class="p">(</span>
+            <span class="n">ref_ids</span><span class="p">,</span> <span class="n">top_hyp_ids</span><span class="p">)</span>
+        <span class="n">total_token_errs</span> <span class="o">+=</span> <span class="n">token_errs</span>
 
-    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_errs</span> <span class="o">/</span> <span class="n">total_ref_words</span><span class="p">,</span>
-                                   <span class="n">total_ref_words</span><span class="p">)</span>
-    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
-        <span class="n">total_oracle_errs</span> <span class="o">/</span> <span class="n">total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
-    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;sacc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_accurate_sentences</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">),</span>
-                                    <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">))</span>
-    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
-        <span class="n">total_norm_wer_errs</span> <span class="o">/</span> <span class="n">total_norm_wer_words</span><span class="p">,</span> <span class="n">total_norm_wer_words</span><span class="p">)</span>
-    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;ter&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_token_errs</span> <span class="o">/</span> <span class="n">total_ref_tokens</span><span class="p">,</span>
-                                   <span class="n">total_ref_tokens</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyps</span><span class="p">)</span>
+        <span class="n">filtered_ref</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterNoise</span><span class="p">(</span><span class="n">ref_str</span><span class="p">)</span>
+        <span class="n">filtered_ref</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterEpsilon</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">)</span>
+        <span class="n">oracle_errs</span> <span class="o">=</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hyps</span><span class="p">)):</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  </span><span class="si">%f</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">)</span>
+          <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterNoise</span><span class="p">(</span><span class="n">hyp_str</span><span class="p">)</span>
+          <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterEpsilon</span><span class="p">(</span><span class="n">filtered_hyp</span><span class="p">)</span>
+          <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistance</span><span class="p">(</span>
+              <span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
+          <span class="c1"># Note that these numbers are not consistent with what is used to</span>
+          <span class="c1"># compute normalized WER.  In particular, these numbers will be</span>
+          <span class="c1"># inflated when the transcript contains punctuation.</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ins: </span><span class="si">%d</span><span class="s1">, subs: </span><span class="si">%d</span><span class="s1">, del: </span><span class="si">%d</span><span class="s1">, total: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span>
+                          <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span><span class="p">)</span>
+          <span class="c1"># Only aggregate scores of the top hypothesis.</span>
+          <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">total_errs</span> <span class="o">+=</span> <span class="n">errs</span>
+            <span class="n">total_ref_words</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">decoder_utils</span><span class="o">.</span><span class="n">Tokenize</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+              <span class="n">total_accurate_sentences</span> <span class="o">+=</span> <span class="mi">1</span>
+          <span class="n">oracle_errs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">oracle_errs</span><span class="p">,</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+        <span class="n">total_oracle_errs</span> <span class="o">+=</span> <span class="n">oracle_errs</span>
+
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_errs</span> <span class="o">/</span> <span class="n">total_ref_words</span><span class="p">,</span>
+                                     <span class="n">total_ref_words</span><span class="p">)</span>
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">total_oracle_errs</span> <span class="o">/</span> <span class="n">total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;sacc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">total_accurate_sentences</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">))</span>
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;ter&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_token_errs</span> <span class="o">/</span> <span class="n">total_ref_tokens</span><span class="p">,</span>
+                                     <span class="n">total_ref_tokens</span><span class="p">)</span>
 
     <span class="c1"># Update any additional metrics.</span>
     <span class="n">dec_metrics_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UpdateAdditionalMetrics</span><span class="p">(</span><span class="n">dec_out_dict</span><span class="p">,</span>
