@@ -1184,6 +1184,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;sampling_method&#39;</span><span class="p">,</span> <span class="s1">&#39;farthest_point&#39;</span><span class="p">,</span>
         <span class="s1">&#39;Which sampling method to use. One of </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_SAMPLING_METHODS</span><span class="p">))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;fix_z_to_zero&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to fix z to 0 when retrieving the &#39;</span>
+        <span class="s1">&#39;center xyz coordinates.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1234,10 +1237,14 @@
     <span class="n">sampled_idx</span> <span class="o">=</span> <span class="n">sampled_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
 
     <span class="c1"># Gather centers.</span>
-    <span class="n">centers</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">points_xy</span><span class="p">,</span> <span class="n">sampled_idx</span><span class="p">),</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">p</span><span class="o">.</span><span class="n">num_cell_centers</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
-    <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pyformat: disable</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fix_z_to_zero</span><span class="p">:</span>
+      <span class="n">centers</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">points_xy</span><span class="p">,</span> <span class="n">sampled_idx</span><span class="p">),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">p</span><span class="o">.</span><span class="n">num_cell_centers</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+      <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pyformat: disable</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">centers</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">,</span> <span class="n">sampled_idx</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">centers</span></div>
 
 <div class="viewcode-block" id="SparseCenterSelector._RandomUniformSampleCenters"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCenterSelector._RandomUniformSampleCenters">[docs]</a>  <span class="k">def</span> <span class="nf">_RandomUniformSampleCenters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points_xyz</span><span class="p">):</span>
