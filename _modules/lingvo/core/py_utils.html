@@ -1648,16 +1648,17 @@
   <span class="k">else</span><span class="p">:</span>
     <span class="n">var</span> <span class="o">=</span> <span class="n">GetVar</span><span class="p">()</span>
 
+  <span class="n">var_ref</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">experimental_ref</span><span class="p">()</span>  <span class="c1"># For key in dict/set.</span>
   <span class="n">all_vars</span> <span class="o">=</span> <span class="n">_get_all_vars</span><span class="p">()</span>
-  <span class="k">if</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">var_ref</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reusing var </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="n">cached</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+    <span class="n">cached</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="n">var_ref</span><span class="p">]</span>
     <span class="k">assert</span> <span class="n">cached</span> <span class="o">==</span> <span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Cached config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> vs new config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
                          <span class="p">(</span><span class="n">cached</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()))</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating var </span><span class="si">%s</span><span class="s1"> shape=</span><span class="si">%s</span><span class="s1"> on device </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                     <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">all_vars</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">all_vars</span><span class="p">[</span><span class="n">var_ref</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
 
@@ -1858,7 +1859,7 @@
   <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ckpts_loading_rules</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Overriding vars from multiple checkpoints.&#39;</span><span class="p">)</span>
 
-  <span class="n">vars_overridden</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+  <span class="n">var_refs_overridden</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
   <span class="k">for</span> <span class="n">ckpt_path</span><span class="p">,</span> <span class="n">loading_rules</span> <span class="ow">in</span> <span class="n">ckpts_loading_rules</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Overriding vars from checkpoint: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
 
@@ -1871,19 +1872,19 @@
                        <span class="n">ckpt_path</span><span class="p">)</span>
 
     <span class="c1"># Filter the model variables to be overridden.</span>
-    <span class="n">vars_to_override</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">var</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">var_refs_to_override</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">var</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">experimental_ref</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
     <span class="p">]</span>
 
-    <span class="n">overlap</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">vars_overridden</span><span class="p">,</span> <span class="n">vars_to_override</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">overlap</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Colliding variables to override: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">overlap</span><span class="p">)</span>
+    <span class="n">overlap_refs</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">var_refs_overridden</span><span class="p">,</span> <span class="n">var_refs_to_override</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">overlap_refs</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Colliding variables to override: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">overlap_refs</span><span class="p">)</span>
 
     <span class="n">OverrideVarsFromCheckpoint</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">,</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                                <span class="n">loading_rules</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">vars_overridden</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">vars_to_override</span><span class="p">)</span>
-  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Model variables overridden: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">vars_overridden</span><span class="p">)</span></div>
+    <span class="n">var_refs_overridden</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">var_refs_to_override</span><span class="p">)</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Model variables overridden: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var_refs_overridden</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ComputeGradientsSimple"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeGradientsSimple">[docs]</a><span class="k">def</span> <span class="nf">ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
