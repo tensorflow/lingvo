@@ -454,6 +454,92 @@ beam.</p>
 </dl>
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.core.beam_search_helper.GreedySearchHelper">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.beam_search_helper.</code><code class="sig-name descname">GreedySearchHelper</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Helper class for performing greedy decoding.</p>
+<p>The user of this helper class needs to implement three callbacks just as in a
+beam search decoder.</p>
+<dl class="method">
+<dt id="lingvo.core.beam_search_helper.GreedySearchHelper.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.beam_search_helper.GreedySearchHelper._GreedySearchStep">
+<code class="sig-name descname">_GreedySearchStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">cur_step</em>, <em class="sig-param">step_ids</em>, <em class="sig-param">hyp_ids</em>, <em class="sig-param">hyp_lens</em>, <em class="sig-param">done_hyps</em>, <em class="sig-param">other_states</em>, <em class="sig-param">pre_beam_search_step_callback</em>, <em class="sig-param">post_beam_search_step_callback</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper._GreedySearchStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper._GreedySearchStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extend greedy search hyps for one step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of the decoder
+layer and its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing encoder outputs to be passed to
+the callbacks.</p></li>
+<li><p><strong>cur_step</strong> – A scalar int tensor, the current time step, 0-based.</p></li>
+<li><p><strong>step_ids</strong> – An int tensor of shape [num_hyps, 1]. The input ids to the
+current search step.</p></li>
+<li><p><strong>hyp_ids</strong> – An int tensor of shape [num_hyps, tgt_seq_len].</p></li>
+<li><p><strong>hyp_lens</strong> – Valid length of all the hyps. Tokens after eos ids are not
+counted.</p></li>
+<li><p><strong>done_hyps</strong> – Whether or not a hyp has finished.</p></li>
+<li><p><strong>other_states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of other beam search states. This
+<a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> is managed and updated by the client. It is expected that
+each of its member tensors are of rank &gt;= 1. t[i, …] is the state of
+the i-th hyp at the beginning of this search step.</p></li>
+<li><p><strong>pre_beam_search_step_callback</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">PreBeamSearchStepCallback</span></code> callback.
+See class header comments for more details.</p></li>
+<li><p><strong>post_beam_search_step_callback</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">PostBeamSearchStepCallback</span></code> callback.
+See class header comments for more details.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tuple of following elements for the next greedy search step,
+(next step, new_step_ids, hyp_ids, hyp_lens, done_hyps, other_states)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.beam_search_helper.GreedySearchHelper.GreedySearchDecode">
+<code class="sig-name descname">GreedySearchDecode</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">init_beam_search_state=None</em>, <em class="sig-param">pre_beam_search_step_callback=None</em>, <em class="sig-param">post_beam_search_step_callback=None</em>, <em class="sig-param">max_steps=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper.GreedySearchDecode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper.GreedySearchDecode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs greedy-search based decoding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of the decoder layer
+and its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – A NestedMap containing encoder outputs to be passed to
+the callbacks.</p></li>
+<li><p><strong>init_beam_search_state</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">InitBeamSearchState</span></code> callback. Please refer
+to the class header comments for more details.</p></li>
+<li><p><strong>pre_beam_search_step_callback</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">PreBeamSearchStepCallback</span></code> callback.
+Please refer to the class header comments for more details.</p></li>
+<li><p><strong>post_beam_search_step_callback</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">PostBeamSearchStepCallback</span></code> callback.
+Please refer to the class header comments for more details.</p></li>
+<li><p><strong>max_steps</strong> – maximum beam search steps. If None, use
+self.params.target_seq_len.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>[time, num_hyps]. Hyps end with &lt;eos&gt; token if the &lt;eos&gt; token is</dt><dd><p>encountered during search.</p>
+</dd>
+</dl>
+<p>hyp_lens: [num_hyps]
+done_hyps: [num_hyps], whether or not an eos is encountered.</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>hyp_ids</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

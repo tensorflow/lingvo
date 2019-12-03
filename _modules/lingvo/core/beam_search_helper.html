@@ -174,6 +174,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">import</span> <span class="nn">six</span>
 
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
+
 <span class="c1"># TODO(yonghui):</span>
 <span class="c1">#   1) Change the tensor shape [max_decoder_time_steps, batch_size *</span>
 <span class="c1">#   num_hyps_per_beam] to [max_decoder_time_steps, num_hyps_per_beam,</span>
@@ -741,6 +743,168 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unexpected field: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">k</span><span class="p">)</span>
     <span class="n">top</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
   <span class="k">return</span> <span class="n">BeamSearchDecodeOutput</span><span class="p">(</span><span class="o">**</span><span class="n">top</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GreedySearchHelper"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.GreedySearchHelper">[docs]</a><span class="k">class</span> <span class="nc">GreedySearchHelper</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Helper class for performing greedy decoding.</span>
+
+<span class="sd">  The user of this helper class needs to implement three callbacks just as in a</span>
+<span class="sd">  beam search decoder.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GreedySearchHelper.Params"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.GreedySearchHelper.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GreedySearchHelper</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_sos_id&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Id of the start of sentence token.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_eos_id&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Id of the end of sentence token.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;target_seq_len&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Maximum allowed target seq length. Note &#39;</span>
+        <span class="s1">&#39;that decoding terminates if an end of sentence token &#39;</span>
+        <span class="s1">&#39;is not emitted after target_seq_len decode steps.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;greedy_search&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="GreedySearchHelper._GreedySearchStep"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.GreedySearchHelper._GreedySearchStep">[docs]</a>  <span class="k">def</span> <span class="nf">_GreedySearchStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span>
+                        <span class="n">hyp_ids</span><span class="p">,</span> <span class="n">hyp_lens</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span>
+                        <span class="n">pre_beam_search_step_callback</span><span class="p">,</span>
+                        <span class="n">post_beam_search_step_callback</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extend greedy search hyps for one step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of the decoder</span>
+<span class="sd">        layer and its children layers.</span>
+<span class="sd">      encoder_outputs: A `.NestedMap` containing encoder outputs to be passed to</span>
+<span class="sd">        the callbacks.</span>
+<span class="sd">      cur_step: A scalar int tensor, the current time step, 0-based.</span>
+<span class="sd">      step_ids: An int tensor of shape [num_hyps, 1]. The input ids to the</span>
+<span class="sd">        current search step.</span>
+<span class="sd">      hyp_ids: An int tensor of shape [num_hyps, tgt_seq_len].</span>
+<span class="sd">      hyp_lens: Valid length of all the hyps. Tokens after eos ids are not</span>
+<span class="sd">        counted.</span>
+<span class="sd">      done_hyps: Whether or not a hyp has finished.</span>
+<span class="sd">      other_states: A `.NestedMap` of other beam search states. This</span>
+<span class="sd">        `.NestedMap` is managed and updated by the client. It is expected that</span>
+<span class="sd">        each of its member tensors are of rank &gt;= 1. t[i, ...] is the state of</span>
+<span class="sd">        the i-th hyp at the beginning of this search step.</span>
+<span class="sd">      pre_beam_search_step_callback: The `PreBeamSearchStepCallback` callback.</span>
+<span class="sd">        See class header comments for more details.</span>
+<span class="sd">      post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.</span>
+<span class="sd">        See class header comments for more details.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tuple of following elements for the next greedy search step,</span>
+<span class="sd">      (next step, new_step_ids, hyp_ids, hyp_lens, done_hyps, other_states)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Increment hyp_lens by 1 if the hyp is not finished yet.</span>
+    <span class="n">hyp_lens</span> <span class="o">=</span> <span class="n">hyp_lens</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">done_hyps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+
+    <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_other_states</span> <span class="o">=</span> <span class="n">pre_beam_search_step_callback</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">new_step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">arg_max</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">new_step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">new_step_ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">new_step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_step_ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">))</span>
+    <span class="n">final_other_states</span> <span class="o">=</span> <span class="n">post_beam_search_step_callback</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
+                                                        <span class="n">new_step_ids</span><span class="p">,</span>
+                                                        <span class="n">new_other_states</span><span class="p">)</span>
+
+    <span class="c1"># Stash new_step_ids into the right slot.</span>
+    <span class="n">new_step_ids_1d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_step_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">hyp_ids</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span><span class="n">hyp_ids</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span>
+                                               <span class="n">new_step_ids_1d</span><span class="p">)</span>
+    <span class="c1"># Update done_hyps if the current step_ids is the end of sequence token.</span>
+    <span class="n">done_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">done_hyps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">new_step_ids_1d</span><span class="p">,</span>
+                                                  <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">cur_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">hyp_ids</span><span class="p">,</span> <span class="n">hyp_lens</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span>
+            <span class="n">final_other_states</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GreedySearchHelper.GreedySearchDecode"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.GreedySearchHelper.GreedySearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">GreedySearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">theta</span><span class="p">,</span>
+                         <span class="n">encoder_outputs</span><span class="p">,</span>
+                         <span class="n">init_beam_search_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">pre_beam_search_step_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">post_beam_search_step_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">max_steps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Performs greedy-search based decoding.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of the decoder layer</span>
+<span class="sd">        and its children layers.</span>
+<span class="sd">      encoder_outputs: A NestedMap containing encoder outputs to be passed to</span>
+<span class="sd">        the callbacks.</span>
+<span class="sd">      init_beam_search_state: The `InitBeamSearchState` callback. Please refer</span>
+<span class="sd">        to the class header comments for more details.</span>
+<span class="sd">      pre_beam_search_step_callback: The `PreBeamSearchStepCallback` callback.</span>
+<span class="sd">        Please refer to the class header comments for more details.</span>
+<span class="sd">      post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.</span>
+<span class="sd">        Please refer to the class header comments for more details.</span>
+<span class="sd">      max_steps: maximum beam search steps. If None, use</span>
+<span class="sd">        self.params.target_seq_len.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      hyp_ids: [time, num_hyps]. Hyps end with &lt;eos&gt; token if the &lt;eos&gt; token is</span>
+<span class="sd">        encountered during search.</span>
+<span class="sd">      hyp_lens: [num_hyps]</span>
+<span class="sd">      done_hyps: [num_hyps], whether or not an eos is encountered.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">max_steps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">max_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span>
+
+    <span class="n">initial_results</span><span class="p">,</span> <span class="n">other_states</span> <span class="o">=</span> <span class="n">init_beam_search_state</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">num_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">initial_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="s1">&#39;step_ids&#39;</span> <span class="ow">in</span> <span class="n">initial_results</span><span class="p">:</span>
+      <span class="c1"># [num_hyps, 1]</span>
+      <span class="n">step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ensure_shape</span><span class="p">(</span><span class="n">initial_results</span><span class="o">.</span><span class="n">step_ids</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                         <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">target_sos_id</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+
+    <span class="n">cur_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">done_hyps</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                  <span class="n">name</span><span class="o">=</span><span class="s1">&#39;done_hyps&#39;</span><span class="p">)</span>
+    <span class="n">hyp_lens</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;hyp_lens&#39;</span><span class="p">)</span>
+    <span class="n">hyp_ids</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;hyp_ids&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">LoopContinue</span><span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">unused_step_ids</span><span class="p">,</span> <span class="n">unused_hyp_ids</span><span class="p">,</span> <span class="n">unused_hyp_lens</span><span class="p">,</span>
+                     <span class="n">done_hyps</span><span class="p">,</span> <span class="n">unused_other_states_list</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">cur_step</span> <span class="o">&lt;</span> <span class="n">max_steps</span><span class="p">,</span>
+                            <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">done_hyps</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">LoopBody</span><span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">hyp_ids</span><span class="p">,</span> <span class="n">hyp_lens</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span>
+                 <span class="n">other_states_list</span><span class="p">):</span>
+      <span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">hyp_ids</span><span class="p">,</span> <span class="n">hyp_lens</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span>
+       <span class="n">new_other_states</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GreedySearchStep</span><span class="p">(</span>
+           <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span>
+           <span class="n">step_ids</span><span class="p">,</span> <span class="n">hyp_ids</span><span class="p">,</span> <span class="n">hyp_lens</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span>
+           <span class="n">other_states</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">other_states_list</span><span class="p">),</span> <span class="n">pre_beam_search_step_callback</span><span class="p">,</span>
+           <span class="n">post_beam_search_step_callback</span><span class="p">)</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">hyp_ids</span><span class="p">,</span> <span class="n">hyp_lens</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span>
+              <span class="n">new_other_states</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+
+    <span class="n">flat_other_states</span> <span class="o">=</span> <span class="n">other_states</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">final_hyp_ids</span><span class="p">,</span> <span class="n">final_hyp_lens</span><span class="p">,</span> <span class="n">final_done_hyps</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
+        <span class="n">LoopContinue</span><span class="p">,</span>
+        <span class="n">LoopBody</span><span class="p">,</span>
+        <span class="n">loop_vars</span><span class="o">=</span><span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">hyp_ids</span><span class="p">,</span> <span class="n">hyp_lens</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span>
+                   <span class="n">flat_other_states</span><span class="p">),</span>
+        <span class="n">parallel_iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">swap_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">shape_invariants</span><span class="o">=</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">cur_step</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()),</span>
+                          <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">step_ids</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()),</span>
+                          <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">hyp_ids</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()),</span>
+                          <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">hyp_lens</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()),</span>
+                          <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">done_hyps</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()),</span>
+                          <span class="n">_GetShapes</span><span class="p">(</span><span class="n">flat_other_states</span><span class="p">,</span> <span class="n">none_shapes</span><span class="o">=</span><span class="kc">True</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">final_hyp_ids</span><span class="p">,</span> <span class="n">final_hyp_lens</span><span class="p">,</span> <span class="n">final_done_hyps</span></div></div>
 </pre></div>
 
            </div>
