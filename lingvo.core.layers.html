@@ -861,12 +861,12 @@ learnable parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>inputs</strong> – The inputs tensor. It is expected to be of shape
-[batch, time, feature].</p></li>
-<li><p><strong>paddings</strong> – The paddings tensor. It is expected to be of shape
-[batch, time, 1], where all but the last dimension match inputs. Each
-value is 0 or 1 indicating whether a time step of a sequence is padded
-in the inputs to reach the max length in the batch.</p></li>
+<li><p><strong>inputs</strong> – The inputs tensor. It is expected to be of shape [batch, time,
+feature].</p></li>
+<li><p><strong>paddings</strong> – The paddings tensor. It is expected to be of shape [batch, time,
+1], where all but the last dimension match inputs. Each value is 0 or 1
+indicating whether a time step of a sequence is padded in the inputs to
+reach the max length in the batch.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -981,6 +981,86 @@ time]. Defaults to None, which means there no paddings.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>outputs, out_paddings pair.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers.SingleShardEmbeddingLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">SingleShardEmbeddingLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardEmbeddingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardEmbeddingLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Embedding layer that is not sharded.</p>
+<p>This embedding layer is expected to be replicated over all compute devices
+(e.g. tpu cores). It is intended to support small to medium embedding tables
+(&lt; 50k) only.</p>
+<p>This is intended to be a unification of EmbeddingLayer and
+SimpleEmbeddingLayer (and cleanup of both). It is targeting the most common
+use-case we have in speech/nmt/tts/deeprank. Currently we often first
+configure a model using EmbeddingLayer, and then call ChangeToSimpleEmbedding
+to switch to SimpleEmbedding where  we lose some configuration (e.g.
+scale_by_sqrt_dim).</p>
+<p>TODO(lingvo): Implement the matmul option which should be more efficient for
+small vocabs (e.g. &lt; 1k vocab).</p>
+<dl class="method">
+<dt id="lingvo.core.layers.SingleShardEmbeddingLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardEmbeddingLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardEmbeddingLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.SingleShardEmbeddingLayer.EmbLookupDefaultTheta">
+<code class="sig-name descname">EmbLookupDefaultTheta</code><span class="sig-paren">(</span><em class="sig-param">ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardEmbeddingLayer.EmbLookupDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardEmbeddingLayer.EmbLookupDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.SingleShardEmbeddingLayer.EmbLookup">
+<code class="sig-name descname">EmbLookup</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardEmbeddingLayer.EmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardEmbeddingLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up embedding vectors for ids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – Named tuple with the weight matrix for the embedding.</p></li>
+<li><p><strong>ids</strong> – A rank-N int32 tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A rank-(N+1) params.dtype tensor.
+embs[indices, :] is the embedding vector for ids[indices].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.SingleShardEmbeddingLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardEmbeddingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardEmbeddingLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.layers.SingleShardEmbeddingLayer.FProp" title="lingvo.core.layers.SingleShardEmbeddingLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.layers.SingleShardEmbeddingLayer.FProp" title="lingvo.core.layers.SingleShardEmbeddingLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -1478,6 +1558,79 @@ input_dim].</p></li>
 <dt id="lingvo.core.layers.SharedSoftmaxLayer.EmbLookup">
 <code class="sig-name descname">EmbLookup</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SharedSoftmaxLayer.EmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SharedSoftmaxLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers.SingleShardFullSoftmax">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">SingleShardFullSoftmax</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardFullSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardFullSoftmax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.SoftmaxLayer" title="lingvo.core.layers.SoftmaxLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.SoftmaxLayer</span></code></a></p>
+<p>Full softmax layer.</p>
+<dl class="method">
+<dt id="lingvo.core.layers.SingleShardFullSoftmax.Logits">
+<code class="sig-name descname">Logits</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardFullSoftmax.Logits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardFullSoftmax.Logits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the logits computed before the softmax.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – A single tensor with shape […, input_dim].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>logits […, num_classes]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.SingleShardFullSoftmax.XentLossFromLogits">
+<code class="sig-name descname">XentLossFromLogits</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">logits</em>, <em class="sig-param">class_ids=None</em>, <em class="sig-param">class_probabilities=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardFullSoftmax.XentLossFromLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardFullSoftmax.XentLossFromLogits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes cross-entropy, argmax etc. from logits.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.SingleShardFullSoftmax.XentLossByChunk">
+<code class="sig-name descname">XentLossByChunk</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">activation</em>, <em class="sig-param">class_ids</em>, <em class="sig-param">class_probabilities</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardFullSoftmax.XentLossByChunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardFullSoftmax.XentLossByChunk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes per-example xent loss.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.SingleShardFullSoftmax.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inputs</em>, <em class="sig-param">class_weights</em>, <em class="sig-param">class_ids=None</em>, <em class="sig-param">class_probabilities=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardFullSoftmax.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardFullSoftmax.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes logits, cross entropy etc.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – a single tensor with shape […, input_dim].</p></li>
+<li><p><strong>class_weights</strong> – a tensor with shape […, 1] containing the weights for
+each target word.</p></li>
+<li><p><strong>class_ids</strong> – a tensor with shape […, 1] of int32 dtype containing the
+target class labels.</p></li>
+<li><p><strong>class_probabilities</strong> – a tensor with shape […, num_classes] of float
+values indicating class-membership probabilities.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields</p>
+<ul class="simple">
+<li><p>logits: with shape […, num_classes]. Unnormalized softmax’s logits.</p></li>
+<li><p>per_example_argmax: with shape […]. argmax of i-th example.</p></li>
+<li><p>per_example_xent: with shape […]. Cross entropy between i-th example’s
+prediction and its label.</p></li>
+<li><p>per_example_weight: with shape […]. class_weights casted to
+this layer’s dtype.</p></li>
+<li><p>total_xent: A scalar. The sum of per_example_weight * per_example_xent.</p></li>
+<li><p>total_weight: A scalar. The sum of per_example_weight.</p></li>
+<li><p>avg_xent: A scalar. total_loss / total_weight.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
