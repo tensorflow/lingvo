@@ -102,6 +102,8 @@ class BaseBeamSearchDecoder(BaseDecoder):
     p.Define('target_seq_len', 0, 'Target seq length.')
     p.Define('beam_search', beam_search_helper.BeamSearchHelper.Params(),
              'BeamSearchHelper params.')
+    p.Define('greedy_search', beam_search_helper.GreedySearchHelper.Params(),
+             'GreedySearchHelper params.')
     p.Define('target_sequence_sampler',
              target_sequence_sampler.TargetSequenceSampler.Params(),
              'TargetSequenceSampler params.')
@@ -129,6 +131,10 @@ class BaseBeamSearchDecoder(BaseDecoder):
     p.beam_search.target_sos_id = p.target_sos_id
     p.beam_search.target_eos_id = p.target_eos_id
     self.CreateChild('beam_search', p.beam_search)
+    p.greedy_search.target_seq_len = p.target_seq_len
+    p.greedy_search.target_sos_id = p.target_sos_id
+    p.greedy_search.target_eos_id = p.target_eos_id
+    self.CreateChild('greedy_search', p.greedy_search)
     p.target_sequence_sampler.target_seq_len = p.target_seq_len
     p.target_sequence_sampler.target_sos_id = p.target_sos_id
     p.target_sequence_sampler.target_eos_id = p.target_eos_id
@@ -170,6 +176,24 @@ class BaseBeamSearchDecoder(BaseDecoder):
                                              self._InitBeamSearchStateCallback,
                                              self._PreBeamSearchStepCallback,
                                              self._PostBeamSearchStepCallback)
+
+  def GreedySearchDecode(self, encoder_outputs):
+    """Performs beam search based decoding.
+
+    Args:
+      encoder_outputs: the outputs of the encoder.
+
+    Returns:
+      greedy search decode output.
+    """
+    return self.GreedySearchDecodeWithTheta(self.theta, encoder_outputs)
+
+  def GreedySearchDecodeWithTheta(self, theta, encoder_outputs):
+    return self.greedy_search.GreedySearchDecode(
+        theta, encoder_outputs,
+        self._InitBeamSearchStateCallback,
+        self._PreBeamSearchStepCallback,
+        self._PostBeamSearchStepCallback)
 
   def SampleTargetSequences(self, theta, encoder_outputs, random_seed):
     """Performs target sequence sampling.

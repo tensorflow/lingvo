@@ -291,6 +291,7 @@ class AsrModelTest(test_utils.TestCase):
           'AsrModel',
           'BatchNormLayer',
           'BeamSearchHelper',
+          'GreedySearchHelper',
           'TargetSequenceSampler',
           'ConvLSTMCell',
           'Conv2DLayer',

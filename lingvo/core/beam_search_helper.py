@@ -29,6 +29,8 @@ from lingvo.core import ops
 from lingvo.core import py_utils
 import six
 
+from tensorflow.python.ops import inplace_ops
+
 # TODO(yonghui):
 #   1) Change the tensor shape [max_decoder_time_steps, batch_size *
 #   num_hyps_per_beam] to [max_decoder_time_steps, num_hyps_per_beam,
@@ -596,3 +598,165 @@ def MergeBeamSearchOutputs(max_hyps_per_beam, beam_search_outputs):
       raise ValueError('Unexpected field: %s' % k)
     top[k] = v
   return BeamSearchDecodeOutput(**top)
+
+
+class GreedySearchHelper(base_layer.BaseLayer):
+  """Helper class for performing greedy decoding.
+
+  The user of this helper class needs to implement three callbacks just as in a
+  beam search decoder.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(GreedySearchHelper, cls).Params()
+    p.Define('target_sos_id', 1, 'Id of the start of sentence token.')
+    p.Define('target_eos_id', 2, 'Id of the end of sentence token.')
+    p.Define(
+        'target_seq_len', 0, 'Maximum allowed target seq length. Note '
+        'that decoding terminates if an end of sentence token '
+        'is not emitted after target_seq_len decode steps.')
+    p.name = 'greedy_search'
+    return p
+
+  def _GreedySearchStep(self, theta, encoder_outputs, cur_step, step_ids,
+                        hyp_ids, hyp_lens, done_hyps, other_states,
+                        pre_beam_search_step_callback,
+                        post_beam_search_step_callback):
+    """Extend greedy search hyps for one step.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of the decoder
+        layer and its children layers.
+      encoder_outputs: A `.NestedMap` containing encoder outputs to be passed to
+        the callbacks.
+      cur_step: A scalar int tensor, the current time step, 0-based.
+      step_ids: An int tensor of shape [num_hyps, 1]. The input ids to the
+        current search step.
+      hyp_ids: An int tensor of shape [num_hyps, tgt_seq_len].
+      hyp_lens: Valid length of all the hyps. Tokens after eos ids are not
+        counted.
+      done_hyps: Whether or not a hyp has finished.
+      other_states: A `.NestedMap` of other beam search states. This
+        `.NestedMap` is managed and updated by the client. It is expected that
+        each of its member tensors are of rank >= 1. t[i, ...] is the state of
+        the i-th hyp at the beginning of this search step.
+      pre_beam_search_step_callback: The `PreBeamSearchStepCallback` callback.
+        See class header comments for more details.
+      post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.
+        See class header comments for more details.
+
+    Returns:
+      A tuple of following elements for the next greedy search step,
+      (next step, new_step_ids, hyp_ids, hyp_lens, done_hyps, other_states)
+    """
+    p = self.params
+    # Increment hyp_lens by 1 if the hyp is not finished yet.
+    hyp_lens = hyp_lens + (1 - tf.cast(done_hyps, tf.int32))
+
+    bs_results, new_other_states = pre_beam_search_step_callback(
+        theta, encoder_outputs, step_ids, other_states, num_hyps_per_beam=1)
+    new_step_ids = tf.arg_max(bs_results.log_probs, 1)
+    new_step_ids = tf.cast(new_step_ids, tf.int32)
+    new_step_ids = tf.reshape(new_step_ids, tf.shape(step_ids))
+    final_other_states = post_beam_search_step_callback(theta, encoder_outputs,
+                                                        new_step_ids,
+                                                        new_other_states)
+
+    # Stash new_step_ids into the right slot.
+    new_step_ids_1d = tf.reshape(new_step_ids, [-1])
+    hyp_ids = inplace_ops.alias_inplace_update(hyp_ids, cur_step,
+                                               new_step_ids_1d)
+    # Update done_hyps if the current step_ids is the end of sequence token.
+    done_hyps = tf.logical_or(done_hyps, tf.equal(new_step_ids_1d,
+                                                  p.target_eos_id))
+
+    return (cur_step + 1, new_step_ids, hyp_ids, hyp_lens, done_hyps,
+            final_other_states)
+
+  def GreedySearchDecode(self,
+                         theta,
+                         encoder_outputs,
+                         init_beam_search_state=None,
+                         pre_beam_search_step_callback=None,
+                         post_beam_search_step_callback=None,
+                         max_steps=None):
+    """Performs greedy-search based decoding.
+
+    Args:
+      theta: A NestedMap object containing weights' values of the decoder layer
+        and its children layers.
+      encoder_outputs: A NestedMap containing encoder outputs to be passed to
+        the callbacks.
+      init_beam_search_state: The `InitBeamSearchState` callback. Please refer
+        to the class header comments for more details.
+      pre_beam_search_step_callback: The `PreBeamSearchStepCallback` callback.
+        Please refer to the class header comments for more details.
+      post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.
+        Please refer to the class header comments for more details.
+      max_steps: maximum beam search steps. If None, use
+        self.params.target_seq_len.
+
+    Returns:
+      hyp_ids: [time, num_hyps]. Hyps end with <eos> token if the <eos> token is
+        encountered during search.
+      hyp_lens: [num_hyps]
+      done_hyps: [num_hyps], whether or not an eos is encountered.
+    """
+    p = self.params
+    if max_steps is None:
+      max_steps = p.target_seq_len
+
+    initial_results, other_states = init_beam_search_state(
+        theta, encoder_outputs, num_hyps_per_beam=1)
+
+    num_hyps = tf.shape(initial_results.log_probs)[0]
+
+    if 'step_ids' in initial_results:
+      # [num_hyps, 1]
+      step_ids = tf.ensure_shape(initial_results.step_ids, [None, 1])
+    else:
+      step_ids = tf.fill([num_hyps, 1],
+                         tf.constant(p.target_sos_id, dtype=tf.int32))
+
+    cur_step = tf.constant(0, dtype=tf.int32)
+    done_hyps = inplace_ops.empty(shape=[num_hyps], dtype=tf.bool, init=True,
+                                  name='done_hyps')
+    hyp_lens = inplace_ops.empty(shape=[num_hyps], dtype=tf.int32, init=True,
+                                 name='hyp_lens')
+    hyp_ids = inplace_ops.empty(
+        shape=[max_steps, num_hyps], dtype=tf.int32, init=True,
+        name='hyp_ids')
+
+    def LoopContinue(cur_step, unused_step_ids, unused_hyp_ids, unused_hyp_lens,
+                     done_hyps, unused_other_states_list):
+      return tf.logical_and(cur_step < max_steps,
+                            tf.logical_not(tf.reduce_all(done_hyps)))
+
+    def LoopBody(cur_step, step_ids, hyp_ids, hyp_lens, done_hyps,
+                 other_states_list):
+      (cur_step, new_step_ids, hyp_ids, hyp_lens, done_hyps,
+       new_other_states) = self._GreedySearchStep(
+           theta, encoder_outputs, cur_step,
+           step_ids, hyp_ids, hyp_lens, done_hyps,
+           other_states.Pack(other_states_list), pre_beam_search_step_callback,
+           post_beam_search_step_callback)
+      return (cur_step, new_step_ids, hyp_ids, hyp_lens, done_hyps,
+              new_other_states.Flatten())
+
+    flat_other_states = other_states.Flatten()
+    _, _, final_hyp_ids, final_hyp_lens, final_done_hyps, _ = tf.while_loop(
+        LoopContinue,
+        LoopBody,
+        loop_vars=(cur_step, step_ids, hyp_ids, hyp_lens, done_hyps,
+                   flat_other_states),
+        parallel_iterations=10,
+        back_prop=False,
+        swap_memory=False,
+        shape_invariants=(tf.TensorShape(cur_step.get_shape()),
+                          tf.TensorShape(step_ids.get_shape()),
+                          tf.TensorShape(hyp_ids.get_shape()),
+                          tf.TensorShape(hyp_lens.get_shape()),
+                          tf.TensorShape(done_hyps.get_shape()),
+                          _GetShapes(flat_other_states, none_shapes=True)))
+    return final_hyp_ids, final_hyp_lens, final_done_hyps
