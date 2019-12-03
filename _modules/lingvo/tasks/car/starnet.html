@@ -941,24 +941,8 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;localization_regressor&#39;</span><span class="p">,</span> <span class="n">localization_regressor_p</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;classifier&#39;</span><span class="p">,</span> <span class="n">classifier_p</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ModelV2.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelV2.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Computes predictions for `input_batch`.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
-<span class="sd">      input_batch: A `.NestedMap` expected to contain lasers.points_xyz,</span>
-<span class="sd">        lasers.points_feature, lasers.points_padding, cell_center_xyz,</span>
-<span class="sd">        cell_points_xyz, cell_feature, anchor_bboxes,</span>
-<span class="sd">        anchor_localization_residuals, assigned_gt_labels, and</span>
-<span class="sd">        assigned_cls_mask. See class doc string for details.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      A `.NestedMap` object containing residuals and classification_logits.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">input_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()))</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span>
-        <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;input_batch shapes: &#39;</span><span class="p">)</span>
-
+<div class="viewcode-block" id="ModelV2._CellFeaturizer"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelV2._CellFeaturizer">[docs]</a>  <span class="k">def</span> <span class="nf">_CellFeaturizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Featurizes each center location.&quot;&quot;&quot;</span>
     <span class="c1"># Validate Shapes</span>
     <span class="n">cell_feature</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">cell_feature</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
     <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="n">num_points_per_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span>
@@ -992,6 +976,29 @@
                                                  <span class="n">point_input</span><span class="p">)</span>
     <span class="n">featurized_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">featurized_cell</span><span class="p">,</span>
                                         <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">featurized_cell</span></div>
+
+<div class="viewcode-block" id="ModelV2.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.car.starnet.html#lingvo.tasks.car.starnet.ModelV2.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes predictions for `input_batch`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: A `.NestedMap` expected to contain lasers.points_xyz,</span>
+<span class="sd">        lasers.points_feature, lasers.points_padding, cell_center_xyz,</span>
+<span class="sd">        cell_points_xyz, cell_feature, anchor_bboxes,</span>
+<span class="sd">        anchor_localization_residuals, assigned_gt_labels, and</span>
+<span class="sd">        assigned_cls_mask. See class doc string for details.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `.NestedMap` object containing residuals and classification_logits.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()))</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span>
+        <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;input_batch shapes: &#39;</span><span class="p">)</span>
+    <span class="n">cell_feature</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">cell_feature</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_centers</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">cell_feature</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">featurized_cell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CellFeaturizer</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
 
     <span class="c1"># Project each featurized_cell features to each bbox per center.</span>
     <span class="n">featurized_anchors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_feature_projector</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
