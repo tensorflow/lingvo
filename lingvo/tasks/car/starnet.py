@@ -796,24 +796,8 @@ class ModelV2(ModelBase):
       self.CreateChild('localization_regressor', localization_regressor_p)
       self.CreateChild('classifier', classifier_p)
 
-  def ComputePredictions(self, theta, input_batch):
-    """Computes predictions for `input_batch`.
-
-    Args:
-      theta: A `.NestedMap` object containing variable values of this task.
-      input_batch: A `.NestedMap` expected to contain lasers.points_xyz,
-        lasers.points_feature, lasers.points_padding, cell_center_xyz,
-        cell_points_xyz, cell_feature, anchor_bboxes,
-        anchor_localization_residuals, assigned_gt_labels, and
-        assigned_cls_mask. See class doc string for details.
-
-    Returns:
-      A `.NestedMap` object containing residuals and classification_logits.
-    """
-    p = self.params
-    input_batch.Transform(lambda x: (x.shape, x.shape.num_elements())).VLog(
-        1, 'input_batch shapes: ')
-
+  def _CellFeaturizer(self, theta, input_batch):
+    """Featurizes each center location."""
     # Validate Shapes
     cell_feature = py_utils.HasRank(input_batch.cell_feature, 4)
     batch_size, num_centers, num_points_per_cell = py_utils.GetShape(
@@ -847,6 +831,29 @@ class ModelV2(ModelBase):
                                                  point_input)
     featurized_cell = py_utils.HasShape(featurized_cell,
                                         [batch_size, num_centers, -1])
+    return featurized_cell
+
+  def ComputePredictions(self, theta, input_batch):
+    """Computes predictions for `input_batch`.
+
+    Args:
+      theta: A `.NestedMap` object containing variable values of this task.
+      input_batch: A `.NestedMap` expected to contain lasers.points_xyz,
+        lasers.points_feature, lasers.points_padding, cell_center_xyz,
+        cell_points_xyz, cell_feature, anchor_bboxes,
+        anchor_localization_residuals, assigned_gt_labels, and
+        assigned_cls_mask. See class doc string for details.
+
+    Returns:
+      A `.NestedMap` object containing residuals and classification_logits.
+    """
+    p = self.params
+    input_batch.Transform(lambda x: (x.shape, x.shape.num_elements())).VLog(
+        1, 'input_batch shapes: ')
+    cell_feature = py_utils.HasRank(input_batch.cell_feature, 4)
+    batch_size, num_centers = py_utils.GetShape(cell_feature, 2)
+
+    featurized_cell = self._CellFeaturizer(theta, input_batch)
 
     # Project each featurized_cell features to each bbox per center.
     featurized_anchors = self.cell_feature_projector.FProp(
