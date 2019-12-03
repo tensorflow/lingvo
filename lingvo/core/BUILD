@@ -512,6 +512,7 @@ py_library(
     deps = [
         ":base_layer",
         ":bn_layers",
+        ":builder_layers",
         ":computation_cost",
         ":constants",
         ":conv_layers_with_time_padding",

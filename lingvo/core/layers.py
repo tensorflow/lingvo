@@ -23,6 +23,7 @@ import math
 import numbers
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import builder_layers
 from lingvo.core import bn_layers
 from lingvo.core import computation_cost
 from lingvo.core import conv_layers_with_time_padding
@@ -144,8 +145,8 @@ def Gelu(input_tensor):
   Returns:
     `input_tensor` with the GELU activation applied.
   """
-  cdf = 0.5 * (
-      1.0 + tf.erf(input_tensor / tf.cast(tf.sqrt(2.0), input_tensor.dtype)))
+  cdf = 0.5 * (1.0 +
+               tf.erf(input_tensor / tf.cast(tf.sqrt(2.0), input_tensor.dtype)))
   return input_tensor * cdf
 
 
@@ -713,6 +714,7 @@ class ConvNN2DLayer(BaseConv2DLayer):
         dilations=p.dilation_rate,
         data_format='NHWC',
         padding='SAME')
+
 
 # Alias of Conv2DLayer (for compatibility with historical uses).
 ConvLayer = Conv2DLayer
@@ -1346,12 +1348,12 @@ class StackingOverTime(base_layer.BaseLayer):
     """Apply the stacking to inputs along the time axis.
 
     Args:
-      inputs: The inputs tensor. It is expected to be of shape
-        [batch, time, feature].
-      paddings: The paddings tensor. It is expected to be of shape
-        [batch, time, 1], where all but the last dimension match inputs. Each
-        value is 0 or 1 indicating whether a time step of a sequence is padded
-        in the inputs to reach the max length in the batch.
+      inputs: The inputs tensor. It is expected to be of shape [batch, time,
+        feature].
+      paddings: The paddings tensor. It is expected to be of shape [batch, time,
+        1], where all but the last dimension match inputs. Each value is 0 or 1
+        indicating whether a time step of a sequence is padded in the inputs to
+        reach the max length in the batch.
 
     Returns:
       (outputs, out_paddings) pair.
@@ -1574,6 +1576,80 @@ class PoolingLayer(quant_utils.QuantizableLayer):
       if out_padding is not None:
         out *= tf.expand_dims(tf.expand_dims(1.0 - out_padding, -1), -1)
       return out, out_padding
+
+
+class SingleShardEmbeddingLayer(base_layer.BaseLayer):
+  """Embedding layer that is not sharded.
+
+  This embedding layer is expected to be replicated over all compute devices
+  (e.g. tpu cores). It is intended to support small to medium embedding tables
+  (< 50k) only.
+
+  This is intended to be a unification of EmbeddingLayer and
+  SimpleEmbeddingLayer (and cleanup of both). It is targeting the most common
+  use-case we have in speech/nmt/tts/deeprank. Currently we often first
+  configure a model using EmbeddingLayer, and then call ChangeToSimpleEmbedding
+  to switch to SimpleEmbedding where  we lose some configuration (e.g.
+  scale_by_sqrt_dim).
+
+  TODO(lingvo): Implement the matmul option which should be more efficient for
+  small vocabs (e.g. < 1k vocab).
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(SingleShardEmbeddingLayer, cls).Params()
+    p.Define('vocab_size', 0, 'Num tokens in vocab.')
+    p.Define('embedding_dim', 0, 'Depth of the output.')
+    p.Define(
+        'scale_sqrt_depth', False, 'If set True, activations are scaled'
+        ' with sqrt(embedding_dim) in EmbLookup.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(SingleShardEmbeddingLayer, self).__init__(params)
+    p = self.params
+    assert p.vocab_size > 0
+    assert p.embedding_dim > 0
+    assert p.name
+
+    with tf.variable_scope(p.name):
+      w_pc = py_utils.WeightParams(
+          shape=[p.vocab_size, p.embedding_dim],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('emb_var', w_pc)
+
+  def EmbLookupDefaultTheta(self, ids):
+    return self.EmbLookup(self.theta, ids)
+
+  def EmbLookup(self, theta, ids):
+    """Looks up embedding vectors for ids.
+
+    Args:
+      theta: Named tuple with the weight matrix for the embedding.
+      ids: A rank-N int32 tensor.
+
+    Returns:
+      A rank-(N+1) params.dtype tensor.
+      embs[indices, :] is the embedding vector for ids[indices].
+    """
+    p = self.params
+    ids = tf.convert_to_tensor(ids)
+    ids = py_utils.with_dependencies(
+        [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
+    embs = tf.nn.embedding_lookup(theta.emb_var, tf.reshape(ids, [-1]))
+    if p.scale_sqrt_depth:
+      embs *= p.embedding_dim**0.5
+    if p.vn.global_vn or p.vn.per_step_vn:
+      embs = py_utils.AddGlobalVN(p, embs)
+    out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
+    return tf.reshape(embs, out_shape)
+
+  def FProp(self, theta, ids):
+    return self.EmbLookup(theta, ids)
 
 
 class EmbeddingLayer(base_layer.BaseLayer):
@@ -1966,7 +2042,8 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
 
     Args:
       ids_map: A dict of `input_key` string -> [batch, sequence] int32 Tensor.
-               -1 is used as a padding id.
+        -1 is used as a padding id.
+
     Returns:
       Activations dict of string ->
       For non-sequence embeddings:  [batch, 1, embedding_dim],
@@ -2200,8 +2277,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     def EmbMatmul(embs, ids_vec):
       # lhs[i, j] is True iff ids_vec[i] == j.
       lhs = tf.equal(
-          tf.expand_dims(ids_vec, 1), tf.range(
-              p.vocab_size, dtype=ids_vec.dtype))
+          tf.expand_dims(ids_vec, 1),
+          tf.range(p.vocab_size, dtype=ids_vec.dtype))
       return tf.matmul(tf.cast(lhs, embs.dtype), embs)
 
     def EmbGather(embs, ids_vec):
@@ -2663,8 +2740,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
     ]
     biases = [self.QWeight(theta['bias_%d' % i]) for i in range(p.num_shards)]
     new_theta = theta.copy()
-    new_theta.wm = py_utils.AddPerStepVN(p, tf.concat(
-        weights, axis=concat_axis))
+    new_theta.wm = py_utils.AddPerStepVN(p,
+                                         tf.concat(weights, axis=concat_axis))
     new_theta.bias = py_utils.AddPerStepVN(p, tf.concat(biases, axis=0))
     return new_theta
 
@@ -2853,6 +2930,209 @@ class SharedSoftmaxLayer(SimpleFullSoftmax):
           [py_utils.assert_between(ids, 0, p.num_classes)], ids)
     embs_result = tf.gather(tf.transpose(self._ConcatWeights(theta).wm), ids)
     return embs_result
+
+
+class SingleShardFullSoftmax(SoftmaxLayer):
+  """Full softmax layer."""
+
+  @base_layer.initializer
+  def __init__(self, params):
+    """Constructs a SingleShardFullSoftmax layer."""
+    super(SingleShardFullSoftmax, self).__init__(params)
+    p = self.params
+    assert p.name
+    with tf.variable_scope(p.name):
+      linear_p = builder_layers.LinearLayer.Params().Set(
+          name='linear', input_dims=p.input_dim, output_dims=p.num_classes)
+      self.CreateChild('linear', linear_p)
+      bias_p = builder_layers.BiasLayer.Params().Set(
+          name='bias', dims=p.num_classes)
+      self.CreateChild('bias', bias_p)
+
+  def Logits(self, theta, inputs):
+    """Returns the logits computed before the softmax.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: A single tensor with shape [..., input_dim].
+
+    Returns:
+      logits [..., num_classes]
+    """
+    p = self.params
+    if isinstance(inputs, (list, tuple)):
+      assert len(inputs) == 1
+      inputs = inputs[0]
+    after_proj = self.linear.FProp(theta.linear, inputs)
+    logits = self.bias.FProp(theta.bias, after_proj)
+    # Clip logits by range.
+    # Note that this is generally not used in conjunction with quantization and
+    # shouldn't be needed at inference time as the quantized matmul above will
+    # take care of clipping naturally based on the data type and qparams.
+    abs_max = p.logits_abs_max
+    if abs_max is not None and not p.is_inference:
+      abs_min = -abs_max  # pylint: disable=invalid-unary-operand-type
+      logits = py_utils.clip_by_value(logits, abs_min, abs_max)
+    return logits
+
+  def XentLossFromLogits(self,
+                         theta,
+                         logits,
+                         class_ids=None,
+                         class_probabilities=None):
+    """Computes cross-entropy, argmax etc. from logits."""
+    assert logits is not None
+    if class_probabilities is not None:
+      per_example_xent = tf.nn.softmax_cross_entropy_with_logits(
+          labels=class_probabilities, logits=logits)
+      per_example_argmax = tf.stop_gradient(py_utils.ArgMax(logits))
+    else:
+      assert class_ids is not None
+      per_example_xent = tf.nn.sparse_softmax_cross_entropy_with_logits(
+          labels=class_ids, logits=logits)
+      per_example_argmax = tf.stop_gradient(py_utils.ArgMax(logits))
+    return per_example_xent, per_example_argmax
+
+  def XentLossByChunk(self, theta, activation, class_ids, class_probabilities):
+    """Computes per-example xent loss."""
+    p = self.params
+
+    act_orig_shape = tf.shape(activation)
+    batch_size = act_orig_shape[0]
+    chunk_size = p.chunk_size
+    num_chunks = batch_size // chunk_size
+
+    num_chunks = py_utils.with_dependencies(
+        [tf.assert_equal(0, tf.mod(batch_size, chunk_size),
+                         summarize=2,
+                         message='assert_equal')],
+        num_chunks)
+
+    def ReshapeX(x):
+      if x is None:
+        return None
+      x_shape = tf.shape(x)
+      new_shape = tf.concat([[num_chunks, chunk_size], x_shape[1:]], 0)
+      return tf.reshape(x, new_shape)
+
+    activation = ReshapeX(activation)
+    class_ids = ReshapeX(class_ids)
+    class_probabilities = ReshapeX(class_probabilities)
+
+    # For each chunk, we compute logits of activation[i, :, :],
+    # and its xent loss with class_ids[i, :].
+    def ChunkFn(theta, state0, inputs):
+      del state0
+      activation = inputs.activation
+      class_ids = inputs.get('class_ids', None)
+      class_probabilities = inputs.get('class_probabilities', None)
+      logits = self.Logits(theta, activation)
+      per_example_xent, per_example_argmax = self.XentLossFromLogits(
+          theta, logits, class_ids, class_probabilities)
+      return py_utils.NestedMap(xent=per_example_xent,
+                                amax=per_example_argmax), py_utils.NestedMap()
+
+    inputs_nmap = py_utils.NestedMap(activation=activation)
+    if class_ids is not None:
+      inputs_nmap.class_ids = class_ids
+    if class_probabilities is not None:
+      inputs_nmap.class_probabilities = class_probabilities
+
+    xent_state0 = tf.zeros(tf.shape(activation)[1:-1], dtype=p.dtype)
+    argmax_out_dtype = tf.int32 if py_utils.use_tpu() else tf.int64
+    amax_state0 = tf.zeros(tf.shape(activation)[1:-1], dtype=argmax_out_dtype)
+
+    acc, _ = recurrent.Recurrent(
+        theta=theta,
+        state0=py_utils.NestedMap(xent=xent_state0, amax=amax_state0),
+        inputs=inputs_nmap,
+        cell_fn=ChunkFn)
+
+    # acc.xent has the shape [dim0, dim1]. acc.xent[i, :] are
+    # per-example xent loss for examples in the i-th chunk.  We
+    # reshape acc.xent to a vector and slice the first 'batch' values.
+    def GetBatch(x):
+      return tf.reshape(x, act_orig_shape[:-1])
+
+    return GetBatch(acc.xent), GetBatch(acc.amax)
+
+  def FProp(self,
+            theta,
+            inputs,
+            class_weights,
+            class_ids=None,
+            class_probabilities=None):
+    """Computes logits, cross entropy etc.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: a single tensor with shape [..., input_dim].
+      class_weights: a tensor with shape [..., 1] containing the weights for
+        each target word.
+      class_ids: a tensor with shape [..., 1] of int32 dtype containing the
+        target class labels.
+      class_probabilities: a tensor with shape [..., num_classes] of float
+        values indicating class-membership probabilities.
+
+    Returns:
+      A `.NestedMap` containing the following fields
+
+      - logits: with shape [..., num_classes]. Unnormalized softmax's logits.
+      - per_example_argmax: with shape [...]. argmax of i-th example.
+      - per_example_xent: with shape [...]. Cross entropy between i-th example's
+        prediction and its label.
+      - per_example_weight: with shape [...]. class_weights casted to
+        this layer's dtype.
+      - total_xent: A scalar. The sum of per_example_weight * per_example_xent.
+      - total_weight: A scalar. The sum of per_example_weight.
+      - avg_xent: A scalar. total_loss / total_weight.
+    """
+    p = self.params
+    if isinstance(inputs, (list, tuple)):
+      assert len(inputs) == 1
+      inputs = inputs[0]
+
+    inputs_shape = tf.shape(inputs)
+    ids_shape = tf.concat([inputs_shape[:-1], [1]], 0)
+    probs_shape = tf.concat([inputs_shape[:-1], [p.num_classes]], 0)
+
+    class_weights = py_utils.HasShape(class_weights, ids_shape)
+    class_weights = tf.squeeze(class_weights, -1)
+    if class_ids is not None:
+      class_ids = py_utils.HasShape(class_ids, ids_shape)
+      class_ids = tf.squeeze(class_ids, -1)
+    if class_probabilities is not None:
+      class_probabilities = py_utils.HasShape(class_probabilities,
+                                              probs_shape)
+
+    if (not p.is_eval) and (p.chunk_size > 0):
+      # Chunking.
+      logits = None
+      log_probs = None
+      per_example_xent, per_example_argmax = self.XentLossByChunk(
+          theta, inputs, class_ids, class_probabilities)
+    else:
+      logits = self.Logits(theta, inputs)
+      log_probs = tf.nn.log_softmax(logits)
+      per_example_xent, per_example_argmax = self.XentLossFromLogits(
+          theta, logits, class_ids, class_probabilities)
+
+    label_weights = tf.cast(class_weights, py_utils.FPropDtype(p))
+    total_xent = tf.reduce_sum(per_example_xent * label_weights)
+    total_weights = tf.reduce_sum(label_weights)
+    output_nmap = py_utils.NestedMap(
+        per_example_argmax=per_example_argmax,
+        per_example_xent=per_example_xent,
+        per_example_weight=label_weights,
+        total_xent=total_xent,
+        total_weight=total_weights,
+        avg_xent=total_xent / (total_weights + 1e-6))
+    if logits is not None:
+      output_nmap.logits = logits
+      output_nmap.log_probs = log_probs
+    return output_nmap
 
 
 class ConvSoftmax(quant_utils.QuantizableLayer):

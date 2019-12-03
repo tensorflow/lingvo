@@ -2043,6 +2043,92 @@ class StackingOverTimeLayerTest(test_utils.TestCase):
     self._testUnstack(inputs, stride=4, left_context=1, right_context=2)
 
 
+class SingleShardEmbeddingLayerTest(test_utils.TestCase):
+
+  def testSingleShardEmbeddingLayer(self):
+    with self.session(use_gpu=True):
+      tf.set_random_seed(398847392)
+      params = layers.SingleShardEmbeddingLayer.Params()
+      params.name = 'emb'
+      params.dtype = tf.float32
+      params.vocab_size = 80000
+      params.embedding_dim = 128
+      params.params_init = py_utils.WeightInit.Gaussian(0.01)
+      params.vn.global_vn = False
+      params.vn.per_step_vn = False
+      emb_layer = params.Instantiate()
+      ids = tf.constant([[89], [100]])
+      embs = emb_layer.EmbLookupDefaultTheta(ids)
+      embs_sum = tf.reduce_sum(embs)
+      tf.global_variables_initializer().run()
+      test_utils.CompareToGoldenSingleFloat(self, 0.126485, embs_sum.eval())
+
+  def testCheckedIds(self):
+    with self.session(use_gpu=True):
+      tf.set_random_seed(398847392)
+      params = layers.SingleShardEmbeddingLayer.Params()
+      params.name = 'emb'
+      params.dtype = tf.float32
+      params.vocab_size = 16
+      params.embedding_dim = 128
+      params.params_init = py_utils.WeightInit.Gaussian(0.01)
+      params.vn.global_vn = False
+      params.vn.per_step_vn = False
+      emb_layer = params.Instantiate()
+
+      neg_ids = tf.constant([[-1]])
+      neg_embs = emb_layer.EmbLookupDefaultTheta(neg_ids)
+      oov_ids = tf.constant([[params.vocab_size]])
+      oov_embs = emb_layer.EmbLookupDefaultTheta(oov_ids)
+      tf.global_variables_initializer().run()
+
+      with self.assertRaises(tf.errors.InvalidArgumentError):
+        neg_embs.eval()
+      with self.assertRaises(tf.errors.InvalidArgumentError):
+        oov_embs.eval()
+
+  def testEmbeddingLayerScaling(self):
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(398847392)
+      params = layers.SingleShardEmbeddingLayer.Params()
+      params.name = 'emb'
+      params.dtype = tf.float32
+      params.vocab_size = 80000
+      params.embedding_dim = 128
+      params.params_init = py_utils.WeightInit.Gaussian(0.01)
+      params.vn.global_vn = False
+      params.vn.per_step_vn = False
+      params.scale_sqrt_depth = True
+      emb_layer = params.Instantiate()
+      ids = tf.constant([[89], [100]])
+      embs = emb_layer.EmbLookupDefaultTheta(ids)
+      embs_sum = tf.reduce_sum(embs)
+      tf.global_variables_initializer().run()
+      self.assertAllClose(0.126485 * params.embedding_dim**0.5,
+                          sess.run(embs_sum))
+
+  def testEmbeddingLayerWithVN(self):
+    with self.session(use_gpu=True):
+      tf.set_random_seed(398847392)
+      params = layers.SimpleEmbeddingLayer.Params()
+      params.name = 'emb'
+      params.dtype = tf.float32
+      params.vocab_size = 80000
+      params.embedding_dim = 128
+      params.params_init = py_utils.WeightInit.Gaussian(0.01, seed=398847392)
+      params.vn.global_vn = True
+      params.vn.per_step_vn = False
+      params.vn.scale = 0.5
+      params.vn.seed = 398847392
+      emb_layer = params.Instantiate()
+      self.assertEqual(len(emb_layer.vars.Flatten()), 1)
+      ids = tf.constant([[89], [100]])
+      embs = emb_layer.EmbLookupDefaultTheta(ids)
+      embs_sum = tf.reduce_sum(embs)
+      tf.global_variables_initializer().run()
+      test_utils.CompareToGoldenSingleFloat(self, 13.443051, embs_sum.eval())
+
+
 class EmbeddingLayerTest(test_utils.TestCase):
 
   def testEmbeddingLayer(self):
@@ -2892,6 +2978,174 @@ class SoftmaxLayerTest(test_utils.TestCase):
             inputs, class_weights=class_weights, class_ids=class_ids)
         tf.global_variables_initializer().run()
         sess.run(xent_loss.total_xent)
+
+
+class SingleShardSoftmaxLayerTest(test_utils.TestCase):
+
+  def _RunSimpleFullSoftmax(self,
+                            inputs=None,
+                            class_ids=None,
+                            class_weights=None,
+                            class_probabilities=None,
+                            chunk_size=0,
+                            dtype=tf.float32,
+                            fprop_dtype=None):
+    if fprop_dtype is None:
+      fprop_dtype = dtype
+    with self.session(use_gpu=True, graph=tf.Graph()) as sess:
+      inputs = tf.constant(inputs, dtype=fprop_dtype)
+      if class_ids is not None:
+        class_ids = tf.constant(class_ids, dtype=tf.int32)
+      if class_weights is not None:
+        class_weights = tf.constant(class_weights, dtype=dtype)
+      if class_probabilities is not None:
+        class_probabilities = tf.constant(class_probabilities, dtype=dtype)
+
+      params = layers.SingleShardFullSoftmax.Params()
+      params.dtype = dtype
+      params.fprop_dtype = fprop_dtype
+      params.name = 'softmax'
+      params.input_dim = 10
+      params.num_classes = 32
+      params.chunk_size = chunk_size
+      params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
+      params.random_seed = 12345678
+
+      params.vn.global_vn = False
+      softmax = params.Instantiate()
+      xent_loss = softmax.FProp(
+          softmax.theta,
+          inputs,
+          class_weights=class_weights,
+          class_ids=class_ids,
+          class_probabilities=class_probabilities)
+
+      tf.global_variables_initializer().run()
+      return sess.run(xent_loss)
+
+  def testSimpleFullSoftmax_Non2D_ClassId(self):
+    np.random.seed(1234578)
+    xent_loss = self._RunSimpleFullSoftmax(
+        inputs=np.random.rand(4, 3, 10),
+        class_weights=np.ones((4, 3, 1)),
+        class_ids=np.random.randint(32, size=(4, 3, 1)),
+        chunk_size=2)
+    self.assertEqual(xent_loss.per_example_xent.shape, (4, 3))
+    self.assertEqual(xent_loss.per_example_weight.shape, (4, 3))
+
+  def testSimpleFullSoftmax_Non2D_ClassProb(self):
+    np.random.seed(12345)
+    xent_loss = self._RunSimpleFullSoftmax(
+        inputs=np.random.rand(4, 3, 10),
+        class_weights=np.ones((4, 3, 1)),
+        class_probabilities=np.random.randint(32, size=(4, 3, 32)),
+        chunk_size=1)
+    self.assertEqual(xent_loss.per_example_xent.shape, (4, 3))
+    self.assertEqual(xent_loss.per_example_weight.shape, (4, 3))
+
+  def _testSimpleFullSoftmax_Basic_Helper(self, dtype, fprop_dtype):
+    np.random.seed(12345)
+    class_ids = [[1], [5], [10]]
+    class_weights = [[1.0], [0.4], [0.8]]
+    inputs=np.random.rand(3, 10)
+    xent_loss = self._RunSimpleFullSoftmax(
+        inputs=inputs,
+        class_weights=class_weights,
+        class_ids=class_ids,
+        dtype=dtype,
+        fprop_dtype=fprop_dtype)
+    loss = xent_loss.total_xent
+    log_perplexity = xent_loss.avg_xent
+    print(['loss', loss])
+    print(['log_perplexity', log_perplexity])
+    err = 1e-5
+    if fprop_dtype == tf.float16 or fprop_dtype == tf.bfloat16:
+      err = 1e-2
+    self.assertNear(loss, 6.22425, err=err)
+    self.assertNear(log_perplexity, 2.8292, err=err)
+    self.assertAllEqual(xent_loss.per_example_argmax,
+                        np.argmax(xent_loss.logits, axis=1))
+
+  def testSimpleFullSoftmax_Basic_Float32(self):
+    self._testSimpleFullSoftmax_Basic_Helper(
+        dtype=tf.float32, fprop_dtype=tf.float32)
+
+  def testSimpleFullSoftmax_Basic_Float32Float16(self):
+    self._testSimpleFullSoftmax_Basic_Helper(
+        dtype=tf.float32, fprop_dtype=tf.float16)
+
+  def testSimpleFullSoftmax_Chunked(self):
+    np.random.seed(12345)
+    class_ids = [[1], [5], [10]]
+    class_weights = [[1.0], [0.4], [0.8]]
+    inputs=np.random.rand(3, 10)
+    per_example_xent = None
+    per_example_argmax = None
+    for chunk_size in (0, 1, 3):
+      xent_output = self._RunSimpleFullSoftmax(
+        inputs=inputs,
+        class_weights=class_weights,
+        class_ids=class_ids,
+        chunk_size=chunk_size)
+      loss = xent_output.total_xent
+      log_perplexity = xent_output.avg_xent
+      print('xent_output ', xent_output)
+      print('xent_output.per_example_argmax.dtype ',
+            xent_output.per_example_argmax.dtype)
+      self.assertAllClose(loss, 6.22425)
+      self.assertAllClose(log_perplexity, 2.82920)
+      if per_example_xent is None:
+        per_example_xent = xent_output.per_example_xent
+        per_example_argmax = xent_output.per_example_argmax
+      else:
+        self.assertAllClose(per_example_xent,
+                            xent_output.per_example_xent)
+        self.assertAllClose(per_example_argmax,
+                            xent_output.per_example_argmax)
+
+  def _RunSimpleFullSoftmaxGradientChecker(self, batch_size, num_classes,
+                                           chunk_size):
+    for (dtype, use_gpu, tolerance) in [(tf.float32, True, 1e-2),
+                                        (tf.float64, False, 1e-6)]:
+      tf.logging.info('dtype %s tolerance %g', dtype, tolerance)
+      with self.session(use_gpu=use_gpu, graph=tf.Graph()) as sess:
+        input_dim = 10
+        np.random.seed(12345)
+        class_ids = tf.constant(
+            np.random.randint(num_classes, size=(batch_size, 1)),
+            dtype=tf.int32)
+        class_weights = tf.constant(np.random.rand(batch_size, 1), dtype=dtype)
+        inputs = tf.constant(np.random.rand(batch_size, input_dim), dtype=dtype)
+
+        params = layers.SingleShardFullSoftmax.Params()
+        params.name = 'softmax'
+        params.dtype = dtype
+        params.input_dim = input_dim
+        params.num_classes = num_classes
+        params.chunk_size = chunk_size
+        params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
+        params.vn.global_vn = False
+        softmax = params.Instantiate()
+        xent_loss = softmax.FProp(
+            softmax.theta,
+            inputs, class_weights=class_weights, class_ids=class_ids)
+        softmax_vars = softmax.vars.Flatten()
+        # Now add the backward graph.
+        grads = tf.gradients(xent_loss.total_xent, softmax_vars)
+
+        tf.global_variables_initializer().run()
+        assert len(softmax_vars) == len(grads)
+        for x, grad_x in zip(softmax_vars, grads):
+          grad_symbolic = sess.run(grad_x)
+          grad_numeric = test_utils.ComputeNumericGradient(
+              sess, xent_loss.total_xent, x)
+          self.assertAllClose(
+              grad_symbolic, grad_numeric, atol=tolerance, rtol=tolerance)
+
+  def testSimpleFullSoftmaxGradientChecker(self):
+    self._RunSimpleFullSoftmaxGradientChecker(3, 4, 0)
+    self._RunSimpleFullSoftmaxGradientChecker(3, 4, 1)
+    self._RunSimpleFullSoftmaxGradientChecker(3, 4, 3)
 
 
 class SoftmaxLayerLogitsTest(test_utils.TestCase):
