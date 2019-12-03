@@ -1166,7 +1166,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         'proj_init', 'default', 'Initialization approach for projection '
         'layers:'
         'uniform: Use uniform initialization. '
-        'default: Use use the default Xavier initialization.')
+        'default: Use the default Xavier initialization.')
     p.Define(
         'attention_head_prob_index', -1, 'If > 0, instead of averaging '
         'the probabilities of all attention heads when returning the '
