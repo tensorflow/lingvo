@@ -118,9 +118,13 @@ Session = tf.compat.v1.Session
 set_random_seed = tf.compat.v1.set_random_seed
 strings.split = tf.compat.v1.strings.split
 Summary = tf.compat.v1.Summary
-summary.FileWriter = tf.compat.v1.summary.FileWriter
-summary.merge_all = tf.compat.v1.summary.merge_all
-summary.Summary = tf.compat.v1.summary.Summary
+if tf.compat.v1.summary is not None:
+  # tf.summary are not supported on TPU so we sometimes set tf.summary to None
+  # to prohibit the direct use of it.
+  # It is safe to skip copying tf.summary members in such cases.
+  summary.FileWriter = tf.compat.v1.summary.FileWriter
+  summary.merge_all = tf.compat.v1.summary.merge_all
+  summary.Summary = tf.compat.v1.summary.Summary
 tables_initializer = tf.compat.v1.tables_initializer
 test.get_temp_dir = tf.compat.v1.test.get_temp_dir
 test.mock = tf.compat.v1.test.mock
