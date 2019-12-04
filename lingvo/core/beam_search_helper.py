@@ -698,10 +698,12 @@ class GreedySearchHelper(base_layer.BaseLayer):
         self.params.target_seq_len.
 
     Returns:
-      hyp_ids: [time, num_hyps]. Hyps end with <eos> token if the <eos> token is
-        encountered during search.
-      hyp_lens: [num_hyps]
-      done_hyps: [num_hyps], whether or not an eos is encountered.
+      A tuple (hyp_ids, hyp_lens, done_hyps).
+
+        - hyp_ids: [time, num_hyps]. Hyps end with <eos> token if the <eos>
+          token is encountered during search.
+        - hyp_lens: [num_hyps].
+        - done_hyps: [num_hyps], whether or not an eos is encountered.
     """
     p = self.params
     if max_steps is None:
