@@ -290,6 +290,9 @@ class BaseRunner(object):
     return tf.Session(
         self._tf_master, graph=graph, config=py_utils.SessionConfig(**kwargs))
 
+  def GetTrainDir(self):
+    return self._train_dir
+
   @classmethod
   def _GetTtlDir(cls, path, duration):
     """Returns a path to a time-limited directory under dir if required."""
