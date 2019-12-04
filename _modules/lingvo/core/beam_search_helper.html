@@ -843,10 +843,12 @@
 <span class="sd">        self.params.target_seq_len.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      hyp_ids: [time, num_hyps]. Hyps end with &lt;eos&gt; token if the &lt;eos&gt; token is</span>
-<span class="sd">        encountered during search.</span>
-<span class="sd">      hyp_lens: [num_hyps]</span>
-<span class="sd">      done_hyps: [num_hyps], whether or not an eos is encountered.</span>
+<span class="sd">      A tuple (hyp_ids, hyp_lens, done_hyps).</span>
+
+<span class="sd">        - hyp_ids: [time, num_hyps]. Hyps end with &lt;eos&gt; token if the &lt;eos&gt;</span>
+<span class="sd">          token is encountered during search.</span>
+<span class="sd">        - hyp_lens: [num_hyps].</span>
+<span class="sd">        - done_hyps: [num_hyps], whether or not an eos is encountered.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">max_steps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
