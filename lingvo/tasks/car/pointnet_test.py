@@ -18,13 +18,15 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.tasks.car import pointnet
 
 
-class PointNetTest(test_utils.TestCase):
+class PointNetTest(test_utils.TestCase, parameterized.TestCase):
 
   def _testOutShape(self, p, input_shape, expected_shape):
     batch_size, num_points, _ = input_shape
@@ -45,14 +47,13 @@ class PointNetTest(test_utils.TestCase):
       np_result = sess.run(result)
     self.assertEqual(np_result.shape, expected_shape)
 
-  def testPointNetClassifier(self):
-    for feature_dims in [128, 256]:
-      for input_dims in [3, 6, 9]:
-        p = pointnet.PointNet().Classifier(
-            input_dims=input_dims, feature_dims=feature_dims)
-        # Network should produce a global feature of feature_dims.
-        self.assertEqual(p.output_dim, feature_dims)
-        self._testOutShape(p, (8, 128, input_dims), (8, feature_dims))
+  @parameterized.parameters((128, 3), (128, 9), (256, 3))
+  def testPointNetClassifier(self, feature_dims, input_dims):
+    p = pointnet.PointNet().Classifier(
+        input_dims=input_dims, feature_dims=feature_dims)
+    # Network should produce a global feature of feature_dims.
+    self.assertEqual(p.output_dim, feature_dims)
+    self._testOutShape(p, (8, 128, input_dims), (8, feature_dims))
 
   def testPointNetSegmentation(self):
     p = pointnet.PointNet().Segmentation()
@@ -65,14 +66,13 @@ class PointNetTest(test_utils.TestCase):
     self.assertEqual(p.output_dim, 128)
     self._testOutShape(p, (8, 2000, 3), (8, 2000, 128))
 
-  def testPointNetPPClassifier(self):
-    for feature_dims in [128, 256]:
-      for input_dims in [3, 6, 9]:
-        p = pointnet.PointNetPP().Classifier(
-            input_dims=input_dims, feature_dims=feature_dims)
-        # Network should produce a global feature of feature_dims.
-        self.assertEqual(p.output_dim, feature_dims)
-        self._testOutShape(p, (8, 1024, input_dims), (8, feature_dims))
+  @parameterized.parameters((128, 3), (128, 9), (256, 3))
+  def testPointNetPPClassifier(self, feature_dims, input_dims):
+    p = pointnet.PointNetPP().Classifier(
+        input_dims=input_dims, feature_dims=feature_dims)
+    # Network should produce a global feature of feature_dims.
+    self.assertEqual(p.output_dim, feature_dims)
+    self._testOutShape(p, (8, 1024, input_dims), (8, feature_dims))
 
 
 if __name__ == '__main__':

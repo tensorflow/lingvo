@@ -400,6 +400,7 @@ py_test(
     srcs = ["pointnet_test.py"],
     deps = [
         ":pointnet",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
