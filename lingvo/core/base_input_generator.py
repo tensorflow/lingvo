@@ -59,6 +59,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
              'Whether run infeed op on each host.')
     p.Define('tpu_infeed_parallelism', 1,
              'Uses these many python threads to drive infeed concurrently.')
+    p.Define('use_partitioned_infeed_queue', False, 'Use partitioned infeed')
+    p.Define('num_partitions', None, 'Num partitions')
 
     p.Define('remote', hyperparams.Params(),
              'Params to configure remote input policy.')
@@ -213,13 +215,26 @@ class BaseInputGenerator(base_layer.BaseLayer):
                           shapes)
           tf.logging.info('host_device: %s infeed dtypes: %r', host_device,
                           dtypes)
-          q = tpu_feed.InfeedQueue(tuple_types=dtypes, tuple_shapes=shapes)
+          if p.use_partitioned_infeed_queue:
+            device_assignment = py_utils.GetTpuDeviceAssignment()
+            q = tpu_feed._PartitionedInfeedQueue(  # pylint: disable=protected-access
+                number_of_tuple_elements=len(dtypes),
+                device_assignment=device_assignment,
+                host_id=0,
+                input_partition_dims=[[p.num_partitions, 1] for _ in dtypes],
+                tuple_types=dtypes,
+                tuple_shapes=shapes)
+          else:
+            q = tpu_feed.InfeedQueue(tuple_types=dtypes, tuple_shapes=shapes)
+            assert shards is not None
+            q.set_number_of_shards(shards)
+
           queues.append(q)
-          assert shards is not None
-          q.set_number_of_shards(shards)
+          tf.logging.info('q=%r', q)
 
-          if p.use_per_host_infeed:
-
+          if p.use_partitioned_infeed_queue:
+            input_ops = q.generate_enqueue_ops([batch.Flatten()])
+          elif p.use_per_host_infeed:
             # TODO(ylc/zhifengc): Add this to a policy module and test it.
             def TPUOrdinalFunction(shard_index_in_host):
               device_assignment = py_utils.GetTpuDeviceAssignment()

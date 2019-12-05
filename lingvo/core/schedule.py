@@ -755,3 +755,21 @@ class PiecewiseSchedule(BaseLearningRateSchedule):
 
     return py_utils.PiecewiseConstant(current_step, p.boundaries, values,
                                       values[0].dtype)
+
+
+class SqrtDecay(BaseLearningRateSchedule):
+  """Sqrt decay schedule."""
+
+  @classmethod
+  def Params(cls):
+    p = super(SqrtDecay, cls).Params()
+    p.Define('warmup_steps', 10000, 'Number of warm up steps.')
+    p.Define('multiplier', 1.0, 'Multiplier.')
+    return p
+
+  def FProp(self, theta, current_step):
+    p = self.params
+    step_num = tf.cast(current_step, tf.float32)
+    learning_rate = tf.math.rsqrt(tf.maximum(step_num, p.warmup_steps))
+    learning_rate *= p.multiplier
+    return learning_rate
