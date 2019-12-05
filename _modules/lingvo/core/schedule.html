@@ -900,6 +900,24 @@
 
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PiecewiseConstant</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span>
                                       <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SqrtDecay"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.SqrtDecay">[docs]</a><span class="k">class</span> <span class="nc">SqrtDecay</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Sqrt decay schedule.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SqrtDecay.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.SqrtDecay.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SqrtDecay</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;warmup_steps&#39;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span> <span class="s1">&#39;Number of warm up steps.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;multiplier&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Multiplier.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="SqrtDecay.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.SqrtDecay.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">step_num</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">learning_rate</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">step_num</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">warmup_steps</span><span class="p">))</span>
+    <span class="n">learning_rate</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">multiplier</span>
+    <span class="k">return</span> <span class="n">learning_rate</span></div></div>
 </pre></div>
 
            </div>
