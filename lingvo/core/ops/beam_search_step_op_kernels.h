@@ -30,7 +30,7 @@ namespace lingvo {
 // Simple tuple for book keeping during beam pruning.
 struct Hyp {
   int32 beam_id;                // The beam that this hyp belongs to.
-  int32 hyp_id;                 // The hypothesis id.
+  int32 hyp_id;                 // The prev hypothesis id.
   int32 word_id;                // The id for the predicted next word.
   float local_score;            // Local score from the current step.
   float global_score;           // Cumulative score till the current step.
