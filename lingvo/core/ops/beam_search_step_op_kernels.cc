@@ -244,7 +244,7 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
       });
 
   const int hyps_per_beam = k;
-  top_k->resize(num_beams * hyps_per_beam);
+  top_k->resize(hyps_per_beam * num_beams);
   for (int i = 0; i < num_beams; ++i) {
     auto ith_topk = merged_topk_vec[i].Get();
     std::sort(ith_topk.begin(), ith_topk.end(), HigherScore());
