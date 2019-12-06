@@ -37,6 +37,7 @@ import importlib
 import inspect
 import os
 import re
+import sys
 import threading
 import time
 
@@ -1833,12 +1834,12 @@ class RunnerManager(object):
 
 
 def main(unused_argv):
-  # pylint: disable=g-import-not-at-top
-  # pylint: disable=unused-variable
-  from lingvo import model_imports
   RunnerManager(FLAGS.model).Start()
 
 
 if __name__ == '__main__':
   tf.flags.mark_flag_as_required('model')
+  FLAGS(sys.argv, known_only=True)
+  import lingvo.model_imports  # pylint: disable=g-import-not-at-top,unused-import
+  FLAGS.unparse_flags()
   tf.app.run(main)
