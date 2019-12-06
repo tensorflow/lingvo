@@ -381,13 +381,15 @@ class AsrModel(base_model.BaseTask):
         ref_str = transcripts[i]
         if not py_utils.use_tpu():
           tf.logging.info('utt_id: %s', utt_id[i])
-        tf.logging.info('  ref_str: %s', ref_str)
+        if self.cluster.add_summary:
+          tf.logging.info('  ref_str: %s', ref_str)
         hyps = topk_decoded[i]
         ref_ids = GetRefIds(target_labels[i], target_paddings[i])
         hyp_index = i * p.decoder.beam_search.num_hyps_per_beam
         top_hyp_ids = topk_ids[hyp_index][:topk_lens[hyp_index]]
-        tf.logging.info('  ref_ids: %s', ref_ids)
-        tf.logging.info('  top_hyp_ids: %s', top_hyp_ids)
+        if self.cluster.add_summary:
+          tf.logging.info('  ref_ids: %s', ref_ids)
+          tf.logging.info('  top_hyp_ids: %s', top_hyp_ids)
         total_ref_tokens += len(ref_ids)
         _, _, _, token_errs = decoder_utils.EditDistanceInIds(
             ref_ids, top_hyp_ids)
@@ -398,7 +400,8 @@ class AsrModel(base_model.BaseTask):
         filtered_ref = decoder_utils.FilterEpsilon(filtered_ref)
         oracle_errs = norm_wer_errors[i][0]
         for n, (score, hyp_str) in enumerate(zip(topk_scores[i], hyps)):
-          tf.logging.info('  %f: %s', score, hyp_str)
+          if self.cluster.add_summary:
+            tf.logging.info('  %f: %s', score, hyp_str)
           filtered_hyp = decoder_utils.FilterNoise(hyp_str)
           filtered_hyp = decoder_utils.FilterEpsilon(filtered_hyp)
           ins, subs, dels, errs = decoder_utils.EditDistance(
