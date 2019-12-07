@@ -1176,8 +1176,8 @@ py_library(
 )
 
 py_test(
-    name = "tokenizers_test",
-    srcs = ["tokenizers_test.py"],
+    name = "wpm_tokenizer_test",
+    srcs = ["wpm_tokenizer_test.py"],
     data = [
         "//lingvo/tasks/mt:wpm_ende",
     ],

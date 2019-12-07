@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Tests for tokenizers that are not in the ops tests."""
+"""Tests for WPM tokenizer (which is not in ops test)."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -27,9 +27,9 @@ from lingvo.core import tokenizers
 import numpy as np
 
 
-class TokenizersTest(test_utils.TestCase):
+class WpmTokenizerTest(test_utils.TestCase):
 
-  def testStringsTokenId(self):
+  def testStringsTokenIds(self):
     p = tokenizers.WpmTokenizer.Params()
     p.vocab_filepath = test_helper.test_src_dir_path('tasks/mt/wpm-ende.voc')
     p.vocab_size = 32000
@@ -49,7 +49,7 @@ class TokenizersTest(test_utils.TestCase):
                         [[0., 0., 0., 0., 0., 0.], [0., 0., 0., 0., 1., 1.],
                          [0., 1., 1., 1., 1., 1.]])
 
-  def testIdToStrings(self):
+  def testIdsToStrings(self):
     p = tokenizers.WpmTokenizer.Params()
     p.vocab_filepath = test_helper.test_src_dir_path('tasks/mt/wpm-ende.voc')
     p.vocab_size = 32000
