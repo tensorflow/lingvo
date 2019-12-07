@@ -166,7 +166,8 @@ tf.flags.DEFINE_bool(
     'checkpoint_in_trainer_tpu', False,
     'Whether to enable checkpointing in TrainerTpu, allowing for '
     'operation without a separate Controller task.'
-    'TODO(b/137871213) migrate file/summaries from Controller.')
+    'This flag also disables checkpointing from the Controller, '
+    'but still allows it to write summaries.')
 
 tf.flags.DEFINE_string(
     'tpu', None,
@@ -265,6 +266,9 @@ class Controller(base_runner.BaseRunner):
     tf.gfile.MakeDirs(self._control_dir)
     self._summary_writer = self._CreateSummaryWriter(self._control_dir)
     self._time_steps = []  # A short history of (timestamp, global_step)
+    self._checkpoint_in_controller = True
+    if FLAGS.checkpoint_in_trainer_tpu:
+      self._checkpoint_in_controller = False
 
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
@@ -276,8 +280,9 @@ class Controller(base_runner.BaseRunner):
         self._initialize_local_vars = tf.local_variables_initializer()
         self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
         self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
-        self.checkpointer = self._CreateCheckpointer(self._train_dir,
-                                                     self._model)
+        if self._checkpoint_in_controller:
+          self.checkpointer = self._CreateCheckpointer(self._train_dir,
+                                                       self._model)
 
     self._ExportMetrics(params=self.params)
     self._model_analysis, self._total_num_params = _ModelAnalysis(self._model)
@@ -321,28 +326,34 @@ class Controller(base_runner.BaseRunner):
       save_interval_seconds = tp.save_interval_seconds
       next_summary_step = 1
 
+      if not self._checkpoint_in_controller:
+        global_step = self._WaitUntilInit(sess)
+
       while True:
         now = time.time()
         next_iteration_seconds = now + min(
             10, save_interval_seconds)  # 10 seconds or less
 
-        # Init/restore variable if needed.
-        self.checkpointer.RestoreIfNeeded(sess)
+        if self._checkpoint_in_controller:
+          # Init/restore variable if needed.
+          self.checkpointer.RestoreIfNeeded(sess)
 
         global_step, total_examples = sess.run([gsteps, examples])
         step_rate, example_rate = self._RecordStepRate(global_step,
                                                        total_examples)
         if self._trial.ShouldStop() or self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
-          self.checkpointer.Save(sess, global_step)
+          if self._checkpoint_in_controller:
+            self.checkpointer.Save(sess, global_step)
           # Close all the queues so the enqueue threads can also finish.
           for close_op in self.close_queue_ops:
             sess.run(close_op)
           sess.close()
           return
 
-        # Checkpoint if it's time.
-        self.checkpointer.MaybeSave(sess, gsteps)
+        if self._checkpoint_in_controller:
+          # Checkpoint if it's time.
+          self.checkpointer.MaybeSave(sess, gsteps)
 
         # Summary.
         if self._summary_op is not None and global_step >= next_summary_step:
@@ -466,27 +477,7 @@ class Trainer(base_runner.BaseRunner):
       sess.run(self.initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
-      global_step = None
-
-      @py_utils.Retry(retry_value=(tf.errors.FailedPreconditionError,))
-      def _WaitTillInit():
-        """Wait until the model is ready."""
-        try:
-          global_step = sess.run(py_utils.GetGlobalStep())
-        except tf.errors.FailedPreconditionError as e:
-          tf.logging.info('Probably the expected race on global_step: %s', e)
-          raise
-        msg = 'step:%6d' % global_step
-        self._SetStatusMessage(msg)
-        if global_step < self._start_up_delay_steps:
-          msg = 'global step (%d) has not reached start up delay steps (%d)' % (
-              global_step, self._start_up_delay_steps)
-          tf.logging.info('%s', msg)
-          raise tf.errors.FailedPreconditionError(
-              node_def=None, op=None, message=msg)
-        return global_step
-
-      global_step = _WaitTillInit()
+      global_step = self._WaitUntilInit(sess, self._start_up_delay_steps)
 
       status_interval_steps = 100
       next_status_step = 1
@@ -570,7 +561,7 @@ class TrainerTpu(base_runner.BaseRunner):
         'and %s steps_per_loop', data_parallelism, self._steps_per_loop)
 
     @py_utils.RetryOnTransientTfError()
-    def _WaitTillInit():
+    def _WaitUntilInitTpu():
       """Wait until the model is ready."""
       try:
         # tpu.initialize_system() is called with None as embedding_config, as
@@ -599,7 +590,7 @@ class TrainerTpu(base_runner.BaseRunner):
         tf.logging.info('TPU initialization failed: %s', e)
         raise
 
-    _WaitTillInit()
+    _WaitUntilInitTpu()
 
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.job_spec.name):

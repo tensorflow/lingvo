@@ -113,3 +113,11 @@ class RegExSharedVariableModel(base_model.MultiTaskModel):
     with py_utils.OpportunisticVariableReuseScope():
       with py_utils.VariableRenameScope(p.variable_renaming_rules):
         super(RegExSharedVariableModel, self).__init__(params)
+
+  def ConstructFPropBPropGraph(self):
+    # We need to override this since constructing the BPropGraph
+    # creates slot variables.
+    p = self._params
+    with py_utils.OpportunisticVariableReuseScope():
+      with py_utils.VariableRenameScope(p.variable_renaming_rules):
+        super(RegExSharedVariableModel, self).ConstructFPropBPropGraph()

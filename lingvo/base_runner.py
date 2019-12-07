@@ -138,6 +138,25 @@ class BaseRunner(object):
                   tag=filename, tensor=tf.make_tensor_proto([text]))
           ]))
 
+  @py_utils.Retry(retry_value=(tf.errors.FailedPreconditionError,))
+  def _WaitUntilInit(self, sess, start_up_delay_steps=None):
+    """Wait until the model is ready."""
+    try:
+      global_step = sess.run(py_utils.GetGlobalStep())
+    except tf.errors.FailedPreconditionError as e:
+      tf.logging.info('Probably the expected race on global_step: %s', e)
+      raise
+    msg = 'step:%6d' % global_step
+    self._SetStatusMessage(msg)
+    if start_up_delay_steps:
+      if global_step < start_up_delay_steps:
+        msg = 'global step (%d) has not reached start up delay steps (%d)' % (
+            global_step, self._start_up_delay_steps)
+        tf.logging.info('%s', msg)
+        raise tf.errors.FailedPreconditionError(
+            node_def=None, op=None, message=msg)
+    return global_step
+
   @py_utils.Retry(initial_delay_sec=300, max_delay_sec=300)
   def _FindNewCheckpoint(self, prev_path, sess):
     """Returns the path to a new checkpoint, or raises RuntimeError."""
