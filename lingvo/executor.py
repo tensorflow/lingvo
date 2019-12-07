@@ -195,6 +195,16 @@ class ExecutorTpu(base_runner.BaseRunner):
         computation_shape = [2, 2, 2]
       elif split_size == 16:
         computation_shape = [4, 2, 2]
+      elif split_size == 32:
+        computation_shape = [4, 4, 2]
+      elif split_size == 64:
+        computation_shape = [4, 8, 2]
+      elif split_size == 128:
+        computation_shape = [8, 8, 2]
+      elif split_size == 256:
+        computation_shape = [8, 16, 2]
+      elif split_size == 512:
+        computation_shape = [16, 16, 2]
       else:
         assert False, ('Model parallelism with %d devices is currently not'
                        ' supported.' % split_size)
