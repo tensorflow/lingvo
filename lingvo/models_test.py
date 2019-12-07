@@ -32,7 +32,8 @@ from lingvo.core import base_model
 class ModelsTest(models_test_helper.BaseModelsTest):
 
   def testGetModelParams(self):
-    p = model_registry.GetParams('test.DummyModel', 'Train')
+    name = 'test.DummyModel'
+    p = model_registry.GetParams(name, 'Train')
     self.assertTrue(issubclass(p.cls, base_model.SingleTaskModel))
 
 

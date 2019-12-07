@@ -1840,6 +1840,7 @@ def main(unused_argv):
 if __name__ == '__main__':
   tf.flags.mark_flag_as_required('model')
   FLAGS(sys.argv, known_only=True)
-  import lingvo.model_imports  # pylint: disable=g-import-not-at-top,unused-import
+  from lingvo import model_imports  # pylint: disable=g-import-not-at-top,unused-import
+  model_imports.ImportParams(FLAGS.model)
   FLAGS.unparse_flags()
   tf.app.run(main)

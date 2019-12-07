@@ -41,8 +41,9 @@ _TASK_DIRS = [
 ]
 # LINT.ThenChange(tasks/BUILD:task_dirs)
 
-# Import all ModelParams to ensure that they are added to the global registry.
-for task_name in _TASK_DIRS:
+
+def _Import(task_name):
+  """Imports the params for the given task."""
   name = '%s.%s.params' % (_TASK_ROOT, task_name)
   tf.logging.info('Importing %s', name)
   try:
@@ -59,3 +60,16 @@ for task_name in _TASK_DIRS:
     else:
       tf.logging.info('Unexpected error importing %s: %s', task_name, errmsg)
       raise
+
+
+def ImportAllParams():
+  # Import all ModelParams to ensure that they are added to the global registry.
+  for task in _TASK_DIRS:
+    _Import(task)
+
+
+def ImportParams(model_name):
+  # Attempts to only import params/.*py files that may contain the model.
+  for task in _TASK_DIRS:
+    if model_name.startswith(task):
+      _Import(task)

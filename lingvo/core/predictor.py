@@ -219,6 +219,7 @@ def main(_):
   # pylint: disable=unused-variable
   import lingvo.model_imports
   import IPython
+  lingvo.model_imports.ImportAllParams()
   IPython.start_ipython(argv=["--colors", "NoColor"], user_ns=globals())
 
 
