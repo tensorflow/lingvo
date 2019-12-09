@@ -584,7 +584,8 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
       <span class="n">b</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">output_channels</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">filter_w</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_channels</span><span class="p">)],</span>
+                   <span class="n">dtype</span><span class="o">=</span><span class="n">filter_w</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
     <span class="c1"># Pass-through if weights are not folded with batch normalization.</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_bn_folded</span><span class="p">:</span>
@@ -760,7 +761,8 @@
             <span class="n">out</span><span class="p">,</span>
             <span class="n">use_select</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
 
-      <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">BaseConv2DLayer</span><span class="o">.</span><span class="n">OutShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">))</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+          <span class="n">out</span><span class="p">,</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">BaseConv2DLayer</span><span class="o">.</span><span class="n">OutShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)))</span>
       <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">conv_padding</span></div>
 
 <div class="viewcode-block" id="BaseConv2DLayer._Compute"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer._Compute">[docs]</a>  <span class="k">def</span> <span class="nf">_Compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">conv_padding</span><span class="p">):</span>
