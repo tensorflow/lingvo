@@ -439,7 +439,8 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     if p.bias:
       b = theta.b
     else:
-      b = tf.zeros([self.output_channels], dtype=filter_w.dtype)
+      b = tf.zeros([symbolic.ToStatic(self.output_channels)],
+                   dtype=filter_w.dtype)
 
     # Pass-through if weights are not folded with batch normalization.
     if not self._is_bn_folded:
@@ -615,7 +616,8 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
             out,
             use_select=p.is_inference and p.qdomain.default is not None)
 
-      out = py_utils.HasShape(out, BaseConv2DLayer.OutShape(self, input_shape))
+      out = py_utils.HasShape(
+          out, symbolic.ToStatic(BaseConv2DLayer.OutShape(self, input_shape)))
       return out, conv_padding
 
   def _Compute(self, theta, inputs, paddings, conv_padding):

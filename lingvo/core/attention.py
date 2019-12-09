@@ -963,7 +963,7 @@ class DotProductAttention(BaseAttentionLayer):
       py_utils.assert_shape_match([tf.shape(concated_source_vecs)[2]],
                                   [tf.shape(query_vec)[1]])
       py_utils.assert_shape_match([tf.shape(concated_source_vecs)[2]],
-                                  [p.source_dim])
+                                  [int(symbolic.ToStatic(p.source_dim))])
       source_batch = tf.shape(concated_source_vecs)[1]
       target_batch = tf.shape(query_vec)[0]
       n = target_batch // source_batch
@@ -1188,7 +1188,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     """Constructs a MultiHeadedAttention object."""
     super(MultiHeadedAttention, self).__init__(params)
     p = self.params
-    assert p.hidden_dim % p.num_attention_heads == 0
+    assert symbolic.ToStatic(p.hidden_dim) % p.num_attention_heads == 0
 
     self.TrackQTensor('source_proj_matmul', 'source_proj_add',
                       'query_proj_matmul', 'query_proj_add',
@@ -1343,12 +1343,14 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         else:
           source_projected = tf.reshape(source_vecs, [-1, source_vec_depth])
     with tf.name_scope('init__1'):
-      hidden_depth = p.hidden_dim
+      hidden_depth = int(symbolic.ToStatic(p.hidden_dim))
       num_heads = p.num_attention_heads
       # => [time, source_batch * num_heads, hidden / num_heads]
       source_projected = tf.reshape(
           source_projected,
           [time_steps, batch_size * num_heads, hidden_depth // num_heads])
+      source_projected = self.ProcessProjectionVec(theta, source_projected,
+                                                   'source')
       if p.use_source_vec_as_attention_value:
         source_contexts_reshaped = source_projected
       else:
@@ -1366,6 +1368,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           source_contexts_projected = source_contexts
         source_contexts_reshaped = tf.reshape(
             source_contexts_projected, [time_steps, batch_size * num_heads, -1])
+        source_contexts_projected = self.ProcessProjectionVec(
+            theta, source_contexts_projected, 'ctx')
 
     with tf.name_scope('init__2'):
       source_padding_replicated = tf.reshape(
@@ -1493,6 +1497,11 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           'selected_attention_head_probs'] = selected_prob_head
     return nested_map_zero_att_state
 
+  def ProcessProjectionVec(self, theta, projection_vec, projection_type):
+    # no-op for this class but allows subclasses to override to process
+    # projected vectors.
+    return projection_vec
+
   @py_utils.NameScopeDecorator(
       'MultiHeadedAttention/ComputeContextVectorWithSource')
   def ComputeContextVectorWithSource(self,
@@ -1545,6 +1554,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     source_seq_len = tf.shape(source_padding)[0]
     num_heads = p.num_attention_heads
     batch_size = tf.shape(query_vec)[0]
+    hidden_dim = int(symbolic.ToStatic(p.hidden_dim))
 
     if p.enable_query_proj:
       query_vec_projected = fns.qbatchmatmul(
@@ -1555,10 +1565,13 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           qt='query_proj_add')
       query_vec_projected = tf.reshape(
           query_vec_projected,
-          [batch_size * num_heads, p.hidden_dim // num_heads])
+          [batch_size * num_heads, hidden_dim // num_heads])
+      query_vec_projected = self.ProcessProjectionVec(theta,
+                                                      query_vec_projected,
+                                                      'query')
     else:
       query_vec_projected = tf.reshape(
-          query_vec, [batch_size * num_heads, p.hidden_dim // num_heads])
+          query_vec, [batch_size * num_heads, hidden_dim // num_heads])
 
     query_batch_size = tf.shape(query_vec)[0]
     if query_segment_id is None:
@@ -1622,6 +1635,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         ctx_vec = tf.transpose(ctx_vec, [0, 2, 1])
         # => [batch, dim]
         ctx_vec = tf.gather_nd(ctx_vec, select)
+      ctx_vec = self.ProcessProjectionVec(theta, ctx_vec, 'ctx_post')
 
     # explicitly name this tensor for potential future reference
     multi_headed_atten_prob = tf.reshape(
@@ -1678,6 +1692,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     if p.enable_ctx_post_proj:
       ctx_vec_proj = tf.matmul(ctx_vec, theta.ctx_post_proj)
       ctx_vec_proj += theta.ctx_post_proj_b
+      ctx_vec_proj = self.ProcessProjectionVec(theta, ctx_vec_proj, 'ctx_post')
     else:
       ctx_vec_proj = ctx_vec
     return ctx_vec_proj, ctx_vec

@@ -912,10 +912,13 @@ def ToStaticShape(shape):
     shape = [
         dim.value if isinstance(dim, tf.Dimension) else dim for dim in shape
     ]
-    if any(symbolic.IsExpr(dim) for dim in shape):
-      return symbolic.EvalExpr(symbolic.STATIC_VALUES, shape)
-    else:
-      return shape
+    static_shape = []
+    for dim in shape:
+      if symbolic.IsExpr(dim):
+        static_shape.append(int(symbolic.ToStatic(dim)))
+      else:
+        static_shape.append(dim)
+    return static_shape
   else:
     return shape.value if isinstance(shape, tf.Dimension) else shape
 
