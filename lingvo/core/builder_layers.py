@@ -1036,13 +1036,15 @@ class LinearLayer(base_layer.BaseLayer):
               symbolic.EvalExpr(symbolic.TENSOR_VALUES,
                                 p.input_dims * p.output_dims), tf.int64) * 2)
       use_tpu = py_utils.use_tpu()
-      if use_tpu and inputs.shape is not None and inputs.shape.rank < 26:
+      shape = inputs.shape
+      if use_tpu and (shape is not None and shape.rank is not None and
+                      shape.rank < 26):
         # Avoids reshape if feasible and uses Einsum.
-        if inputs.shape.rank == 2:
+        if shape.rank == 2:
           return tf.matmul(inputs, theta.w)
         else:
           s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
-          r = inputs.shape.rank
+          r = shape.rank
           return tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), inputs, theta.w)
 
       input_dim = py_utils.GetShape(inputs)[-1]
