@@ -171,7 +171,8 @@ class Checkpointer(object):
 
     # Need to retrieve vars, removing ":0" suffix from names.
     uninitialized_vars = [
-        v for v in self._vars if v.name[:-2] in uninitialized_var_names
+        v for v in self._vars
+        if six.ensure_binary(v.name[:-2]) in uninitialized_var_names
     ]
     tf.logging.info('Initialize variables: %s',
                     [v.name for v in uninitialized_vars])
