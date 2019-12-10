@@ -30,6 +30,7 @@ from __future__ import division
 from __future__ import print_function
 
 import threading
+from lingvo import model_imports
 import lingvo.compat as tf
 from lingvo.core import inference_graph_pb2
 from lingvo.core import py_utils
@@ -215,13 +216,10 @@ class Predictor(object):
 
 
 def main(_):
-  # pylint: disable=g-import-not-at-top
-  # pylint: disable=unused-variable
-  import lingvo.model_imports
-  import IPython
-  lingvo.model_imports.ImportAllParams()
+  import IPython  # pylint: disable=g-import-not-at-top
   IPython.start_ipython(argv=["--colors", "NoColor"], user_ns=globals())
 
 
 if __name__ == "__main__":
+  model_imports.ImportAllParams()
   tf.app.run(main)

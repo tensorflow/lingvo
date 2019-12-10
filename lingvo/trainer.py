@@ -43,6 +43,7 @@ import time
 
 from lingvo import base_trial
 from lingvo import executor
+from lingvo import model_imports
 from lingvo import model_registry
 import lingvo.compat as tf
 from lingvo.core import base_model
@@ -1831,7 +1832,6 @@ def main(unused_argv):
 if __name__ == '__main__':
   tf.flags.mark_flag_as_required('model')
   FLAGS(sys.argv, known_only=True)
-  from lingvo import model_imports  # pylint: disable=g-import-not-at-top,unused-import
   model_imports.ImportParams(FLAGS.model)
   FLAGS.unparse_flags()
   tf.app.run(main)
