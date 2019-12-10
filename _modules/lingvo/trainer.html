@@ -188,6 +188,7 @@
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">base_trial</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">executor</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_imports</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_registry</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
@@ -1976,7 +1977,6 @@
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">mark_flag_as_required</span><span class="p">(</span><span class="s1">&#39;model&#39;</span><span class="p">)</span>
   <span class="n">FLAGS</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">,</span> <span class="n">known_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-  <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_imports</span>  <span class="c1"># pylint: disable=g-import-not-at-top,unused-import</span>
   <span class="n">model_imports</span><span class="o">.</span><span class="n">ImportParams</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
   <span class="n">FLAGS</span><span class="o">.</span><span class="n">unparse_flags</span><span class="p">()</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
