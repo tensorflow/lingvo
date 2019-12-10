@@ -800,7 +800,7 @@
     <span class="n">hyp_lens</span> <span class="o">=</span> <span class="n">hyp_lens</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">done_hyps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
 
     <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_other_states</span> <span class="o">=</span> <span class="n">pre_beam_search_step_callback</span><span class="p">(</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># num_hyps_per_beam</span>
     <span class="n">new_step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">arg_max</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">new_step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">new_step_ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">new_step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_step_ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">))</span>
@@ -843,9 +843,10 @@
 <span class="sd">        self.params.target_seq_len.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A tuple (hyp_ids, hyp_lens, done_hyps).</span>
+<span class="sd">      A tuple (hyp_ids, hyp_lens, done_hyps). Note that num_hyps is same as</span>
+<span class="sd">      src_batch_size.</span>
 
-<span class="sd">        - hyp_ids: [time, num_hyps]. Hyps end with &lt;eos&gt; token if the &lt;eos&gt;</span>
+<span class="sd">        - hyp_ids: [num_hyps, max_step]. Hyps end with &lt;eos&gt; token if the &lt;eos&gt;</span>
 <span class="sd">          token is encountered during search.</span>
 <span class="sd">        - hyp_lens: [num_hyps].</span>
 <span class="sd">        - done_hyps: [num_hyps], whether or not an eos is encountered.</span>
@@ -855,7 +856,10 @@
       <span class="n">max_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span>
 
     <span class="n">initial_results</span><span class="p">,</span> <span class="n">other_states</span> <span class="o">=</span> <span class="n">init_beam_search_state</span><span class="p">(</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">theta</span><span class="p">,</span>
+        <span class="n">encoder_outputs</span><span class="p">,</span>
+        <span class="mi">1</span>  <span class="c1"># num_hyps_per_beam</span>
+    <span class="p">)</span>
 
     <span class="n">num_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">initial_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -906,6 +910,9 @@
                           <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">hyp_lens</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()),</span>
                           <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">done_hyps</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()),</span>
                           <span class="n">_GetShapes</span><span class="p">(</span><span class="n">flat_other_states</span><span class="p">,</span> <span class="n">none_shapes</span><span class="o">=</span><span class="kc">True</span><span class="p">)))</span>
+
+    <span class="c1"># transpose hyp_ids so it matches BeamSearchDecode&#39;s output</span>
+    <span class="n">final_hyp_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">final_hyp_ids</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">final_hyp_ids</span><span class="p">,</span> <span class="n">final_hyp_lens</span><span class="p">,</span> <span class="n">final_done_hyps</span></div></div>
 </pre></div>
 
