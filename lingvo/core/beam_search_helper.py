@@ -655,7 +655,7 @@ class GreedySearchHelper(base_layer.BaseLayer):
     hyp_lens = hyp_lens + (1 - tf.cast(done_hyps, tf.int32))
 
     bs_results, new_other_states = pre_beam_search_step_callback(
-        theta, encoder_outputs, step_ids, other_states, num_hyps_per_beam=1)
+        theta, encoder_outputs, step_ids, other_states, 1)  # num_hyps_per_beam
     new_step_ids = tf.arg_max(bs_results.log_probs, 1)
     new_step_ids = tf.cast(new_step_ids, tf.int32)
     new_step_ids = tf.reshape(new_step_ids, tf.shape(step_ids))
@@ -698,9 +698,10 @@ class GreedySearchHelper(base_layer.BaseLayer):
         self.params.target_seq_len.
 
     Returns:
-      A tuple (hyp_ids, hyp_lens, done_hyps).
+      A tuple (hyp_ids, hyp_lens, done_hyps). Note that num_hyps is same as
+      src_batch_size.
 
-        - hyp_ids: [time, num_hyps]. Hyps end with <eos> token if the <eos>
+        - hyp_ids: [num_hyps, max_step]. Hyps end with <eos> token if the <eos>
           token is encountered during search.
         - hyp_lens: [num_hyps].
         - done_hyps: [num_hyps], whether or not an eos is encountered.
@@ -710,7 +711,10 @@ class GreedySearchHelper(base_layer.BaseLayer):
       max_steps = p.target_seq_len
 
     initial_results, other_states = init_beam_search_state(
-        theta, encoder_outputs, num_hyps_per_beam=1)
+        theta,
+        encoder_outputs,
+        1  # num_hyps_per_beam
+    )
 
     num_hyps = tf.shape(initial_results.log_probs)[0]
 
@@ -761,4 +765,7 @@ class GreedySearchHelper(base_layer.BaseLayer):
                           tf.TensorShape(hyp_lens.get_shape()),
                           tf.TensorShape(done_hyps.get_shape()),
                           _GetShapes(flat_other_states, none_shapes=True)))
+
+    # transpose hyp_ids so it matches BeamSearchDecode's output
+    final_hyp_ids = tf.transpose(final_hyp_ids)
     return final_hyp_ids, final_hyp_lens, final_done_hyps
