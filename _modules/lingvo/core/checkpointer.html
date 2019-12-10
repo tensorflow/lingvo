@@ -316,7 +316,8 @@
 
     <span class="c1"># Need to retrieve vars, removing &quot;:0&quot; suffix from names.</span>
     <span class="n">uninitialized_vars</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="ow">in</span> <span class="n">uninitialized_var_names</span>
+        <span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span>
+        <span class="k">if</span> <span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="ow">in</span> <span class="n">uninitialized_var_names</span>
     <span class="p">]</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialize variables: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
                     <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">uninitialized_vars</span><span class="p">])</span>
