@@ -44,7 +44,7 @@ SequentialRecordYielder::SequentialRecordYielder(const string& file_pattern,
     LOG(FATAL) << "Found no files at " << file_pattern;
   }
 
-  CHECK(repeat_count == -1 || repeat_count > 0)
+  CHECK(repeat_count == kInfinite || repeat_count > 0)
       << "Repeat count must either be -1 (infinite) or a positive integer.";
 
   record_iterator_ = std::unique_ptr<RecordIterator>(
