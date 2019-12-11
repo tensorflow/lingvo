@@ -92,10 +92,10 @@ Status MaybeExpandShardedFilePattern(const string& file_pattern,
 // Each "," separated pattern is a parallel file pattern.
 // In a given parallel file pattern, all the ";" separated file patterns
 // should have the same number of shards. This method creates ";" separated
-// filenames aligning the shards. e,g. <path1>/a-01-of-10,<path2>/b-01-of-10
-// <path1>/a-02-of-10,<path2>/b-02-of-10
-// <path3>/c-01-of-10,<path2>/d-01-of-10
-// <path3>/c-02-of-10,<path2>/d-02-of-10
+// filenames aligning the shards. e,g. <path1>/a-01-of-10;<path2>/b-01-of-10
+// <path1>/a-02-of-10;<path2>/b-02-of-10
+// <path3>/c-01-of-10;<path4>/d-01-of-10
+// <path3>/c-02-of-10;<path4>/d-02-of-10
 Status MatchParallelFilePattern(const string& parallel_file_pattern,
                                 std::vector<string>* filenames) {
   std::vector<string> parallel_filenames;
