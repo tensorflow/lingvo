@@ -59,7 +59,7 @@ def _StubOutCreateVariable(variable_cache):
           trainable=trainable,
           validate_shape=True)
     else:
-      key = hash(tuple(shape))
+      key = (tf.get_default_graph(), tuple(shape))
       if key in variable_cache:
         var = variable_cache[key]
       else:
