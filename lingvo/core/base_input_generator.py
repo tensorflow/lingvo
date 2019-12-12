@@ -167,6 +167,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
       tpu_embedding = (
           tpu_embedding_collection[0] if tpu_embedding_collection else None)
 
+      if num_tpu_hosts > 1 and tpu_embedding is not None:
+        if not p.use_per_host_infeed:
+          tf.logging.fatal(
+              'TPU Embedding must be used with per_host_infeed with multiple '
+              'TPU host topologies.')
       tpu_emb_input_keys = (
           list(tpu_embedding.feature_to_config_dict.keys())
           if tpu_embedding is not None else [])
