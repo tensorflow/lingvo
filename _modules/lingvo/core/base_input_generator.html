@@ -312,6 +312,11 @@
       <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">tpu_embedding_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">tpu_embedding_collection</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
 
+      <span class="k">if</span> <span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">tpu_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span>
+              <span class="s1">&#39;TPU Embedding must be used with per_host_infeed with multiple &#39;</span>
+              <span class="s1">&#39;TPU host topologies.&#39;</span><span class="p">)</span>
       <span class="n">tpu_emb_input_keys</span> <span class="o">=</span> <span class="p">(</span>
           <span class="nb">list</span><span class="p">(</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">feature_to_config_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
           <span class="k">if</span> <span class="n">tpu_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
