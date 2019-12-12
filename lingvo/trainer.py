@@ -53,6 +53,7 @@ from lingvo.core import cluster_factory
 from lingvo.core import inference_graph_exporter
 from lingvo.core import metrics
 from lingvo.core import py_utils
+from lingvo.core import summary_utils
 import numpy as np
 import six
 from six.moves import range
@@ -266,7 +267,7 @@ class Controller(base_runner.BaseRunner):
     self._control_dir = os.path.join(self._logdir, 'control')
     tf.gfile.MakeDirs(self._control_dir)
     self._summary_writer = self._CreateSummaryWriter(self._control_dir)
-    self._time_steps = []  # A short history of (timestamp, global_step)
+    self._step_rate_tracker = summary_utils.StepRateTracker()
     self._checkpoint_in_controller = True
     if FLAGS.checkpoint_in_trainer_tpu:
       self._checkpoint_in_controller = False
@@ -340,8 +341,10 @@ class Controller(base_runner.BaseRunner):
           self.checkpointer.RestoreIfNeeded(sess)
 
         global_step, total_examples = sess.run([gsteps, examples])
-        step_rate, example_rate = self._RecordStepRate(global_step,
-                                                       total_examples)
+        step_rate, example_rate = self._step_rate_tracker.ComputeStepRate(
+            global_step, total_examples)
+        self._SummarizeValue(global_step, 'global_step/sec', step_rate)
+        self._SummarizeValue(global_step, 'examples/sec', example_rate)
         if self._trial.ShouldStop() or self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
           if self._checkpoint_in_controller:
@@ -383,27 +386,6 @@ class Controller(base_runner.BaseRunner):
   def _SummarizeValue(self, steps, tag, value):
     self._summary_writer.add_summary(
         metrics.CreateScalarSummary(tag, value), steps)
-
-  def _RecordStepRate(self, current_steps, total_examples):
-    """Computes the overall step rate and adds a summary."""
-    self._time_steps.append((time.time(), current_steps, total_examples))
-    # Keeps a relative long history to compute a smooth steps/second.
-    # Removes duplicate stats for step = 0 to get rid of the warm-up period.
-    while (self._time_steps[-1][1] - self._time_steps[0][1] > 10000 or
-           (len(self._time_steps) > 1 and
-            self._time_steps[0][1] == self._time_steps[1][1])):
-      del self._time_steps[0]
-    (t0, s0, e0), (t1, s1, e1) = self._time_steps[0], self._time_steps[-1]
-    rate = 0.0
-    example_rate = 0.0
-    if t1 > t0 + 1:
-      elapsed_secs = t1 - t0
-      rate = (s1 - s0) / elapsed_secs
-      example_rate = (e1 - e0) / elapsed_secs
-    tf.logging.info('Steps/second: %f, Examples/second: %f', rate, example_rate)
-    self._SummarizeValue(current_steps, 'global_step/sec', rate)
-    self._SummarizeValue(current_steps, 'examples/sec', example_rate)
-    return rate, example_rate
 
 
 class Trainer(base_runner.BaseRunner):

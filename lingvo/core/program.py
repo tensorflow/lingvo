@@ -28,6 +28,7 @@ from lingvo.core import checkpointer
 from lingvo.core import hyperparams
 from lingvo.core import metrics
 from lingvo.core import py_utils
+from lingvo.core import summary_utils
 import six
 from six.moves import xrange
 from six.moves import zip
@@ -143,31 +144,10 @@ class TrainProgram(BaseProgram):
 
   def __init__(self, params):
     super(TrainProgram, self).__init__(params)
-    self._time_steps = []  # A short history of (timestamp, global_step)
+    self._step_rate_tracker = summary_utils.StepRateTracker()
 
   def _CreateCheckpointer(self, train_dir, model):
     return checkpointer.Checkpointer(train_dir, model)
-
-  def _RecordStepRate(self, current_steps, total_examples):
-    """Computes the overall step rate and adds a summary."""
-    self._time_steps.append((time.time(), current_steps, total_examples))
-    # Keeps a relative long history to compute a smooth steps/second.
-    # Removes duplicate stats for step = 0 to get rid of the warm-up period.
-    while (self._time_steps[-1][1] - self._time_steps[0][1] > 10000 or
-           (len(self._time_steps) > 1 and
-            self._time_steps[0][1] == self._time_steps[1][1])):
-      del self._time_steps[0]
-    (t0, s0, e0), (t1, s1, e1) = self._time_steps[0], self._time_steps[-1]
-    rate = 0.0
-    example_rate = 0.0
-    if t1 > t0 + 1:
-      elapsed_secs = t1 - t0
-      rate = (s1 - s0) / elapsed_secs
-      example_rate = (e1 - e0) / elapsed_secs
-    tf.logging.info('Steps/second: %f, Examples/second: %f', rate, example_rate)
-    self._SummarizeValue(current_steps, 'global_step/sec', rate)
-    self._SummarizeValue(current_steps, 'examples/sec', example_rate)
-    return rate, example_rate
 
   def _OutfeedEnqueue(self, per_example_tensors):
     if not per_example_tensors:
@@ -321,7 +301,10 @@ class TrainProgram(BaseProgram):
 
     task = self._model.GetTask()
     global_step, total_examples = sess.run([gsteps, task.total_examples_var])
-    self._RecordStepRate(global_step, total_examples)
+    rate, example_rate = self._step_rate_tracker.ComputeStepRate(
+        global_step, total_examples)
+    self._SummarizeValue(global_step, 'global_step/sec', rate)
+    self._SummarizeValue(global_step, 'examples/sec', example_rate)
 
     msg = 'step:%6d' % global_step
     for key, (val, _) in sorted(six.iteritems(eval_metrics)):

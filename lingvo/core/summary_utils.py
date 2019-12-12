@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import time
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import plot
@@ -285,3 +286,29 @@ def PlotSequenceFeatures(plots, name, **kwargs):
                      TrimPaddingAndPlotSequence,
                      title=tensor.name,
                      **kwargs)
+
+
+class StepRateTracker(object):
+  """A class that tracks step/example rate."""
+
+  def __init__(self):
+    self._time_steps = []  # A short history of (timestamp, global_step)
+
+  def ComputeStepRate(self, current_steps, total_examples):
+    """Computes the overall step rate."""
+    self._time_steps.append((time.time(), current_steps, total_examples))
+    # Keeps a relative long history to compute a smooth steps/second.
+    # Removes duplicate stats for step = 0 to get rid of the warm-up period.
+    while (self._time_steps[-1][1] - self._time_steps[0][1] > 10000 or
+           (len(self._time_steps) > 1 and
+            self._time_steps[0][1] == self._time_steps[1][1])):
+      del self._time_steps[0]
+    (t0, s0, e0), (t1, s1, e1) = self._time_steps[0], self._time_steps[-1]
+    rate = 0.0
+    example_rate = 0.0
+    if t1 > t0 + 1:
+      elapsed_secs = t1 - t0
+      rate = (s1 - s0) / elapsed_secs
+      example_rate = (e1 - e0) / elapsed_secs
+    tf.logging.info('Steps/second: %f, Examples/second: %f', rate, example_rate)
+    return rate, example_rate
