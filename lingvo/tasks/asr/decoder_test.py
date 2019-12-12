@@ -80,7 +80,7 @@ class DecoderTest(test_utils.TestCase):
 
   def _getDecoderFPropMetrics(self, params):
     """Creates decoder from params and computes metrics with random inputs."""
-    dec = decoder.AsrDecoder(params)
+    dec = params.Instantiate()
     src_seq_len = 5
     src_enc = tf.random_normal([src_seq_len, 2, 8],
                                seed=982774838,
@@ -132,8 +132,7 @@ class DecoderTest(test_utils.TestCase):
         graph_options=tf.GraphOptions(
             optimizer_options=tf.OptimizerOptions(
                 do_function_inlining=func_inline)))
-    with cluster, self.session(
-        graph=tf.Graph(), use_gpu=False, config=config) as sess:
+    with cluster, self.session(use_gpu=False, config=config) as sess:
       tf.set_random_seed(8372749040)
       vn_config = py_utils.VariationalNoiseParams(None, False, False)
       p = self._DecoderParams(vn_config)
@@ -186,16 +185,18 @@ class DecoderTest(test_utils.TestCase):
   def testDecoderConstruction(self):
     """Test that decoder can be constructed from params."""
     p = self._DecoderParams(
-        vn_config=py_utils.VariationalNoiseParams(None, True, False))
+        vn_config=py_utils.VariationalNoiseParams(
+            None, True, False, seed=12345))
     _ = decoder.AsrDecoder(p)
 
   def testDecoderFProp(self):
     """Create decoder with default params, and verify that FProp runs."""
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False) as sess:
       tf.set_random_seed(8372749040)
 
       p = self._DecoderParams(
-          vn_config=py_utils.VariationalNoiseParams(None, True, False))
+          vn_config=py_utils.VariationalNoiseParams(
+              None, True, False, seed=12345))
 
       metrics, per_sequence_loss = self._getDecoderFPropMetrics(params=p)
       self.assertIn('fraction_of_correct_next_step_preds', metrics)
@@ -211,11 +212,12 @@ class DecoderTest(test_utils.TestCase):
 
   def testDecoderFPropWithMeanSeqLoss(self):
     """Create and fprop a decoder with different dims per layer."""
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False) as sess:
       tf.set_random_seed(8372749040)
 
       p = self._DecoderParams(
-          vn_config=py_utils.VariationalNoiseParams(None, True, False))
+          vn_config=py_utils.VariationalNoiseParams(
+              None, True, False, seed=12345))
       p.token_normalized_per_seq_loss = True
       p.per_token_avg_loss = False
 
@@ -227,18 +229,19 @@ class DecoderTest(test_utils.TestCase):
                       per_sequence_loss_val)
 
       self.assertNotEqual(metrics_val['loss'][0], metrics_val['log_pplx'][0])
-      self.assertAllClose(metrics_val['loss'], (3.58785, 4.0))
-      self.assertAllClose(metrics_val['log_pplx'], (3.6008675, 15.0))
+      self.assertAllClose(metrics_val['loss'], (3.484608, 4.0))
+      self.assertAllClose(metrics_val['log_pplx'], (3.496482, 15.0))
       # Target batch size is 4. Therefore, we should expect 4 here.
       self.assertEqual(per_sequence_loss_val.shape, (4,))
 
   def testDecoderFPropWithProjection(self):
     """Create decoder with projection layers, and verify that FProp runs."""
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False) as sess:
       tf.set_random_seed(8372749040)
 
       p = self._DecoderParams(
-          vn_config=py_utils.VariationalNoiseParams(None, True, False))
+          vn_config=py_utils.VariationalNoiseParams(
+              None, True, False, seed=12345))
       rnn_cell_tpl = p.rnn_cell_tpl
       p.rnn_cell_tpl = [
           rnn_cell_tpl.Copy().Set(
@@ -258,11 +261,12 @@ class DecoderTest(test_utils.TestCase):
 
   def testDecoderFPropWithPerLayerDims(self):
     """Create and fprop a decoder with different dims per layer."""
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False) as sess:
       tf.set_random_seed(8372749040)
 
       p = self._DecoderParams(
-          vn_config=py_utils.VariationalNoiseParams(None, True, False))
+          vn_config=py_utils.VariationalNoiseParams(
+              None, True, False, seed=12345))
       p.rnn_cell_hidden_dim = 6
 
       loss, per_sequence_loss = self._testDecoderFPropHelper(params=p)
@@ -275,11 +279,12 @@ class DecoderTest(test_utils.TestCase):
 
   def testDecoderFPropDtype(self):
     """Create decoder with different fprop_type, and verify that FProp runs."""
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False) as sess:
       tf.set_random_seed(8372749040)
 
       p = self._DecoderParams(
-          vn_config=py_utils.VariationalNoiseParams(None, True, False))
+          vn_config=py_utils.VariationalNoiseParams(
+              None, True, False, seed=12345))
       p.fprop_dtype = tf.float64
 
       loss, per_sequence_loss = self._testDecoderFPropHelper(params=p)
@@ -292,7 +297,7 @@ class DecoderTest(test_utils.TestCase):
 
   def testDecoderFPropDeterministicAttentionDropout(self):
     """Verify that attention dropout is deterministic given fixed seeds."""
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False) as sess:
       tf.set_random_seed(8372749040)
       p = self._DecoderParams(
           py_utils.VariationalNoiseParams(None, True, False, seed=1792))
@@ -423,7 +428,7 @@ class DecoderTest(test_utils.TestCase):
         graph_options=tf.GraphOptions(
             optimizer_options=tf.OptimizerOptions(
                 do_function_inlining=func_inline)))
-    with self.session(graph=tf.Graph(), use_gpu=False, config=config) as sess:
+    with self.session(use_gpu=False, config=config) as sess:
       tf.set_random_seed(8372749040)
       np.random.seed(274854)
       vn_config = py_utils.VariationalNoiseParams(None, False, False)
@@ -660,7 +665,8 @@ class DecoderTest(test_utils.TestCase):
     """Create decoder with default params, and verify that FProp runs."""
     with self.session() as sess:
       p = self._DecoderParams(
-          vn_config=py_utils.VariationalNoiseParams(None, True, False))
+          vn_config=py_utils.VariationalNoiseParams(
+              None, True, False, seed=12345))
       p.rnn_cell_dim = symbolic.Symbol('rnn_cell_dim')
 
       with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES,
@@ -675,7 +681,8 @@ class DecoderTest(test_utils.TestCase):
 
   def testUpdateTargetVocabSize(self):
     p = self._DecoderParams(
-        vn_config=py_utils.VariationalNoiseParams(None, True, False))
+        vn_config=py_utils.VariationalNoiseParams(
+            None, True, False, seed=12345))
     vocab_size = 1024
     self.assertNotEqual(p.emb.vocab_size, vocab_size)
     self.assertNotEqual(p.softmax.num_classes, vocab_size)

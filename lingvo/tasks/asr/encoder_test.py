@@ -67,7 +67,7 @@ class EncoderTest(test_utils.TestCase):
     return stt_enc.FPropDefaultTheta(batch)
 
   def testEncoderConstruction(self):
-    vn_config = py_utils.VariationalNoiseParams(None, True, False)
+    vn_config = py_utils.VariationalNoiseParams(None, True, False, seed=12345)
     p = self._EncoderParams(vn_config)
     _ = encoder.AsrEncoder(p)
 

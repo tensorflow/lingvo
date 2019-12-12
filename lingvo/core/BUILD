@@ -1,11 +1,4 @@
 load("//lingvo:lingvo.bzl", "py2and3_test")
-
-package(
-    default_visibility = ["//visibility:public"],
-)
-
-licenses(["notice"])  # Apache 2.0
-
 load(
     "//lingvo:lingvo.bzl",
     "lingvo_cuda_py2and3_test",
@@ -13,6 +6,12 @@ load(
     "lingvo_proto_py",
     "lingvo_py_binary",
 )
+
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "attention",
@@ -827,6 +826,7 @@ py_test(
         ":cluster_factory",
         ":py_utils",
         ":recurrent",
+        ":symbolic",
         ":test_helper",
         ":test_utils",
         "//lingvo:compat",
@@ -1407,6 +1407,7 @@ py_library(
     deps = [
         ":py_utils",
         "//lingvo:compat",
+        # Implicit six dependency.
     ],
 )
 
@@ -1418,6 +1419,7 @@ py_library(
         ":hyperparams",
         ":metrics",
         ":py_utils",
+        ":summary_utils",
         "//lingvo:compat",
         # Implicit six dependency.
         # Implicit tensorflow grpc dependency.

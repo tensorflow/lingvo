@@ -2326,7 +2326,10 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     embs_result = self._fprop(self.QWeight(theta.wm), tf.reshape(ids, [-1]))
     if p.vn.global_vn or p.vn.per_step_vn:
       emb_noise = p.vn.scale * tf.random_normal(
-          tf.shape(embs_result), stddev=1.0, dtype=embs_result.dtype)
+          tf.shape(embs_result),
+          stddev=1.0,
+          dtype=embs_result.dtype,
+          seed=p.random_seed)
       embs_result += emb_noise
     out_shape = tf.concat([tf.shape(ids), [symbolic.ToStatic(p.embedding_dim)]],
                           0)

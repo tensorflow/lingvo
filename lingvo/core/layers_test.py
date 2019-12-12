@@ -2120,13 +2120,14 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
       params.vn.per_step_vn = False
       params.vn.scale = 0.5
       params.vn.seed = 398847392
+      params.random_seed = 12345
       emb_layer = params.Instantiate()
       self.assertEqual(len(emb_layer.vars.Flatten()), 1)
       ids = tf.constant([[89], [100]])
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
       tf.global_variables_initializer().run()
-      test_utils.CompareToGoldenSingleFloat(self, 13.443051, embs_sum.eval())
+      test_utils.CompareToGoldenSingleFloat(self, 1.56561, embs_sum.eval())
 
 
 class EmbeddingLayerTest(test_utils.TestCase):
@@ -2322,8 +2323,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       self.assertAllClose(emb_matrix_val[1:3], outputs_val[:, 0, :])
 
   def _testSimpleEmbeddingLayerGrad(self, use_matmul, use_3d_weight_tensor):
-    g = tf.Graph()
-    with g.as_default():
+    with self.session(use_gpu=True) as sess:
       tf.set_random_seed(398847392)
       params = layers.SimpleEmbeddingLayer.Params()
       params.name = 'emb'
@@ -2342,7 +2342,6 @@ class EmbeddingLayerTest(test_utils.TestCase):
       embs_sum = tf.reduce_sum(embs)
       emb_weight = emb_layer.vars.wm
       emb_grad, = tf.gradients(ys=[embs_sum], xs=[emb_weight])
-    with self.session(use_gpu=True, graph=g) as sess:
       tf.global_variables_initializer().run()
       emb_grad_val = sess.run(emb_grad)
 

@@ -1,4 +1,8 @@
 load("//lingvo:lingvo.bzl", "py2and3_test")
+load(
+    "//lingvo:lingvo.bzl",
+    "lingvo_py_binary",
+)
 
 package(
     default_visibility = ["//visibility:public"],
@@ -16,11 +20,6 @@ config_setting(
 config_setting(
     name = "py3_mode",
     values = {"force_python": "PY3"},
-)
-
-load(
-    "//lingvo:lingvo.bzl",
-    "lingvo_py_binary",
 )
 
 py_library(
@@ -174,6 +173,7 @@ py_library(
         "//lingvo/core:inference_graph_exporter",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
+        "//lingvo/core:summary_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow grpc dependency.

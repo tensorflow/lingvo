@@ -233,7 +233,6 @@ py_test(
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
