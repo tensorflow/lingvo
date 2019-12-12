@@ -342,20 +342,6 @@ class BaseTask(base_layer.BaseLayer):
           self.CreateChildren('learners', [tp.learner])
     self._UpdateVnConfig()
 
-    # There are a number of tests that load checkpoints without these
-    # variables, so eliminating this if block causes missing var
-    # restoration failures.
-    if self.cluster.job == 'controller':
-      # IncrementTotalSamples / IncrementTotalNans lazy initializes these
-      # counter variables which is problematic for multi-task TPU training.
-      with tf.variable_scope(p.name):
-        self._total_examples = StatsCounter('total_samples')
-
-      # For some reason, total_nan_gradients is not name scoped.
-      with tf.variable_scope(
-          py_utils.GetGlobalVariableScope(), reuse=tf.AUTO_REUSE):
-        self._total_nans_and_infs = StatsCounter('total_nan_gradients')
-
   def _SetLearnerFromLegacyParams(self, tp):
     """Sets tp.learner based on legacy params."""
     if tp.learner is not None:
