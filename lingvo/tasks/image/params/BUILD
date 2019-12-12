@@ -19,7 +19,7 @@ py_library(
 
 py_library(
     name = "params",
-    srcs = ["__init__.py"],
+    srcs = ["params.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":mnist",

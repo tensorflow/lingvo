@@ -24,7 +24,6 @@ from __future__ import print_function
 
 import importlib
 import re
-from lingvo import model_registry
 import lingvo.compat as tf
 import six
 
@@ -44,7 +43,7 @@ _TASK_DIRS = [
 
 def _Import(task_name):
   """Imports the params for the given task."""
-  name = '%s.%s.params' % (_TASK_ROOT, task_name)
+  name = '%s.%s.params.params' % (_TASK_ROOT, task_name)
   tf.logging.info('Importing %s', name)
   try:
     importlib.import_module(name)
@@ -72,4 +71,6 @@ def ImportParams(model_name):
   # Attempts to only import params/.*py files that may contain the model.
   for task in _TASK_DIRS:
     if model_name.startswith(task):
+      # TODO(zhifengc): Given model_name and task it matches, we actually
+      # know exactly which .py file to import to get the model registered.
       _Import(task)
