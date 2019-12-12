@@ -169,7 +169,6 @@
 
 <span class="kn">import</span> <span class="nn">importlib</span>
 <span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_registry</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">import</span> <span class="nn">six</span>
 
@@ -189,7 +188,7 @@
 
 <div class="viewcode-block" id="_Import"><a class="viewcode-back" href="../../lingvo.model_imports.html#lingvo.model_imports._Import">[docs]</a><span class="k">def</span> <span class="nf">_Import</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Imports the params for the given task.&quot;&quot;&quot;</span>
-  <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%s</span><span class="s1">.params&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_TASK_ROOT</span><span class="p">,</span> <span class="n">task_name</span><span class="p">)</span>
+  <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%s</span><span class="s1">.params.params&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_TASK_ROOT</span><span class="p">,</span> <span class="n">task_name</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Importing </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
   <span class="k">try</span><span class="p">:</span>
     <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
@@ -217,6 +216,8 @@
   <span class="c1"># Attempts to only import params/.*py files that may contain the model.</span>
   <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">_TASK_DIRS</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
+      <span class="c1"># TODO(zhifengc): Given model_name and task it matches, we actually</span>
+      <span class="c1"># know exactly which .py file to import to get the model registered.</span>
       <span class="n">_Import</span><span class="p">(</span><span class="n">task</span><span class="p">)</span></div>
 </pre></div>
 
