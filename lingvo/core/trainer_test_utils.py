@@ -24,6 +24,7 @@ from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import py_utils
+from lingvo.core import summary_utils
 
 
 class CountingInputGenerator(base_input_generator.BaseInputGenerator):
@@ -57,8 +58,8 @@ class CountingInputGenerator(base_input_generator.BaseInputGenerator):
 
   def InputBatch(self):
     length = tf.reduce_prod(self.shape)
-    counter = base_model.StatsCounter('CountingInputGenerator')
-    new_value = tf.cast(counter.IncBy(None, length), dtype=tf.int32) - length
+    counter = summary_utils.StatsCounter('CountingInputGenerator')
+    new_value = tf.cast(counter.IncBy(length), dtype=tf.int32) - length
     new_value = tf.stop_gradient(new_value)
     values = new_value + tf.range(length)
     shaped_values = tf.reshape(tf.cast(values, dtype=tf.float32), self.shape)

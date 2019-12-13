@@ -1135,6 +1135,7 @@ py_library(
         ":base_layer",
         ":base_model",
         ":py_utils",
+        ":summary_utils",
         "//lingvo:compat",
     ],
 )
@@ -1449,6 +1450,17 @@ py_test(
         ":builder_layers",
         ":py_utils",
         ":step",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_test(
+    name = "summary_utils_test",
+    srcs = ["summary_utils_test.py"],
+    deps = [
+        ":cluster_factory",
+        ":summary_utils",
         ":test_utils",
         "//lingvo:compat",
     ],

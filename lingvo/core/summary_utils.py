@@ -288,6 +288,36 @@ def PlotSequenceFeatures(plots, name, **kwargs):
                      **kwargs)
 
 
+class StatsCounter(object):
+  """A single counter in TF."""
+
+  def __init__(self, name):
+    self._name = name
+    _, self._var = py_utils.CreateVariable(
+        name=name,
+        params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
+                                     tf.int64),
+        trainable=False)
+    self._value = self._var.value() + 0  # Makes a copy.
+
+  def Value(self):
+    """Returns the current counter value."""
+    return self._value
+
+  def Var(self):
+    """Returns the variable."""
+    return self._var
+
+  def IncBy(self, delta):
+    """Increment the counter by delta and return the new value."""
+    # NOTE: We must ensure _value is computed (_var + 0) before
+    # updating _var with delta.
+    delta = tf.cast(delta, tf.int64)
+    with tf.control_dependencies([self._value]):
+      scalar(self._name, self._value)
+      return tf.identity(tf.assign_add(self._var, delta))
+
+
 class StepRateTracker(object):
   """A class that tracks step/example rate."""
 

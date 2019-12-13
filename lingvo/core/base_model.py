@@ -68,36 +68,6 @@ def CreateTaskGlobalStep(task_name):
     return v
 
 
-class StatsCounter(object):
-  """A single counter in TF."""
-
-  def __init__(self, name):
-    self._name = name
-    _, self._var = py_utils.CreateVariable(
-        name=name,
-        params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
-                                     tf.int64),
-        trainable=False)
-    self._value = self._var.value() + 0  # Makes a copy.
-
-  def Value(self):
-    """Returns the current counter value."""
-    return self._value
-
-  def Var(self):
-    """Returns the variable."""
-    return self._var
-
-  def IncBy(self, params, delta):
-    """Increment the counter by delta and return the new value."""
-    # NOTE: We must ensure _value is computed (_var + 0) before
-    # updating _var with delta.
-    delta = tf.cast(delta, tf.int64)
-    with tf.control_dependencies([self._value]):
-      summary_utils.scalar(self._name, self._value)
-      return tf.identity(tf.assign_add(self._var, delta))
-
-
 class BaseTask(base_layer.BaseLayer):
   """A single encoder/decoder task.
 
@@ -856,19 +826,20 @@ class BaseTask(base_layer.BaseLayer):
     p = self.params
     if self._total_examples is None:
       with tf.variable_scope(p.name):
-        self._total_examples = StatsCounter('total_samples')
+        self._total_examples = summary_utils.StatsCounter('total_samples')
     if value is None:
       assert self.input_generator is not None, ('No input generator defined')
       value = self.input_generator.GlobalBatchSize()
-    return self._total_examples.IncBy(p, value)
+    return self._total_examples.IncBy(value)
 
   def IncrementTotalNans(self, value):
     """Updates the total number of NaN/Inf gradients by `value`."""
     if self._total_nans_and_infs is None:
       with tf.variable_scope(
           py_utils.GetGlobalVariableScope(), reuse=tf.AUTO_REUSE):
-        self._total_nans_and_infs = StatsCounter('total_nan_gradients')
-    return self._total_nans_and_infs.IncBy(self.params, value)
+        self._total_nans_and_infs = summary_utils.StatsCounter(
+            'total_nan_gradients')
+    return self._total_nans_and_infs.IncBy(value)
 
   def _UpdateVnConfig(self):
     """Update vn config from the various vn flags."""

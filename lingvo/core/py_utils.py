@@ -51,40 +51,6 @@ from tensorflow.python.util import deprecation
 # pylint: enable=g-direct-tensorflow-import
 
 
-class UniformSampler(object):
-  """A reservoir sampler.
-
-  This class implements reservoir sampling: Given a limit of `num_samples` total
-  samples, this class maintains a uniform probability (1 / `num_samples`) of
-  keeping any item dynamically added to the sampler.
-
-  See https://en.wikipedia.org/wiki/Reservoir_sampling for details.
-  """
-
-  def __init__(self, num_samples):
-    assert num_samples > 0
-    self._num_samples = num_samples
-    self._num_seen_items = 0
-    self._samples = []
-
-  def Add(self, item):
-    """Add item to sampler."""
-    self._num_seen_items += 1
-
-    if len(self._samples) < self._num_samples:
-      self._samples.append(item)
-      return
-
-    index = np.random.randint(0, self._num_seen_items)
-    if index < self._num_samples:
-      self._samples[index] = item
-
-  @property
-  def samples(self):
-    """Fetch the current samples from the sampler."""
-    return self._samples
-
-
 tf.flags.DEFINE_bool('enable_asserts', True,
                      'If False, we disable all asserts.')
 
@@ -925,6 +891,40 @@ def ToStaticShape(shape):
 
 def Zeros(shape, *args, **kwargs):
   return tf.zeros(ToStaticShape(shape), *args, **kwargs)
+
+
+class UniformSampler(object):
+  """A reservoir sampler.
+
+  This class implements reservoir sampling: Given a limit of `num_samples` total
+  samples, this class maintains a uniform probability (1 / `num_samples`) of
+  keeping any item dynamically added to the sampler.
+
+  See https://en.wikipedia.org/wiki/Reservoir_sampling for details.
+  """
+
+  def __init__(self, num_samples):
+    assert num_samples > 0
+    self._num_samples = num_samples
+    self._num_seen_items = 0
+    self._samples = []
+
+  def Add(self, item):
+    """Add item to sampler."""
+    self._num_seen_items += 1
+
+    if len(self._samples) < self._num_samples:
+      self._samples.append(item)
+      return
+
+    index = np.random.randint(0, self._num_seen_items)
+    if index < self._num_samples:
+      self._samples[index] = item
+
+  @property
+  def samples(self):
+    """Fetch the current samples from the sampler."""
+    return self._samples
 
 
 class RNNCellStateInit(object):
