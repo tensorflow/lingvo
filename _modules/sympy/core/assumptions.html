@@ -311,26 +311,45 @@
     <span class="s1">&#39;rational       -&gt;  real&#39;</span><span class="p">,</span>
     <span class="s1">&#39;rational       -&gt;  algebraic&#39;</span><span class="p">,</span>
     <span class="s1">&#39;algebraic      -&gt;  complex&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;real           -&gt;  complex&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;transcendental ==  complex &amp; !algebraic&#39;</span><span class="p">,</span>
     <span class="s1">&#39;real           -&gt;  hermitian&#39;</span><span class="p">,</span>
     <span class="s1">&#39;imaginary      -&gt;  complex&#39;</span><span class="p">,</span>
     <span class="s1">&#39;imaginary      -&gt;  antihermitian&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_real  -&gt;  commutative&#39;</span><span class="p">,</span>
     <span class="s1">&#39;complex        -&gt;  commutative&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;complex        -&gt;  finite&#39;</span><span class="p">,</span>
 
     <span class="s1">&#39;odd            ==  integer &amp; !even&#39;</span><span class="p">,</span>
     <span class="s1">&#39;even           ==  integer &amp; !odd&#39;</span><span class="p">,</span>
 
-    <span class="s1">&#39;real           ==  negative | zero | positive&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;transcendental ==  complex &amp; !algebraic&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;real           -&gt;  complex&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_real  -&gt;  real | infinite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;real           ==  extended_real &amp; finite&#39;</span><span class="p">,</span>
 
+    <span class="s1">&#39;extended_real        ==  extended_negative | zero | extended_positive&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_negative    ==  extended_nonpositive &amp; extended_nonzero&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_positive    ==  extended_nonnegative &amp; extended_nonzero&#39;</span><span class="p">,</span>
+
+    <span class="s1">&#39;extended_nonpositive ==  extended_real &amp; !extended_positive&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_nonnegative ==  extended_real &amp; !extended_negative&#39;</span><span class="p">,</span>
+
+    <span class="s1">&#39;real           ==  negative | zero | positive&#39;</span><span class="p">,</span>
     <span class="s1">&#39;negative       ==  nonpositive &amp; nonzero&#39;</span><span class="p">,</span>
     <span class="s1">&#39;positive       ==  nonnegative &amp; nonzero&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;zero           ==  nonnegative &amp; nonpositive&#39;</span><span class="p">,</span>
 
     <span class="s1">&#39;nonpositive    ==  real &amp; !positive&#39;</span><span class="p">,</span>
     <span class="s1">&#39;nonnegative    ==  real &amp; !negative&#39;</span><span class="p">,</span>
 
+    <span class="s1">&#39;positive       ==  extended_positive &amp; finite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;negative       ==  extended_negative &amp; finite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;nonpositive    ==  extended_nonpositive &amp; finite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;nonnegative    ==  extended_nonnegative &amp; finite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;nonzero        ==  extended_nonzero &amp; finite&#39;</span><span class="p">,</span>
+
     <span class="s1">&#39;zero           -&gt;  even &amp; finite&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;zero           ==  extended_nonnegative &amp; extended_nonpositive&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;zero           ==  nonnegative &amp; nonpositive&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;nonzero        -&gt;  real&#39;</span><span class="p">,</span>
 
     <span class="s1">&#39;prime          -&gt;  integer &amp; positive&#39;</span><span class="p">,</span>
     <span class="s1">&#39;composite      -&gt;  integer &amp; positive &amp; !prime&#39;</span><span class="p">,</span>
@@ -338,11 +357,11 @@
 
     <span class="s1">&#39;irrational     ==  real &amp; !rational&#39;</span><span class="p">,</span>
 
-    <span class="s1">&#39;imaginary      -&gt;  !real&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;imaginary      -&gt;  !extended_real&#39;</span><span class="p">,</span>
 
     <span class="s1">&#39;infinite       -&gt;  !finite&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;noninteger     ==  real &amp; !integer&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;nonzero        ==  real &amp; !zero&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;noninteger     ==  extended_real &amp; !integer&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extended_nonzero == extended_real &amp; !zero&#39;</span><span class="p">,</span>
 <span class="p">])</span>
 
 <span class="n">_assume_defined</span> <span class="o">=</span> <span class="n">_assume_rules</span><span class="o">.</span><span class="n">defined_facts</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -355,9 +374,8 @@
 
 <span class="sd">    This is the only kind of FactKB that Basic objects should use.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">rules</span> <span class="o">=</span> <span class="n">_assume_rules</span>
-
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">facts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">StdFactKB</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_assume_rules</span><span class="p">)</span>
         <span class="c1"># save a copy of the facts dict</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">facts</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_generator</span> <span class="o">=</span> <span class="p">{}</span>
