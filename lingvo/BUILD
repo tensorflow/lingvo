@@ -70,7 +70,6 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":compat",
-        ":model_registry",
         # Implicit six dependency.
     ],
 )
@@ -128,6 +127,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":compat",
+        ":model_imports_no_params",
         "//lingvo/core:base_model_params",
     ],
 )

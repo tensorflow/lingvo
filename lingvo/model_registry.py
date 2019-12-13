@@ -24,6 +24,7 @@ from __future__ import division
 from __future__ import print_function
 
 import inspect
+from lingvo import model_imports
 import lingvo.compat as tf
 from lingvo.core import base_model_params
 
@@ -164,8 +165,8 @@ class _ModelRegistryHelper(object):
   def RegisterSingleTaskModel(cls, src_cls):
     """Class decorator that registers a `.SingleTaskModelParams` subclass."""
     if not issubclass(src_cls, base_model_params.SingleTaskModelParams):
-      raise TypeError(
-          'src_cls %s is not a SingleTaskModelParams!' % src_cls.__name__)
+      raise TypeError('src_cls %s is not a SingleTaskModelParams!' %
+                      src_cls.__name__)
     cls._RegisterModel(cls._CreateWrapperClass(src_cls), src_cls)
     return src_cls
 
@@ -173,8 +174,8 @@ class _ModelRegistryHelper(object):
   def RegisterMultiTaskModel(cls, src_cls):
     """Class decorator that registers a `.MultiTaskModelParams` subclass."""
     if not issubclass(src_cls, base_model_params.MultiTaskModelParams):
-      raise TypeError(
-          'src_cls %s is not a MultiTaskModelParams!' % src_cls.__name__)
+      raise TypeError('src_cls %s is not a MultiTaskModelParams!' %
+                      src_cls.__name__)
     cls._RegisterModel(cls._CreateWrapperClass(src_cls), src_cls)
     return src_cls
 
@@ -235,6 +236,7 @@ class _ModelRegistryHelper(object):
 
     Args:
       class_key: String class key (i.e. `image.mnist.LeNet5`).
+
     Returns:
       ProgramSchedule.Params()
     """
@@ -243,13 +245,30 @@ class _ModelRegistryHelper(object):
     program_schedule_cfg = model_params.ProgramSchedule()
     return program_schedule_cfg
 
+
 # pyformat: disable
 # pylint: disable=invalid-name
 RegisterSingleTaskModel = _ModelRegistryHelper.RegisterSingleTaskModel
 RegisterMultiTaskModel = _ModelRegistryHelper.RegisterMultiTaskModel
-GetAllRegisteredClasses = _ModelRegistryHelper.GetAllRegisteredClasses
-GetClass = _ModelRegistryHelper.GetClass
-GetParams = _ModelRegistryHelper.GetParams
-GetProgramSchedule = _ModelRegistryHelper.GetProgramSchedule
 # pylint: enable=invalid-name
 # pyformat: enable
+
+
+def GetAllRegisteredClasses():
+  model_imports.ImportAllParams()
+  return _ModelRegistryHelper.GetAllRegisteredClasses()
+
+
+def GetClass(class_key):
+  model_imports.ImportParams(class_key)
+  return _ModelRegistryHelper.GetClass(class_key)
+
+
+def GetParams(class_key, dataset_name):
+  model_imports.ImportParams(class_key)
+  return _ModelRegistryHelper.GetParams(class_key, dataset_name)
+
+
+def GetProgramSchedule(class_key):
+  model_imports.ImportParams(class_key)
+  return _ModelRegistryHelper.GetProgramSchedule(class_key)

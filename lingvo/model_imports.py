@@ -27,50 +27,54 @@ import re
 import lingvo.compat as tf
 import six
 
+
+def _Import(task_root, name):
+  """Imports the python module of the given name."""
+  tf.logging.info('Importing %s', name)
+  try:
+    importlib.import_module(name)
+    tf.logging.info('Imported %s', name)
+  except ImportError as e:
+    errmsg = str(e)
+    if six.PY2:
+      match_str = 'No module named.*'
+    else:
+      match_str = 'No module named.*%s' % task_root
+    if re.match(match_str, errmsg):
+      # Expected that some imports may be missing.
+      tf.logging.info('Expected error importing %s: %s', name, errmsg)
+    else:
+      tf.logging.info('Unexpected error importing %s: %s', name, errmsg)
+      raise
+
+
 _TASK_ROOT = 'lingvo.tasks'
 
 # LINT.IfChange(task_dirs)
-_TASK_DIRS = [
+_TASK_DIRS = (
     'asr',
     'car',
     'image',
     'lm',
     'mt',
     'punctuator',
-]
+)
 # LINT.ThenChange(tasks/BUILD:task_dirs)
 
 
-def _Import(task_name):
-  """Imports the params for the given task."""
-  name = '%s.%s.params.params' % (_TASK_ROOT, task_name)
-  tf.logging.info('Importing %s', name)
-  try:
-    importlib.import_module(name)
-  except ImportError as e:
-    errmsg = str(e)
-    if six.PY2:
-      match_str = 'No module named.*params'
-    else:
-      match_str = 'No module named.*%s' % _TASK_ROOT
-    if re.match(match_str, errmsg):
-      # Expected that some imports may be missing.
-      tf.logging.info('Expected error importing %s: %s', task_name, errmsg)
-    else:
-      tf.logging.info('Unexpected error importing %s: %s', task_name, errmsg)
-      raise
-
-
-def ImportAllParams():
+def ImportAllParams(task_root=_TASK_ROOT, task_dirs=_TASK_DIRS):
   # Import all ModelParams to ensure that they are added to the global registry.
-  for task in _TASK_DIRS:
-    _Import(task)
+  for task in task_dirs:
+    # By our code repository convention, there is a params.py under the task's
+    # params directory. params.py imports _all_ modules that may registers a
+    # model param.
+    _Import(task_root, '{}.{}.params.params'.format(task_root, task))
 
 
-def ImportParams(model_name):
-  # Attempts to only import params/.*py files that may contain the model.
-  for task in _TASK_DIRS:
-    if model_name.startswith(task):
-      # TODO(zhifengc): Given model_name and task it matches, we actually
-      # know exactly which .py file to import to get the model registered.
-      _Import(task)
+def ImportParams(model_name, task_root=_TASK_ROOT, task_dirs=_TASK_DIRS):
+  # Import precisely the params/.*py file that may defines the model.
+  for task in task_dirs:
+    if model_name.startswith(task + '.'):
+      # 'model_name' follows <task>.<path>.<class name>
+      path = model_name[:model_name.rfind('.')][len(task) + 1:]
+      _Import(task_root, '{}.{}.params.{}'.format(task_root, task, path))

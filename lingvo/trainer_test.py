@@ -35,8 +35,6 @@ from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core import trainer_test_utils
 from lingvo.tasks.image.input_generator import FakeMnistData
-import lingvo.tasks.image.params.mnist  # pylint: disable=unused-import
-import lingvo.tasks.punctuator.params.codelab  # pylint: disable=unused-import
 import numpy as np
 from six.moves import range
 
