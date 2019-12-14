@@ -2119,6 +2119,28 @@ based on scanning and reducing which is not efficient on TPU.</p>
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.py_utils.ProjectLastDim">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ProjectLastDim</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">weight</em>, <em class="sig-param">input_dim</em>, <em class="sig-param">output_dim</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ProjectLastDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ProjectLastDim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Linear projection on the last dim of the input tensor.</p>
+<p>This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
+tensor by using Einsum for the compute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – An input Tensor, the last dimension of which is input_dim.</p></li>
+<li><p><strong>weight</strong> – A weight matrix with shape [input_dim, output_dim].</p></li>
+<li><p><strong>input_dim</strong> – An integer or a symbolic dim, the last dimension of the inputs.</p></li>
+<li><p><strong>output_dim</strong> – An integer or a symbolic dim, the last dimension of the outputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An output Tensor of the same rank as inputs, the last dimension is
+output_dim.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 
