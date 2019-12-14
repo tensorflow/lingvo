@@ -1093,8 +1093,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       Output tensor reshaped.
     """
     p = self.params
-    out = py_utils.Matmul(
-        tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
+
+    out = py_utils.ProjectLastDim(inputs, w, p.input_dim, p.output_dim)
+
     if b is not None:
       out += b  # NOTE: Bias on matmul is never quantized.
     if with_activation and p.activation != 'NONE':
@@ -1106,13 +1107,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       out = _ACTIVATIONS[p.activation](out)
     if quant:
       out = self.QTensor(self._output_qt_name, out)
-    out = tf.reshape(
-        out,
-        tf.concat([
-            py_utils.GetShape(inputs)[:-1],
-            py_utils.ToStaticShape([p.output_dim])
-        ],
-                  axis=0))
+
     return out
 
 

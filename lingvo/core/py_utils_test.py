@@ -951,6 +951,22 @@ class PyUtilsTest(test_utils.TestCase):
       with self.assertRaises(ValueError):
         py_utils.CumSum(x, -4).eval()
 
+  def testProjectLastDim(self):
+    np.random.seed(12345)
+    input_dim = 4
+    output_dim = 6
+    inputs_p = np.random.rand(2, 5, input_dim)
+    weight_p = np.random.rand(input_dim, output_dim)
+
+    with self.session(use_gpu=False), mock.patch(
+        'lingvo.core.py_utils.use_tpu', return_value=True):
+      inputs = tf.constant(inputs_p, dtype=tf.float32)
+      weight = tf.constant(weight_p, dtype=tf.float32)
+      outputs = py_utils.ProjectLastDim(inputs, weight, input_dim, output_dim)
+
+      self.assertAllClose(outputs.eval(),
+                          np.einsum('bti,io->bto', inputs_p, weight_p))
+
 
 class DeterministicDropoutTest(test_utils.TestCase):
 

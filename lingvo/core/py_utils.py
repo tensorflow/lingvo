@@ -3585,3 +3585,55 @@ def CumSum(x, axis=0, exclusive=False):
         result,
         list(range(axis)) + [rank - 1] + list(range(axis, rank - 1)))
   return result
+
+
+def ProjectLastDim(inputs, weight, input_dim, output_dim):
+  """Linear projection on the last dim of the input tensor.
+
+  This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
+  tensor by using Einsum for the compute.
+
+  Args:
+    inputs: An input Tensor, the last dimension of which is input_dim.
+    weight: A weight matrix with shape [input_dim, output_dim].
+    input_dim: An integer or a symbolic dim, the last dimension of the inputs.
+    output_dim: An integer or a symbolic dim, the last dimension of the outputs.
+
+  Returns:
+    An output Tensor of the same rank as inputs, the last dimension is
+    output_dim.
+  """
+  input_dim = int(
+      symbolic.ToStatic(input_dim) if symbolic.IsExpr(input_dim) else input_dim)
+  output_dim = int(
+      symbolic.ToStatic(output_dim) if symbolic.IsExpr(output_dim
+                                                      ) else output_dim)
+
+  # Assert input_dim and output_dim
+  inputs = with_dependencies([assert_equal(GetShape(inputs)[-1], input_dim)],
+                             inputs)
+  weight = with_dependencies([
+      assert_equal(GetShape(weight)[0], input_dim),
+      assert_equal(GetShape(weight)[-1], output_dim)
+  ], weight)
+
+  if (use_tpu() and inputs.shape is not None and
+      inputs.shape.rank is not None and inputs.shape.rank < 26):
+    # Avoids reshape if feasible and uses Einsum.
+    if inputs.shape.rank == 2:
+      outputs = tf.matmul(inputs, weight)
+    else:
+      s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
+      r = inputs.shape.rank
+      outputs = tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), inputs, weight)
+  else:
+    outputs = Matmul(tf.reshape(inputs, ToStaticShape([-1, input_dim])), weight)
+    outputs = tf.reshape(
+        outputs,
+        tf.concat([
+            tf.cast(GetShape(inputs)[:-1], tf.int32),
+            ToStaticShape([output_dim])
+        ],
+                  axis=0))
+
+  return outputs
