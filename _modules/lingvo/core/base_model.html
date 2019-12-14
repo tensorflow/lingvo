@@ -424,8 +424,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_online_encoder</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decoder</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_total_nans_and_infs</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_num_predictions</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span> <span class="o">=</span> <span class="kc">None</span>
@@ -685,7 +683,6 @@
     <span class="k">if</span> <span class="n">bprop_variable_filters</span> <span class="o">!=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">bprop_variable_filters</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeGradientMask</span><span class="p">(</span><span class="n">bprop_variable_filters</span><span class="p">)</span>
     <span class="n">train_ops</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># mapping from op name to op.</span>
-    <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;total_samples&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">IncrementTotalSamples</span><span class="p">()</span>
     <span class="n">gradient_mask</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_per_input_gradient_mask</span><span class="p">:</span>
       <span class="c1"># TODO(neerajgaur): Change this to use source_selected from input_batch.</span>
@@ -703,14 +700,12 @@
                          <span class="p">(</span><span class="n">loss_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
       <span class="n">loss</span> <span class="o">=</span> <span class="n">metric</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">all_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
-      <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;train/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">loss_name</span><span class="p">],</span> <span class="n">stats</span> <span class="o">=</span> <span class="n">optimization</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span>
+      <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;train/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">loss_name</span><span class="p">],</span> <span class="n">eval_metrics</span> <span class="o">=</span> <span class="n">optimization</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span>
           <span class="n">loss</span><span class="p">,</span>
           <span class="n">vmap</span><span class="p">,</span>
           <span class="n">gradient_mask</span><span class="o">=</span><span class="n">gradient_mask</span><span class="p">,</span>
           <span class="n">gradient_adjuster</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">AdjustGradients</span><span class="p">)</span>
-      <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;stats/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">loss_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">IncrementTotalNans</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
-      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">eval_metrics</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">loss_name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
 
     <span class="n">relevant_bn_updates</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FindRelevantBatchNormUpdates</span><span class="p">(</span>
@@ -933,20 +928,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_example</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
 
   <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">total_examples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns the total number of training examples processed so far.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span><span class="o">.</span><span class="n">Value</span><span class="p">()</span>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">total_examples_var</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a variable of the total number examples processed so far.</span>
-
-<span class="sd">    The total_examples Value() is inaccessible outisde the TPU context</span>
-<span class="sd">    if it&#39;s created within a @tpu_function.on_device_training_loop.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span><span class="o">.</span><span class="n">Var</span><span class="p">()</span>
-
-  <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">trainer_verbose_tensors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return the dict of verbose tensors to eval in the training loop.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trainer_verbose_tensors</span>
@@ -965,26 +946,6 @@
     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trainer_verbose_tensors</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Verbose target </span><span class="si">%s</span><span class="s1"> has already been defined.&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_trainer_verbose_tensors</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">target</span></div>
-
-<div class="viewcode-block" id="BaseTask.IncrementTotalSamples"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.IncrementTotalSamples">[docs]</a>  <span class="k">def</span> <span class="nf">IncrementTotalSamples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Updates the total number of training examples with the batch size.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">StatsCounter</span><span class="p">(</span><span class="s1">&#39;total_samples&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;No input generator defined&#39;</span><span class="p">)</span>
-      <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GlobalBatchSize</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span><span class="o">.</span><span class="n">IncBy</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="BaseTask.IncrementTotalNans"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.IncrementTotalNans">[docs]</a>  <span class="k">def</span> <span class="nf">IncrementTotalNans</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Updates the total number of NaN/Inf gradients by `value`.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_nans_and_infs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalVariableScope</span><span class="p">(),</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_total_nans_and_infs</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">StatsCounter</span><span class="p">(</span>
-            <span class="s1">&#39;total_nan_gradients&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_nans_and_infs</span><span class="o">.</span><span class="n">IncBy</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTask._UpdateVnConfig"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._UpdateVnConfig">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateVnConfig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update vn config from the various vn flags.&quot;&quot;&quot;</span>
@@ -1202,8 +1163,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;global_step_tensor&#39;</span><span class="p">)</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="c1"># tasks are not yet instantiated.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples_sum</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
@@ -1246,14 +1205,6 @@
 <span class="sd">      An instance of `BaseTask`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">total_examples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns the total number of training examples processed so far.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples_sum</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">total_examples</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">])</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples_sum</span>
 
 <div class="viewcode-block" id="BaseModel.ProcessFPropResults"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ProcessFPropResults">[docs]</a>  <span class="k">def</span> <span class="nf">ProcessFPropResults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Called once for each train loop.</span>

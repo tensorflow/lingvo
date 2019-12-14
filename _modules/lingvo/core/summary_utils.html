@@ -471,6 +471,8 @@
 
 <div class="viewcode-block" id="StepRateTracker.ComputeStepRate"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.StepRateTracker.ComputeStepRate">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeStepRate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_steps</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the overall step rate.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">:</span>
+      <span class="n">total_examples</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span> <span class="n">current_steps</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">))</span>
     <span class="c1"># Keeps a relative long history to compute a smooth steps/second.</span>
     <span class="c1"># Removes duplicate stats for step = 0 to get rid of the warm-up period.</span>

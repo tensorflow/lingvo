@@ -299,8 +299,7 @@
 <span class="sd">      gradient_adjuster: if not None, a function that mutates a given var_grads.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      (op, stats), where op is a tf.Operation to update variables and stats</span>
-<span class="sd">      is a NestedMap containing &#39;has_nan_or_inf&#39; and &#39;eval_metrics&#39;.</span>
+<span class="sd">      (op, eval_metrics), where op is a tf.Operation to update variables.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># We apply gradients outside the name_scope to maintain backwards</span>
     <span class="c1"># compatibility on variables created by self.optimizer.Apply().</span>
@@ -341,9 +340,8 @@
 <span class="sd">      gradient_adjuster: if not None, a function that mutates a given var_grads.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      (var_grads, stats), where var_grads is a `.NestedMap` whose values</span>
-<span class="sd">      (var, grad) pairs representing adjusted gradients, and stats is a</span>
-<span class="sd">      `.NestedMap` containing &#39;has_nan_or_inf&#39; and &#39;eval_metrics&#39;.</span>
+<span class="sd">      (var_grads, eval_metrics), where var_grads is a `.NestedMap` whose values</span>
+<span class="sd">      (var, grad) pairs representing adjusted gradients.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># L2 regularizer.</span>
@@ -365,14 +363,11 @@
     <span class="c1"># Apply gradient clipping.</span>
     <span class="n">scaled_vars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ScaleGradients</span><span class="p">(</span>
         <span class="n">var_grads</span><span class="p">,</span> <span class="n">gradient_adjuster</span><span class="o">=</span><span class="n">gradient_adjuster</span><span class="p">)</span>
-    <span class="n">has_nan_or_inf</span> <span class="o">=</span> <span class="n">scaled_vars</span><span class="o">.</span><span class="n">has_nan_or_inf</span>
     <span class="n">var_grads</span> <span class="o">=</span> <span class="n">scaled_vars</span><span class="o">.</span><span class="n">final_var_grads</span>
 
     <span class="c1"># Histogram summary.</span>
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">CollectVarHistogram</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
-    <span class="n">stats</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">has_nan_or_inf</span><span class="o">=</span><span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">var_grads</span><span class="p">,</span> <span class="n">stats</span></div>
+    <span class="k">return</span> <span class="n">var_grads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span></div>
 
 <div class="viewcode-block" id="Learner._GetGlobalGradScale"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._GetGlobalGradScale">[docs]</a>  <span class="k">def</span> <span class="nf">_GetGlobalGradScale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">all_grad_norm</span><span class="p">,</span> <span class="n">has_nan_or_inf</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a scaling factor for all gradients according to their norm.</span>
@@ -421,8 +416,6 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A `.NestedMap` containing</span>
 
-<span class="sd">      - has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN</span>
-<span class="sd">        or Inf in input gradients.</span>
 <span class="sd">      - final_var_grads: a `.NestedMap` whose values are (var, grad) pairs,</span>
 <span class="sd">        where gradients have already been scaled.</span>
 <span class="sd">      - grad_scale: the gradient scale. 0 if gradient updates should be skipped</span>
@@ -455,6 +448,7 @@
     <span class="n">has_nan_or_inf</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasNanOrInfGradient</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
     <span class="c1"># Grad norm can still be inf even if none of the individual grad is inf.</span>
     <span class="n">has_nan_or_inf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">grad_norm_is_nan_or_inf</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_AddEvalMetric</span><span class="p">(</span><span class="s1">&#39;has_nan_or_inf&#39;</span><span class="p">,</span> <span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
 
     <span class="n">return_values</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">clip_gradient_single_norm_to_value</span><span class="p">:</span>
@@ -475,7 +469,6 @@
       <span class="n">final_var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyGradMultiplier</span><span class="p">(</span><span class="n">var_grads</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">)</span>
       <span class="n">return_values</span><span class="o">.</span><span class="n">grad_scale</span> <span class="o">=</span> <span class="n">grad_scale</span>
 
-    <span class="n">return_values</span><span class="o">.</span><span class="n">has_nan_or_inf</span> <span class="o">=</span> <span class="n">has_nan_or_inf</span>
     <span class="n">return_values</span><span class="o">.</span><span class="n">final_var_grads</span> <span class="o">=</span> <span class="n">final_var_grads</span>
     <span class="k">return</span> <span class="n">return_values</span></div>
 
