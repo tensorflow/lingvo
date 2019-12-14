@@ -158,7 +158,8 @@ class BaseRunner(object):
             node_def=None, op=None, message=msg)
     return global_step
 
-  @py_utils.Retry(initial_delay_sec=300, max_delay_sec=300)
+  @py_utils.Retry(
+      initial_delay_sec=1, delay_growth_factor=1.5, max_delay_sec=300)
   def _FindNewCheckpoint(self, prev_path, sess):
     """Returns the path to a new checkpoint, or raises RuntimeError."""
     if self._trial.ShouldStop() or self._ShouldStop(sess, 0):
