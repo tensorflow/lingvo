@@ -961,6 +961,50 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
 
+  def testTransformerLayerWithPostLayernormExtendStep(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(6348575)
+      depth = 4
+      p = layers_with_attention.TransformerLayer.Params()
+      p.name = 'transformer'
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.mask_self_atten = True
+      p.tr_atten_tpl.num_attention_heads = 2
+      p.tr_post_ln_tpl = layers.LayerNorm.Params()
+      transformer = layers_with_attention.TransformerLayer(p)
+
+      (source_vecs, _, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
+      source_padding = tf.zeros([5, 2])
+
+      h1, probs1 = transformer.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings)
+
+      h2 = []
+      probs2 = []
+      cached_source_vecs = tf.zeros([0, 2, 4])
+      cached_source_contexts = tf.zeros([0, 2, 4])
+      prefix_states = py_utils.NestedMap(
+          key=cached_source_vecs, value=cached_source_contexts)
+      for i in range(5):
+        h, probs, prefix_states = transformer.ExtendStep(
+            transformer.theta, source_vecs[i, :, :], prefix_states, aux_vecs,
+            aux_paddings)
+        h2.append(h)
+        probs2.append(probs)
+
+      h2 = tf.stack(h2)
+      probs2 = tf.concat(probs2, 0)
+
+      tf.global_variables_initializer().run()
+      h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
+      self.assertAllClose(h1_v, h2_v)
+      self.assertAllClose(probs1_v, probs2_v)
+
   def testEvolvedTransformerEncoderBranchedConvsLayer(self):
     layer = layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer
     with self.session(use_gpu=True) as sess:

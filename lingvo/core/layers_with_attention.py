@@ -722,6 +722,8 @@ class TransformerLayer(base_layer.BaseLayer):
     h = self.fflayer.FProp(
         theta.fflayer, atten_vec,
         tf.zeros([1, batch_size], dtype=py_utils.FPropDtype(p)))
+    if p.tr_post_ln_tpl:
+      h = self.layer_norm.FProp(theta.layer_norm, h)
     h = tf.squeeze(h, 0)
     return h, atten_prob, new_states
 
