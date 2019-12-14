@@ -353,6 +353,7 @@ class Controller(base_runner.BaseRunner):
           for close_op in self.close_queue_ops:
             sess.run(close_op)
           sess.close()
+          self._DequeueThreadComplete()
           return
 
         if self._checkpoint_in_controller:
@@ -474,6 +475,7 @@ class Trainer(base_runner.BaseRunner):
             sess.run(close_op)
           if self._early_stop:
             time.sleep(300)  # controller hangs if it doesn't finish first
+          self._DequeueThreadComplete()
           return
 
         # If a task is explicitly specified, only train that task.
@@ -796,6 +798,7 @@ class TrainerTpu(base_runner.BaseRunner):
     # indefinitely without it.
     if self._trial.ShouldStop():
       tf.logging.info('Training skipped (trial requested to stop).')
+      self._DequeueThreadComplete()
       return
     with tf.container(self._container_id), self._GetSession() as sess:
       config_proto = (
@@ -833,6 +836,7 @@ class TrainerTpu(base_runner.BaseRunner):
           tf.logging.info('Training finished.')
           if FLAGS.checkpoint_in_trainer_tpu:
             self.checkpointer.Save(sess, global_step)
+          self._DequeueThreadComplete()
           return
 
         if self._retrieve_ops:

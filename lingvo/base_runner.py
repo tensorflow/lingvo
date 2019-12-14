@@ -80,6 +80,7 @@ class BaseRunner(object):
     self._graph = tf.Graph()
     self._summary_writer = None
     self.initialize_tables = None
+    self._dequeue_thread_complete = False
 
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
     self._early_stop = None
@@ -254,10 +255,15 @@ class BaseRunner(object):
       time.sleep(15)
       os._exit(1)  # pylint: disable=protected-access
 
+  def _DequeueThreadComplete(self):
+    self._dequeue_thread_complete = True
+    return
+
   def _LoopEnqueue(self, op, session_override=None):
     """Runs the enqueue op in a loop."""
     p = self.params
     sess = session_override or self._GetSession()
+
     with tf.container(self._container_id), sess:
       if self.initialize_tables is not None:
         sess.run(self.initialize_tables)
@@ -272,6 +278,10 @@ class BaseRunner(object):
       tf.logging.info('params.train.max_steps: %d, enqueue_max_steps: %d',
                       p.train.max_steps, p.train.enqueue_max_steps)
       while True:
+        if self._dequeue_thread_complete:
+          tf.logging.info('LoopEnqueue done since consuming thread is done.')
+          return
+
         global_step = sess.run(gsteps)
         if global_enqueue_steps is None:
           global_enqueue_steps = global_step
@@ -291,11 +301,15 @@ class BaseRunner(object):
         if (self._ShouldStop(sess, global_steps_with_available_data) or
             self._ShouldStop(sess, global_step)):
           tf.logging.info('Done. ShouldStop is True.')
-          return
+          tf.logging.info('Enqueue loop sleeping')
+          time.sleep(15)
+          continue
         if (p.train.enqueue_max_steps > 0 and
             local_enqueue_steps >= p.train.enqueue_max_steps):
           tf.logging.info('Done. train.enqueue_max_steps reached.')
-          return
+          tf.logging.info('Enqueue loop sleeping')
+          time.sleep(15)
+          continue
         local_enqueue_steps += 1
 
         # There are tpu_infeed_parallelism parallel threads enqueuing.
