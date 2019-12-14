@@ -225,6 +225,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_dequeue_thread_complete</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">SetLogdirInMetricHistories</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">logdir</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="o">=</span> <span class="kc">None</span>
@@ -399,10 +400,15 @@
       <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
       <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span></div>
 
+<div class="viewcode-block" id="BaseRunner._DequeueThreadComplete"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._DequeueThreadComplete">[docs]</a>  <span class="k">def</span> <span class="nf">_DequeueThreadComplete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_dequeue_thread_complete</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span></div>
+
 <div class="viewcode-block" id="BaseRunner._LoopEnqueue"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._LoopEnqueue">[docs]</a>  <span class="k">def</span> <span class="nf">_LoopEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">session_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs the enqueue op in a loop.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">sess</span> <span class="o">=</span> <span class="n">session_override</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span>
+
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="n">sess</span><span class="p">:</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
@@ -417,6 +423,10 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;params.train.max_steps: </span><span class="si">%d</span><span class="s1">, enqueue_max_steps: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
                       <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span><span class="p">)</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dequeue_thread_complete</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;LoopEnqueue done since consuming thread is done.&#39;</span><span class="p">)</span>
+          <span class="k">return</span>
+
         <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gsteps</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">global_enqueue_steps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">global_enqueue_steps</span> <span class="o">=</span> <span class="n">global_step</span>
@@ -436,11 +446,15 @@
         <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_steps_with_available_data</span><span class="p">)</span> <span class="ow">or</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done. ShouldStop is True.&#39;</span><span class="p">)</span>
-          <span class="k">return</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Enqueue loop sleeping&#39;</span><span class="p">)</span>
+          <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+          <span class="k">continue</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
             <span class="n">local_enqueue_steps</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span><span class="p">):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done. train.enqueue_max_steps reached.&#39;</span><span class="p">)</span>
-          <span class="k">return</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Enqueue loop sleeping&#39;</span><span class="p">)</span>
+          <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+          <span class="k">continue</span>
         <span class="n">local_enqueue_steps</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="c1"># There are tpu_infeed_parallelism parallel threads enqueuing.</span>

@@ -498,6 +498,7 @@
           <span class="k">for</span> <span class="n">close_op</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">close_queue_ops</span><span class="p">:</span>
             <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">close_op</span><span class="p">)</span>
           <span class="n">sess</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_DequeueThreadComplete</span><span class="p">()</span>
           <span class="k">return</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_in_controller</span><span class="p">:</span>
@@ -619,6 +620,7 @@
             <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">close_op</span><span class="p">)</span>
           <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="p">:</span>
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">300</span><span class="p">)</span>  <span class="c1"># controller hangs if it doesn&#39;t finish first</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_DequeueThreadComplete</span><span class="p">()</span>
           <span class="k">return</span>
 
         <span class="c1"># If a task is explicitly specified, only train that task.</span>
@@ -941,6 +943,7 @@
     <span class="c1"># indefinitely without it.</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">():</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training skipped (trial requested to stop).&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_DequeueThreadComplete</span><span class="p">()</span>
       <span class="k">return</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="n">config_proto</span> <span class="o">=</span> <span class="p">(</span>
@@ -978,6 +981,7 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_DequeueThreadComplete</span><span class="p">()</span>
           <span class="k">return</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">:</span>
