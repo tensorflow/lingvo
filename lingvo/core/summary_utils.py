@@ -326,6 +326,8 @@ class StepRateTracker(object):
 
   def ComputeStepRate(self, current_steps, total_examples):
     """Computes the overall step rate."""
+    if self._time_steps:
+      total_examples += self._time_steps[-1][-1]
     self._time_steps.append((time.time(), current_steps, total_examples))
     # Keeps a relative long history to compute a smooth steps/second.
     # Removes duplicate stats for step = 0 to get rid of the warm-up period.

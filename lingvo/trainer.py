@@ -267,7 +267,6 @@ class Controller(base_runner.BaseRunner):
     self._control_dir = os.path.join(self._logdir, 'control')
     tf.gfile.MakeDirs(self._control_dir)
     self._summary_writer = self._CreateSummaryWriter(self._control_dir)
-    self._step_rate_tracker = summary_utils.StepRateTracker()
     self._checkpoint_in_controller = True
     if FLAGS.checkpoint_in_trainer_tpu:
       self._checkpoint_in_controller = False
@@ -310,7 +309,6 @@ class Controller(base_runner.BaseRunner):
     self._summary_writer.add_graph(self._graph)
     with tf.container(self._container_id), self._GetSession() as sess:
       gsteps = py_utils.GetGlobalStep()
-      examples = self._model.total_examples
 
       if FLAGS.interactive:
         # Into interactive debugging mode.
@@ -340,11 +338,7 @@ class Controller(base_runner.BaseRunner):
           # Init/restore variable if needed.
           self.checkpointer.RestoreIfNeeded(sess)
 
-        global_step, total_examples = sess.run([gsteps, examples])
-        step_rate, example_rate = self._step_rate_tracker.ComputeStepRate(
-            global_step, total_examples)
-        self._SummarizeValue(global_step, 'global_step/sec', step_rate)
-        self._SummarizeValue(global_step, 'examples/sec', example_rate)
+        global_step = sess.run(gsteps)
         if self._trial.ShouldStop() or self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
           if self._checkpoint_in_controller:
@@ -372,13 +366,6 @@ class Controller(base_runner.BaseRunner):
                                self._total_num_params)
           next_summary_step = global_step + summary_interval_steps
           tf.logging.info('Write summary done: step %d', global_step)
-          self._SetStatusMessage(
-              'step:%6d, steps/sec: %0.2f, examples/sec: %0.2f' %
-              (global_step, step_rate, example_rate))
-          self._ExportMetrics(
-              global_step=global_step,
-              step_rate=step_rate,
-              example_rate=example_rate)
 
         now = time.time()
         if now < next_iteration_seconds:
@@ -415,6 +402,8 @@ class Trainer(base_runner.BaseRunner):
     except AttributeError:
       tf.logging.info('AttributeError. Expected for single task models.')
       self._task_probs_summary_writers = []
+
+    self._step_rate_tracker = summary_utils.StepRateTracker()
 
     # Saves the graph def.
     if self.params.cluster.task > 0:
@@ -499,20 +488,33 @@ class Trainer(base_runner.BaseRunner):
             except AttributeError:
               pass
 
-        _, global_step, eval_metrics, per_example_tensors = sess.run([
+        (_, global_step, eval_metrics, per_example_tensors) = sess.run([
             model_task.train_op,
             py_utils.GetGlobalStep(),
             model_task.eval_metrics,
             model_task.per_example_tensors,
         ])
-        msg = 'step:%6d' % global_step
+        model_task.ProcessFPropResults(sess, global_step, eval_metrics,
+                                       per_example_tensors)
+
+        step_rate, example_rate = self._step_rate_tracker.ComputeStepRate(
+            global_step, eval_metrics['num_samples_in_batch'][0])
+        self._SummarizeValue(global_step, 'global_step/sec', step_rate,
+                             self._summary_writer)
+        self._SummarizeValue(global_step, 'examples/sec', example_rate,
+                             self._summary_writer)
+
+        msg = 'step:%6d, steps/sec: %0.2f, examples/sec: %0.2f' % (
+            global_step, step_rate, example_rate)
         for key, (val, _) in sorted(six.iteritems(eval_metrics)):
           msg += ' %s:%.8g' % (key, val)
           self._SummarizeValue(global_step, key, val, self._summary_writer)
-        model_task.ProcessFPropResults(sess, global_step, eval_metrics,
-                                       per_example_tensors)
         if global_step >= next_status_step:
           self._SetStatusMessage(msg)
+          self._ExportMetrics(
+              global_step=global_step,
+              step_rate=step_rate,
+              example_rate=example_rate)
           next_status_step = global_step + status_interval_steps
         else:
           tf.logging.info(msg)
@@ -536,6 +538,7 @@ class TrainerTpu(base_runner.BaseRunner):
 
     self._steps_per_loop = min(self.params.train.tpu_steps_per_loop,
                                self.params.train.max_steps)
+    self._step_rate_tracker = summary_utils.StepRateTracker()
 
     self._cluster_def = self._cluster.worker_cluster_def
 
@@ -591,6 +594,7 @@ class TrainerTpu(base_runner.BaseRunner):
             New summed metrics values and a train_op.
           """
           self._model = self.params.Instantiate()
+          self._task = self._model.GetTask()
           self._load_ops = tf.get_collection(py_utils.TPU_EMBEDDING_LOAD_OPS)
           self._retrieve_ops = tf.get_collection(
               py_utils.TPU_EMBEDDING_RETRIEVE_OPS)
@@ -599,15 +603,14 @@ class TrainerTpu(base_runner.BaseRunner):
               tpu_embedding_collection[0] if tpu_embedding_collection else None)
           self._model.ConstructFPropBPropGraph()
           per_step_eval_metrics = self._eval_metrics.SetMetrics(
-              self._model.GetTask().eval_metrics, args)
-          outfeed_op = self._OutfeedEnqueue(
-              self._model.GetTask().per_example_tensors)
+              self._task.eval_metrics, args)
+          outfeed_op = self._OutfeedEnqueue(self._task.per_example_tensors)
           summed_metrics = []
           assert len(per_step_eval_metrics) == len(args)
           with tf.control_dependencies([outfeed_op]):
             for x, y in zip(per_step_eval_metrics, args):
               summed_metrics.append(x + y)
-          return summed_metrics + [self._model.GetTask().train_op]
+          return summed_metrics + [self._task.train_op]
 
         @tpu_function.on_device_training_loop
         def TpuTrain():
@@ -624,7 +627,7 @@ class TrainerTpu(base_runner.BaseRunner):
             num_shards=data_parallelism,
             device_assignment=py_utils.GetTpuDeviceAssignment())
         outfeed_dequeue_op = self._OutfeedDequeueLoop(
-            self._model.GetTask().per_example_tensors, self._steps_per_loop,
+            self._task.per_example_tensors, self._steps_per_loop,
             self._cluster.num_splits_per_client)
 
         def _ConstructPostTrainingLoop(train_loop_op, outfeed_dequeue_op):
@@ -636,8 +639,7 @@ class TrainerTpu(base_runner.BaseRunner):
           # tpu.outside_compilation & using tf.cond is expenseive.
           with tf.control_dependencies(train_loop_op):
             self._model.ConstructPostTrainingLoop()
-            with tf.control_dependencies(
-                [self._model.GetTask().post_training_loop_op]):
+            with tf.control_dependencies([self._task.post_training_loop_op]):
               return ([[tf.identity(o) for o in train_loop_op],
                        outfeed_dequeue_op])
         # Get metric result from a single replica; they are all same here.
@@ -858,19 +860,25 @@ class TrainerTpu(base_runner.BaseRunner):
         # previous sess.run call.
         global_step = sess.run(gsteps)
 
-        msg = 'step:%6d' % global_step
+        if not self._task.per_example_tensors:
+          outfeeds = {}
+        self._task.ProcessFPropResults(sess, global_step, eval_metrics,
+                                       outfeeds)
+        self._model.ProcessFPropResults(sess, global_step, eval_metrics,
+                                        outfeeds)
+
+        step_rate, example_rate = self._step_rate_tracker.ComputeStepRate(
+            global_step, eval_metrics['num_samples_in_batch'][0])
+        self._SummarizeValue(global_step, 'global_step/sec', step_rate)
+        self._SummarizeValue(global_step, 'examples/sec', example_rate)
+
+        msg = 'step:%6d, steps/sec: %0.2f, examples/sec: %0.2f' % (
+            global_step, step_rate, example_rate)
         for key, (val, _) in sorted(six.iteritems(eval_metrics)):
           msg += ' %s:%.8g' % (key, val)
           self._SummarizeValue(global_step, key, val)
 
         self._SetStatusMessage(msg)
-
-        task = self._model.GetTask()
-        if not task.per_example_tensors:
-          outfeeds = {}
-        task.ProcessFPropResults(sess, global_step, eval_metrics, outfeeds)
-        self._model.ProcessFPropResults(sess, global_step, eval_metrics,
-                                        outfeeds)
 
         if FLAGS.checkpoint_in_trainer_tpu:
           self.checkpointer.MaybeSave(sess, gsteps)

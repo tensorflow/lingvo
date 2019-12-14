@@ -299,19 +299,17 @@ class TrainProgram(BaseProgram):
 
     eval_metrics = self._eval_metrics.PackMetricsValues(values)
 
-    task = self._model.GetTask()
-    global_step, total_examples = sess.run([gsteps, task.total_examples_var])
-    rate, example_rate = self._step_rate_tracker.ComputeStepRate(
-        global_step, total_examples)
-    self._SummarizeValue(global_step, 'global_step/sec', rate)
+    global_step = sess.run(gsteps)
+    step_rate, example_rate = self._step_rate_tracker.ComputeStepRate(
+        global_step, eval_metrics['num_samples_in_batch'][0])
+    self._SummarizeValue(global_step, 'global_step/sec', step_rate)
     self._SummarizeValue(global_step, 'examples/sec', example_rate)
 
-    msg = 'step:%6d' % global_step
     for key, (val, _) in sorted(six.iteritems(eval_metrics)):
-      msg += ' %s:%.8g' % (key, val)
       self._SummarizeValue(global_step, key, val)
 
-    task.ProcessFPropResults(sess, global_step, eval_metrics, outfeeds)
+    self._model.GetTask().ProcessFPropResults(sess, global_step, eval_metrics,
+                                              outfeeds)
 
 
 class EvalProgram(BaseProgram):

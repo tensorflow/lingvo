@@ -1465,3 +1465,16 @@ py_test(
         "//lingvo:compat",
     ],
 )
+
+py_test(
+    name = "checkpointer_test",
+    srcs = ["checkpointer_test.py"],
+    deps = [
+        ":base_input_generator",
+        ":base_model",
+        ":checkpointer_lib",
+        ":py_utils",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)

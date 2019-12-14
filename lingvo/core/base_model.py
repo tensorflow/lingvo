@@ -279,8 +279,6 @@ class BaseTask(base_layer.BaseLayer):
     self._online_encoder = None
     self._decoder = None
 
-    self._total_examples = None
-    self._total_nans_and_infs = None
     self._loss = None
     self._num_predictions = None
     self._train_op = None
@@ -540,7 +538,6 @@ class BaseTask(base_layer.BaseLayer):
     if bprop_variable_filters != [''] * len(bprop_variable_filters):
       self._ComputeGradientMask(bprop_variable_filters)
     train_ops = {}  # mapping from op name to op.
-    train_ops['total_samples'] = self.IncrementTotalSamples()
     gradient_mask = None
     if self._per_input_gradient_mask:
       # TODO(neerajgaur): Change this to use source_selected from input_batch.
@@ -558,14 +555,12 @@ class BaseTask(base_layer.BaseLayer):
                          (loss_name, list(self._metrics.keys())))
       loss = metric[0]
       all_losses.append(loss)
-      train_ops['train/%s' % loss_name], stats = optimization.Apply(
+      train_ops['train/%s' % loss_name], eval_metrics = optimization.Apply(
           loss,
           vmap,
           gradient_mask=gradient_mask,
           gradient_adjuster=self.AdjustGradients)
-      train_ops['stats/%s' % loss_name] = self.IncrementTotalNans(
-          tf.cast(stats.has_nan_or_inf, tf.int32))
-      for key, (value, weight) in six.iteritems(stats.eval_metrics):
+      for key, (value, weight) in six.iteritems(eval_metrics):
         self.AddEvalMetric(key + '/' + loss_name, value, weight)
 
     relevant_bn_updates, _ = py_utils.FindRelevantBatchNormUpdates(
@@ -788,20 +783,6 @@ class BaseTask(base_layer.BaseLayer):
     self._per_example[name] = value
 
   @property
-  def total_examples(self):
-    """Returns the total number of training examples processed so far."""
-    return self._total_examples.Value()
-
-  @property
-  def total_examples_var(self):
-    """Returns a variable of the total number examples processed so far.
-
-    The total_examples Value() is inaccessible outisde the TPU context
-    if it's created within a @tpu_function.on_device_training_loop.
-    """
-    return self._total_examples.Var()
-
-  @property
   def trainer_verbose_tensors(self):
     """Return the dict of verbose tensors to eval in the training loop."""
     return self._trainer_verbose_tensors
@@ -820,26 +801,6 @@ class BaseTask(base_layer.BaseLayer):
     if name in self._trainer_verbose_tensors:
       raise ValueError('Verbose target %s has already been defined.' % name)
     self._trainer_verbose_tensors[name] = target
-
-  def IncrementTotalSamples(self, value=None):
-    """Updates the total number of training examples with the batch size."""
-    p = self.params
-    if self._total_examples is None:
-      with tf.variable_scope(p.name):
-        self._total_examples = summary_utils.StatsCounter('total_samples')
-    if value is None:
-      assert self.input_generator is not None, ('No input generator defined')
-      value = self.input_generator.GlobalBatchSize()
-    return self._total_examples.IncBy(value)
-
-  def IncrementTotalNans(self, value):
-    """Updates the total number of NaN/Inf gradients by `value`."""
-    if self._total_nans_and_infs is None:
-      with tf.variable_scope(
-          py_utils.GetGlobalVariableScope(), reuse=tf.AUTO_REUSE):
-        self._total_nans_and_infs = summary_utils.StatsCounter(
-            'total_nan_gradients')
-    return self._total_nans_and_infs.IncBy(value)
 
   def _UpdateVnConfig(self):
     """Update vn config from the various vn flags."""
@@ -1057,8 +1018,6 @@ class BaseModel(base_layer.BaseLayer):
     self._global_step = tf.identity(
         self._global_step_var, name='global_step_tensor')
     super(BaseModel, self).__init__(params)
-    # tasks are not yet instantiated.
-    self._total_examples_sum = None
 
     self._ema = None
     tp = self.params.train
@@ -1101,14 +1060,6 @@ class BaseModel(base_layer.BaseLayer):
       An instance of `BaseTask`.
     """
     raise NotImplementedError('Abstract method')
-
-  @property
-  def total_examples(self):
-    """Returns the total number of training examples processed so far."""
-    if self._total_examples_sum is None:
-      self._total_examples_sum = tf.reduce_sum(
-          [task.total_examples for task in self.tasks])
-    return self._total_examples_sum
 
   def ProcessFPropResults(self, sess, global_step, metrics, per_example):
     """Called once for each train loop.

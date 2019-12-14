@@ -72,7 +72,6 @@ class BaseTaskTest(test_utils.TestCase):
     FLAGS.enable_check_numerics = False
     with self.session():
       tf.global_variables_initializer().run()
-      self.assertFalse(scaled_grads_map.has_nan_or_inf.eval())
       self.assertEqual(1.0, scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
       self.assertFalse(tf.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
@@ -94,7 +93,6 @@ class BaseTaskTest(test_utils.TestCase):
 
     with self.session():
       tf.global_variables_initializer().run()
-      self.assertTrue(scaled_grads_map.has_nan_or_inf.eval())
       self.assertEqual(0., scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
       self.assertFalse(tf.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
@@ -116,7 +114,6 @@ class BaseTaskTest(test_utils.TestCase):
 
     with self.session():
       tf.global_variables_initializer().run()
-      self.assertTrue(scaled_grads_map.has_nan_or_inf.eval())
       self.assertEqual(0., scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
       self.assertFalse(tf.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
@@ -139,7 +136,6 @@ class BaseTaskTest(test_utils.TestCase):
 
     with self.session():
       tf.global_variables_initializer().run()
-      self.assertTrue(scaled_grads_map.has_nan_or_inf.eval())
       self.assertEqual(0., scaled_grads_map.grad_scale.eval())
       # Fetching the gradient raises an exception with enable_check_numerics.
       with self.assertRaisesRegex(tf.errors.InvalidArgumentError,
@@ -268,7 +264,6 @@ class DistillationTaskTest(test_utils.TestCase):
     task.BProp()
     # Expected side effects of BProp().
     self.assertIsNotNone(task.train_op)
-    self.assertIsNotNone(task.total_examples)
 
     with self.session() as sess:
       tf.global_variables_initializer().run()

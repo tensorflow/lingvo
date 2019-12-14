@@ -154,8 +154,7 @@ class Learner(base_layer.BaseLayer):
       gradient_adjuster: if not None, a function that mutates a given var_grads.
 
     Returns:
-      (op, stats), where op is a tf.Operation to update variables and stats
-      is a NestedMap containing 'has_nan_or_inf' and 'eval_metrics'.
+      (op, eval_metrics), where op is a tf.Operation to update variables.
     """
     # We apply gradients outside the name_scope to maintain backwards
     # compatibility on variables created by self.optimizer.Apply().
@@ -196,9 +195,8 @@ class Learner(base_layer.BaseLayer):
       gradient_adjuster: if not None, a function that mutates a given var_grads.
 
     Returns:
-      (var_grads, stats), where var_grads is a `.NestedMap` whose values
-      (var, grad) pairs representing adjusted gradients, and stats is a
-      `.NestedMap` containing 'has_nan_or_inf' and 'eval_metrics'.
+      (var_grads, eval_metrics), where var_grads is a `.NestedMap` whose values
+      (var, grad) pairs representing adjusted gradients.
     """
     p = self.params
     # L2 regularizer.
@@ -220,14 +218,11 @@ class Learner(base_layer.BaseLayer):
     # Apply gradient clipping.
     scaled_vars = self.ScaleGradients(
         var_grads, gradient_adjuster=gradient_adjuster)
-    has_nan_or_inf = scaled_vars.has_nan_or_inf
     var_grads = scaled_vars.final_var_grads
 
     # Histogram summary.
     summary_utils.CollectVarHistogram(var_grads)
-    stats = py_utils.NestedMap(
-        has_nan_or_inf=has_nan_or_inf, eval_metrics=self._eval_metrics)
-    return var_grads, stats
+    return var_grads, self._eval_metrics
 
   def _GetGlobalGradScale(self, all_grad_norm, has_nan_or_inf):
     """Returns a scaling factor for all gradients according to their norm.
@@ -276,8 +271,6 @@ class Learner(base_layer.BaseLayer):
     Returns:
       A `.NestedMap` containing
 
-      - has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN
-        or Inf in input gradients.
       - final_var_grads: a `.NestedMap` whose values are (var, grad) pairs,
         where gradients have already been scaled.
       - grad_scale: the gradient scale. 0 if gradient updates should be skipped
@@ -310,6 +303,7 @@ class Learner(base_layer.BaseLayer):
     has_nan_or_inf = py_utils.HasNanOrInfGradient(var_grads)
     # Grad norm can still be inf even if none of the individual grad is inf.
     has_nan_or_inf = tf.logical_or(has_nan_or_inf, grad_norm_is_nan_or_inf)
+    self._AddEvalMetric('has_nan_or_inf', has_nan_or_inf, tf.constant(1.0))
 
     return_values = py_utils.NestedMap()
     if p.clip_gradient_single_norm_to_value:
@@ -330,7 +324,6 @@ class Learner(base_layer.BaseLayer):
       final_var_grads = py_utils.ApplyGradMultiplier(var_grads, grad_scale)
       return_values.grad_scale = grad_scale
 
-    return_values.has_nan_or_inf = has_nan_or_inf
     return_values.final_var_grads = final_var_grads
     return return_values
 

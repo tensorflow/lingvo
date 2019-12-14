@@ -50,11 +50,9 @@ class LearnerTest(tf.test.TestCase):
   def testBasic(self):
     learner_p = learner.Learner.Params().Set(
         name='learner', learning_rate=.1, optimizer=optimizer.SGD.Params())
-    var_grads, updated_vars, stats = self._testLearner(learner_p)
+    var_grads, updated_vars, _ = self._testLearner(learner_p)
     self.assertAllClose(var_grads, {'hello': (0., 1.), 'world': (0., -2.)})
     self.assertAllClose(updated_vars, {'hello': -0.1, 'world': 0.2})
-    self.assertCountEqual(
-        list(stats.keys()), ['eval_metrics', 'has_nan_or_inf'])
 
   def testBPropVariableFilter(self):
     learner_p = learner.Learner.Params().Set(
@@ -62,10 +60,11 @@ class LearnerTest(tf.test.TestCase):
         learning_rate=.1,
         optimizer=optimizer.SGD.Params(),
         bprop_variable_filter='ello')
-    var_grads, updated_vars, _ = self._testLearner(learner_p)
+    var_grads, updated_vars, eval_metrics = self._testLearner(learner_p)
     # Only 'hello' is updated.
     self.assertAllClose(var_grads, {'hello': (0., 1.)})
     self.assertAllClose(updated_vars, {'hello': -0.1, 'world': 0.})
+    self.assertIn('grad_scale_all', eval_metrics)
 
   def testBPropVariableExclusion(self):
     learner_p = learner.Learner.Params().Set(
@@ -84,13 +83,13 @@ class LearnerTest(tf.test.TestCase):
     lrnr = learner_p.Instantiate()
     layer = TestLayer.Params().Set(name='test').Instantiate()
     loss = layer.Loss(layer.theta)
-    update_op, stats = lrnr.Apply(loss, layer.vars)
+    update_op, eval_metrics = lrnr.Apply(loss, layer.vars)
     with self.session() as sess:
       tf.global_variables_initializer().run()
       var_grads = sess.run(lrnr.GetVarGrads())
       update_op.run()
       updated_vars = sess.run(layer.vars)
-      return var_grads, updated_vars, stats
+      return var_grads, updated_vars, eval_metrics
 
 
 if __name__ == '__main__':
