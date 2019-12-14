@@ -1108,7 +1108,7 @@
       <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">2</span><span class="p">]],</span>
                                   <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">1</span><span class="p">]])</span>
       <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">2</span><span class="p">]],</span>
-                                  <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">))])</span>
+                                  <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">)])</span>
       <span class="n">source_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">target_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">n</span> <span class="o">=</span> <span class="n">target_batch</span> <span class="o">//</span> <span class="n">source_batch</span>
@@ -1285,6 +1285,11 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of hidden nodes.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_attention_heads&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Num of attention heads.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;inner_atten_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Source/query/hidden dimensions for inner &#39;</span>
+        <span class="s1">&#39;attention layer. Should be the value of &#39;</span>
+        <span class="s1">&#39;hidden_dim / num_attention_heads. Exactly one of hidden_dim &#39;</span>
+        <span class="s1">&#39;and inner_atten_dim can be set.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_source_vec_as_attention_value&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
         <span class="s1">&#39;Whether or not to use source_vec as the attention value as well.&#39;</span>
         <span class="s1">&#39; If True, we expect source_vec and source_contexts are the same.&#39;</span><span class="p">)</span>
@@ -1333,7 +1338,14 @@
     <span class="sd">&quot;&quot;&quot;Constructs a MultiHeadedAttention object.&quot;&quot;&quot;</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">)</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">inner_atten_dim</span> <span class="o">==</span> <span class="mi">0</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">==</span> <span class="mi">0</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">inner_atten_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">inner_atten_dim</span> <span class="o">!=</span> <span class="mi">0</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inner_atten_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;source_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;source_proj_add&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;query_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;query_proj_add&#39;</span><span class="p">,</span>
@@ -1419,7 +1431,7 @@
             <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ctx_post_proj_b&#39;</span><span class="p">,</span> <span class="n">pc_bias_post_proj</span><span class="p">)</span>
 
-      <span class="n">att_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
+      <span class="n">att_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inner_atten_dim</span>
 
       <span class="n">att_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inner_atten_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">source_dim</span><span class="o">=</span><span class="n">att_dim</span><span class="p">,</span>
@@ -1488,12 +1500,12 @@
         <span class="k">else</span><span class="p">:</span>
           <span class="n">source_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">source_vec_depth</span><span class="p">])</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;init__1&#39;</span><span class="p">):</span>
-      <span class="n">hidden_depth</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">))</span>
       <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
       <span class="c1"># =&gt; [time, source_batch * num_heads, hidden / num_heads]</span>
-      <span class="n">source_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">source_projected</span><span class="p">,</span>
-          <span class="p">[</span><span class="n">time_steps</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">hidden_depth</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">])</span>
+      <span class="n">source_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_projected</span><span class="p">,</span> <span class="p">[</span>
+          <span class="n">time_steps</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span>
+          <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">inner_atten_dim</span><span class="p">)</span>
+      <span class="p">])</span>
       <span class="n">source_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ProcessProjectionVec</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_projected</span><span class="p">,</span>
                                                    <span class="s1">&#39;source&#39;</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_source_vec_as_attention_value</span><span class="p">:</span>
@@ -1699,7 +1711,8 @@
     <span class="n">source_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
     <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">))</span>
+    <span class="n">static_inner_atten_dim</span> <span class="o">=</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">inner_atten_dim</span><span class="p">)</span>
+    <span class="n">query_vec_projected_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">static_inner_atten_dim</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_query_proj</span><span class="p">:</span>
       <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
@@ -1708,15 +1721,13 @@
           <span class="n">query_vec_projected</span><span class="p">,</span>
           <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">query_proj_b</span><span class="p">),</span>
           <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;query_proj_add&#39;</span><span class="p">)</span>
-      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">query_vec_projected</span><span class="p">,</span>
-          <span class="p">[</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">])</span>
+      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">query_vec_projected</span><span class="p">,</span>
+                                       <span class="n">query_vec_projected_shape</span><span class="p">)</span>
       <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ProcessProjectionVec</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span>
                                                       <span class="n">query_vec_projected</span><span class="p">,</span>
                                                       <span class="s1">&#39;query&#39;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">])</span>
+      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">query_vec_projected_shape</span><span class="p">)</span>
 
     <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">query_segment_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
