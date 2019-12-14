@@ -1298,6 +1298,35 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_prob_out, prob_out)
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
 
+  def testMultiHeadedAttentionSetInnerAttenDim(self):
+    iap = attention.DotProductAttention.Params()
+    iap.name = 'dot_atten'
+    inner_atten_dim = 8
+    num_attention_heads = 3
+    params = attention.MultiHeadedAttention.Params().Set(
+        name='multihead_atten',
+        context_dim=6,
+        source_dim=4,
+        query_dim=4,
+        hidden_dim=0,
+        inner_atten_dim=inner_atten_dim,
+        inner_atten_params=iap,
+        num_attention_heads=num_attention_heads,
+        use_source_vec_as_attention_value=False,
+        enable_ctx_pre_proj=True,
+        enable_ctx_post_proj=True,
+        ctx_post_proj_dim=12)
+    with tf.variable_scope('inner_dim'):
+      atten_with_inner_dim = params.Instantiate()
+    with tf.variable_scope('base'):
+      atten_base = params.Set(
+          hidden_dim=inner_atten_dim * num_attention_heads,
+          inner_atten_dim=0).Instantiate()
+    # Check all variable shapes are the same.
+    for name, value in atten_with_inner_dim.vars.FlattenItems():
+      expected_value = atten_base.vars.GetItem(name)
+      self.assertEqual(expected_value.shape, value.shape)
+
   def testLocationSensitiveAttention2(self):
     with self.session(use_gpu=True) as sess:
       np.random.seed(12345)

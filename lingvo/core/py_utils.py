@@ -881,7 +881,7 @@ def ToStaticShape(shape):
     static_shape = []
     for dim in shape:
       if symbolic.IsExpr(dim):
-        static_shape.append(int(symbolic.ToStatic(dim)))
+        static_shape.append(symbolic.ToStatic(dim))
       else:
         static_shape.append(dim)
     return static_shape
