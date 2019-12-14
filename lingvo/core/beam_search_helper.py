@@ -241,6 +241,16 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'reordered before usage. Otherwise, the indices will be directly used '
         'without extra transformation.')
     p.Define(
+        'short_seq_limit', 0,
+        'An integer, the sequence length limit for using early stop '
+        'method in attention layer (batch-major implementation). The sequence '
+        'is always treated as the default long sequence for decoding when the '
+        'limit is set to 0. For typical mt transformer config '
+        '(batch 16, sequence length 150), the break even point is around 40 '
+        'on TPU V3, and 50 on TPU V2. This may slightly change for '
+        'different batch size and sequence length, which requires more '
+        'experiments to set the value.')
+    p.Define(
         'local_eos_threshold', -100.0,
         'During beam search, allow </s> to terminate a hyp if the local score '
         'for </s> is greater than local_eos_threshold.')
