@@ -386,6 +386,16 @@
         <span class="s1">&#39;reordered before usage. Otherwise, the indices will be directly used &#39;</span>
         <span class="s1">&#39;without extra transformation.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;short_seq_limit&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;An integer, the sequence length limit for using early stop &#39;</span>
+        <span class="s1">&#39;method in attention layer (batch-major implementation). The sequence &#39;</span>
+        <span class="s1">&#39;is always treated as the default long sequence for decoding when the &#39;</span>
+        <span class="s1">&#39;limit is set to 0. For typical mt transformer config &#39;</span>
+        <span class="s1">&#39;(batch 16, sequence length 150), the break even point is around 40 &#39;</span>
+        <span class="s1">&#39;on TPU V3, and 50 on TPU V2. This may slightly change for &#39;</span>
+        <span class="s1">&#39;different batch size and sequence length, which requires more &#39;</span>
+        <span class="s1">&#39;experiments to set the value.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;local_eos_threshold&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mf">100.0</span><span class="p">,</span>
         <span class="s1">&#39;During beam search, allow &lt;/s&gt; to terminate a hyp if the local score &#39;</span>
         <span class="s1">&#39;for &lt;/s&gt; is greater than local_eos_threshold.&#39;</span><span class="p">)</span>

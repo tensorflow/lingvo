@@ -196,40 +196,6 @@
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
-<div class="viewcode-block" id="UniformSampler"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.UniformSampler">[docs]</a><span class="k">class</span> <span class="nc">UniformSampler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A reservoir sampler.</span>
-
-<span class="sd">  This class implements reservoir sampling: Given a limit of `num_samples` total</span>
-<span class="sd">  samples, this class maintains a uniform probability (1 / `num_samples`) of</span>
-<span class="sd">  keeping any item dynamically added to the sampler.</span>
-
-<span class="sd">  See https://en.wikipedia.org/wiki/Reservoir_sampling for details.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">):</span>
-    <span class="k">assert</span> <span class="n">num_samples</span> <span class="o">&gt;</span> <span class="mi">0</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_num_samples</span> <span class="o">=</span> <span class="n">num_samples</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_num_seen_items</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span> <span class="o">=</span> <span class="p">[]</span>
-
-<div class="viewcode-block" id="UniformSampler.Add"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.UniformSampler.Add">[docs]</a>  <span class="k">def</span> <span class="nf">Add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Add item to sampler.&quot;&quot;&quot;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_num_seen_items</span> <span class="o">+=</span> <span class="mi">1</span>
-
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_samples</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_samples</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
-      <span class="k">return</span>
-
-    <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_seen_items</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_samples</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span></div>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">samples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Fetch the current samples from the sampler.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span></div>
-
-
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
                      <span class="s1">&#39;If False, we disable all asserts.&#39;</span><span class="p">)</span>
 
@@ -1070,6 +1036,40 @@
 
 <div class="viewcode-block" id="Zeros"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Zeros">[docs]</a><span class="k">def</span> <span class="nf">Zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ToStaticShape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UniformSampler"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.UniformSampler">[docs]</a><span class="k">class</span> <span class="nc">UniformSampler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A reservoir sampler.</span>
+
+<span class="sd">  This class implements reservoir sampling: Given a limit of `num_samples` total</span>
+<span class="sd">  samples, this class maintains a uniform probability (1 / `num_samples`) of</span>
+<span class="sd">  keeping any item dynamically added to the sampler.</span>
+
+<span class="sd">  See https://en.wikipedia.org/wiki/Reservoir_sampling for details.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_samples</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">num_samples</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_num_samples</span> <span class="o">=</span> <span class="n">num_samples</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_num_seen_items</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="UniformSampler.Add"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.UniformSampler.Add">[docs]</a>  <span class="k">def</span> <span class="nf">Add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add item to sampler.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_num_seen_items</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_samples</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_samples</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+      <span class="k">return</span>
+
+    <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_seen_items</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_samples</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">samples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fetch the current samples from the sampler.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span></div>
 
 
 <div class="viewcode-block" id="RNNCellStateInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.RNNCellStateInit">[docs]</a><span class="k">class</span> <span class="nc">RNNCellStateInit</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
