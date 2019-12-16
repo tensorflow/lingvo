@@ -1141,6 +1141,18 @@ py_library(
 )
 
 py_library(
+    name = "test_trainer_utils",
+    srcs = ["test_trainer_utils.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        "//lingvo:trainer_lib",
+    ],
+)
+
+py_library(
     name = "wpm_encoder",
     srcs = ["wpm_encoder.py"],
     srcs_version = "PY2AND3",
