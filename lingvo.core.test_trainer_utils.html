@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.test_helper module &mdash; Lingvo  documentation</title>
+  <title>lingvo.core.test_trainer_utils module &mdash; Lingvo  documentation</title>
   
 
   
@@ -35,8 +35,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.core.test_trainer_utils module" href="lingvo.core.test_trainer_utils.html" />
-    <link rel="prev" title="lingvo.core.task_scheduler module" href="lingvo.core.task_scheduler.html" /> 
+    <link rel="next" title="lingvo.core.test_utils module" href="lingvo.core.test_utils.html" />
+    <link rel="prev" title="lingvo.core.test_helper module" href="lingvo.core.test_helper.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -144,13 +144,13 @@
         
           <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
         
-      <li>lingvo.core.test_helper module</li>
+      <li>lingvo.core.test_trainer_utils module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/lingvo.core.test_helper.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/lingvo.core.test_trainer_utils.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -163,13 +163,29 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-lingvo.core.test_helper">
-<span id="lingvo-core-test-helper-module"></span><h1>lingvo.core.test_helper module<a class="headerlink" href="#module-lingvo.core.test_helper" title="Permalink to this headline">¶</a></h1>
-<p>Helpers for unittests.</p>
+  <div class="section" id="module-lingvo.core.test_trainer_utils">
+<span id="lingvo-core-test-trainer-utils-module"></span><h1>lingvo.core.test_trainer_utils module<a class="headerlink" href="#module-lingvo.core.test_trainer_utils" title="Permalink to this headline">¶</a></h1>
+<p>Helpers for trainer-based tests.</p>
 <dl class="function">
-<dt id="lingvo.core.test_helper.test_src_dir_path">
-<code class="sig-prename descclassname">lingvo.core.test_helper.</code><code class="sig-name descname">test_src_dir_path</code><span class="sig-paren">(</span><em class="sig-param">relative_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_helper.html#test_src_dir_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_helper.test_src_dir_path" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.test_trainer_utils._ModelTuples">
+<code class="sig-prename descclassname">lingvo.core.test_trainer_utils.</code><code class="sig-name descname">_ModelTuples</code><span class="sig-paren">(</span><em class="sig-param">model_classes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_trainer_utils.html#_ModelTuples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_trainer_utils._ModelTuples" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.test_trainer_utils.MakeModelValidatorTestCase">
+<code class="sig-prename descclassname">lingvo.core.test_trainer_utils.</code><code class="sig-name descname">MakeModelValidatorTestCase</code><span class="sig-paren">(</span><em class="sig-param">model_classes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_trainer_utils.html#MakeModelValidatorTestCase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_trainer_utils.MakeModelValidatorTestCase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a TestCase that validates the training for <code class="xref py py-obj docutils literal notranslate"><span class="pre">model_classes</span></code>.</p>
+<p>Usage in a test:</p>
+<dl class="simple">
+<dt>MakeModelValidatorTestCase([path.to.module.MyRegisteredModel1,</dt><dd><p>path.to.module.MyRegisteredModel2])</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model_classes</strong> – A list of model classes.</p>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 
@@ -181,10 +197,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.core.test_trainer_utils.html" class="btn btn-neutral float-right" title="lingvo.core.test_trainer_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.core.test_utils.html" class="btn btn-neutral float-right" title="lingvo.core.test_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.task_scheduler.html" class="btn btn-neutral float-left" title="lingvo.core.task_scheduler module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.test_helper.html" class="btn btn-neutral float-left" title="lingvo.core.test_helper module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
