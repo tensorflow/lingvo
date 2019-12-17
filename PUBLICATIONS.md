@@ -4,10 +4,10 @@
 
 ## Translation
 
-<!-- This document was automatically generated with bibtex2html 1.98
+<!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -148,10 +148,10 @@ M.&nbsp;Freitag, I.&nbsp;Caswell, and S.&nbsp;Roy, &ldquo;Text Repair Model for 
 
 ## Speech recognition
 
-<!-- This document was automatically generated with bibtex2html 1.98
+<!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -534,14 +534,28 @@ C.&nbsp;Peyser, H.&nbsp;Zhang, T.&nbsp;N. Sainath, and Z.&nbsp;Wu, &ldquo;Improv
 
 </td>
 </tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="zhao2019shallow">27</a>]
+</td>
+<td class="bibtexitem">
+D.&nbsp;Zhao, T.&nbsp;N. Sainath, D.&nbsp;Rybach, D.&nbsp;Bhatia, B.&nbsp;Li, and R.&nbsp;Pang,
+  &ldquo;Shallow-fusion end-to-end contextual biasing,&rdquo; in <em>Proc. Interspeech</em>,
+  2019.
+[&nbsp;<a href="https://www.isca-speech.org/archive/Interspeech_2019/pdfs/1209.pdf">pdf</a>&nbsp;]
+
+</td>
+</tr>
 </table>
 
 ## Language understanding
 
-<!-- This document was automatically generated with bibtex2html 1.98
+<!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -592,10 +606,10 @@ P.&nbsp;Haghani, A.&nbsp;Narayanan, M.&nbsp;Bacchiani, G.&nbsp;Chuang, N.&nbsp;G
 
 ## Speech synthesis
 
-<!-- This document was automatically generated with bibtex2html 1.98
+<!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -729,10 +743,10 @@ Y.&nbsp;Zhang, R.&nbsp;J. Weiss, H.&nbsp;Zen, Y.&nbsp;Wu, Z.&nbsp;Chen, R.&nbsp;
 
 ## Speech translation
 
-<!-- This document was automatically generated with bibtex2html 1.98
+<!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
 
 
 <table>
