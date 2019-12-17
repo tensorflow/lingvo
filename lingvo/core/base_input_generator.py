@@ -804,6 +804,10 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     p.Define('randomize_order', True, 'Whether to randomize the order.')
     p.Define('parallel_readers', 1, 'Number of parallel reader threads.')
     p.Define('num_examples', -1, 'Number of examples (-1 for unlimited).')
+    p.Define(
+        'num_epochs', -1,
+        'Number of passes through the data to make (-1 for unlimited).'
+        '`tf.errors.OutOfRangeError` is thrown after the limit is reached.')
     p.Define('randomize_shuffle_size', 500,
              'Size of the random shuffle buffer.')
     p.remote.shardable_batch = False
@@ -869,7 +873,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     if p.randomize_order:
       dataset = dataset.shuffle(p.randomize_shuffle_size)
     dataset = dataset.take(p.num_examples)
-    dataset = dataset.repeat()
+    dataset = dataset.repeat(p.num_epochs)
     dataset = dataset.batch(p.batch_size, drop_remainder=True)
     dataset = dataset.map(
         ParseAndProcess, num_parallel_calls=p.parallel_readers)

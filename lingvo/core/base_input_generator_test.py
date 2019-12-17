@@ -55,9 +55,11 @@ class ToyInputGenerator(base_input_generator.BaseDataExampleInputGenerator):
 class BaseExampleInputGeneratorTest(test_utils.TestCase):
 
   def setUp(self):
+    super(BaseExampleInputGeneratorTest, self).setUp()
     tf.reset_default_graph()
 
   def tearDown(self):
+    super(BaseExampleInputGeneratorTest, self).tearDown()
     if hasattr(self, '_tmpdir'):
       shutil.rmtree(self._tmpdir)
 
@@ -88,6 +90,24 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
       eval_inputs = sess.run(inputs)
       input_shapes = eval_inputs.Transform(lambda t: t.shape)
       self.assertEqual(input_shapes.audio, (200, 48000))
+
+  def testNumEpochs(self):
+    p = ToyInputGenerator.Params()
+    p.batch_size = 3
+    p.num_epochs = 7
+    self._tmpdir, p.input_files = _CreateFakeTFRecordFiles(
+        record_count=p.batch_size)
+    p.dataset_type = tf.data.TFRecordDataset
+    p.randomize_order = False
+    p.parallel_readers = 1
+    ig = p.Instantiate()
+    with self.session(graph=tf.get_default_graph()) as sess:
+      inputs = ig.InputBatch()
+      for _ in range(p.num_epochs):
+        eval_inputs = sess.run(inputs)
+        self.assertEqual(eval_inputs.audio.shape, (p.batch_size, 48000))
+      with self.assertRaisesRegex(tf.errors.OutOfRangeError, 'End of sequence'):
+        sess.run(inputs)
 
 
 if __name__ == '__main__':
