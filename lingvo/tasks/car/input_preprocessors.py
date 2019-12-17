@@ -3208,6 +3208,76 @@ class RepeatPreprocessor(Preprocessor):
     return dtypes
 
 
+class RandomApplyPreprocessor(Preprocessor):
+  """Randomly apply a preprocessor with certain probability.
+
+  This preprocessor takes a preprocessor as a subprocessor and apply the
+  subprocessor to features with certain probability.
+
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(RandomApplyPreprocessor, cls).Params()
+    p.Define('prob', 1.0, 'The probability the subprocessor being executed.')
+    p.Define('subprocessor', None, 'Params for an input preprocessor.')
+
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(RandomApplyPreprocessor, self).__init__(params)
+    p = self.params
+    if p.subprocessor is None:
+      raise ValueError('No subprocessor was specified for RepeatPreprocessor.')
+    if p.prob < 0 or p.prob > 1 or not isinstance(p.prob, float):
+      raise ValueError(
+          'prob must be >= 0 and <=1 and float type, prob={}'.format(p.prob))
+
+    with tf.variable_scope(p.name):
+      self.CreateChild('subprocessor', p.subprocessor)
+
+    self.choice = tf.random_uniform(
+        (), minval=0.0, maxval=1.0, seed=p.random_seed) < p.prob
+
+  def TransformFeatures(self, features):
+    transformed_features = self.subprocessor.FPropDefaultTheta(features)
+    features = tf.cond(self.choice, lambda: transformed_features,
+                       lambda: features)
+
+    return features
+
+  def TransformShapes(self, shapes):
+    shapes_transformed = self.subprocessor.TransformShapes(shapes)
+
+    if not shapes.IsCompatible(shapes_transformed):
+      raise ValueError(
+          'NestedMap structures are different between shapes and transformed'
+          'shapes. Original shapes: {}. Transformed shapes: {}'.format(
+              shapes, shapes_transformed))
+
+    shapes_zipped = shapes.Pack(
+        zip(shapes.Flatten(), shapes_transformed.Flatten()))
+    shapes_compatible = shapes_zipped.Transform(
+        lambda xs: xs[0].is_compatible_with(xs[1]))
+
+    if not all(shapes_compatible.Flatten()):
+      raise ValueError(
+          'Shapes after transformation - {} are different from original '
+          'shapes - {}.'.format(shapes_transformed, shapes))
+
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    transformed_dtypes = self.subprocessor.TransformDTypes(dtypes)
+    if transformed_dtypes != dtypes:
+      raise ValueError(
+          'DTypes after transformation of preprocessor - {} should be '
+          'the same as {}, but get {}.'.format(self.params.subprocessor, dtypes,
+                                               transformed_dtypes))
+    return dtypes
+
+
 class SparseSampler(Preprocessor):
   """Fused SparseCenterSelector and SparseCellGatherFeatures.
 
