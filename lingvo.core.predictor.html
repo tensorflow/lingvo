@@ -191,7 +191,7 @@
 
 <dl class="class">
 <dt id="lingvo.core.predictor.Predictor">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">Predictor</code><span class="sig-paren">(</span><em class="sig-param">inference_graph</em>, <em class="sig-param">subgraph_name=None</em>, <em class="sig-param">checkpoint=None</em>, <em class="sig-param">device_type='gpu'</em>, <em class="sig-param">tf_master=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">Predictor</code><span class="sig-paren">(</span><em class="sig-param">inference_graph</em>, <em class="sig-param">subgraph_name=None</em>, <em class="sig-param">checkpoint=None</em>, <em class="sig-param">device_type='gpu'</em>, <em class="sig-param">tf_master=''</em>, <em class="sig-param">session_config=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Loads a model and does inference.</p>
 <p>See model.Inference() documentation for list of fetches and feeds.</p>
@@ -203,6 +203,8 @@
 <li><p><strong>checkpoint</strong> – An optional checkpoint to load.</p></li>
 <li><p><strong>device_type</strong> – Device type string. Either “cpu”, “gpu”, or “tpu”.</p></li>
 <li><p><strong>tf_master</strong> – The tf_master.</p></li>
+<li><p><strong>session_config</strong> – A tf.SessionConfig to use. By default
+py_utils.SessionConfig() is used.</p></li>
 </ul>
 </dd>
 </dl>
@@ -252,7 +254,7 @@
 
 <dl class="method">
 <dt id="lingvo.core.predictor.Predictor.Run">
-<code class="sig-name descname">Run</code><span class="sig-paren">(</span><em class="sig-param">fetch_keys</em>, <em class="sig-param">validate_fetches=True</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Run" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Run</code><span class="sig-paren">(</span><em class="sig-param">fetch_keys</em>, <em class="sig-param">validate_fetches=True</em>, <em class="sig-param">session_run_options=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs predictor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -260,6 +262,7 @@
 <li><p><strong>fetch_keys</strong> – a list of keys in the fetch dictionary to fetch.</p></li>
 <li><p><strong>validate_fetches</strong> – if True, raises a KeyError if a specified fetch is
 invalid. If False, returns None for invalid fetches instead.</p></li>
+<li><p><strong>session_run_options</strong> – Optional tf.RunOptions() to use in the session.</p></li>
 <li><p><strong>**kwargs</strong> – a dict of inputs to feed.</p></li>
 </ul>
 </dd>
