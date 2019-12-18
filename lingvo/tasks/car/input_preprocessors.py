@@ -3213,7 +3213,6 @@ class RandomApplyPreprocessor(Preprocessor):
 
   This preprocessor takes a preprocessor as a subprocessor and apply the
   subprocessor to features with certain probability.
-
   """
 
   @classmethod
@@ -3221,7 +3220,6 @@ class RandomApplyPreprocessor(Preprocessor):
     p = super(RandomApplyPreprocessor, cls).Params()
     p.Define('prob', 1.0, 'The probability the subprocessor being executed.')
     p.Define('subprocessor', None, 'Params for an input preprocessor.')
-
     return p
 
   @base_layer.initializer
@@ -3237,14 +3235,18 @@ class RandomApplyPreprocessor(Preprocessor):
     with tf.variable_scope(p.name):
       self.CreateChild('subprocessor', p.subprocessor)
 
-    self.choice = tf.random_uniform(
-        (), minval=0.0, maxval=1.0, seed=p.random_seed) < p.prob
-
   def TransformFeatures(self, features):
-    transformed_features = self.subprocessor.FPropDefaultTheta(features)
-    features = tf.cond(self.choice, lambda: transformed_features,
-                       lambda: features)
-
+    p = self.params
+    choice = tf.random_uniform(
+        (), minval=0.0, maxval=1.0, seed=p.random_seed) <= p.prob
+    # Features is passed downstream and may be modified, we make deep copies
+    # here to use with tf.cond to avoid having tf.cond access updated
+    # versions. Note that we need one copy for each branch in case the branches
+    # further modify features.
+    features_0, features_1 = features.DeepCopy(), features.DeepCopy()
+    features = tf.cond(choice,
+                       lambda: self.subprocessor.TransformFeatures(features_0),
+                       lambda: features_1)
     return features
 
   def TransformShapes(self, shapes):
