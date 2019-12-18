@@ -3358,7 +3358,6 @@
 
 <span class="sd">  This preprocessor takes a preprocessor as a subprocessor and apply the</span>
 <span class="sd">  subprocessor to features with certain probability.</span>
-
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="RandomApplyPreprocessor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomApplyPreprocessor.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -3366,7 +3365,6 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RandomApplyPreprocessor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;prob&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;The probability the subprocessor being executed.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;subprocessor&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Params for an input preprocessor.&#39;</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -3382,14 +3380,18 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;subprocessor&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessor</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">choice</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
-        <span class="p">(),</span> <span class="n">minval</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">prob</span>
-
 <div class="viewcode-block" id="RandomApplyPreprocessor.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomApplyPreprocessor.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
-    <span class="n">transformed_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocessor</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
-    <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">choice</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">transformed_features</span><span class="p">,</span>
-                       <span class="k">lambda</span><span class="p">:</span> <span class="n">features</span><span class="p">)</span>
-
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">choice</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
+        <span class="p">(),</span> <span class="n">minval</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">prob</span>
+    <span class="c1"># Features is passed downstream and may be modified, we make deep copies</span>
+    <span class="c1"># here to use with tf.cond to avoid having tf.cond access updated</span>
+    <span class="c1"># versions. Note that we need one copy for each branch in case the branches</span>
+    <span class="c1"># further modify features.</span>
+    <span class="n">features_0</span><span class="p">,</span> <span class="n">features_1</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">(),</span> <span class="n">features</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">choice</span><span class="p">,</span>
+                       <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocessor</span><span class="o">.</span><span class="n">TransformFeatures</span><span class="p">(</span><span class="n">features_0</span><span class="p">),</span>
+                       <span class="k">lambda</span><span class="p">:</span> <span class="n">features_1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">features</span></div>
 
 <div class="viewcode-block" id="RandomApplyPreprocessor.TransformShapes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomApplyPreprocessor.TransformShapes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>
