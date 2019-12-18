@@ -134,12 +134,6 @@ class TrainProgram(BaseProgram):
   def Params(cls):
     """Parameters for TrainProgram."""
     p = super(TrainProgram, cls).Params()
-
-    p.Define(
-        'always_checkpoint_after_execution', True,
-        'Always save a checkpoint after running the TrainProgram '
-        'for `steps_per_loop`. Note that overrides the normal '
-        '`save_interval_seconds` parameter.')
     return p
 
   def __init__(self, params):
