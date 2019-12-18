@@ -65,6 +65,8 @@ class Predictor(object):
     checkpoint: An optional checkpoint to load.
     device_type: Device type string. Either "cpu", "gpu", or "tpu".
     tf_master: The tf_master.
+    session_config: A tf.SessionConfig to use. By default
+      py_utils.SessionConfig() is used.
   """
 
   def __init__(self,
@@ -72,7 +74,8 @@ class Predictor(object):
                subgraph_name=None,
                checkpoint=None,
                device_type="gpu",
-               tf_master=""):
+               tf_master="",
+               session_config=None):
     assert device_type in ["cpu", "gpu", "tpu"]
     subgraph_name = subgraph_name or "default"
     if isinstance(inference_graph, six.string_types):
@@ -82,10 +85,13 @@ class Predictor(object):
     self._checkpoint = checkpoint
     self._device_type = device_type
     self._tf_master = tf_master
+    self._session_config = session_config
 
     self._graph = tf.Graph()
     with self._graph.as_default():
-      tf.logging.info("Loading inference graph for prediction.")
+      tf.logging.info(
+          "Loading inference graph for prediction subgraph_name={}.".format(
+              subgraph_name))
       self._saver = tf.train.Saver(saver_def=inference_graph.saver_def)
       with tf.device("/%s:0" % "cpu" if device_type == "tpu" else device_type):
         tf.import_graph_def(inference_graph.graph_def, name="")
@@ -119,8 +125,11 @@ class Predictor(object):
   @py_utils.RetryOnTransientTfError()
   def _CreateNewSession(self):
     """Updates self._sess with a new session."""
-    sess = tf.Session(
-        self._tf_master, graph=self._graph, config=py_utils.SessionConfig())
+    config = self._session_config
+    if not config:
+      config = py_utils.SessionConfig()
+    sess = tf.Session(self._tf_master, graph=self._graph, config=config)
+
     try:
       sess.run(self._graph.get_operation_by_name("init_all_tables"))
     except KeyError:
@@ -149,6 +158,7 @@ class Predictor(object):
       if sess_id == self._cur_sess_id:
         self._CreateNewSession()
         self._cur_sess_id += 1
+        tf.logging.info("Current session id {}.".format(self._cur_sess_id))
 
   @py_utils.RetryOnTransientTfError()
   def _RunWithValidSession(self, fn, *args, **kwargs):
@@ -172,13 +182,18 @@ class Predictor(object):
     self._RunWithValidSession(self._saver.restore, checkpoint)
     self._checkpoint = checkpoint
 
-  def Run(self, fetch_keys, validate_fetches=True, **kwargs):
+  def Run(self,
+          fetch_keys,
+          validate_fetches=True,
+          session_run_options=None,
+          **kwargs):
     """Runs predictor.
 
     Args:
       fetch_keys: a list of keys in the fetch dictionary to fetch.
       validate_fetches: if True, raises a KeyError if a specified fetch is
         invalid. If False, returns None for invalid fetches instead.
+      session_run_options: Optional tf.RunOptions() to use in the session.
       **kwargs: a dict of inputs to feed.
 
     Returns:
@@ -207,6 +222,9 @@ class Predictor(object):
     feeds = {self._feeds[k]: v for k, v in six.iteritems(kwargs)}
 
     run_options = tf.RunOptions(report_tensor_allocations_upon_oom=False)
+    if session_run_options:
+      run_options = session_run_options
+
     fetched_results = self._RunWithValidSession(
         tf.Session.run, valid_fetches, feed_dict=feeds, options=run_options)
     results = [None] * len(fetch_keys)
