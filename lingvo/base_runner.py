@@ -98,14 +98,16 @@ class BaseRunner(object):
   def _InVizierStudy(self):
     return not isinstance(self._trial, base_trial.NoOpTrial)
 
-  def _SetStatusMessage(self, message, retrying=False):
-    """Update the status message for this task."""
+  def _FormatStatusMessage(self, message, retrying):
     if self._trial.Name():
       message = 'Trial:{} {}'.format(self._trial.Name(), message)
     if retrying:
       message = '<b>Retrying as expected</b> ' + str(message)
-    tf.logging.info(message)
     return message
+
+  def _SetStatusMessage(self, message, retrying=False):
+    """Update the status message for this task."""
+    tf.logging.info(self._FormatStatusMessage(message, retrying))
 
   def _ShouldStop(self, sess, step):
     """Check if the runner should stop."""
