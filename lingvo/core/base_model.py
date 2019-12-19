@@ -297,6 +297,7 @@ class BaseTask(base_layer.BaseLayer):
         py_utils.GetOrCreateGlobalStepVar())
     self._global_step = tf.identity(
         self._global_step_var, name='global_step_tensor')
+
     tp = p.train
     # p.train can be None if this task is the teacher/student task in a
     # DistillationTask.
@@ -524,9 +525,10 @@ class BaseTask(base_layer.BaseLayer):
     return vars_gradients
 
   def PostTrainingLoop(self):
-    gs = self._global_step_var
-    self._post_training_loop_op = tf.group(
-        *[opt.ApplyPostTrainingLoop(gs) for opt in self.learners])
+    self._post_training_loop_op = tf.group(*[
+        opt.ApplyPostTrainingLoop(self._global_step_var)
+        for opt in self.learners
+    ])
 
   def BProp(self):
     self._BPropForVariables(self.vars)
@@ -733,7 +735,6 @@ class BaseTask(base_layer.BaseLayer):
 
   @property
   def global_step(self):
-    assert self._global_step is not None, ('No global_step is defined.')
     return self._global_step
 
   @property
@@ -1029,7 +1030,6 @@ class BaseModel(base_layer.BaseLayer):
 
   @property
   def global_step(self):
-    assert self._global_step is not None, ('No global_step is defined.')
     return self._global_step
 
   @property

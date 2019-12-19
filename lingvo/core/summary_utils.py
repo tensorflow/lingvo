@@ -304,10 +304,6 @@ class StatsCounter(object):
     """Returns the current counter value."""
     return self._value
 
-  def Var(self):
-    """Returns the variable."""
-    return self._var
-
   def IncBy(self, delta):
     """Increment the counter by delta and return the new value."""
     # NOTE: We must ensure _value is computed (_var + 0) before
