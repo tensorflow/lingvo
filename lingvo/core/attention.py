@@ -1488,6 +1488,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       else:
         if t is not None:
           processed = tf.reshape(processed_packed_src[key], [batch_size, -1])
+          # Make sure t is a scaler instead of tensors having shape like [1,].
+          # This could happen in cases where function is called by recurrent.py
+          # (for example target_sequence_sampler.)
+          t = tf.reshape(t, [])
           extended_packed_src[key] = inplace_ops.alias_inplace_update(
               cached_packed_src[key], t, processed)
         else:

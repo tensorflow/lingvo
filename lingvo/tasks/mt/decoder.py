@@ -1328,6 +1328,127 @@ class TransformerDecoder(MTBaseDecoder):
     """
     return self._FProp(theta, encoder_outputs, targets)
 
+  def SampleSequenceDecode(self, encoder_outputs):
+    """Decode via sampling from softmax at each step.
+
+    Args:
+      encoder_outputs: the outputs of the encoder.
+
+    Returns:
+      BeamSearchDecodeOutput, same as what BeamSearchDecode returns.
+    """
+    p = self.params
+    non_tpu = p.beam_search.name != 'tpu_beam_search'
+
+    def InitCallback(theta, encoder_outputs, num_hyps_per_beam=1):
+      """Wrapper for _InitBeamSearchStateCallback for sequence sampler.
+
+      The main change is to ensure state tensors have fixed shapes.
+
+      Args:
+        theta: A `.NestedMap` object containing weights' values of this layer
+          and its children layers.
+        encoder_outputs: a NestedMap computed by encoder.
+        num_hyps_per_beam: An int, number hyps to keep for source sentence.
+
+      Returns:
+        A NestedMap of
+
+          - initial_results: a `.NestedMap` of initial results.
+          - states: a `.NestedMap` of initial model states.
+      """
+      init_results, states = self._InitBeamSearchStateCallback(
+          theta, encoder_outputs, num_hyps_per_beam)
+      if non_tpu:
+        prefix_states = states['prefix_states']
+        for layer in range(p.num_trans_layers):
+          key = prefix_states['layer_%d' % layer]['key']
+          value = prefix_states['layer_%d' % layer]['value']
+          bs = key.shape[1]
+          atten_dim = key.shape[2]
+          zeros = tf.zeros([p.target_seq_len, bs, atten_dim],
+                           dtype=py_utils.FPropDtype(p))
+          prefix_states['layer_%d' % layer]['key'] = tf.concat([key, zeros], 0)
+          prefix_states['layer_%d' % layer]['value'] = tf.concat([value, zeros],
+                                                                 0)
+      return init_results, states
+
+    def PreBeamSearchCallback(theta,
+                              encoder_outputs,
+                              step_ids,
+                              states,
+                              num_hyps_per_beam=1):
+      """Wrapper for _PreBeamSearchStepCallback for sequence sampler.
+
+      The main change is to ensure state tensors have fixed shapes.
+
+      Args:
+        theta: A `.NestedMap` object containing weights' values of this layer
+          and its children layers.
+        encoder_outputs: a NestedMap computed by encoder.
+        step_ids: A tensor of shape [tgt_batch, 1].
+        states: A `.NestedMap` of tensors representing states that the clients
+          would like to keep track of for each of the active hyps.
+        num_hyps_per_beam: Beam size.
+
+      Returns:
+        A NestedMap of
+
+          - results: A `.NestedMap` of beam search results.
+          - out_states: A `.NestedMap`. The updated states.
+      """
+
+      if non_tpu:
+        # Strip off paddings.
+        prefix_states = states['prefix_states']
+        target_time = states.time_step
+        for layer in range(p.num_trans_layers):
+          key = prefix_states['layer_%d' % layer]['key']
+          val = prefix_states['layer_%d' % layer]['value']
+          prefix_states['layer_%d' % layer]['key'] = tf.slice(
+              key, [0, 0, 0], [target_time, -1, -1])
+          prefix_states['layer_%d' % layer]['value'] = tf.slice(
+              val, [0, 0, 0], [target_time, -1, -1])
+
+      bs_results, new_states = self._PreBeamSearchStepCallback(
+          theta, encoder_outputs, step_ids, states, num_hyps_per_beam)
+
+      if non_tpu:
+        # Add back paddings (to maintain paddings shape).
+        bs = tf.shape(new_states.prefix_states['layer_0']['key'])[1]
+        dim = tf.shape(new_states.prefix_states['layer_0']['key'])[2]
+        pad = tf.zeros([p.target_seq_len - new_states.time_step, bs, dim],
+                       dtype=py_utils.FPropDtype(p))
+        for layer in range(p.num_trans_layers):
+          key = new_states.prefix_states['layer_%d' % layer]['key']
+          val = new_states.prefix_states['layer_%d' % layer]['value']
+          new_states.prefix_states['layer_%d' % layer]['key'] = tf.concat(
+              [key, pad], axis=0)
+          new_states.prefix_states['layer_%d' % layer]['value'] = tf.concat(
+              [val, pad], axis=0)
+
+      return bs_results, new_states
+
+    random_seed = tf.random_uniform(
+        shape=[], maxval=(2**31 - 1), dtype=tf.int32)
+    sample = self.target_sequence_sampler.Sample(
+        self.theta, encoder_outputs, random_seed, InitCallback,
+        PreBeamSearchCallback, self._PostBeamSearchStepCallback)
+    bs = tf.shape(sample.ids)[0]
+    # Only need to make sure topk_hyps has the right shape
+    # [bs, num_hyps_per_beam], where num_hyps_per_beam=1 for sampling.
+    # TODO(yuancao): Support sampling multiple sequences and remove
+    # num_hyps_per_beam constraint.
+    assert self.params.beam_search.num_hyps_per_beam == 1
+    sample.topk_hyps = tf.zeros([bs, 1], dtype=tf.string)
+    sample.topk_ids = sample.ids
+    weights = 1 - sample.paddings
+    sample.topk_lens = tf.to_int32(tf.reduce_sum(weights, axis=1))
+    sample.topk_scores = tf.reduce_sum(
+        tf.log(tf.reduce_max(tf.nn.softmax(sample.logits), axis=2)) * weights,
+        axis=1)
+    return sample
+
   def _InitBeamSearchStateCallback(self, theta, encoder_outputs,
                                    num_hyps_per_beam):
     """Returns initial beams search states.

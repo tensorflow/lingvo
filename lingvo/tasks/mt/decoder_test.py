@@ -914,6 +914,54 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
         init_step_ids=True,
         has_task_ids=False)
 
+  def _testSampleSequence(self,
+                          expected_values,
+                          dtype=tf.float32,
+                          init_step_ids=False,
+                          has_task_ids=False):
+    tf.set_random_seed(_TF_RANDOM_SEED)
+    src_batch = 4
+    src_time = 5
+    p = self._DecoderParams(dtype=dtype, init_step_ids=init_step_ids)
+    p.beam_search.num_hyps_per_beam = 1
+    p.beam_search.coverage_penalty = 0.0
+    p.beam_search.length_normalization = 0
+    dec = decoder.TransformerDecoder(p)
+    encoder_outputs, _, _ = self._Inputs(
+        dtype=dtype, has_task_ids=has_task_ids, init_step_ids=init_step_ids)
+    decode = dec.SampleSequenceDecode(encoder_outputs)
+
+    with self.session(use_gpu=True) as sess:
+      tf.global_variables_initializer().run()
+      actual_decode = sess.run(decode)
+
+    self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
+                          actual_decode.topk_hyps.shape)
+    self.assertTupleEqual(
+        (src_batch * p.beam_search.num_hyps_per_beam, src_time),
+        actual_decode.topk_ids.shape)
+    self.assertTupleEqual((src_batch * p.beam_search.num_hyps_per_beam,),
+                          actual_decode.topk_lens.shape)
+
+    self.assertAllEqual(expected_values['topk_ids'], actual_decode.topk_ids)
+    self.assertAllEqual(expected_values['topk_lens'], actual_decode.topk_lens)
+    self.assertAllClose(expected_values['topk_scores'],
+                        actual_decode.topk_scores)
+
+  def testSampleSequenceDecode(self, dtype=tf.float32):
+    expected_values = {}
+    expected_values['topk_ids'] = [[4, 7, 7, 2, 2], [8, 2, 2, 2, 2],
+                                   [17, 3, 3, 3, 19], [8, 19, 5, 17, 4]]
+    expected_values['topk_lens'] = [4, 2, 5, 5]
+    expected_values['topk_scores'] = [
+        -5.097124, -2.531022, -6.830246, -8.176768
+    ]
+    self._testSampleSequence(
+        expected_values=expected_values,
+        dtype=dtype,
+        init_step_ids=True,
+        has_task_ids=False)
+
 
 class InsertionDecoderTest(TransformerDecoderTestCaseBase):
 
