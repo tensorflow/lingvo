@@ -83,9 +83,8 @@ class BaseClassifier(base_model.BaseTask):
     labels = py_utils.HasShape(labels, [n])
     weights = py_utils.HasShape(weights, [n])
     correct = tf.nn.in_top_k(logits, labels, k)
-    return tf.reduce_sum(
-        tf.cast(correct, weights.dtype) * weights) / tf.maximum(
-            1e-8, tf.reduce_sum(weights))
+    return tf.reduce_sum(tf.cast(correct, weights.dtype) *
+                         weights) / tf.maximum(1e-8, tf.reduce_sum(weights))
 
 
 class ModelV1(BaseClassifier):
@@ -126,8 +125,8 @@ class ModelV1(BaseClassifier):
       shape = [None] + list(p.input.data_shape)
       conv_params = []
       pooling_params = []
-      for i, (kernel, window) in enumerate(
-          zip(p.filter_shapes, p.window_shapes)):
+      for i, (kernel,
+              window) in enumerate(zip(p.filter_shapes, p.window_shapes)):
         conv_params.append(layers.ConvLayer.Params().Set(
             name='conv%d' % i,
             filter_shape=kernel,
@@ -190,7 +189,11 @@ class ModelV1(BaseClassifier):
     if p.is_eval:
       acc1 = self._Accuracy(1, xent.logits, labels, input_batch.weight)
       acc5 = self._Accuracy(5, xent.logits, labels, input_batch.weight)
-      rets.update(accuracy=(acc1, batch), acc5=(acc5, batch))
+      rets.update(
+          accuracy=(acc1, batch),
+          acc5=(acc5, batch),
+          error=(1. - acc1, batch),
+          error5=(1. - acc5, batch))
     return rets, {'loss': xent.per_example_xent}
 
   def Decode(self, input_batch):
@@ -267,7 +270,11 @@ class ModelV2(BaseClassifier):
     if p.is_eval or p.compute_accuracy_for_training:
       acc1 = self._Accuracy(1, xent.logits, labels, input_batch.weight)
       acc5 = self._Accuracy(5, xent.logits, labels, input_batch.weight)
-      rets.update(accuracy=(acc1, batch), acc5=(acc5, batch))
+      rets.update(
+          accuracy=(acc1, batch),
+          acc5=(acc5, batch),
+          error=(1. - acc1, batch),
+          error5=(1. - acc5, batch))
     return rets, {'loss': xent.per_example_xent}
 
   def Inference(self):
