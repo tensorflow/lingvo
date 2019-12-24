@@ -68,6 +68,7 @@ class ModelBuilderBase(object):
     self.linear_params_init = None
     self.bn_params_init = None
     self.activation_fn = tf.nn.relu
+    self.fc_bn_after_linear = False
 
   def _Rep(self, name, repeat, *subs):
     """Helper to construct a sequential layer repeated several time."""
@@ -121,18 +122,17 @@ class ModelBuilderBase(object):
     activation_fn = activation_fn or self.activation_fn
     if isinstance(idims, (list, tuple)):
       idims = idims[0]
-    if use_bn:
-      fc_layers = [
-          self._BN('bn', idims),
-          self._Linear('linear', idims, odims),
-          self._Activation('activation', activation_fn=activation_fn),
-      ]
+    fc_layers = [self._Linear('linear', idims, odims)]
+    if use_bn and self.fc_bn_after_linear:
+      # Note that bn should use odims, since after linear.
+      fc_layers = fc_layers + [self._BN('bn', odims)]
+    elif use_bn and (not self.fc_bn_after_linear):
+      # Note that bn should use idims, since before linear.
+      fc_layers = [self._BN('bn', idims)] + fc_layers
     else:
-      fc_layers = [
-          self._Linear('linear', idims, odims),
-          self._Bias('bias', odims),
-          self._Activation('activation', activation_fn=activation_fn),
-      ]
+      # Add bias since no batch norm that folds in bias.
+      fc_layers = fc_layers + [self._Bias('bias', odims)]
+    fc_layers += [self._Activation('activation', activation_fn=activation_fn)]
 
     return self._Seq(name, *fc_layers)
 
@@ -705,26 +705,38 @@ class ModelBuilderBase(object):
   def _FeaturesFC(self, name, idims, odims, use_bn=True, activation_fn=None):
     """Applies a FC layer to `features` key, emits a `NestedMap`."""
     activation_fn = activation_fn or self.activation_fn
-    if use_bn:
+    bn_join_layer = self._Join(
+        'join_features_padding',
+        self._GetValue('get_features', FEATURES_KEY),
+        self._Seq('expand_padding',
+                  self._GetValue('get_padding', 'padding'),
+                  self._ApplyFn('expand',
+                                fn=lambda t: t[..., tf.newaxis])))
+    if use_bn and self.fc_bn_after_linear:
+      # Note that bn should use odims, since after linear.
       seq_p = [
-          self._Join(
-              'join_features_padding',
-              self._GetValue('get_features', FEATURES_KEY),
-              self._Seq('expand_padding',
-                        self._GetValue('get_padding', 'padding'),
-                        self._ApplyFn('expand',
-                                      fn=lambda t: t[..., tf.newaxis]))),
+          self._SeqToKey('linear_seq',
+                         FEATURES_KEY,
+                         self._GetValue('get_features', FEATURES_KEY),
+                         self._Linear('linear', idims, odims)),
+          bn_join_layer,
+          self._BN('bn', odims),
+      ]
+    elif use_bn and (not self.fc_bn_after_linear):
+      # Note that bn should use idims, since before linear.
+      seq_p = [
+          bn_join_layer,
           self._BN('bn', idims),
           self._Linear('linear', idims, odims),
-          self._Activation('activation', activation_fn=activation_fn),
       ]
     else:
+      # Add bias since no batch norm that folds in bias.
       seq_p = [
           self._GetValue('get_features', FEATURES_KEY),
           self._Linear('linear', idims, odims),
           self._Bias('bias', odims),
-          self._Activation('activation', activation_fn=activation_fn),
       ]
+    seq_p += [self._Activation('activation', activation_fn=activation_fn)]
     return self._SeqToKey(name, FEATURES_KEY, *seq_p)
 
   @_Decorators.ExpectsNestedMapTensor(FEATURES_KEY)

@@ -281,6 +281,24 @@ class BuilderLibTest(test_utils.TestCase):
       self.assertAllEqual(actual_y.features.shape, (3, 5, 6))
       self.assertTrue(np.all(np.isfinite(actual_y.features)))
 
+  def testFeaturesFCBNAfterLinear(self):
+    b = builder_lib.ModelBuilderBase()
+    b.fc_bn_after_linear = True
+    p = b._FeaturesFC('p', idims=5, odims=6, use_bn=True)
+    l = p.Instantiate()
+
+    np_x, x = self._getNestedMapTestData()
+    y = l.FPropDefaultTheta(x)
+
+    with self.session() as sess:
+      sess.run(tf.global_variables_initializer())
+      actual_y = sess.run(y)
+      # Points and padding should be equal, and features should be transformed.
+      self.assertAllClose(actual_y.points, np_x.points)
+      self.assertAllEqual(actual_y.padding, np_x.padding)
+      self.assertAllEqual(actual_y.features.shape, (3, 5, 6))
+      self.assertTrue(np.all(np.isfinite(actual_y.features)))
+
   def testCondFC(self):
     b = builder_lib.ModelBuilderBase()
     p = b._CondFC('p', idims=10, adims=8, odims=12)
