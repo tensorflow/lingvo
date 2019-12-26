@@ -24,6 +24,7 @@ import os
 import time
 
 import lingvo.compat as tf
+from lingvo.core import base_model
 from lingvo.core import checkpointer
 from lingvo.core import hyperparams
 from lingvo.core import metrics
@@ -439,11 +440,15 @@ class DecodeProgram(BaseProgram):
         self._InfeedLoop, args=(sess,))
     dec_metrics = self._model_task.CreateDecoderMetrics()
     start_time = time.time()
+    buffered_decode_out = []
     for i in range(self._steps_per_loop):
       metrics_values = sess.run(self.metrics)
-      self._model_task.PostProcessDecodeOut(metrics_values, dec_metrics)
+      decode_out = self._model_task.PostProcessDecodeOut(
+          metrics_values, dec_metrics)
       tf.logging.info('step: %d %f' %
                       (i, dec_metrics['num_samples_in_batch'].total_value))
+      if decode_out:
+        buffered_decode_out.extend(decode_out)
     infeed_future.wait()
     num_examples_metric = dec_metrics['num_samples_in_batch']
     summaries = {k: v.Summary(k) for k, v in six.iteritems(dec_metrics)}
@@ -453,6 +458,11 @@ class DecodeProgram(BaseProgram):
         value=[tf.Summary.Value(tag='examples/sec', simple_value=example_rate)])
     self._WriteSummaries(
         os.path.basename(self._program_dir), global_step, summaries)
+    decode_out_path = os.path.join(self._program_dir,
+                                   'decoder_out_%09d' % global_step)
+    decode_finalize_args = base_model.DecodeFinalizeArgs(
+        decode_out_path=decode_out_path, decode_out=buffered_decode_out)
+    self._model_task.DecodeFinalize(decode_finalize_args)
 
 
 class MultiTaskProgramSchedule(object):
