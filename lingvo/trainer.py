@@ -642,6 +642,7 @@ class TrainerTpu(base_runner.BaseRunner):
             with tf.control_dependencies([self._task.post_training_loop_op]):
               return ([[tf.identity(o) for o in train_loop_op],
                        outfeed_dequeue_op])
+
         # Get metric result from a single replica; they are all same here.
         all_tpu_ops = [t[0] for t in batch_parallel_res]
         self._tpu_train_ops = (
@@ -1017,6 +1018,15 @@ class Evaler(base_runner.BaseRunner):
 
       self._EvalOnce(path, sess)
 
+  def EvalCheckpoint(self, ckpt_id):
+    with tf.container(self._container_id), self._GetSession() as sess:
+      # This initializes local tables
+      sess.run(self.initialize_tables)
+      # This initializes local variables.
+      sess.run(self._initialize_local_vars)
+      path = '{}/ckpt-{:08d}'.format(self._train_dir, ckpt_id)
+      self._EvalOnce(path, sess)
+
   def _EvalOnce(self, path, sess):
     """Runs evaluation for a batch of samples.
 
@@ -1324,6 +1334,7 @@ class RunnerManager(object):
   Evaler = Evaler
   Decoder = Decoder
   ExecutorTpu = executor.ExecutorTpu
+
   # pylint: enable=invalid-name
 
   def __init__(self, model):
@@ -1765,6 +1776,15 @@ class RunnerManager(object):
     except Exception as e:  # pylint: disable=broad-except
       tf.logging.error('Error exporting TPU inference graph: %s' % e)
 
+  def RunEvalerOnce(self):
+    """Run once evaler."""
+    m = re.match(r'evaler_once_([^_@]+)@(\d+)', FLAGS.job)
+    dataset_name, ckpt_id = m.group(1), int(m.group(2))
+    cfg = self.GetParamsForDataset('evaler', dataset_name)
+    evaler = self.Evaler(dataset_name.lower(), cfg, FLAGS.model_task_name,
+                         FLAGS.logdir, FLAGS.tf_master)
+    evaler.EvalCheckpoint(ckpt_id)
+
   def Start(self):
     """Start the process."""
     tf.logging.set_verbosity(tf.logging.INFO)
@@ -1816,6 +1836,14 @@ class RunnerManager(object):
     self.MaybeConfigRunDistributed()
     self.MaybeConfigCloudTpu()
     self.MaybeLaunchTensorFlow()
+
+    if FLAGS.job.startswith('evaler_once_'):
+      # E.g., trainer --model=foo.bar.Model --logdir=...
+      # --brain_run_locally=true --run_locally=cpu --mode=sync
+      # --job=evaler_once_test@65200
+      self.RunEvalerOnce()
+      return
+
     self.StartRunners(self.CreateRunners(FLAGS.job.split(','), FLAGS.logdir))
 
 

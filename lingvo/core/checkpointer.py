@@ -40,8 +40,8 @@ class Checkpointer(object):
     Args:
      train_dir: Training directory for saving checkpoints.
      model: A BaseModel instance or None.
-     train_params: If specified, use these training params instead of those
-       in the `model`.
+     train_params: If specified, use these training params instead of those in
+       the `model`.
      save_only: This checkpointer is only intended for saving checkpoints.
     """
     self._train_dir = train_dir
@@ -88,6 +88,7 @@ class Checkpointer(object):
     tf.logging.info('Load from checkpoint %s.', checkpoint_path)
     self._saver.restore(sess, checkpoint_path)
     tf.logging.info('Load checkpoint done.')
+    tf.logging.info('Uninitialized vars: %s', self.GetUninitializedVars(sess))
 
   def MaybeSave(self, sess, gsteps):
     """If it's time to save, save the checkpoint.
@@ -119,10 +120,13 @@ class Checkpointer(object):
       self.RestoreFromPath(sess, path)
     return path
 
+  def GetUninitializedVars(self, sess):
+    return list(sess.run(self._uninitialized_vars))
+
   def RestoreIfNeeded(self, sess):
     """If vars are not initialized, restore from checkpoint."""
     assert not self._save_only
-    uninitialized_var_names = list(sess.run(self._uninitialized_vars))
+    uninitialized_var_names = self.GetUninitializedVars(sess)
     if not uninitialized_var_names:
       return
 
@@ -150,7 +154,7 @@ class Checkpointer(object):
     else:
       sess.run(tf.global_variables_initializer())
 
-    uninitialized_var_names = list(sess.run(self._uninitialized_vars))
+    uninitialized_var_names = self.GetUninitializedVars(sess)
     if not uninitialized_var_names:
       return
 
@@ -174,7 +178,7 @@ class Checkpointer(object):
       sess: tf.Session.
     """
     assert not self._save_only
-    uninitialized_vars = sess.run(self._uninitialized_vars)
+    uninitialized_vars = self.GetUninitializedVars(sess)
     if six.ensure_binary('global_step') not in uninitialized_vars:
       return
 
