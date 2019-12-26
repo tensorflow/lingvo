@@ -107,8 +107,9 @@ class BaseProgram(object):
   def _InfeedLoop(self, sess):
     tf.logging.info('_InfeedLoop start')
     for i in range(self._steps_per_loop):
-      tf.logging.info('_InfeedLoop %d', i)
+      tf.logging.vlog(1, '_InfeedLoop %d', i)
       sess.run(self._model.GetTask().input_generator.tpu_infeed_op)
+    tf.logging.info('_InfeedLoop done')
 
   def BuildTpuSubgraph(self):
     """Sub classes should construct a model/graph to be executed by Run.
@@ -315,6 +316,10 @@ class EvalProgram(BaseProgram):
   evaluation.
   """
 
+  def __init__(self, params):
+    super(EvalProgram, self).__init__(params)
+    self._task_params.is_eval = True
+
   def BuildTpuSubgraph(self):
     tf.logging.info('EvalProgram BuildTpuSubGraph')
     with py_utils.OpportunisticVariableReuseScope(True):
@@ -382,6 +387,10 @@ class DecodeProgram(BaseProgram):
   per-eval. Thus different random samples are selected each
   decoder run.
   """
+
+  def __init__(self, params):
+    super(DecodeProgram, self).__init__(params)
+    self._task_params.is_eval = True
 
   def _WriteSummaries(self, job_name, global_step, summaries):
     for unused_name, summary in sorted(summaries.items()):
