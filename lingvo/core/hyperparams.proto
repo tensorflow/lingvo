@@ -32,5 +32,13 @@ message HyperparamValue {
     bool bool_val = 8;
     int64 int_val = 9;
     float float_val = 10;
+    ProtoVal proto_val = 11;
   }
+}
+
+// A serialized proto. The message includes both the proto message name and the
+// proto serialized value.
+message ProtoVal {
+  optional string type = 1;
+  optional bytes val = 2;
 }

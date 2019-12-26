@@ -338,6 +338,7 @@ tuple : (2, 3)
     outer.Define('empty_list', [], '')
     outer.Define('empty_tuple', (), '')
     outer.Define('empty_dict', {}, '')
+    outer.Define('proto', hyperparams_pb2.HyperparamValue(int_val=42), '')
 
     rebuilt_outer = _params.InstantiableParams.FromProto(outer.ToProto())
 
@@ -351,6 +352,7 @@ tuple : (2, 3)
     self.assertEqual(outer.empty_list, rebuilt_outer.empty_list)
     self.assertEqual(outer.empty_tuple, rebuilt_outer.empty_tuple)
     self.assertEqual(outer.empty_dict, rebuilt_outer.empty_dict)
+    self.assertEqual(outer.proto, rebuilt_outer.proto)
 
   def testStringEscaping(self):
     p = _params.Params()

@@ -424,6 +424,12 @@ class Params(object):
         param_pb.int_val = val
       elif isinstance(val, float):
         param_pb.float_val = val
+      elif isinstance(val, message.Message):
+        param_pb.proto_val.CopyFrom(hyperparams_pb2.ProtoVal())
+        proto_cls = type(val)
+        param_pb.proto_val.type = inspect.getmodule(
+            proto_cls).__name__ + '/' + proto_cls.__name__
+        param_pb.proto_val.val = val.SerializeToString()
       elif val is None:
         # We represent a NoneType by the absence of any of the oneof.
         pass
@@ -474,6 +480,15 @@ class Params(object):
         return param_pb.float_val
       elif which_oneof == 'bool_val':
         return param_pb.bool_val
+      elif which_oneof == 'proto_val':
+        tokens = param_pb.proto_val.type.split('/')
+        assert len(tokens) == 2
+        proto_cls = getattr(importlib.import_module(tokens[0]), tokens[1])
+        if not issubclass(proto_cls, message.Message):
+          return None
+        proto_msg = proto_cls()
+        proto_msg.ParseFromString(param_pb.proto_val.val)
+        return proto_msg
       else:
         # If nothing is set, it's the None type.
         return None
