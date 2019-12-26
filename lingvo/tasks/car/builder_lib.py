@@ -616,10 +616,23 @@ class ModelBuilderBase(object):
     """
 
     def _Merge(outputs):
+      """Merges the outputs from ParallelLayer.
+
+      Args:
+        outputs: A tuple of two elements: (a) the original input NestedMap and
+          (b) the outputs from applying the sub layers in subs.
+
+      Returns:
+        A new NestedMap map with the specified key's value replaced with the
+        result from subs.
+      """
+
       input_map = outputs[0][0]
       seq_result = outputs[1][0]
-      input_map[key] = seq_result
-      return (input_map,)
+      new_map = input_map.DeepCopy()
+      new_map[key] = seq_result
+
+      return (new_map,)
 
     return builder_layers.ParallelLayer.Params().Set(
         name=name, sub=[
