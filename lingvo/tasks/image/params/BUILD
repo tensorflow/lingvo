@@ -21,6 +21,7 @@ py_library(
     name = "params",
     srcs = ["params.py"],
     srcs_version = "PY2AND3",
+    tags = ["keep_dep"],
     deps = [
         ":mnist",
     ],
