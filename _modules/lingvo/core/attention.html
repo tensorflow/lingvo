@@ -1633,6 +1633,10 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">processed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">processed_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+          <span class="c1"># Make sure t is a scaler instead of tensors having shape like [1,].</span>
+          <span class="c1"># This could happen in cases where function is called by recurrent.py</span>
+          <span class="c1"># (for example target_sequence_sampler.)</span>
+          <span class="n">t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="p">[])</span>
           <span class="n">extended_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span>
               <span class="n">cached_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">t</span><span class="p">,</span> <span class="n">processed</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>

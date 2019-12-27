@@ -1473,6 +1473,127 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="TransformerDecoder.SampleSequenceDecode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.SampleSequenceDecode">[docs]</a>  <span class="k">def</span> <span class="nf">SampleSequenceDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decode via sampling from softmax at each step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      encoder_outputs: the outputs of the encoder.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      BeamSearchDecodeOutput, same as what BeamSearchDecode returns.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">non_tpu</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s1">&#39;tpu_beam_search&#39;</span>
+
+    <span class="k">def</span> <span class="nf">InitCallback</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Wrapper for _InitBeamSearchStateCallback for sequence sampler.</span>
+
+<span class="sd">      The main change is to ensure state tensors have fixed shapes.</span>
+
+<span class="sd">      Args:</span>
+<span class="sd">        theta: A `.NestedMap` object containing weights&#39; values of this layer</span>
+<span class="sd">          and its children layers.</span>
+<span class="sd">        encoder_outputs: a NestedMap computed by encoder.</span>
+<span class="sd">        num_hyps_per_beam: An int, number hyps to keep for source sentence.</span>
+
+<span class="sd">      Returns:</span>
+<span class="sd">        A NestedMap of</span>
+
+<span class="sd">          - initial_results: a `.NestedMap` of initial results.</span>
+<span class="sd">          - states: a `.NestedMap` of initial model states.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="n">init_results</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">non_tpu</span><span class="p">:</span>
+        <span class="n">prefix_states</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s1">&#39;prefix_states&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span><span class="p">):</span>
+          <span class="n">key</span> <span class="o">=</span> <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;key&#39;</span><span class="p">]</span>
+          <span class="n">value</span> <span class="o">=</span> <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+          <span class="n">bs</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+          <span class="n">atten_dim</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+          <span class="n">zeros</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">atten_dim</span><span class="p">],</span>
+                           <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+          <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">key</span><span class="p">,</span> <span class="n">zeros</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+          <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">value</span><span class="p">,</span> <span class="n">zeros</span><span class="p">],</span>
+                                                                 <span class="mi">0</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">init_results</span><span class="p">,</span> <span class="n">states</span>
+
+    <span class="k">def</span> <span class="nf">PreBeamSearchCallback</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span>
+                              <span class="n">encoder_outputs</span><span class="p">,</span>
+                              <span class="n">step_ids</span><span class="p">,</span>
+                              <span class="n">states</span><span class="p">,</span>
+                              <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Wrapper for _PreBeamSearchStepCallback for sequence sampler.</span>
+
+<span class="sd">      The main change is to ensure state tensors have fixed shapes.</span>
+
+<span class="sd">      Args:</span>
+<span class="sd">        theta: A `.NestedMap` object containing weights&#39; values of this layer</span>
+<span class="sd">          and its children layers.</span>
+<span class="sd">        encoder_outputs: a NestedMap computed by encoder.</span>
+<span class="sd">        step_ids: A tensor of shape [tgt_batch, 1].</span>
+<span class="sd">        states: A `.NestedMap` of tensors representing states that the clients</span>
+<span class="sd">          would like to keep track of for each of the active hyps.</span>
+<span class="sd">        num_hyps_per_beam: Beam size.</span>
+
+<span class="sd">      Returns:</span>
+<span class="sd">        A NestedMap of</span>
+
+<span class="sd">          - results: A `.NestedMap` of beam search results.</span>
+<span class="sd">          - out_states: A `.NestedMap`. The updated states.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+
+      <span class="k">if</span> <span class="n">non_tpu</span><span class="p">:</span>
+        <span class="c1"># Strip off paddings.</span>
+        <span class="n">prefix_states</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s1">&#39;prefix_states&#39;</span><span class="p">]</span>
+        <span class="n">target_time</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">time_step</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span><span class="p">):</span>
+          <span class="n">key</span> <span class="o">=</span> <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;key&#39;</span><span class="p">]</span>
+          <span class="n">val</span> <span class="o">=</span> <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+          <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span>
+              <span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">target_time</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+          <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span>
+              <span class="n">val</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">target_time</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+      <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">non_tpu</span><span class="p">:</span>
+        <span class="c1"># Add back paddings (to maintain paddings shape).</span>
+        <span class="n">bs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">new_states</span><span class="o">.</span><span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_0&#39;</span><span class="p">][</span><span class="s1">&#39;key&#39;</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">new_states</span><span class="o">.</span><span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_0&#39;</span><span class="p">][</span><span class="s1">&#39;key&#39;</span><span class="p">])[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">pad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">-</span> <span class="n">new_states</span><span class="o">.</span><span class="n">time_step</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">dim</span><span class="p">],</span>
+                       <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span><span class="p">):</span>
+          <span class="n">key</span> <span class="o">=</span> <span class="n">new_states</span><span class="o">.</span><span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;key&#39;</span><span class="p">]</span>
+          <span class="n">val</span> <span class="o">=</span> <span class="n">new_states</span><span class="o">.</span><span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+          <span class="n">new_states</span><span class="o">.</span><span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+              <span class="p">[</span><span class="n">key</span><span class="p">,</span> <span class="n">pad</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+          <span class="n">new_states</span><span class="o">.</span><span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+              <span class="p">[</span><span class="n">val</span><span class="p">,</span> <span class="n">pad</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+      <span class="k">return</span> <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_states</span>
+
+    <span class="n">random_seed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">maxval</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_sequence_sampler</span><span class="o">.</span><span class="n">Sample</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">random_seed</span><span class="p">,</span> <span class="n">InitCallback</span><span class="p">,</span>
+        <span class="n">PreBeamSearchCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span>
+    <span class="n">bs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># Only need to make sure topk_hyps has the right shape</span>
+    <span class="c1"># [bs, num_hyps_per_beam], where num_hyps_per_beam=1 for sampling.</span>
+    <span class="c1"># TODO(yuancao): Support sampling multiple sequences and remove</span>
+    <span class="c1"># num_hyps_per_beam constraint.</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">sample</span><span class="o">.</span><span class="n">topk_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+    <span class="n">sample</span><span class="o">.</span><span class="n">topk_ids</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">ids</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">sample</span><span class="o">.</span><span class="n">paddings</span>
+    <span class="n">sample</span><span class="o">.</span><span class="n">topk_lens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">sample</span><span class="o">.</span><span class="n">topk_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">logits</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span> <span class="o">*</span> <span class="n">weights</span><span class="p">,</span>
+        <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sample</span></div>
+
 <div class="viewcode-block" id="TransformerDecoder._InitBeamSearchStateCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_InitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
                                    <span class="n">num_hyps_per_beam</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns initial beams search states.</span>

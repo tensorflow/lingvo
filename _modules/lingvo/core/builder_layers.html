@@ -1034,7 +1034,36 @@
         <span class="n">graph_tensors</span><span class="o">.</span><span class="n">StoreTensor</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 
     <span class="n">layer_out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">graph_tensors</span><span class="o">.</span><span class="n">GetTensor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">layer_out</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">layer_out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GraphLayer.FPropNestedMap"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.FPropNestedMap">[docs]</a>  <span class="k">def</span> <span class="nf">FPropNestedMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_map</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Forward propagation where input and output are both single NestedMap.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      input_map: A NestedMap containing endpoints in p.input_endpoints.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A single NestedMap containing endpoints in p.output_endpoints.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fprop_args</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">endpoint</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">endpoint</span> <span class="ow">in</span> <span class="n">input_map</span><span class="p">:</span>
+        <span class="n">fprop_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_map</span><span class="p">[</span><span class="n">endpoint</span><span class="p">])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Input endpoint </span><span class="si">{}</span><span class="s1"> is not an attribute of the input &#39;</span>
+                         <span class="s1">&#39;nested map </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">input_map</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">fprop_args</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span><span class="p">)</span>
+    <span class="n">outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">fprop_args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">outs</span> <span class="o">=</span> <span class="p">(</span><span class="n">outs</span><span class="p">,)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">outs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">)</span>
+    <span class="n">output_map</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">output</span><span class="p">,</span> <span class="n">endpoint</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">outs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_endpoints</span><span class="p">):</span>
+      <span class="n">output_map</span><span class="p">[</span><span class="n">endpoint</span><span class="p">]</span> <span class="o">=</span> <span class="n">output</span>
+    <span class="k">return</span> <span class="n">output_map</span></div></div>
 
 
 <div class="viewcode-block" id="ParallelLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.ParallelLayer">[docs]</a><span class="k">class</span> <span class="nc">ParallelLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
