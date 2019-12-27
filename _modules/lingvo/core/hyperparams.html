@@ -569,6 +569,12 @@
         <span class="n">param_pb</span><span class="o">.</span><span class="n">int_val</span> <span class="o">=</span> <span class="n">val</span>
       <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
         <span class="n">param_pb</span><span class="o">.</span><span class="n">float_val</span> <span class="o">=</span> <span class="n">val</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">Message</span><span class="p">):</span>
+        <span class="n">param_pb</span><span class="o">.</span><span class="n">proto_val</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">ProtoVal</span><span class="p">())</span>
+        <span class="n">proto_cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="n">param_pb</span><span class="o">.</span><span class="n">proto_val</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmodule</span><span class="p">(</span>
+            <span class="n">proto_cls</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">proto_cls</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">param_pb</span><span class="o">.</span><span class="n">proto_val</span><span class="o">.</span><span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">()</span>
       <span class="k">elif</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># We represent a NoneType by the absence of any of the oneof.</span>
         <span class="k">pass</span>
@@ -619,6 +625,15 @@
         <span class="k">return</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">float_val</span>
       <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;bool_val&#39;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">bool_val</span>
+      <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;proto_val&#39;</span><span class="p">:</span>
+        <span class="n">tokens</span> <span class="o">=</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">proto_val</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="n">proto_cls</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">proto_cls</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">Message</span><span class="p">):</span>
+          <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">proto_msg</span> <span class="o">=</span> <span class="n">proto_cls</span><span class="p">()</span>
+        <span class="n">proto_msg</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">proto_val</span><span class="o">.</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">proto_msg</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># If nothing is set, it&#39;s the None type.</span>
         <span class="k">return</span> <span class="kc">None</span>

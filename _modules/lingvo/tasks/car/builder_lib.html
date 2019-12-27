@@ -213,6 +213,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">linear_params_init</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">bn_params_init</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">activation_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">fc_bn_after_linear</span> <span class="o">=</span> <span class="kc">False</span>
 
 <div class="viewcode-block" id="ModelBuilderBase._Rep"><a class="viewcode-back" href="../../../../lingvo.tasks.car.builder_lib.html#lingvo.tasks.car.builder_lib.ModelBuilderBase._Rep">[docs]</a>  <span class="k">def</span> <span class="nf">_Rep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">repeat</span><span class="p">,</span> <span class="o">*</span><span class="n">subs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Helper to construct a sequential layer repeated several time.&quot;&quot;&quot;</span>
@@ -266,18 +267,17 @@
     <span class="n">activation_fn</span> <span class="o">=</span> <span class="n">activation_fn</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation_fn</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idims</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="n">idims</span> <span class="o">=</span> <span class="n">idims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">use_bn</span><span class="p">:</span>
-      <span class="n">fc_layers</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_BN</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">),</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="n">activation_fn</span><span class="o">=</span><span class="n">activation_fn</span><span class="p">),</span>
-      <span class="p">]</span>
+    <span class="n">fc_layers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">use_bn</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_bn_after_linear</span><span class="p">:</span>
+      <span class="c1"># Note that bn should use odims, since after linear.</span>
+      <span class="n">fc_layers</span> <span class="o">=</span> <span class="n">fc_layers</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_BN</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">)]</span>
+    <span class="k">elif</span> <span class="n">use_bn</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_bn_after_linear</span><span class="p">):</span>
+      <span class="c1"># Note that bn should use idims, since before linear.</span>
+      <span class="n">fc_layers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_BN</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">)]</span> <span class="o">+</span> <span class="n">fc_layers</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">fc_layers</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="n">activation_fn</span><span class="o">=</span><span class="n">activation_fn</span><span class="p">),</span>
-      <span class="p">]</span>
+      <span class="c1"># Add bias since no batch norm that folds in bias.</span>
+      <span class="n">fc_layers</span> <span class="o">=</span> <span class="n">fc_layers</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">)]</span>
+    <span class="n">fc_layers</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="n">activation_fn</span><span class="o">=</span><span class="n">activation_fn</span><span class="p">)]</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">fc_layers</span><span class="p">)</span></div>
 
@@ -761,10 +761,23 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">_Merge</span><span class="p">(</span><span class="n">outputs</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Merges the outputs from ParallelLayer.</span>
+
+<span class="sd">      Args:</span>
+<span class="sd">        outputs: A tuple of two elements: (a) the original input NestedMap and</span>
+<span class="sd">          (b) the outputs from applying the sub layers in subs.</span>
+
+<span class="sd">      Returns:</span>
+<span class="sd">        A new NestedMap map with the specified key&#39;s value replaced with the</span>
+<span class="sd">        result from subs.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+
       <span class="n">input_map</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">seq_result</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">input_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq_result</span>
-      <span class="k">return</span> <span class="p">(</span><span class="n">input_map</span><span class="p">,)</span>
+      <span class="n">new_map</span> <span class="o">=</span> <span class="n">input_map</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+      <span class="n">new_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq_result</span>
+
+      <span class="k">return</span> <span class="p">(</span><span class="n">new_map</span><span class="p">,)</span>
 
     <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">ParallelLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="p">[</span>
@@ -850,26 +863,38 @@
   <span class="k">def</span> <span class="nf">_FeaturesFC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">use_bn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">activation_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies a FC layer to `features` key, emits a `NestedMap`.&quot;&quot;&quot;</span>
     <span class="n">activation_fn</span> <span class="o">=</span> <span class="n">activation_fn</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation_fn</span>
-    <span class="k">if</span> <span class="n">use_bn</span><span class="p">:</span>
+    <span class="n">bn_join_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Join</span><span class="p">(</span>
+        <span class="s1">&#39;join_features_padding&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_GetValue</span><span class="p">(</span><span class="s1">&#39;get_features&#39;</span><span class="p">,</span> <span class="n">FEATURES_KEY</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;expand_padding&#39;</span><span class="p">,</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_GetValue</span><span class="p">(</span><span class="s1">&#39;get_padding&#39;</span><span class="p">,</span> <span class="s1">&#39;padding&#39;</span><span class="p">),</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyFn</span><span class="p">(</span><span class="s1">&#39;expand&#39;</span><span class="p">,</span>
+                                <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])))</span>
+    <span class="k">if</span> <span class="n">use_bn</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_bn_after_linear</span><span class="p">:</span>
+      <span class="c1"># Note that bn should use odims, since after linear.</span>
       <span class="n">seq_p</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_Join</span><span class="p">(</span>
-              <span class="s1">&#39;join_features_padding&#39;</span><span class="p">,</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">_GetValue</span><span class="p">(</span><span class="s1">&#39;get_features&#39;</span><span class="p">,</span> <span class="n">FEATURES_KEY</span><span class="p">),</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;expand_padding&#39;</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_GetValue</span><span class="p">(</span><span class="s1">&#39;get_padding&#39;</span><span class="p">,</span> <span class="s1">&#39;padding&#39;</span><span class="p">),</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyFn</span><span class="p">(</span><span class="s1">&#39;expand&#39;</span><span class="p">,</span>
-                                      <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]))),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_SeqToKey</span><span class="p">(</span><span class="s1">&#39;linear_seq&#39;</span><span class="p">,</span>
+                         <span class="n">FEATURES_KEY</span><span class="p">,</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_GetValue</span><span class="p">(</span><span class="s1">&#39;get_features&#39;</span><span class="p">,</span> <span class="n">FEATURES_KEY</span><span class="p">),</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">)),</span>
+          <span class="n">bn_join_layer</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_BN</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
+      <span class="p">]</span>
+    <span class="k">elif</span> <span class="n">use_bn</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_bn_after_linear</span><span class="p">):</span>
+      <span class="c1"># Note that bn should use idims, since before linear.</span>
+      <span class="n">seq_p</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">bn_join_layer</span><span class="p">,</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_BN</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">),</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="n">activation_fn</span><span class="o">=</span><span class="n">activation_fn</span><span class="p">),</span>
       <span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Add bias since no batch norm that folds in bias.</span>
       <span class="n">seq_p</span> <span class="o">=</span> <span class="p">[</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_GetValue</span><span class="p">(</span><span class="s1">&#39;get_features&#39;</span><span class="p">,</span> <span class="n">FEATURES_KEY</span><span class="p">),</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="n">activation_fn</span><span class="o">=</span><span class="n">activation_fn</span><span class="p">),</span>
       <span class="p">]</span>
+    <span class="n">seq_p</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="n">activation_fn</span><span class="o">=</span><span class="n">activation_fn</span><span class="p">)]</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SeqToKey</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">FEATURES_KEY</span><span class="p">,</span> <span class="o">*</span><span class="n">seq_p</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ModelBuilderBase._FeaturesMLP"><a class="viewcode-back" href="../../../../lingvo.tasks.car.builder_lib.html#lingvo.tasks.car.builder_lib.ModelBuilderBase._FeaturesMLP">[docs]</a>  <span class="nd">@_Decorators</span><span class="o">.</span><span class="n">ExpectsNestedMapTensor</span><span class="p">(</span><span class="n">FEATURES_KEY</span><span class="p">)</span>
