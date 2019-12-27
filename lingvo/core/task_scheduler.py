@@ -189,7 +189,7 @@ class ShiftedExponentialScheduler(TaskScheduler):
         'A large alpha will lead to fast convergence toward final values.')
     p.Define(
         'task_probs', [], 'List of 2-tuples (task, prob). For non-constant'
-        'schedulers, prob is a tuble of the form (init_prob, final_prob).')
+        'schedulers, prob is a tuple of the form (init_prob, final_prob).')
     return p
 
   @base_layer.initializer
