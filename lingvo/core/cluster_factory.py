@@ -20,7 +20,13 @@ from __future__ import print_function
 
 from lingvo.core import cluster
 
-Cluster = cluster._Cluster
+Cluster = cluster._Cluster  # pylint: disable=protected-access
+
+
+def SetCluster(cls):
+  """Sets Cluster implementation."""
+  global Cluster  # pylint: disable=invalid-name
+  Cluster = cls
 
 
 def Current():

@@ -234,7 +234,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     _WaitTillInit()
 
     with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(self._cluster.job_spec.name):
+      with self._cluster, tf.device(self._cluster.GetPlacer()):
         with py_utils.VariableRenameScope(self._variable_renaming_rules):
           for program in self._programs:
             program.BuildTpuSubgraph()

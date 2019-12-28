@@ -222,10 +222,16 @@ class BaseInputGenerator(base_layer.BaseLayer):
                           dtypes)
           if p.use_partitioned_infeed_queue:
             device_assignment = py_utils.GetTpuDeviceAssignment()
+
+            host_device = device_assignment.host_device(
+                replica=0, job=tf.flags.FLAGS.tf_master)
+            host_id = int(host_device.split('/task:')[1].split('/device:')[0])
+            tf.logging.info('host_id: {} host_device: {}'.format(
+                host_id, host_device))
             q = tpu_feed._PartitionedInfeedQueue(  # pylint: disable=protected-access
                 number_of_tuple_elements=len(dtypes),
                 device_assignment=device_assignment,
-                host_id=0,
+                host_id=host_id,
                 input_partition_dims=[[p.num_partitions, 1] for _ in dtypes],
                 tuple_types=dtypes,
                 tuple_shapes=shapes)
