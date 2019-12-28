@@ -991,7 +991,7 @@ class PassiveAsymQDomain(QDomain):
       return tf.quantization.fake_quant_with_min_max_vars(
           inputs, min_v, max_v, num_bits=num_bits)
 
-    if p.delay_start_steps != 0 and not p.is_eval:
+    if p.delay_start_steps != 0 and not self.do_eval:
       if p.delay_start_steps == -1:
         return inputs
       return tf.where(self.theta.global_step >= p.delay_start_steps, Apply(),
@@ -1013,7 +1013,7 @@ class PassiveAsymQDomain(QDomain):
     w_min = tf.minimum(w_min, -p.quantize_weight_epsilon)
     w_max = tf.maximum(w_max, p.quantize_weight_epsilon)
     quant_w = self._MaybeFakeQuant(w, w_min, w_max, num_bits=p.bits)
-    if p.is_eval:
+    if self.do_eval:
       return quant_w
     else:
       # If quantizing during training, skip quantization if it produces
@@ -1054,7 +1054,7 @@ class PassiveAsymQDomain(QDomain):
   def QuantizeTensors(self, t_name, ts, eval_only=False):
     p = self.params
     # Always straddle a real zero point.
-    if p.is_eval:
+    if self.do_eval:
       # At eval/inference time, use the memorized range.
       # Important: Don't capture these variables in training mode so as to
       # avoid extra/unnecessary captures.
@@ -1100,9 +1100,8 @@ class PassiveAsymQDomain(QDomain):
       return ts_out
 
   def GetTensorRange(self, t_name, ts):
-    p = self.params
     # Always straddle a real zero point.
-    if p.is_eval:
+    if self.do_eval:
       # At eval/inference time, use the memorized range.
       # Important: Don't capture these variables in training mode so as to
       # avoid extra/unnecessary captures.
@@ -1148,7 +1147,7 @@ class PassiveAsymQDomain(QDomain):
 
   def _RecordTensor(self, t_name):
     p = self.params
-    if p.is_eval:
+    if self.do_eval:
       return []
 
     accumulator_name = self._GetAccumulatorNameForTensor(t_name)

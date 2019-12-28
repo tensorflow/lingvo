@@ -162,7 +162,7 @@ class AsrEncoder(base_layer.BaseLayer):
         conv_p.name = 'conv_L%d' % (i)
         conv_p.filter_shape = p.conv_filter_shapes[i]
         conv_p.filter_stride = p.conv_filter_strides[i]
-        conv_p.is_eval = p.is_eval
+        conv_p.is_eval = self.do_eval
         params_conv_layers.append(conv_p)
       self.CreateChildren('conv', params_conv_layers)
 
@@ -225,7 +225,7 @@ class AsrEncoder(base_layer.BaseLayer):
           proj_p.input_dim = 2 * p.lstm_cell_size
           proj_p.output_dim = 2 * p.lstm_cell_size
           proj_p.name = 'proj_L%d' % (i)
-          proj_p.is_eval = p.is_eval
+          proj_p.is_eval = self.do_eval
           params_proj_layers.append(proj_p)
 
         # add the skip layers
@@ -317,7 +317,7 @@ class AsrEncoder(base_layer.BaseLayer):
     outputs = py_utils.NestedMap()
     with tf.name_scope(p.name):
       # Adding specAugmentation.
-      if p.use_specaugment and not p.is_eval:
+      if p.use_specaugment and not self.do_eval:
         inputs, paddings = self.specaugment.FProp(theta.specaugment, inputs,
                                                   paddings)
       # Add a few extra padded timesteps at the end. This is for ensuring the

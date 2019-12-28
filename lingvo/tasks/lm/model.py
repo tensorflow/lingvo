@@ -240,7 +240,7 @@ class FixedShapeInputLanguageModel(LanguageModel):
 
   def _TrimIfPossibleThenTranspose(self, ids, paddings, labels, weights):
     data = (ids, paddings, labels, weights)
-    if not py_utils.use_tpu() and self.params.is_eval:
+    if not py_utils.use_tpu() and self.do_eval:
       max_seq_len = tf.cast(
           tf.reduce_max(tf.reduce_sum(1.0 - paddings, 1)), tf.int32)
       data = (x[:, :max_seq_len] for x in data)

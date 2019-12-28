@@ -112,6 +112,7 @@ class _Cluster(object):
     p.Define(
         'add_summary', None, 'Whether to add summaries. If None, '
         'decides based on the job type.')
+    p.Define('do_eval', None, 'Whether to do eval.')
     return p
 
   @classmethod
@@ -425,6 +426,10 @@ class _Cluster(object):
       return self.job in ['controller', 'decoder']
     else:
       return p.add_summary
+
+  @property
+  def do_eval(self):
+    return self.params.do_eval
 
   @property
   def worker_cluster_def(self):

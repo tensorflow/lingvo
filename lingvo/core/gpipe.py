@@ -395,7 +395,7 @@ class PipeliningLayer(SeqLayer):
     """
     # TODO(huangyp): handle optional None inputs.
     p = self.params
-    if p.is_eval:
+    if self.do_eval:
       outputs = _ToTuple(args)
       for (name, l) in self._before_layers:
         outputs = _ToTuple(outputs)

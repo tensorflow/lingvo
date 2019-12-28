@@ -283,7 +283,7 @@ class InsertionModel(MTBaseModel):
     # pyformat: enable
     p = self.params
 
-    if not p.is_eval:
+    if not self.do_eval:
       # Sample our src and tgt canvas.
       src_descriptor = self._SampleCanvasAndTargets(batch.src.ids,
                                                     batch.src.paddings)
@@ -381,7 +381,7 @@ class InsertionModel(MTBaseModel):
 
     predictions = super(InsertionModel, self).ComputePredictions(theta, batch)
 
-    if not p.is_eval:
+    if not self.do_eval:
       predictions.tgt = py_utils.NestedMap(
           ids=canvas_and_targets.canvas,
           paddings=canvas_and_targets.canvas_paddings,

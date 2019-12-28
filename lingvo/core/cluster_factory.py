@@ -70,3 +70,26 @@ def ForTestingWorker(mode=None,
   if add_summary is not None:
     p.add_summary = add_summary
   return p.Instantiate()
+
+
+def SetEval(mode):
+  """Returns a cluster with do_eval option turned on/off.
+
+  E.g.::
+
+    def FProp(...):
+      with SetEval(mode=True):
+        # Turns off dropout, noise, etc.
+        y = self.foo.FProp(..., x)
+        z = self.bar.FProp(..., y)
+      # Returns to previous state (e.g., training).
+      y = self.foo.FProp(..., x)
+      z = self.foo.FProp(..., y)
+
+  Args:
+    mode: True, False or None.
+
+  Returns:
+    A new Cluster instance.
+  """
+  return Current().params.Copy().Set(do_eval=mode).Instantiate()

@@ -184,7 +184,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
 
     # NOTE: tf.argmax is not implemented for the JF backend, see b/36093673
     # Skip the fraction_of_correct_next_step_preds during training.
-    if p.is_eval:
+    if self.do_eval:
       logits = xent_loss.logits
       correct_preds = tf.cast(
           tf.equal(
@@ -487,7 +487,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
   def ApplyDropout(self, x_in):
     p = self.params
     assert 0 <= p.dropout_prob and p.dropout_prob < 1.0
-    if p.is_eval or p.dropout_prob == 0.0:
+    if self.do_eval or p.dropout_prob == 0.0:
       return x_in
     else:
       return tf.nn.dropout(x_in, 1.0 - p.dropout_prob)
@@ -1055,9 +1055,9 @@ class TransformerDecoder(MTBaseDecoder):
         encoded - source encoding. When `p.is_transparent` is False, it is a
                   tensor of shape [time, batch, depth]. When `p.is_transparent`
                   is True, it is a tensor of shape
-                  [time, batch, depth, num_trans_layers] if `p.is_eval` is True,
-                  and a list of `num_trans_layers` tensors of shape
-                  [time, batch, depth] if `p.is_eval` is False.
+                  [time, batch, depth, num_trans_layers] if `self.do_eval` is
+                  True, and a list of `num_trans_layers` tensors of shape
+                  [time, batch, depth] if `self.do_eval` is False.
 
         padding - source encoding's padding, of shape [time, batch].
         segment_id - source segment id, of shape [time, batch].
@@ -1077,7 +1077,7 @@ class TransformerDecoder(MTBaseDecoder):
     src_segment_id = getattr(encoder_outputs, 'segment_id', None)
     time, batch = py_utils.GetShape(source_paddings, 2)
     if p.is_transparent:
-      if p.is_eval:
+      if self.do_eval:
         source_encs = py_utils.HasShape(
             source_encs, [time, batch, p.source_dim, p.num_trans_layers])
         source_encs = tf.unstack(source_encs, axis=3)

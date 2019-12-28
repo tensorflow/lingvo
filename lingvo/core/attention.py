@@ -394,7 +394,6 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     Returns:
       Result of the softmax.
     """
-    p = self.params
     fns = self.fns
 
     if logits.dtype.is_complex:
@@ -404,7 +403,7 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     very_negative_logits = (
         tf.ones_like(logits) * logits.dtype.max *
         tf.constant(-0.7, dtype=logits.dtype))
-    if p.is_eval:
+    if self.do_eval:
       very_negative_logits = self.QTensor('logits', very_negative_logits)
     padded_logits = tf.where(padding > 0.0, very_negative_logits, logits)
     # TFLite hardcodes the range of qsoftmax, setting explicitly to avoid
@@ -583,7 +582,7 @@ class AdditiveAttention(BaseAttentionLayer):
       probs.set_shape(per_step_source_padding.shape)
 
       # Apply dropout to weights if applicable.
-      if not p.is_eval:
+      if not self.do_eval:
         probs = _ApplyAttentionDropout(p, probs, global_step)
 
       # Reshape probs to be of shape
@@ -979,7 +978,7 @@ class DotProductAttention(BaseAttentionLayer):
       probs = tf.transpose(probs, [1, 0, 2])
 
       # Apply dropout to weights if applicable.
-      if not p.is_eval:
+      if not self.do_eval:
         probs = _ApplyAttentionDropout(p, probs, global_step)
 
       # Weight each frame with the probability and sum them.
@@ -1205,7 +1204,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     self.TrackQTensor('source_proj_matmul', 'source_proj_add',
                       'query_proj_matmul', 'query_proj_add',
                       'ctx_pre_proj_matmul', 'ctx_pre_proj_add')
-    # TODO(suderman): Remove the p.is_eval check below once brop quant within
+    # TODO(suderman): Remove the self.do_eval check below once brop quant within
     # defun is fixed on the training side. This is less than ideal as-is because
     # training will just trend to match downstream quant constraints vs force
     # alignment.
@@ -2323,7 +2322,7 @@ class MonotonicAttention(BaseAttentionLayer):
 
     # When running eval, don't add pre-sigmoid noise, and use a hard sigmoid to
     # match behavior of online decoding.
-    if p.is_eval:
+    if self.do_eval:
       p.pre_sigmoid_noise = 0.
       p.hard_sigmoid = True
 

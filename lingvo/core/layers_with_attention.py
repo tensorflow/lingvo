@@ -1621,7 +1621,7 @@ class TransformerLayerWithMultitaskAdapters(TransformerLayer):
                                            source_segment_id, aux_segment_id)
     # Assumes the same task_id for the entire sequence during eval or when
     # not using packed_input.
-    if not p.packed_input and not p.is_eval:
+    if not p.packed_input and not self.do_eval:
       source_task_id = source_task_id[0, :]
     hidden = self.adapters.FProp(theta.adapters, hidden, source_task_id)
     return hidden, atten_prob

@@ -480,7 +480,7 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     filter_w = tf.nn.softmax(filter_w / p.temperature, axis=0)
 
     # Add dropconnect on the weights for regularization.
-    if p.dropconnect_prob > 0.0 and not p.is_eval:
+    if p.dropconnect_prob > 0.0 and not self.do_eval:
       if p.deterministic_dropout:
         filter_w = py_utils.DeterministicDropout(
             filter_w, 1.0 - p.dropconnect_prob,

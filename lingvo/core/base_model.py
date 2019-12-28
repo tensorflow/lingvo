@@ -251,7 +251,7 @@ class BaseTask(base_layer.BaseLayer):
     if p.input:
       # TODO(zhifengc): Consider a simpler way to ensure the input
       # generator stops after one epoch.
-      if p.is_eval and p.eval:
+      if self.do_eval and p.eval:
         seq_inp = issubclass(p.input.cls,
                              base_input_generator.BaseInputGeneratorFromFiles)
         if p.input.num_samples == 0:
@@ -810,7 +810,7 @@ class BaseTask(base_layer.BaseLayer):
     if tp:
       vn_enabled = ((tp.vn_std > 0) and p.vn and
                     (p.vn.global_vn or p.vn.per_step_vn))
-      if p.is_eval or (not vn_enabled):
+      if self.do_eval or (not vn_enabled):
         p.vn = py_utils.VariationalNoiseParams(None, False, False)
       else:
         # vn.scale is dependent on global_step.

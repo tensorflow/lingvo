@@ -449,7 +449,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     # If batch norm is fused with weights, then compute the weights as from
     # figure C.8 of https://arxiv.org/pdf/1712.05877.pdf for training and
     # figure C.6 for eval.
-    if p.is_eval:
+    if self.do_eval:
       # Gets current moments without updating.
       mean, variance, beta, gamma = self.bn.GetCurrentMoments(theta.bn)
     else:
@@ -1049,7 +1049,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     # If batch norm is fused with weights, then compute the weights as from
     # figure C.8 of https://arxiv.org/pdf/1712.05877.pdf for training and
     # figure C.6 for eval.
-    if p.is_eval:
+    if self.do_eval:
       # Gets current moments without updating.
       mean, variance, beta, gamma = self.bn.GetCurrentMoments(theta.bn)
     else:
@@ -1817,7 +1817,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
 
     with tf.variable_scope(p.name):
       for i in range(num_hosts):
-        if p.is_eval:
+        if self.do_eval:
           device_name = None
         else:
           device_name = '{}/replica:0/task:{}/device:CPU:0'.format(
@@ -1828,7 +1828,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
           self._embedding_table_var.append(vi_var)
 
           # Only trainer and controller needs the slot variables.
-          if p.is_eval:
+          if self.do_eval:
             continue
           _, accumulator_var = py_utils.CreateVariable(
               'var_%d/Adagrad' % i, w_ada, trainable=False)
@@ -2047,7 +2047,6 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
       float32 Tensor.
     """
-    p = self.params
 
     def TpuEmbLookup(ids_map):
       """TPU Embedding lookup."""
@@ -2076,7 +2075,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
           rets[k] = v
       return rets
 
-    if p.is_eval:
+    if self.do_eval:
       return CpuEmbLookup(ids_map)
     elif not py_utils.use_tpu():
       # Contoller
@@ -2856,7 +2855,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
       class_ids = py_utils.HasShape(class_ids, [-1, 1])
       per_example_xent, per_example_argmax = self._XentLossByChunk(
           theta, inputs, class_ids)
-    elif p.num_sampled == 0 or p.is_eval:
+    elif p.num_sampled == 0 or self.do_eval:
       per_example_xent, per_example_argmax = self.XentLossFromLogits(
           theta, logits, class_weights, class_ids, class_probabilities)
     else:  # Use sampled soft-max in training mode with p.num_sampled set.
@@ -2905,7 +2904,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
       per_example_xent = tf.nn.softmax_cross_entropy_with_logits(
           labels=class_probabilities, logits=logits)
       per_example_argmax = py_utils.ArgMax(logits)
-    elif p.num_sampled == 0 or p.is_eval:
+    elif p.num_sampled == 0 or self.do_eval:
       assert class_ids is not None
       tf.logging.vlog(
           0, 'Using sparse_softmax_cross_entropy_with_logits() in '
@@ -3107,7 +3106,7 @@ class SingleShardFullSoftmax(SoftmaxLayer):
       class_probabilities = py_utils.HasShape(class_probabilities,
                                               probs_shape)
 
-    if (not p.is_eval) and (p.chunk_size > 0):
+    if (not self.do_eval) and (p.chunk_size > 0):
       # Chunking.
       logits = None
       log_probs = None
@@ -3242,7 +3241,7 @@ class DropoutLayer(base_layer.BaseLayer):
       inputs with dropout applied at training time.
     """
     p = self.params
-    if not p.is_eval or p.dropout_at_eval:
+    if not self.do_eval or p.dropout_at_eval:
       if isinstance(p.keep_prob, numbers.Real) and p.keep_prob == 1.0:
         return inputs
       if p.noise_shape_broadcast_dims:

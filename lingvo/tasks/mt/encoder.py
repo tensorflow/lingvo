@@ -696,7 +696,7 @@ class TransformerEncoder(base_layer.BaseLayer):
       # [time, batch, dim]
       transformer_input = tf.transpose(input_embs, [1, 0, 2])
 
-    if not p.is_eval and p.apply_source_mask:
+    if not self.do_eval and p.apply_source_mask:
       # Augment padding for masked source word positions.
       dtype = paddings.dtype
       source_mask = tf.where(

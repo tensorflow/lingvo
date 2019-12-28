@@ -263,7 +263,7 @@ class SoftCondLayer(base_layer.BaseLayer):
     p = self.params
     with tf.name_scope(p.name) as scope:
       expert_dist = self._GetExpertDist(theta, inputs, *args)
-      if not p.is_eval:
+      if not self.do_eval:
         summary_utils.histogram('soft_cond_{}'.format(scope), expert_dist)
 
       # Excludes non-variable extra_theta like global_step.

@@ -398,7 +398,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
   def _ApplyDropout(self, theta, x_in, deterministic=False, extra_seed=None):
     p = self.params
     assert 0 <= p.dropout_prob and p.dropout_prob < 1.0
-    if p.is_eval or p.dropout_prob == 0.0:
+    if self.do_eval or p.dropout_prob == 0.0:
       return x_in
 
     if deterministic:

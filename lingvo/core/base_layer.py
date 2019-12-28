@@ -412,6 +412,13 @@ class BaseLayer(tf.Module):
     return cluster_factory.Current()
 
   @property
+  def do_eval(self):
+    if self.cluster.do_eval is not None:
+      return self.cluster.do_eval
+    # TODO(zhifengc): Deprecate and remove BaseLayer.params.is_eval.
+    return self.params.is_eval
+
+  @property
   def parent(self):
     """None if self is the root layer, otherwise the parent layer of self."""
     return self._parent

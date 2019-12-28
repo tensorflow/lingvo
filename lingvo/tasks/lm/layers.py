@@ -613,7 +613,7 @@ class RnnLm(RnnLmNoEmbedding):
     activation = self.emb.EmbLookup(theta.emb, ids)
     # Dropout on embeddings is only applied in training.
     p = self.params
-    if p.embedding_dropout_keep_prob < 1.0 and not p.is_eval:
+    if p.embedding_dropout_keep_prob < 1.0 and not self.do_eval:
       activation = tf.nn.dropout(
           activation,
           keep_prob=p.embedding_dropout_keep_prob,
@@ -698,7 +698,7 @@ class ConditionalRnnLm(RnnLmNoEmbedding):
     activation = self.emb.EmbLookup(theta.emb, ids)
     activation = tf.concat([activation, tf.cast(condition, p.dtype)], -1)
     # Dropout on embeddings is only applied in training.
-    if p.embedding_dropout_keep_prob < 1.0 and not p.is_eval:
+    if p.embedding_dropout_keep_prob < 1.0 and not self.do_eval:
       activation = tf.nn.dropout(
           activation,
           keep_prob=p.embedding_dropout_keep_prob,

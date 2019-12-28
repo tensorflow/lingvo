@@ -43,7 +43,7 @@ class BaseClassifier(base_model.BaseTask):
 
   def _AddSummary(self, batch, prediction):
     """Adds image summaries for the batch."""
-    if not self.params.is_eval:
+    if not self.do_eval:
       # Image summaries only works in evaler/decoder.
       return
 
@@ -165,7 +165,7 @@ class ModelV1(BaseClassifier):
       # MaxPool
       act, _ = self.pool[i].FProp(theta.pool[i], act)
       # Dropout (optional)
-      if p.dropout_prob > 0.0 and not p.is_eval:
+      if p.dropout_prob > 0.0 and not self.do_eval:
         act = tf.nn.dropout(
             act, keep_prob=1.0 - p.dropout_prob, seed=p.random_seed)
     # FC
@@ -186,7 +186,7 @@ class ModelV1(BaseClassifier):
         'log_pplx': (xent.avg_xent, batch),
         'num_preds': (batch, 1),
     }
-    if p.is_eval:
+    if self.do_eval:
       acc1 = self._Accuracy(1, xent.logits, labels, input_batch.weight)
       acc5 = self._Accuracy(5, xent.logits, labels, input_batch.weight)
       rets.update(
@@ -267,7 +267,7 @@ class ModelV2(BaseClassifier):
         'log_pplx': (xent.avg_xent, batch),
         'num_preds': (batch, 1),
     }
-    if p.is_eval or p.compute_accuracy_for_training:
+    if self.do_eval or p.compute_accuracy_for_training:
       acc1 = self._Accuracy(1, xent.logits, labels, input_batch.weight)
       acc5 = self._Accuracy(5, xent.logits, labels, input_batch.weight)
       rets.update(

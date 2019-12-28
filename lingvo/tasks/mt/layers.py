@@ -147,8 +147,8 @@ class TransformerStack(base_layer.BaseLayer):
       (outputs, out_paddings, segment_ids) tuple. `outputs` is of the shape
       [time, batch, depth], and `out_paddings` has shape [time, batch]. If
       is_transparent is True, can return a list of num_transformer_layers
-      tensors of shape [time, batch, depth] if `p.is_eval` is False, and a
-      [time, batch, depth, num_transparent_outputs] tensor if `p.is_eval` is
+      tensors of shape [time, batch, depth] if `self.do_eval` is False, and a
+      [time, batch, depth, num_transparent_outputs] tensor if `self.do_eval` is
       True. If packed_input is True, also returns segment_id, otherwise returns
       None.
     """
@@ -190,7 +190,7 @@ class TransformerStack(base_layer.BaseLayer):
             merged_outputs = self.transparent_merger[i].FProp(
                 theta.transparent_merger[i], outputs_list)
             transformer_output.append(merged_outputs)
-          if p.is_eval:
+          if self.do_eval:
             transformer_output = tf.stack(transformer_output, 3)
 
       return transformer_output, paddings, src_segment_id
