@@ -539,7 +539,6 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Result of the softmax.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
 
     <span class="k">if</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_complex</span><span class="p">:</span>
@@ -549,7 +548,7 @@
     <span class="n">very_negative_logits</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="n">very_negative_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">)</span>
     <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">padding</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
     <span class="c1"># TFLite hardcodes the range of qsoftmax, setting explicitly to avoid</span>
@@ -728,7 +727,7 @@
       <span class="n">probs</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
       <span class="c1"># Apply dropout to weights if applicable.</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
         <span class="n">probs</span> <span class="o">=</span> <span class="n">_ApplyAttentionDropout</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
       <span class="c1"># Reshape probs to be of shape</span>
@@ -1124,7 +1123,7 @@
       <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
 
       <span class="c1"># Apply dropout to weights if applicable.</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
         <span class="n">probs</span> <span class="o">=</span> <span class="n">_ApplyAttentionDropout</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
       <span class="c1"># Weight each frame with the probability and sum them.</span>
@@ -1350,7 +1349,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;source_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;source_proj_add&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;query_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;query_proj_add&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;ctx_pre_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;ctx_pre_proj_add&#39;</span><span class="p">)</span>
-    <span class="c1"># TODO(suderman): Remove the p.is_eval check below once brop quant within</span>
+    <span class="c1"># TODO(suderman): Remove the self.do_eval check below once brop quant within</span>
     <span class="c1"># defun is fixed on the training side. This is less than ideal as-is because</span>
     <span class="c1"># training will just trend to match downstream quant constraints vs force</span>
     <span class="c1"># alignment.</span>
@@ -2468,7 +2467,7 @@
 
     <span class="c1"># When running eval, don&#39;t add pre-sigmoid noise, and use a hard sigmoid to</span>
     <span class="c1"># match behavior of online decoding.</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">pre_sigmoid_noise</span> <span class="o">=</span> <span class="mf">0.</span>
       <span class="n">p</span><span class="o">.</span><span class="n">hard_sigmoid</span> <span class="o">=</span> <span class="kc">True</span>
 

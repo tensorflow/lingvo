@@ -208,8 +208,8 @@ context for the cross-attention layer.</p></li>
 <dd class="field-even"><p>(outputs, out_paddings, segment_ids) tuple. <code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs</span></code> is of the shape
 [time, batch, depth], and <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_paddings</span></code> has shape [time, batch]. If
 is_transparent is True, can return a list of num_transformer_layers
-tensors of shape [time, batch, depth] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_eval</span></code> is False, and a
-[time, batch, depth, num_transparent_outputs] tensor if <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_eval</span></code> is
+tensors of shape [time, batch, depth] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">self.do_eval</span></code> is False, and a
+[time, batch, depth, num_transparent_outputs] tensor if <code class="xref py py-obj docutils literal notranslate"><span class="pre">self.do_eval</span></code> is
 True. If packed_input is True, also returns segment_id, otherwise returns
 None.</p>
 </dd>

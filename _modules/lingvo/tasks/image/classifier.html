@@ -188,7 +188,7 @@
 
 <div class="viewcode-block" id="BaseClassifier._AddSummary"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.BaseClassifier._AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">prediction</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Adds image summaries for the batch.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="c1"># Image summaries only works in evaler/decoder.</span>
       <span class="k">return</span>
 
@@ -310,7 +310,7 @@
       <span class="c1"># MaxPool</span>
       <span class="n">act</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">pool</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">act</span><span class="p">)</span>
       <span class="c1"># Dropout (optional)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
         <span class="n">act</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span>
             <span class="n">act</span><span class="p">,</span> <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="c1"># FC</span>
@@ -331,7 +331,7 @@
         <span class="s1">&#39;log_pplx&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent</span><span class="o">.</span><span class="n">avg_xent</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span>
         <span class="s1">&#39;num_preds&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
     <span class="p">}</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="n">acc1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
       <span class="n">acc5</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
       <span class="n">rets</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
@@ -412,7 +412,7 @@
         <span class="s1">&#39;log_pplx&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent</span><span class="o">.</span><span class="n">avg_xent</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span>
         <span class="s1">&#39;num_preds&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
     <span class="p">}</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">compute_accuracy_for_training</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">compute_accuracy_for_training</span><span class="p">:</span>
       <span class="n">acc1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
       <span class="n">acc5</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
       <span class="n">rets</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>

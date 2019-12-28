@@ -396,7 +396,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">:</span>
       <span class="c1"># TODO(zhifengc): Consider a simpler way to ensure the input</span>
       <span class="c1"># generator stops after one epoch.</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="p">:</span>
         <span class="n">seq_inp</span> <span class="o">=</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
                              <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -955,7 +955,7 @@
     <span class="k">if</span> <span class="n">tp</span><span class="p">:</span>
       <span class="n">vn_enabled</span> <span class="o">=</span> <span class="p">((</span><span class="n">tp</span><span class="o">.</span><span class="n">vn_std</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span> <span class="ow">and</span>
                     <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">global_vn</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">))</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="n">vn_enabled</span><span class="p">):</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="n">vn_enabled</span><span class="p">):</span>
         <span class="n">p</span><span class="o">.</span><span class="n">vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># vn.scale is dependent on global_step.</span>

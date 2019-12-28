@@ -279,8 +279,8 @@
 <span class="sd">    different examples from each other.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      state0: The previous recurrent state. A `.NestedMap`.</span>
 <span class="sd">      inputs: The inputs to the cell. A `.NestedMap`.</span>
 
@@ -400,10 +400,11 @@
         <span class="s1">&#39;num_hidden_nodes&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of projection hidden nodes &#39;</span>
         <span class="s1">&#39;(see https://arxiv.org/abs/1603.08042). &#39;</span>
         <span class="s1">&#39;Set to 0 to disable projection.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cell_value_cap&#39;</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="s1">&#39;LSTM cell values are capped to be within &#39;</span>
-             <span class="s1">&#39; [-cell_value_cap, +cell_value_cap] if the value is not None. &#39;</span>
-             <span class="s1">&#39;It can be a scalar, a scalar tensor or None. When set to None, &#39;</span>
-             <span class="s1">&#39;no capping is applied.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;cell_value_cap&#39;</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="s1">&#39;LSTM cell values are capped to be within &#39;</span>
+        <span class="s1">&#39; [-cell_value_cap, +cell_value_cap] if the value is not None. &#39;</span>
+        <span class="s1">&#39;It can be a scalar, a scalar tensor or None. When set to None, &#39;</span>
+        <span class="s1">&#39;no capping is applied.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;forget_gate_bias&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Bias to apply to the forget gate.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_nonlinearity&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;Whether or not to apply tanh non-linearity on lstm output.&#39;</span><span class="p">)</span>
@@ -547,11 +548,11 @@
     <span class="n">zero_m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="n">zero_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
       <span class="n">zero_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;zero_m&#39;</span><span class="p">,</span> <span class="n">zero_m</span><span class="p">)</span>
       <span class="n">zero_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;zero_c&#39;</span><span class="p">,</span> <span class="n">zero_c</span><span class="p">)</span>
@@ -689,7 +690,7 @@
         <span class="n">new_c</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">QRPadding</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">),</span>
         <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">,</span>
         <span class="n">c_random_uniform</span><span class="p">,</span>
         <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_zoneout&#39;</span><span class="p">,</span>
         <span class="n">qdomain</span><span class="o">=</span><span class="s1">&#39;c_state&#39;</span><span class="p">)</span>
@@ -698,7 +699,7 @@
         <span class="n">new_m</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">QRPadding</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">),</span>
         <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">,</span>
         <span class="n">m_random_uniform</span><span class="p">,</span>
         <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;m_zoneout&#39;</span><span class="p">,</span>
         <span class="n">qdomain</span><span class="o">=</span><span class="s1">&#39;m_state&#39;</span><span class="p">)</span>
@@ -813,8 +814,8 @@
 <span class="sd">    shuffling between groups.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      state0: The previous recurrent state. A `.NestedMap`.</span>
 <span class="sd">      inputs: The inputs to the cell. A `.NestedMap`.</span>
 
@@ -868,9 +869,9 @@
     <span class="n">shuffled_shards</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">group_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">shuffle_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shuffle_shards</span><span class="p">):</span>
-        <span class="n">shuffled_shards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">shards</span><span class="p">[((</span><span class="n">group_i</span> <span class="o">+</span> <span class="n">shuffle_i</span><span class="p">)</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shuffle_shards</span>
-                   <span class="o">+</span> <span class="n">shuffle_i</span><span class="p">])</span>
+        <span class="n">shuffled_shards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shards</span><span class="p">[(</span>
+            <span class="p">(</span><span class="n">group_i</span> <span class="o">+</span> <span class="n">shuffle_i</span><span class="p">)</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shuffle_shards</span> <span class="o">+</span>
+                                      <span class="n">shuffle_i</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">shuffled_shards</span></div></div>
 
 
@@ -948,7 +949,7 @@
         <span class="n">new_c</span><span class="p">,</span>
         <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span>
         <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">,</span>
         <span class="n">c_random_uniform</span><span class="p">,</span>
         <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;zero_c&#39;</span><span class="p">,</span>
         <span class="n">qdomain</span><span class="o">=</span><span class="s1">&#39;c_state&#39;</span><span class="p">)</span>
@@ -957,7 +958,7 @@
         <span class="n">new_m</span><span class="p">,</span>
         <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span>
         <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">,</span>
         <span class="n">m_random_uniform</span><span class="p">,</span>
         <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;zero_m&#39;</span><span class="p">,</span>
         <span class="n">qdomain</span><span class="o">=</span><span class="s1">&#39;m_state&#39;</span><span class="p">)</span>
@@ -1045,11 +1046,11 @@
     <span class="n">zero_m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="n">zero_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">zero_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">zero_c</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QuantizedLSTMCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QuantizedLSTMCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
@@ -1188,11 +1189,11 @@
         <span class="n">m</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">],</span>
                                     <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                     <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                                    <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">),</span>
+                                    <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">),</span>
         <span class="n">c</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">],</span>
                                     <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                     <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                                    <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">))</span></div>
+                                    <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
@@ -1349,8 +1350,8 @@
 <span class="sd">      Args:</span>
 <span class="sd">        x: a tensor of shape [B, self.hidden_size * self.num_gates], containing</span>
 <span class="sd">          &#39;num_gates&#39; activations concatenated along the last dimension.</span>
-<span class="sd">        scale: per-channel scaling factor, of shape</span>
-<span class="sd">          [self.hidden_size * self.num_gates].</span>
+<span class="sd">        scale: per-channel scaling factor, of shape [self.hidden_size *</span>
+<span class="sd">          self.num_gates].</span>
 
 <span class="sd">      Returns:</span>
 <span class="sd">        Per-gate layer normalized &#39;x&#39;, with the same shape as the input.</span>
@@ -1463,11 +1464,11 @@
     <span class="n">zero_m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="n">zero_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">zero_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">zero_c</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCellLean._ResetState"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCellLean._ResetState">[docs]</a>  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
@@ -1635,11 +1636,11 @@
     <span class="n">zero_m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="n">zero_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">zero_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">zero_c</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DoubleProjectionLSTMCell._ResetState"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._ResetState">[docs]</a>  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
@@ -1797,12 +1798,12 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">]),</span>
             <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">),</span>
+            <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">),</span>
         <span class="n">c</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">]),</span>
             <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">))</span></div>
+            <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="ConvLSTMCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
@@ -1839,9 +1840,9 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">c_random_uniform</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="n">m_random_uniform</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">new_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span>
+    <span class="n">new_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">,</span>
                           <span class="n">c_random_uniform</span><span class="p">)</span>
-    <span class="n">new_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">new_m</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span>
+    <span class="n">new_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">new_m</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">,</span>
                           <span class="n">m_random_uniform</span><span class="p">)</span>
     <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -2071,11 +2072,11 @@
     <span class="n">zero_m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="n">zero_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">zero_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">zero_c</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SRUCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.SRUCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
@@ -2182,10 +2183,10 @@
       <span class="n">c_random_uniform</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="n">m_random_uniform</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="n">new_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span>
-                          <span class="n">c_random_uniform</span><span class="p">)</span>
-    <span class="n">new_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">new_m</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span>
-                          <span class="n">m_random_uniform</span><span class="p">)</span>
+    <span class="n">new_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">,</span> <span class="n">c_random_uniform</span><span class="p">)</span>
+    <span class="n">new_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">new_m</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">,</span> <span class="n">m_random_uniform</span><span class="p">)</span>
     <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
@@ -2257,11 +2258,11 @@
     <span class="n">zero_m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="n">zero_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">zero_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">zero_c</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QRNNPoolingCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QRNNPoolingCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
@@ -2312,10 +2313,10 @@
       <span class="n">c_random_uniform</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="n">m_random_uniform</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="n">new_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span>
-                          <span class="n">c_random_uniform</span><span class="p">)</span>
-    <span class="n">new_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">new_m</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span>
-                          <span class="n">m_random_uniform</span><span class="p">)</span>
+    <span class="n">new_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">,</span> <span class="n">c_random_uniform</span><span class="p">)</span>
+    <span class="n">new_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">new_m</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">,</span> <span class="n">m_random_uniform</span><span class="p">)</span>
     <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
@@ -2454,11 +2455,11 @@
     <span class="n">zero_m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="n">zero_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">InitRNNCellState</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">),</span>
                                        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">zero_state_init_params</span><span class="p">,</span>
                                        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-                                       <span class="n">is_eval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+                                       <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">zero_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">zero_c</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GRUCell._ResetState"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.GRUCell._ResetState">[docs]</a>  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>

@@ -428,7 +428,7 @@
     <span class="c1"># pyformat: enable</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="c1"># Sample our src and tgt canvas.</span>
       <span class="n">src_descriptor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SampleCanvasAndTargets</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
                                                     <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span><span class="p">)</span>
@@ -526,7 +526,7 @@
 
     <span class="n">predictions</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">InsertionModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="n">predictions</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
           <span class="n">ids</span><span class="o">=</span><span class="n">canvas_and_targets</span><span class="o">.</span><span class="n">canvas</span><span class="p">,</span>
           <span class="n">paddings</span><span class="o">=</span><span class="n">canvas_and_targets</span><span class="o">.</span><span class="n">canvas_paddings</span><span class="p">,</span>

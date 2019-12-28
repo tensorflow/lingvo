@@ -292,8 +292,8 @@
 <span class="sd">      (outputs, out_paddings, segment_ids) tuple. `outputs` is of the shape</span>
 <span class="sd">      [time, batch, depth], and `out_paddings` has shape [time, batch]. If</span>
 <span class="sd">      is_transparent is True, can return a list of num_transformer_layers</span>
-<span class="sd">      tensors of shape [time, batch, depth] if `p.is_eval` is False, and a</span>
-<span class="sd">      [time, batch, depth, num_transparent_outputs] tensor if `p.is_eval` is</span>
+<span class="sd">      tensors of shape [time, batch, depth] if `self.do_eval` is False, and a</span>
+<span class="sd">      [time, batch, depth, num_transparent_outputs] tensor if `self.do_eval` is</span>
 <span class="sd">      True. If packed_input is True, also returns segment_id, otherwise returns</span>
 <span class="sd">      None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -335,7 +335,7 @@
             <span class="n">merged_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transparent_merger</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
                 <span class="n">theta</span><span class="o">.</span><span class="n">transparent_merger</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">outputs_list</span><span class="p">)</span>
             <span class="n">transformer_output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">merged_outputs</span><span class="p">)</span>
-          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
             <span class="n">transformer_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">transformer_output</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 
       <span class="k">return</span> <span class="n">transformer_output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">src_segment_id</span></div></div>

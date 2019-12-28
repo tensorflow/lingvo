@@ -408,7 +408,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
       <span class="n">expert_dist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetExpertDist</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
         <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;soft_cond_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scope</span><span class="p">),</span> <span class="n">expert_dist</span><span class="p">)</span>
 
       <span class="c1"># Excludes non-variable extra_theta like global_step.</span>

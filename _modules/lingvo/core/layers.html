@@ -594,7 +594,7 @@
     <span class="c1"># If batch norm is fused with weights, then compute the weights as from</span>
     <span class="c1"># figure C.8 of https://arxiv.org/pdf/1712.05877.pdf for training and</span>
     <span class="c1"># figure C.6 for eval.</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="c1"># Gets current moments without updating.</span>
       <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="o">.</span><span class="n">GetCurrentMoments</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">bn</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -1194,7 +1194,7 @@
     <span class="c1"># If batch norm is fused with weights, then compute the weights as from</span>
     <span class="c1"># figure C.8 of https://arxiv.org/pdf/1712.05877.pdf for training and</span>
     <span class="c1"># figure C.6 for eval.</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="c1"># Gets current moments without updating.</span>
       <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="o">.</span><span class="n">GetCurrentMoments</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">bn</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -1962,7 +1962,7 @@
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_hosts</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
           <span class="n">device_name</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">device_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/replica:0/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -1973,7 +1973,7 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_table_var</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vi_var</span><span class="p">)</span>
 
           <span class="c1"># Only trainer and controller needs the slot variables.</span>
-          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
             <span class="k">continue</span>
           <span class="n">_</span><span class="p">,</span> <span class="n">accumulator_var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
               <span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">/Adagrad&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">w_ada</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -2192,7 +2192,6 @@
 <span class="sd">      For sequence embeddings: [batch, max_sequence_length, embedding_dim]</span>
 <span class="sd">      float32 Tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">def</span> <span class="nf">TpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;TPU Embedding lookup.&quot;&quot;&quot;</span>
@@ -2221,7 +2220,7 @@
           <span class="n">rets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
       <span class="k">return</span> <span class="n">rets</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">CpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span>
     <span class="k">elif</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
       <span class="c1"># Contoller</span>
@@ -3001,7 +3000,7 @@
       <span class="n">class_ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">class_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
       <span class="n">per_example_xent</span><span class="p">,</span> <span class="n">per_example_argmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_XentLossByChunk</span><span class="p">(</span>
           <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="n">per_example_xent</span><span class="p">,</span> <span class="n">per_example_argmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">XentLossFromLogits</span><span class="p">(</span>
           <span class="n">theta</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">class_weights</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">,</span> <span class="n">class_probabilities</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>  <span class="c1"># Use sampled soft-max in training mode with p.num_sampled set.</span>
@@ -3050,7 +3049,7 @@
       <span class="n">per_example_xent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
           <span class="n">labels</span><span class="o">=</span><span class="n">class_probabilities</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
       <span class="n">per_example_argmax</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ArgMax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">class_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span>
           <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Using sparse_softmax_cross_entropy_with_logits() in &#39;</span>
@@ -3252,7 +3251,7 @@
       <span class="n">class_probabilities</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">class_probabilities</span><span class="p">,</span>
                                               <span class="n">probs_shape</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
       <span class="c1"># Chunking.</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="n">log_probs</span> <span class="o">=</span> <span class="kc">None</span>
@@ -3387,7 +3386,7 @@
 <span class="sd">      inputs with dropout applied at training time.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_at_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_at_eval</span><span class="p">:</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">)</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">inputs</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">noise_shape_broadcast_dims</span><span class="p">:</span>

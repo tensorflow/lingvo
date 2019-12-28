@@ -329,7 +329,7 @@
 
     <span class="c1"># NOTE: tf.argmax is not implemented for the JF backend, see b/36093673</span>
     <span class="c1"># Skip the fraction_of_correct_next_step_preds during training.</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">xent_loss</span><span class="o">.</span><span class="n">logits</span>
       <span class="n">correct_preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
@@ -632,7 +632,7 @@
 <div class="viewcode-block" id="MTDecoderV1.ApplyDropout"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.ApplyDropout">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyDropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_in</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">&lt;</span> <span class="mf">1.0</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">x_in</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">)</span></div>
@@ -1200,9 +1200,9 @@
 <span class="sd">        encoded - source encoding. When `p.is_transparent` is False, it is a</span>
 <span class="sd">                  tensor of shape [time, batch, depth]. When `p.is_transparent`</span>
 <span class="sd">                  is True, it is a tensor of shape</span>
-<span class="sd">                  [time, batch, depth, num_trans_layers] if `p.is_eval` is True,</span>
-<span class="sd">                  and a list of `num_trans_layers` tensors of shape</span>
-<span class="sd">                  [time, batch, depth] if `p.is_eval` is False.</span>
+<span class="sd">                  [time, batch, depth, num_trans_layers] if `self.do_eval` is</span>
+<span class="sd">                  True, and a list of `num_trans_layers` tensors of shape</span>
+<span class="sd">                  [time, batch, depth] if `self.do_eval` is False.</span>
 
 <span class="sd">        padding - source encoding&#39;s padding, of shape [time, batch].</span>
 <span class="sd">        segment_id - source segment id, of shape [time, batch].</span>
@@ -1222,7 +1222,7 @@
     <span class="n">src_segment_id</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">time</span><span class="p">,</span> <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
         <span class="n">source_encs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
             <span class="n">source_encs</span><span class="p">,</span> <span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span><span class="p">])</span>
         <span class="n">source_encs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">source_encs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>

@@ -257,6 +257,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;add_summary&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Whether to add summaries. If None, &#39;</span>
         <span class="s1">&#39;decides based on the job type.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;do_eval&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Whether to do eval.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="_Cluster._MakeDeviceString"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster._MakeDeviceString">[docs]</a>  <span class="nd">@classmethod</span>
@@ -570,6 +571,10 @@
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;decoder&#39;</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">add_summary</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">do_eval</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">do_eval</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">worker_cluster_def</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

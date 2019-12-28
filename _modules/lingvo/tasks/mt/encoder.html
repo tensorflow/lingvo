@@ -841,7 +841,7 @@
       <span class="c1"># [time, batch, dim]</span>
       <span class="n">transformer_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">input_embs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_source_mask</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_source_mask</span><span class="p">:</span>
       <span class="c1"># Augment padding for masked source word positions.</span>
       <span class="n">dtype</span> <span class="o">=</span> <span class="n">paddings</span><span class="o">.</span><span class="n">dtype</span>
       <span class="n">source_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
