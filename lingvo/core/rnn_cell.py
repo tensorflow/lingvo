@@ -1127,9 +1127,9 @@ class LayerNormalizedLSTMCell(RNNCell):
       m_random_uniform = None
 
     new_c = self._ZoneOut(state0.c, new_c, inputs.padding, params.zo_prob,
-                          params.is_eval, c_random_uniform)
+                          self.do_eval, c_random_uniform)
     new_m = self._ZoneOut(state0.m, new_m, inputs.padding, params.zo_prob,
-                          params.is_eval, m_random_uniform)
+                          self.do_eval, m_random_uniform)
     new_c.set_shape(state0.c.shape)
     new_m.set_shape(state0.m.shape)
     return py_utils.NestedMap(m=new_m, c=new_c)

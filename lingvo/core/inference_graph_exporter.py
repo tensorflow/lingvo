@@ -515,6 +515,7 @@ class InferenceGraphExporter(object):
     cluster_params.mode = 'sync'
     cluster_params.job = 'decoder'
     cluster_params.add_summary = False
+    cluster_params.do_eval = True
     Update(cluster_params.controller)
     Update(cluster_params.worker)
     Update(cluster_params.ps)

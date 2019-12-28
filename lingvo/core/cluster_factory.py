@@ -51,7 +51,8 @@ def ForTestingWorker(mode=None,
                      split_size=None,
                      tpus=None,
                      add_summary=None,
-                     cpus=None):
+                     cpus=None,
+                     do_eval=None):
   """Returns a Cluster for unittesting with a worker."""
   p = Cluster.Params()
   if mode is not None:
@@ -69,6 +70,8 @@ def ForTestingWorker(mode=None,
     p.worker.devices_per_split = split_size
   if add_summary is not None:
     p.add_summary = add_summary
+  if do_eval is not None:
+    p.do_eval = do_eval
   return p.Instantiate()
 
 

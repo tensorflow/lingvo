@@ -53,8 +53,6 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
     p.file_buffer_size = 10000
     p.file_parallelism = 16
 
-    p.is_eval = is_eval
-
     if is_eval:
       p.source_max_length = 3600
       p.bucket_upper_bound = [639, 1062, 1275, 1377, 1449, 1506, 1563, 3600]
