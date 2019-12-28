@@ -307,7 +307,6 @@
         <span class="n">conv_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;conv_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="n">conv_p</span><span class="o">.</span><span class="n">filter_shape</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_filter_shapes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
         <span class="n">conv_p</span><span class="o">.</span><span class="n">filter_stride</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_filter_strides</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">conv_p</span><span class="o">.</span><span class="n">is_eval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span>
         <span class="n">params_conv_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conv_p</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">,</span> <span class="n">params_conv_layers</span><span class="p">)</span>
 
@@ -370,7 +369,6 @@
           <span class="n">proj_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
           <span class="n">proj_p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
           <span class="n">proj_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;proj_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
-          <span class="n">proj_p</span><span class="o">.</span><span class="n">is_eval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span>
           <span class="n">params_proj_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proj_p</span><span class="p">)</span>
 
         <span class="c1"># add the skip layers</span>
