@@ -214,9 +214,14 @@ tuple of two scalars: (zmin, zmax). Spatial span of the grid.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (output_points, grid_centers, num_points).</p>
-<p>output_points: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [x_intervals, y_intervals, z_intervals, num_per_grid, d].
-grid_centers: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [x_intervals, y_intervals, z_intervals, 3]. Grid cell centers.
-num_points: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. [x_intervals, y_intervals, z_intervals].</p>
+<dl class="simple">
+<dt>output_points: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>[x_intervals, y_intervals, z_intervals, num_per_grid, d].</p>
+</dd>
+<dt>grid_centers: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>[x_intervals, y_intervals, z_intervals, 3]. Grid cell centers.</p>
+</dd>
+<dt>num_points: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>[x_intervals, y_intervals, z_intervals].</p>
+</dd>
+</dl>
 </p>
 </dd>
 </dl>
@@ -254,13 +259,13 @@ return for each class.</p></li>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (bbox_indices, bbox_scores, valid_mask).</p>
 <dl class="simple">
-<dt>bbox_indices: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A tf.int32 Tensor of shape</dt><dd><p>[num_classes, max_boxes_per_class] with the indices of selected boxes
+<dt>bbox_indices: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>[num_classes, max_boxes_per_class] with the indices of selected boxes
 for each class.</p>
 </dd>
-<dt>bbox_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. A tf.float32 Tensor of shape</dt><dd><p>[num_classes, max_boxes_per_class] with the score of selected boxes
+<dt>bbox_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>[num_classes, max_boxes_per_class] with the score of selected boxes
 for each class.</p>
 </dd>
-<dt>valid_mask: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. A tf.float32 Tensor of shape</dt><dd><p>[num_classes, max_boxes_per_class] with a 1 for a valid box and a 0
+<dt>valid_mask: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>[num_classes, max_boxes_per_class] with a 1 for a valid box and a 0
 for invalid boxes for each class.</p>
 </dd>
 </dl>
@@ -305,8 +310,12 @@ the differences between KITTI AP and VOC AP.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (average_precision, precision_recall).</p>
-<p>average_precision: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. A scalar. The AP metric.
-precision_recall: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [num_recall_points, 2]. List of PR points.</p>
+<dl class="simple">
+<dt>average_precision: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>A scalar. The AP metric.</p>
+</dd>
+<dt>precision_recall: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>[num_recall_points, 2]. List of PR points.</p>
+</dd>
+</dl>
 </p>
 </dd>
 </dl>
@@ -342,7 +351,7 @@ center selection.</p></li>
 Points with z greater than center_z_max are not considered
 for center selection.</p></li>
 <li><p><strong>num_neighbors</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
-Sample these many points within the neighorhood (P).</p></li>
+Sample these many points within the neighborhood (P).</p></li>
 <li><p><strong>max_distance</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
 Points with L2 distances from a center larger than this
 threshold are not considered to be in the neighborhood.</p></li>
@@ -352,15 +361,19 @@ threshold are not considered to be in the neighborhood.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (center, center_padding, indices, indices_padding).</p>
-<p>center: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. [B, M]. the indices of selected centers.
-center_padding: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [B, M]. If center_padding[b, i] is 0., center[b, i],</p>
-<blockquote>
-<div><p>indices[b, i, :] and indices_padding[b, i, :] are valid sampled center.
+<dl class="simple">
+<dt>center: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>[B, M]. the indices of selected centers.</p>
+</dd>
+<dt>center_padding: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>[B, M]. If center_padding[b, i] is 0., center[b, i],
+indices[b, i, :] and indices_padding[b, i, :] are valid sampled center.
 Otherwise, center_padding[b, i] is 1.0, and center[b, i] and indices[b, i, :]
 are all zeros while indices_padding[b, i, :] are all 1.0.</p>
-</div></blockquote>
-<p>indices: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. [B, M, P]. the indices of selected points.
-indices_padding: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. [B, M, P]. 0/1 padding of indices.</p>
+</dd>
+<dt>indices: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>[B, M, P]. the indices of selected points.</p>
+</dd>
+<dt>indices_padding: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>[B, M, P]. 0/1 padding of indices.</p>
+</dd>
+</dl>
 </p>
 </dd>
 </dl>
