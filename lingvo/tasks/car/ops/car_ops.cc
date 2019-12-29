@@ -68,9 +68,12 @@ The number of points in each grid cell. I.e.,
 output_points[i, j, k, num_points[i, j, k]\:, \:] are padded points.
 
 points: [n, d]. d >= 3 and the first 3 dimensions are treated as x,y,z.
-output_points: [x_intervals, y_intervals, z_intervals, num_per_grid, d].
-num_points: [x_intervals, y_intervals, z_intervals].
-grid_centers: [x_intervals, y_intervals, z_intervals, 3]. Grid cell centers.
+output_points:
+  [x_intervals, y_intervals, z_intervals, num_per_grid, d].
+grid_centers:
+  [x_intervals, y_intervals, z_intervals, 3]. Grid cell centers.
+num_points:
+  [x_intervals, y_intervals, z_intervals].
 num_points_per_cell: int. Number of points to keep in each cell.
 x_intervals: int. Number of cells along x-axis.
 y_intervals: int. Number of cells along y-axis.
@@ -129,14 +132,13 @@ score_threshold: A tf.float32 Tensor of shape [num_classes] specifying the
   minimum class score (per class) a box can have before it is removed.
 max_boxes_per_class: An integer specifying how many (at most) boxes to
   return for each class.
-
-bbox_indices: A tf.int32 Tensor of shape
+bbox_indices:
   [num_classes, max_boxes_per_class] with the indices of selected boxes
   for each class.
-bbox_scores: A tf.float32 Tensor of shape
+bbox_scores:
   [num_classes, max_boxes_per_class] with the score of selected boxes
   for each class.
-valid_mask: A tf.float32 Tensor of shape
+valid_mask:
   [num_classes, max_boxes_per_class] with a 1 for a valid box and a 0
   for invalid boxes for each class.
 )doc");
@@ -170,8 +172,10 @@ prediction_imageid: [M]. M image ids for the predicted bounding boxes.
 prediction_score: [M]. M scores for each predicted bounding box.
 prediction_ignore: [N]. The ignore types for predictions. Currently only used by
   the KITTI AP. Valid values are 0 - Don't ignore; 1 - Ignore the first match.
-average_precision: A scalar. The AP metric.
-precision_recall: [num_recall_points, 2]. List of PR points.
+average_precision:
+  A scalar. The AP metric.
+precision_recall:
+  [num_recall_points, 2]. List of PR points.
 algorithm: string. One of ["KITTI", "VOC"]. See this paper "Supervised
   learning and evaluation of KITTI's cars detector with DPM", Section III.A for
   the differences between KITTI AP and VOC AP.
@@ -220,13 +224,17 @@ num_seeded_points: If num_seeded_points > 0, then the first
   num_seeded_points in points are considered to be seeded in the FPS
   sampling. Note that we assume that these points are *not* padded, and do
   not check padding when seeding them.
-center: [B, M]. the indices of selected centers.
-center_padding: [B, M]. If center_padding[b, i] is 0., center[b, i],
+center:
+  [B, M]. the indices of selected centers.
+center_padding:
+  [B, M]. If center_padding[b, i] is 0., center[b, i],
   indices[b, i, :] and indices_padding[b, i, :] are valid sampled center.
   Otherwise, center_padding[b, i] is 1.0, and center[b, i] and indices[b, i, :]
   are all zeros while indices_padding[b, i, :] are all 1.0.
-indices: [B, M, P]. the indices of selected points.
-indices_padding: [B, M, P]. 0/1 padding of indices.
+indices:
+  [B, M, P]. the indices of selected points.
+indices_padding:
+  [B, M, P]. 0/1 padding of indices.
 center_selector: Valid options - 'farthest', 'uniform'.
 neighbor_sampler: Valid options - 'uniform', 'closest'.
 num_centers: The number of centers to sample for each batch example (M).
@@ -234,7 +242,7 @@ center_z_min: Points with z less than center_z_min are not considered for
  center selection.
 center_z_max: Points with z greater than center_z_max are not considered
  for center selection.
-num_neighbors: Sample these many points within the neighorhood (P).
+num_neighbors: Sample these many points within the neighborhood (P).
 max_distance: Points with L2 distances from a center larger than this
   threshold are not considered to be in the neighborhood.
 random_seed: The random seed.

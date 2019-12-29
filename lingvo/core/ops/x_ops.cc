@@ -271,8 +271,7 @@ in_done_hyps: A tensor of shape [t, h * b]. Each string in in_done_hyps can be
     in_done_hyps[t, i * num_beams + j] represents the i-th hypothesis for beam
     j that terminates at step t.
 src_seq_lengths: A tensor of shape [b] of the src sequence lengths.
-out_topk_hyps:
-    A string tensor of shape [b, k]. topk_hyps[i: ] contains
+out_topk_hyps: A string tensor of shape [b, k]. topk_hyps[i: ] contains
     top k terminated hyp for beam 'i', each hyp could be either an empty string
     or a serialized `Hypothesis` proto.
 k: number of highest scoring hyps to be returned for each beam.
@@ -440,12 +439,15 @@ REGISTER_OP("AsciiToTokenId")
 Converts ASCII label strings into token ids.
 
 labels: A vector of shape [batch].
-token_ids: A matrix of shape [batch, maxlen].
+token_ids:
+    A matrix of shape [batch, maxlen].
     token_ids[i, j] is the i-th sample's j-th token id.
     token_ids[i, 0] is always <s>.
-target_ids: A matrix of shape [batch, maxlen].
+target_ids:
+    A matrix of shape [batch, maxlen].
     target_ids[i, j] is the i-th sample's j-th prediction label id.
-paddings: A matrix of shape [batch, maxlen].
+paddings:
+    A matrix of shape [batch, maxlen].
     paddings[i, j] == 1.0 indicates that i-th training example'
     j-th target token is padded and should be ignored.
 append_eos: Whether to append </s> at the end and treat it as a non-padded
@@ -478,12 +480,15 @@ REGISTER_OP("StrToVocabTokens")
 Tokenizes string into white space separated tokens according to a vocab file.
 
 labels: A vector of shape [batch].
-token_ids: A matrix of shape [batch, maxlen].
+token_ids:
+    A matrix of shape [batch, maxlen].
     token_ids[i, j] is the i-th sample's j-th token id.
     token_ids[i, 0] is always <s>.
-target_ids: A matrix of shape [batch, maxlen].
+target_ids:
+    A matrix of shape [batch, maxlen].
     target_ids[i, j] is the i-th sample's j-th prediction label id.
-paddings: A matrix of shape [batch, maxlen].
+paddings:
+    A matrix of shape [batch, maxlen].
     paddings[i, j] == 1.0 indicates that i-th training example's
     j-th target token is padded and should be ignored.
 append_eos: Whether to append </s> at the end and treat it as a non-padded
@@ -569,9 +574,12 @@ The output tensor `token_ids` is a sequence of integer ids with <s> prepended.
 The output tensor `target_ids` is a sequence of integer ids with </s> appended.
 
 labels: The batch of tf.String tensors. Expected shape is [batch_size].
-token_ids: The ids with <s>. The shape is [batch_size, maxlen].
-target_ids: The ids with </s>. The shape is [batch_size, maxlen].
-paddings: The paddings. The shape is [batch_size, maxlen].
+token_ids:
+    The ids with <s>. The shape is [batch_size, maxlen].
+target_ids:
+    The ids with </s>. The shape is [batch_size, maxlen].
+paddings:
+    The paddings. The shape is [batch_size, maxlen].
 maxlen: Maximum length of token_ids/target_ids/paddings.
 tokenization_filepath: A path to a text file where each line is a word separated with space form a list of ids which are separated by ','.
 )doc");
