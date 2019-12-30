@@ -869,7 +869,8 @@ class TrainerTpu(base_runner.BaseRunner):
                                         outfeeds)
 
         step_rate, example_rate = self._step_rate_tracker.ComputeStepRate(
-            global_step, eval_metrics['num_samples_in_batch'][0])
+            global_step,
+            eval_metrics['num_samples_in_batch'][0] * self._steps_per_loop)
         self._SummarizeValue(global_step, 'global_step/sec', step_rate)
         self._SummarizeValue(global_step, 'examples/sec', example_rate)
 
