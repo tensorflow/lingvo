@@ -174,7 +174,7 @@ class TpuEvalMetrics(object):
 
   def __init__(self):
     self._metrics = None
-    self._max_metrics = 51
+    self._max_metrics = 57
 
     # Loop-carried values alternate value and weight; all values are scalars.
     self._initial_values = (2 *
