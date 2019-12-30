@@ -1418,6 +1418,7 @@ py_library(
     name = "checkpointer_lib",
     srcs = ["checkpointer.py"],
     deps = [
+        ":cluster_factory",
         ":py_utils",
         "//lingvo:compat",
         # Implicit six dependency.

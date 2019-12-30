@@ -23,7 +23,9 @@ from __future__ import print_function
 
 import os
 import time
+
 import lingvo.compat as tf
+from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 import six
 
@@ -71,7 +73,8 @@ class Checkpointer(object):
 
   def _GetSaver(self):
     """Returns a saver."""
-    if not self._save_only and self._model.ema and self._params.is_eval:
+    do_eval = cluster_factory.Current().do_eval
+    if not self._save_only and self._model.ema and do_eval:
       tf.logging.info('Using EMA for evaluation.')
       return tf.train.Saver(self._model.ema.variables_to_restore())
     return tf.train.Saver(
