@@ -135,10 +135,9 @@ class PunctuatorModelTest(test_utils.TestCase):
       self.assertAllClose(vals, expected_vals)
 
   def testFPropEvalMode(self):
-    with self.session() as sess:
+    with self.session() as sess, self.SetEval(True):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
-      p.is_eval = True
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       loss = mdl.loss
@@ -156,10 +155,9 @@ class PunctuatorModelTest(test_utils.TestCase):
       self.assertAllClose(vals, expected_vals)
 
   def testInference(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess, self.SetEval(True):
       tf.set_random_seed(93820985)
       p = self._testParams()
-      p.is_eval = True
       mdl = p.Instantiate()
       fetches, feeds = mdl.Inference()['default']
 

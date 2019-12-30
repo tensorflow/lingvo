@@ -21,7 +21,9 @@ from __future__ import print_function
 
 import inspect
 import re
+
 import lingvo.compat as tf
+from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 import numpy as np
 from six.moves import range
@@ -47,6 +49,9 @@ class TestCase(tf.test.TestCase):
       # Ensure the global_step variable is created in every new session.
       py_utils.GetOrCreateGlobalStepVar()
     return sess
+
+  def SetEval(self, mode):
+    return cluster_factory.SetEval(mode=mode)
 
 
 def _ReplaceOneLineInFile(fpath, linenum, old, new):
@@ -125,7 +130,11 @@ def PickEveryN(np_arr, step=1):
   return np_arr.flatten()[::step]
 
 
-def ComputeNumericGradient(sess, y, x, delta=1e-4, step=1,
+def ComputeNumericGradient(sess,
+                           y,
+                           x,
+                           delta=1e-4,
+                           step=1,
                            extra_feed_dict=None):
   """Compute the numeric gradient of y wrt to x.
 
@@ -134,8 +143,8 @@ def ComputeNumericGradient(sess, y, x, delta=1e-4, step=1,
     y: A scalar TF Tensor in the graph constructed in sess.
     x: A TF Tensor in the graph constructed in sess.
     delta: Gradient checker's small perturbation of x[i].
-    step: Only compute numerical gradients for a subset of x values.
-      I.e. dy/dx[i] is computed if i % step == 0.
+    step: Only compute numerical gradients for a subset of x values. I.e.
+      dy/dx[i] is computed if i % step == 0.
     extra_feed_dict: Additional feed_dict of tensors to keep fixed during the
       gradient checking.
 

@@ -56,7 +56,7 @@ class BuilderLayerTest(test_utils.TestCase):
 
   def testSequentialLayer(self):
     g = tf.Graph()
-    with g.as_default():
+    with g.as_default(), self.SetEval(True):
       tf.set_random_seed(24332)
       p = layers.SequentialLayer.Params().Set(
           name='seq',
@@ -71,7 +71,6 @@ class BuilderLayerTest(test_utils.TestCase):
               lingvo_layers.DropoutLayer.Params().Set(
                   name='dropout', keep_prob=0.5)
           ])
-      p.is_eval = True
       l = p.Instantiate()
       x = tf.random_normal(shape=[2, 32])
       y = l.FPropDefaultTheta(x)
@@ -106,7 +105,7 @@ class BuilderLayerTest(test_utils.TestCase):
 
   def testUnarySequentialLayer(self):
     g = tf.Graph()
-    with g.as_default():
+    with g.as_default(), self.SetEval(True):
       tf.set_random_seed(24332)
       p = layers.UnarySequentialLayer.Params().Set(
           name='seq',
@@ -120,7 +119,6 @@ class BuilderLayerTest(test_utils.TestCase):
               lingvo_layers.DropoutLayer.Params().Set(
                   name='dropout', keep_prob=0.5)
           ])
-      p.is_eval = True
       l = p.Instantiate()
       x = tf.random_normal(shape=[2, 32])
       y = l.FPropDefaultTheta(x)
@@ -139,7 +137,7 @@ class BuilderLayerTest(test_utils.TestCase):
 
   def testParallelLayer(self):
     g = tf.Graph()
-    with g.as_default():
+    with g.as_default(), self.SetEval(True):
       tf.set_random_seed(24332)
       p = layers.ParallelLayer.Params().Set(
           name='test',
@@ -158,7 +156,6 @@ class BuilderLayerTest(test_utils.TestCase):
                           name='dropout', keep_prob=0.5)
                   ])
           ])
-      p.is_eval = True
       l = p.Instantiate()
       x = tf.random_normal(shape=[2, 32])
       y = l.FPropDefaultTheta(x)
@@ -357,7 +354,7 @@ class BuilderLayerTest(test_utils.TestCase):
 
   def testGraphLayer(self):
     g = tf.Graph()
-    with g.as_default():
+    with g.as_default(), self.SetEval(True):
       tf.set_random_seed(24332)
       p = layers.GraphLayer.Params().Set(
           name='graph',
@@ -370,7 +367,6 @@ class BuilderLayerTest(test_utils.TestCase):
               ('y.c,y.d->y.e',
                layers.FnLayer.Params().Set(name='baz', fn=lambda x, y: x + y)),
           ])
-      p.is_eval = True
       l = p.Instantiate()
       x = py_utils.NestedMap(a=tf.constant(1.0), b=tf.constant(2.0))
       y = l.FProp(l.theta, x)
@@ -383,7 +379,7 @@ class BuilderLayerTest(test_utils.TestCase):
 
   def testGraphLayerFPropNestedMap(self):
     g = tf.Graph()
-    with g.as_default():
+    with g.as_default(), self.SetEval(True):
       tf.set_random_seed(24332)
       p = layers.GraphLayer.Params().Set(
           name='graph',
@@ -396,7 +392,6 @@ class BuilderLayerTest(test_utils.TestCase):
               ('c,d->e',
                layers.FnLayer.Params().Set(name='baz', fn=lambda x, y: x + y)),
           ])
-      p.is_eval = True
       l = p.Instantiate()
       a = tf.constant(1.0)
       b = py_utils.NestedMap(a=tf.constant(2.0))

@@ -44,7 +44,6 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
       _ = params.Instantiate()
       conv_vars = tf.get_collection('Conv2DLayerWithPadding_vars')
       conv_var_names = [x.name for x in conv_vars]
@@ -68,7 +67,6 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
       conv_layer = params.Instantiate()
       in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)

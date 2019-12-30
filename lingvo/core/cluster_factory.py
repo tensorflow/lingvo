@@ -54,7 +54,7 @@ def ForTestingWorker(mode=None,
                      cpus=None,
                      do_eval=None):
   """Returns a Cluster for unittesting with a worker."""
-  p = Cluster.Params()
+  p = Current().params.Copy()
   if mode is not None:
     p.mode = mode
   if job is not None:

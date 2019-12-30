@@ -203,11 +203,10 @@ class QuantizableLayerTest(test_utils.TestCase):
           global_step=16)
 
   def testLayerWithPassiveAsymQDomainEvalQuantDisabled(self):
-    p = SampleQuantizedProjectionLayer.Params()
-    p.is_eval = True
-    p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
-    p.qdomain.default.delay_start_steps = -1
-    with self.session() as sess:
+    with self.session() as sess, self.SetEval(True):
+      p = SampleQuantizedProjectionLayer.Params()
+      p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
+      p.qdomain.default.delay_start_steps = -1
       self._testLayerHelper(
           'testLayerWithPassiveAsymQDomainEvalQuantDisabled',
           sess,

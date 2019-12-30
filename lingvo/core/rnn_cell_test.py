@@ -1628,10 +1628,9 @@ class RNNCellTest(test_utils.TestCase):
                                          c_expected,
                                          num_hidden_nodes=0,
                                          padding=None):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess, self.SetEval(is_inference):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
-      params.is_eval = is_inference
       params.is_inference = is_inference
       params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
       params.vn.global_vn = False
@@ -2108,7 +2107,7 @@ class RNNCellTest(test_utils.TestCase):
                                zero_state_init,
                                expected_init_states=None,
                                is_eval=False):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess, self.SetEval(is_eval):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.params_init = py_utils.WeightInit.Constant(0.1)
@@ -2118,7 +2117,6 @@ class RNNCellTest(test_utils.TestCase):
       params.bias_init = py_utils.WeightInit.Constant(0.1)
       params.dtype = tf.float64
       params.zero_state_init_params = zero_state_init
-      params.is_eval = is_eval
 
       lstm = rnn_cell.LSTMCellSimple(params)
 

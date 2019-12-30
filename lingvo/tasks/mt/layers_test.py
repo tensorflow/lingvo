@@ -32,7 +32,7 @@ NUMPY_RANDOM_SEED = 505837249
 
 class LayersTest(test_utils.TestCase):
 
-  def _TransformerParams(self, is_eval=False, layer=mt_layers.TransformerStack):
+  def _TransformerParams(self, layer=mt_layers.TransformerStack):
     model_dim = 2
     params = layer.Params()
     params.name = 'transformer'
@@ -42,20 +42,17 @@ class LayersTest(test_utils.TestCase):
     params.transformer_tpl.tr_atten_tpl.num_attention_heads = 1
     params.transformer_tpl.tr_fflayer_tpl.hidden_dim = model_dim
     params.random_seed = 0
-    params.is_eval = is_eval
     return params
 
   def _ContextualTransformerParams(self,
-                                   is_eval=False,
                                    layer=mt_layers.TransformerStack):
-    params = self._TransformerParams(is_eval, layer)
+    params = self._TransformerParams(layer)
     params.has_aux_attention = True
     return params
 
   def _MaskedTransformerParams(self,
-                               is_eval=False,
                                layer=mt_layers.TransformerStack):
-    params = self._TransformerParams(is_eval, layer)
+    params = self._TransformerParams(layer)
     params.mask_self_atten = True
     return params
 
@@ -186,8 +183,8 @@ class LayersTest(test_utils.TestCase):
 
   def testTransparentTransformerStackEvalFProp(self):
     # time = 2, batch = 1
-    with self.session(use_gpu=True) as sess:
-      params = self._TransformerParams(is_eval=True)
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
+      params = self._TransformerParams()
       params.is_transparent = True
       params.num_transparent_outputs = 2
 

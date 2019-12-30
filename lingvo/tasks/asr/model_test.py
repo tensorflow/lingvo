@@ -356,12 +356,11 @@ class AsrModelTest(test_utils.TestCase):
       p = self._testParams()
       with self.session(use_gpu=False, graph=tf.Graph()) as sess:
         tf.set_random_seed(93820981)
-        p.is_eval = True
         p.input.cur_iter_in_seed = False
         p.input.bucket_batch_limit = [
             b * 2 / num_splits for b in p.input.bucket_batch_limit
         ]
-        with cluster_factory.ForTestingWorker(gpus=num_splits):
+        with cluster_factory.ForTestingWorker(gpus=num_splits, do_eval=True):
           mdl = p.Instantiate()
           metrics = mdl.FPropDefaultTheta()[0]
         tf.global_variables_initializer().run()

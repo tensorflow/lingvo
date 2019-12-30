@@ -81,7 +81,6 @@ class BatchNormLayerTest(test_utils.TestCase):
       params.name = 'bn'
       params.dim = 2
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
       layers.BatchNormLayer(params)
       bn_vars = tf.get_collection('BatchNormLayer_vars')
       bn_var_names = [x.name for x in bn_vars]
@@ -132,7 +131,6 @@ class BatchNormLayerTest(test_utils.TestCase):
       params.name = 'bn'
       params.dim = 3
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
 
       bn_layer = layers.BatchNormLayer(params)
       in_padding1 = tf.zeros([2, 8, 1], dtype=tf.float32)
@@ -155,7 +153,6 @@ class BatchNormLayerTest(test_utils.TestCase):
       params.dim = 3
       params.use_moving_avg_in_training = True
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
 
       bn_layer = layers.BatchNormLayer(params)
       in_padding1 = tf.zeros([2, 8, 1], dtype=tf.float32)
@@ -208,7 +205,6 @@ class BatchNormLayerTest(test_utils.TestCase):
       params.name = 'bn_conv'
       params.dim = 32
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
 
       bn_layer = layers.BatchNormLayer(params)
       in_padding1 = tf.zeros([2, 8, 1, 1], dtype=tf.float32)
@@ -240,7 +236,6 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
       layers.Conv2DLayer(params)
       conv_vars = tf.get_collection('Conv2DLayer_vars')
       conv_var_names = [x.name for x in conv_vars]
@@ -263,7 +258,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       layers.DepthwiseConv2DLayer(params)
       conv_vars = tf.get_collection('DepthwiseConv2DLayer_vars')
       conv_var_names = [x.name for x in conv_vars]
@@ -286,7 +281,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       conv1 = layers.DepthwiseConv2DLayer(params)
       params.name = 'conv2'
       conv2 = layers.DepthwiseConv2DLayer(params)
@@ -322,7 +317,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       params.Instantiate()
       # Vars for the outer conv layer.
       conv_vars = tf.get_collection('SeparableConv2DLayer_vars')
@@ -360,7 +355,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       params.bias = True
       params.batch_norm = False
       layers.Conv2DLayer(params)
@@ -385,7 +380,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       params.bias = True
       params.batch_norm = False
       layers.DepthwiseConv2DLayer(params)
@@ -409,7 +404,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       conv_layer = layers.Conv2DLayer(params)
       in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
@@ -427,7 +422,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       conv_layer = layers.DepthwiseConv2DLayer(params)
       in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
@@ -445,7 +440,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       conv_layer = params.Instantiate()
       in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
@@ -464,7 +459,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_stride = [1, 1]
       params.dilation_rate = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       conv_layer = layers.Conv2DLayer(params)
       # dilation_rate does not change output shape.
       in_shape = [None, None, 10, 3]
@@ -484,7 +479,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_stride = [1, 1]
       params.dilation_rate = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       conv_layer = layers.DepthwiseConv2DLayer(params)
       # dilation_rate does not change output shape.
       in_shape = [None, None, 10, 3]
@@ -504,7 +499,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_stride = [1, 1]
       params.dilation_rate = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       conv_layer = params.Instantiate()
       # dilation_rate does not change output shape.
       in_shape = [None, None, 10, 3]
@@ -557,7 +552,7 @@ class ConvLayerTest(test_utils.TestCase):
       if dilation_rate:
         params.dilation_rate = dilation_rate
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       if depth_multiplier is not None:
         params.depth_multiplier = depth_multiplier
       conv_layer = params.Instantiate()
@@ -667,7 +662,6 @@ class ConvLayerTest(test_utils.TestCase):
       params.weight_norm = weight_norm
       params.bias = bias
       params.activation = activation
-      params.is_eval = is_eval
 
       if quantized:
         params.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
@@ -1033,7 +1027,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [2, 1, 3, 2]
       params.filter_stride = [1, 1]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       params.causal_convolution = True
       params.activation = 'NONE'
       params.batch_norm = False
@@ -1091,7 +1085,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [2, 2, 3, 2]
       params.filter_stride = [1, 1]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
+
       params.causal_convolution = True
       params.activation = 'NONE'
       params.batch_norm = False
@@ -1144,7 +1138,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [2, 2, 3, 2]
       params.filter_stride = [1, 1]
       params.params_init = py_utils.WeightInit.Gaussian(0.1, seed=12345)
-      params.is_eval = False
+
       params.causal_convolution = True
       params.activation = 'NONE'
       params.batch_norm = False
@@ -1178,7 +1172,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [1, 2, 3, 2]
       params.filter_stride = [1, 1]
       params.params_init = py_utils.WeightInit.Gaussian(0.1, seed=12345)
-      params.is_eval = False
+
       params.causal_convolution = True
       params.activation = 'NONE'
       params.batch_norm = False
@@ -1207,7 +1201,6 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 2]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
 
       conv_layer = layers.ConvLayer(params)
       in_padding1 = tf.zeros([2, 4], dtype=tf.float32)
@@ -1239,7 +1232,6 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 3, 2]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
 
       conv_layer = layers.ConvLayer(params)
       in_padding1 = tf.zeros([2, 4], dtype=tf.float32)
@@ -1275,7 +1267,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shapes = [[3, 3, 3, 32], [8, 5, 3, 64]]
       params.cnn_tpl.filter_stride = [2, 2]
       params.cnn_tpl.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.cnn_tpl.is_eval = False
+
       layers.ConvSetLayer(params)
 
   def _evalConvSetLayerFProp(self,
@@ -1306,7 +1298,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.cnn_tpl.weight_norm = weight_norm
       params.cnn_tpl.bias = bias
       params.cnn_tpl.activation = activation
-      params.cnn_tpl.is_eval = False
+
       if quantized:
         params.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
 
@@ -1377,7 +1369,6 @@ class PoolingLayerTest(test_utils.TestCase):
       params.name = 'pool'
       params.window_shape = [3, 3]
       params.window_stride = [1, 2]
-      params.is_eval = False
 
       pool_layer = layers.PoolingLayer(params)
       in_padding1 = tf.zeros([2, 4], dtype=tf.float32)
@@ -1420,7 +1411,6 @@ class PoolingLayerTest(test_utils.TestCase):
         params.name = 'pool'
         params.window_shape = window_shape
         params.window_stride = window_stride
-        params.is_eval = False
 
         pool_layer = layers.PoolingLayer(params)
         in_padding1 = tf.zeros([2, 4], dtype=tf.float32)
@@ -1452,7 +1442,6 @@ class ProjectionLayerTest(test_utils.TestCase):
       params.input_dim = 2
       params.output_dim = 3
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
       layers.ProjectionLayer(params)
       proj_vars = tf.get_collection('ProjectionLayer_vars')
       proj_var_names = [x.name for x in proj_vars]
@@ -1507,7 +1496,6 @@ class ProjectionLayerTest(test_utils.TestCase):
         qdomain_default = quant_utils.SymmetricScheduledClipQDomain.Params(
         ).Set(cc_schedule=cc_schedule.Copy())
         params.qdomain.default = qdomain_default.Copy()
-      params.is_eval = is_eval
 
       in_padding = tf.zeros([2, 4, 1], dtype=tf.float32)
       inputs = tf.constant(
@@ -1675,7 +1663,6 @@ class ProjectionLayerTest(test_utils.TestCase):
       params.input_dim = 3
       params.output_dim = 2
       params.params_init = py_utils.WeightInit.Gaussian(0.01)
-      params.is_eval = False
 
       proj_layer = layers.ProjectionLayer(params)
       in_padding1 = tf.zeros([2, 4, 1], dtype=tf.float64)
@@ -2621,7 +2608,6 @@ class SoftmaxLayerTest(test_utils.TestCase):
         params.num_sampled = num_samples
         assert class_probabilities is None
         assert chunk_size == 0
-        assert params.is_eval is not True
 
       params.vn.global_vn = False
       softmax = layers.SimpleFullSoftmax(params)
@@ -3460,14 +3446,12 @@ class FeedForwardNetTest(test_utils.TestCase):
       self.assertAllClose(xd[xd != 0], x[xd != 0] / p.keep_prob)
 
   def testDropoutLayerEval(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
       tf.set_random_seed(3980847392)
       p = layers.DropoutLayer.Params()
       p.keep_prob = 0.5
       p.random_seed = 1234
       p.name = 'dropout'
-      p.is_eval = True
-
       dl = p.Instantiate()
 
       x = tf.random_normal([10, 10, 10, 3])
@@ -3533,7 +3517,6 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
     params.name = 'bn'
     params.dim = 2
     params.params_init = py_utils.WeightInit.Gaussian(0.1)
-    params.is_eval = False
     layers.BatchNormLayerNoPadding(params)
     bn_vars = tf.get_collection('BatchNormLayerNoPadding_vars')
     bn_var_names = [x.name for x in bn_vars]
@@ -3551,24 +3534,24 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
       'is_eval': False,
   })
   def testBatchNormLayerNoPaddingFProp(self, is_eval):
-    tf.set_random_seed(398847392)
-    np.random.seed(12345)
-    params = layers.BatchNormLayerNoPadding.Params()
-    params.name = 'bn'
-    params.dim = 3
-    params.params_init = py_utils.WeightInit.Gaussian(0.1)
-    params.is_eval = is_eval
+    with self.session(use_gpu=True), self.SetEval(is_eval):
+      tf.set_random_seed(398847392)
+      np.random.seed(12345)
+      params = layers.BatchNormLayerNoPadding.Params()
+      params.name = 'bn'
+      params.dim = 3
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
 
-    bn_layer = layers.BatchNormLayerNoPadding(params)
-    bn_in1 = tf.constant(
-        np.random.normal(0.1, 0.5, [2, 8, 3]), dtype=tf.float32)
+      bn_layer = layers.BatchNormLayerNoPadding(params)
+      bn_in1 = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 8, 3]), dtype=tf.float32)
 
-    bn_out = bn_layer.FPropDefaultTheta(bn_in1)
-    sig1 = tf.reduce_sum(bn_out)
-    sig2 = tf.reduce_sum(bn_out * bn_out)
-    expected_sig1 = 2.6593573 if is_eval else 0
-    expected_sig2 = 15.4642076 if is_eval else 47.850193
-    with self.session(use_gpu=True):
+      bn_out = bn_layer.FPropDefaultTheta(bn_in1)
+      sig1 = tf.reduce_sum(bn_out)
+      sig2 = tf.reduce_sum(bn_out * bn_out)
+      expected_sig1 = 2.6593573 if is_eval else 0
+      expected_sig2 = 15.4642076 if is_eval else 47.850193
+
       tf.global_variables_initializer().run()
       self.assertAllClose(expected_sig1, sig1.eval(), atol=1e-5)
       self.assertAllClose(expected_sig2, sig2.eval(), atol=1e-5)
@@ -3580,7 +3563,6 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
     params.name = 'bn'
     params.dim = 3
     params.params_init = py_utils.WeightInit.Gaussian(0.1)
-    params.is_eval = False
 
     bn_layer = layers.BatchNormLayerNoPadding(params)
     bn_in1 = tf.constant(
@@ -3601,7 +3583,6 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
     params.name = 'bn'
     params.dim = 2
     params.params_init = py_utils.WeightInit.Gaussian(0.1)
-    params.is_eval = False
 
     bn_layer = layers.BatchNormLayerNoPadding(params)
     bn_layer.accumulators.counts.Update(0.0)
@@ -3624,7 +3605,6 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
     params.name = 'bn_conv'
     params.dim = 32
     params.params_init = py_utils.WeightInit.Gaussian(0.1)
-    params.is_eval = False
 
     bn_layer = layers.BatchNormLayerNoPadding(params)
     bn_in1 = tf.constant(
@@ -4160,7 +4140,6 @@ class DeconvLayerTest(test_utils.TestCase):
       params.filter_shape = [3, 3, 2, 8]
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.is_eval = False
 
       conv_layer = params.Instantiate()
       inputs = tf.constant(

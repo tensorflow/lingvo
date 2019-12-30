@@ -1110,6 +1110,7 @@ py_library(
     srcs = ["test_utils.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":cluster_factory",
         ":py_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.

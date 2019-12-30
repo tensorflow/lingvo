@@ -508,13 +508,13 @@ class DecoderTest(test_utils.TestCase):
         graph_options=tf.GraphOptions(
             optimizer_options=tf.OptimizerOptions(do_function_inlining=False)))
     p = params
-    with self.session(use_gpu=False, config=config) as sess:
+    with self.session(use_gpu=False, config=config) as sess, self.SetEval(True):
       tf.set_random_seed(837274904)
       np.random.seed(837575)
       p.beam_search.num_hyps_per_beam = 4
       p.dtype = tf.float32
       p.target_seq_len = 5
-      p.is_eval = True
+
       dec = p.Instantiate()
       if src_seq_len is None:
         src_seq_len = 5

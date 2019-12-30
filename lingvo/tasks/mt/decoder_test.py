@@ -215,21 +215,20 @@ class DecoderTest(DecoderTestCaseBase):
         decoder.MTDecoderV1, feed_att_context_to_softmax=True)
 
   def testBeamSearchDecode(self, dtype=tf.float32):
-    tf.set_random_seed(_TF_RANDOM_SEED)
-    src_batch = 2
-    p = self._DecoderParams(dtype=dtype)
-    p.is_eval = True
-    src_time = p.target_seq_len
-    p.beam_search.num_hyps_per_beam = 2
-    p.rnn_cell_dim = 32
-    dec = decoder.MTDecoderV1(p)
-    encoder_outputs, _ = self._Inputs(dtype=dtype)
-    decode = dec.BeamSearchDecode(encoder_outputs)
-    # topk_decoded is None in MT decoder, set it to a fake tensor to pass
-    # sess.run(decode).
-    decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      src_batch = 2
+      p = self._DecoderParams(dtype=dtype)
+      src_time = p.target_seq_len
+      p.beam_search.num_hyps_per_beam = 2
+      p.rnn_cell_dim = 32
+      dec = decoder.MTDecoderV1(p)
+      encoder_outputs, _ = self._Inputs(dtype=dtype)
+      decode = dec.BeamSearchDecode(encoder_outputs)
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # sess.run(decode).
+      decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
 
-    with self.session(use_gpu=True) as sess:
       tf.global_variables_initializer().run()
       actual_decode = sess.run(decode)
 
@@ -260,22 +259,20 @@ class DecoderTest(DecoderTestCaseBase):
     self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
 
   def testBeamSearchDecodeFeedingAttContext(self, dtype=tf.float32):
-    tf.set_random_seed(_TF_RANDOM_SEED)
-    src_batch = 2
-    p = self._DecoderParams(dtype=dtype)
-    p.is_eval = True
-    src_time = p.target_seq_len
-    p.beam_search.num_hyps_per_beam = 2
-    p.rnn_cell_dim = 32
-    p.feed_attention_context_vec_to_softmax = True
-    dec = decoder.MTDecoderV1(p)
-    encoder_outputs, _ = self._Inputs(dtype=dtype)
-    decode = dec.BeamSearchDecode(encoder_outputs)
-    # topk_decoded is None in MT decoder, set it to a fake tensor to pass
-    # sess.run(decode).
-    decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
-
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      src_batch = 2
+      p = self._DecoderParams(dtype=dtype)
+      src_time = p.target_seq_len
+      p.beam_search.num_hyps_per_beam = 2
+      p.rnn_cell_dim = 32
+      p.feed_attention_context_vec_to_softmax = True
+      dec = decoder.MTDecoderV1(p)
+      encoder_outputs, _ = self._Inputs(dtype=dtype)
+      decode = dec.BeamSearchDecode(encoder_outputs)
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # sess.run(decode).
+      decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
       tf.global_variables_initializer().run()
       actual_decode_feeding_att_context = sess.run(decode)
 
@@ -309,20 +306,20 @@ class DecoderTest(DecoderTestCaseBase):
                         actual_decode_feeding_att_context.topk_scores)
 
   def testSampleTargetSequences(self, dtype=tf.float32):
-    tf.set_random_seed(_TF_RANDOM_SEED)
-    src_batch = 2
-    p = self._DecoderParams(dtype=dtype)
-    if p.cls != decoder.MTDecoderV1:
-      tf.logging.info('Skipping testSampleTargetSequences for %s', p.cls)
-      return
-    p.is_eval = True
-    p.rnn_cell_dim = 32
-    dec = p.Instantiate()
-    encoder_outputs, _ = self._Inputs(dtype=dtype)
-    sample = dec.SampleTargetSequences(
-        dec.theta, encoder_outputs, random_seed=tf.constant(1, dtype=tf.int32))
-
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      src_batch = 2
+      p = self._DecoderParams(dtype=dtype)
+      if p.cls != decoder.MTDecoderV1:
+        tf.logging.info('Skipping testSampleTargetSequences for %s', p.cls)
+        return
+      p.rnn_cell_dim = 32
+      dec = p.Instantiate()
+      encoder_outputs, _ = self._Inputs(dtype=dtype)
+      sample = dec.SampleTargetSequences(
+          dec.theta,
+          encoder_outputs,
+          random_seed=tf.constant(1, dtype=tf.int32))
       tf.global_variables_initializer().run()
       actual_sample = sess.run(sample)
 
@@ -751,10 +748,9 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       self._testExtendStep(sess, dec, encoder_outputs, targets, num_hyps)
 
   def testTransparentDecoderExtendStep(self, dtype=tf.float32):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
-      p.is_eval = True
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, num_hyps = self._testTransparentInputs(
           dtype=dtype, is_eval_mode=True)

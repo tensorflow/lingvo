@@ -47,7 +47,7 @@ class OptimizerTest(test_utils.TestCase):
       params.input_dim = 3
       params.output_dim = 2
       params.params_init = py_utils.WeightInit.Gaussian(0.01, 123456)
-      params.is_eval = False
+
       params.batch_norm = False
       proj_layer = layers.ProjectionLayer(params)
       inputs1 = tf.placeholder(shape=[2, 4, 3], dtype=tf.float64)
@@ -93,7 +93,7 @@ class OptimizerTest(test_utils.TestCase):
       params.input_dim = 3
       params.output_dim = 2
       params.params_init = py_utils.WeightInit.Gaussian(0.01, 123456)
-      params.is_eval = False
+
       params.batch_norm = False
       proj_layer = layers.ProjectionLayer(params)
       in_padding1 = tf.zeros([2, 4, 1], dtype=tf.float64)
