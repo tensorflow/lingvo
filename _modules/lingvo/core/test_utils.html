@@ -166,7 +166,9 @@
 
 <span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">re</span>
+
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
@@ -191,7 +193,10 @@
     <span class="k">with</span> <span class="n">sess</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
       <span class="c1"># Ensure the global_step variable is created in every new session.</span>
       <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">sess</span></div></div>
+    <span class="k">return</span> <span class="n">sess</span></div>
+
+<div class="viewcode-block" id="TestCase.SetEval"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase.SetEval">[docs]</a>  <span class="k">def</span> <span class="nf">SetEval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="_ReplaceOneLineInFile"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils._ReplaceOneLineInFile">[docs]</a><span class="k">def</span> <span class="nf">_ReplaceOneLineInFile</span><span class="p">(</span><span class="n">fpath</span><span class="p">,</span> <span class="n">linenum</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
@@ -270,7 +275,11 @@
   <span class="k">return</span> <span class="n">np_arr</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[::</span><span class="n">step</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="ComputeNumericGradient"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.ComputeNumericGradient">[docs]</a><span class="k">def</span> <span class="nf">ComputeNumericGradient</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<div class="viewcode-block" id="ComputeNumericGradient"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.ComputeNumericGradient">[docs]</a><span class="k">def</span> <span class="nf">ComputeNumericGradient</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span>
+                           <span class="n">y</span><span class="p">,</span>
+                           <span class="n">x</span><span class="p">,</span>
+                           <span class="n">delta</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+                           <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                            <span class="n">extra_feed_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Compute the numeric gradient of y wrt to x.</span>
 
@@ -279,8 +288,8 @@
 <span class="sd">    y: A scalar TF Tensor in the graph constructed in sess.</span>
 <span class="sd">    x: A TF Tensor in the graph constructed in sess.</span>
 <span class="sd">    delta: Gradient checker&#39;s small perturbation of x[i].</span>
-<span class="sd">    step: Only compute numerical gradients for a subset of x values.</span>
-<span class="sd">      I.e. dy/dx[i] is computed if i % step == 0.</span>
+<span class="sd">    step: Only compute numerical gradients for a subset of x values. I.e.</span>
+<span class="sd">      dy/dx[i] is computed if i % step == 0.</span>
 <span class="sd">    extra_feed_dict: Additional feed_dict of tensors to keep fixed during the</span>
 <span class="sd">      gradient checking.</span>
 
