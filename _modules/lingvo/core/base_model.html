@@ -613,21 +613,22 @@
 
     <span class="n">all_metrics</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">all_per_example_tensors</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">w_id</span><span class="p">,</span> <span class="n">w_devs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dev_list_per_replica</span><span class="p">):</span>
-      <span class="c1"># Make local copy of the vars, shard on devices for this worker.</span>
-      <span class="n">theta_local</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateLocalTheta</span><span class="p">(</span>
-          <span class="n">theta</span><span class="p">,</span> <span class="n">w_devs</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;worker </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">w_id</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">cluster</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">w_id</span><span class="p">,</span> <span class="n">w_devs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dev_list_per_replica</span><span class="p">):</span>
+        <span class="c1"># Make local copy of the vars, shard on devices for this worker.</span>
+        <span class="n">theta_local</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateLocalTheta</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span> <span class="n">w_devs</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;worker </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">w_id</span><span class="p">)</span>
 
-      <span class="k">for</span> <span class="n">s_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">splits_per_replica</span><span class="p">):</span>
-        <span class="c1"># s_id-th split for the w_id-th worker.</span>
-        <span class="n">split_id</span> <span class="o">=</span> <span class="n">splits_per_replica</span> <span class="o">*</span> <span class="n">w_id</span> <span class="o">+</span> <span class="n">s_id</span>
-        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ModelSplit</span><span class="p">(</span><span class="n">split_id</span><span class="p">):</span>
-          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
-            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;tower_</span><span class="si">%d</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_id</span><span class="p">,</span> <span class="n">s_id</span><span class="p">)):</span>
-              <span class="n">batch</span> <span class="o">=</span> <span class="n">input_batch</span><span class="p">[</span><span class="n">split_id</span><span class="p">]</span>
-              <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="n">theta_local</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
-        <span class="n">all_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
-        <span class="n">all_per_example_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">per_example</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">s_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">splits_per_replica</span><span class="p">):</span>
+          <span class="c1"># s_id-th split for the w_id-th worker.</span>
+          <span class="n">split_id</span> <span class="o">=</span> <span class="n">splits_per_replica</span> <span class="o">*</span> <span class="n">w_id</span> <span class="o">+</span> <span class="n">s_id</span>
+          <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetModelSplit</span><span class="p">(</span><span class="n">split_id</span><span class="p">)</span> <span class="k">as</span> <span class="n">c</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+              <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;tower_</span><span class="si">%d</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_id</span><span class="p">,</span> <span class="n">s_id</span><span class="p">)):</span>
+                <span class="n">batch</span> <span class="o">=</span> <span class="n">input_batch</span><span class="p">[</span><span class="n">split_id</span><span class="p">]</span>
+                <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="n">theta_local</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+          <span class="n">all_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
+          <span class="n">all_per_example_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">per_example</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightedAvgOfMetrics</span><span class="p">(</span>
         <span class="n">all_metrics</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ConcatPerExampleTensors</span><span class="p">(</span><span class="n">all_per_example_tensors</span><span class="p">)</span></div>

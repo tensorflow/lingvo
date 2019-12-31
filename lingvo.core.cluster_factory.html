@@ -215,6 +215,27 @@
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.cluster_factory.SetModelSplit">
+<code class="sig-prename descclassname">lingvo.core.cluster_factory.</code><code class="sig-name descname">SetModelSplit</code><span class="sig-paren">(</span><em class="sig-param">split_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster_factory.html#SetModelSplit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster_factory.SetModelSplit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the current cluster with the model split id set.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+  <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetModelSplit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">as</span> <span class="n">c</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+      <span class="o">...</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>split_id</strong> – Integer split id for the model.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A new Cluster instance.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 

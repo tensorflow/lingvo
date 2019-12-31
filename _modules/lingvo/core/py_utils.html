@@ -2754,23 +2754,6 @@
   <span class="k">return</span> <span class="n">relevant_updates</span><span class="p">,</span> <span class="n">irrelevant_updates</span>
 
 
-<span class="n">_MODEL_SPLIT_ID_STACK</span> <span class="o">=</span> <span class="s1">&#39;__model_split_id_stack&#39;</span>
-<span class="n">_get_model_split_id_stack</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span><span class="n">_MODEL_SPLIT_ID_STACK</span><span class="p">,</span>
-                                              <span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-
-
-<span class="k">def</span> <span class="nf">GetModelSplit</span><span class="p">():</span>
-  <span class="k">return</span> <span class="n">_get_model_split_id_stack</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-
-
-<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
-<span class="k">def</span> <span class="nf">ModelSplit</span><span class="p">(</span><span class="n">split_id</span><span class="p">):</span>
-  <span class="k">assert</span> <span class="n">split_id</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-  <span class="n">_get_model_split_id_stack</span><span class="p">()</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">split_id</span><span class="p">)</span>
-  <span class="k">yield</span>
-  <span class="n">_get_model_split_id_stack</span><span class="p">()</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-
-
 <span class="n">_SAMPLE_STEP_KEY</span> <span class="o">=</span> <span class="s1">&#39;sample_step&#39;</span>
 
 

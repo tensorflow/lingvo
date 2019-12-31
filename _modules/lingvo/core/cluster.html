@@ -168,7 +168,6 @@
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
@@ -258,6 +257,7 @@
         <span class="s1">&#39;add_summary&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Whether to add summaries. If None, &#39;</span>
         <span class="s1">&#39;decides based on the job type.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;do_eval&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Whether to do eval.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;split_id&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Split id for the model.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="_Cluster._MakeDeviceString"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster._MakeDeviceString">[docs]</a>  <span class="nd">@classmethod</span>
@@ -296,6 +296,7 @@
 
   <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">_CLUSTER_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span>
 
   <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_arg</span><span class="p">,</span> <span class="n">value_arg</span><span class="p">,</span> <span class="n">traceback_arg</span><span class="p">):</span>
     <span class="n">stack</span> <span class="o">=</span> <span class="n">_CLUSTER_STACK</span><span class="o">.</span><span class="n">stack</span>
@@ -532,16 +533,20 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A string. The device to place ops onto.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: if split_id of cluster is incorrectly set.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">devices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_devices</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">devices</span><span class="p">:</span>
       <span class="k">return</span> <span class="s1">&#39;&#39;</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">model_split</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetModelSplit</span><span class="p">()</span>
-      <span class="k">assert</span> <span class="n">model_split</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">,</span> <span class="p">(</span>
-          <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">model_split</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">))</span>
+      <span class="n">split_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">split_id</span>
+      <span class="k">if</span> <span class="n">split_id</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">split_id</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;split_id (</span><span class="si">%d</span><span class="s1">) not in [0, </span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span>
+                         <span class="p">(</span><span class="n">split_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">))</span>
       <span class="n">devices_per_split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_devices_per_split</span>
-      <span class="k">return</span> <span class="n">devices</span><span class="p">[</span><span class="n">devices_per_split</span> <span class="o">*</span> <span class="n">model_split</span> <span class="o">+</span>
+      <span class="k">return</span> <span class="n">devices</span><span class="p">[</span><span class="n">devices_per_split</span> <span class="o">*</span> <span class="n">split_id</span> <span class="o">+</span>
                      <span class="n">device_index</span> <span class="o">%</span> <span class="n">devices_per_split</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="_Cluster.GetPlacer"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.GetPlacer">[docs]</a>  <span class="k">def</span> <span class="nf">GetPlacer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
