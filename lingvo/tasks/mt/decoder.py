@@ -1430,7 +1430,7 @@ class TransformerDecoder(MTBaseDecoder):
       return bs_results, new_states
 
     random_seed = tf.random_uniform(
-        shape=[], maxval=(2**31 - 1), dtype=tf.int32)
+        shape=[], maxval=(2**31 - 1), dtype=tf.int32, seed=p.random_seed)
     sample = self.target_sequence_sampler.Sample(
         self.theta, encoder_outputs, random_seed, InitCallback,
         PreBeamSearchCallback, self._PostBeamSearchStepCallback)

@@ -922,7 +922,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     p.beam_search.num_hyps_per_beam = 1
     p.beam_search.coverage_penalty = 0.0
     p.beam_search.length_normalization = 0
-    dec = decoder.TransformerDecoder(p)
+    dec = p.Instantiate()
     encoder_outputs, _, _ = self._Inputs(
         dtype=dtype, has_task_ids=has_task_ids, init_step_ids=init_step_ids)
     decode = dec.SampleSequenceDecode(encoder_outputs)
@@ -946,11 +946,11 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def testSampleSequenceDecode(self, dtype=tf.float32):
     expected_values = {}
-    expected_values['topk_ids'] = [[4, 7, 7, 2, 2], [8, 2, 2, 2, 2],
-                                   [17, 3, 3, 3, 19], [8, 19, 5, 17, 4]]
-    expected_values['topk_lens'] = [4, 2, 5, 5]
+    expected_values['topk_ids'] = [[4, 3, 12, 7, 11], [17, 7, 2, 2, 2],
+                                   [17, 2, 2, 2, 2], [17, 1, 1, 16, 4]]
+    expected_values['topk_lens'] = [5, 3, 2, 5]
     expected_values['topk_scores'] = [
-        -5.097124, -2.531022, -6.830246, -8.176768
+        -6.985453, -3.714368, -2.899912, -8.281981
     ]
     self._testSampleSequence(
         expected_values=expected_values,
