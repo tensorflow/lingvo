@@ -397,11 +397,10 @@ class AsrModelTest(test_utils.TestCase):
       ip.frame_size = 80
       ip.append_eos_frame = True
       ip.pad_to_max_seq_length = False
-
-      p.is_eval = True
       return p
 
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(
+        use_gpu=False, graph=tf.Graph()) as sess, self.SetEval(True):
       p = _CreateModelParamsForTest()
       mdl = p.Instantiate()
       subgraphs = mdl.Inference()
