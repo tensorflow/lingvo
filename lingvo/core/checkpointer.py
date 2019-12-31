@@ -154,8 +154,6 @@ class Checkpointer(object):
                         tp.init_from_checkpoint_rules)
         py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(),
                                              tp.init_from_checkpoint_rules)
-    else:
-      sess.run(tf.global_variables_initializer())
 
     uninitialized_var_names = self.GetUninitializedVars(sess)
     if not uninitialized_var_names:
@@ -164,6 +162,7 @@ class Checkpointer(object):
     # uninitialized_var_names is a list of strings without ":0" suffix.
     # tf.report_uninitialized_variables returns binary strings.
     assert all(isinstance(s, six.binary_type) for s in uninitialized_var_names)
+    tf.logging.info('Remaining uninitialized vars: %s', uninitialized_var_names)
 
     # Need to retrieve vars, removing ":0" suffix from names.
     uninitialized_vars = [
@@ -171,7 +170,7 @@ class Checkpointer(object):
         if six.ensure_binary(v.name[:-2]) in uninitialized_var_names
     ]
     tf.logging.info('Initialize variables: %s',
-                    [v.name for v in uninitialized_vars])
+                    [v.name[:-2] for v in uninitialized_vars])
     sess.run(tf.variables_initializer(uninitialized_vars))
 
   def RestoreGlobalStepIfNeeded(self, sess):
