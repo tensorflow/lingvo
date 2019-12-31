@@ -1055,7 +1055,7 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SymmetricScheduledClipQDomain.QuantizeTensors"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeTensors">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeTensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">eval_only</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">eval_only</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">ts</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="p">[</span>

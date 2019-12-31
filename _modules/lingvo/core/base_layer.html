@@ -381,8 +381,6 @@
       <span class="n">to_params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">from_params</span><span class="o">.</span><span class="n">fprop_dtype</span>
     <span class="k">if</span> <span class="n">to_params</span><span class="o">.</span><span class="n">random_seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">to_params</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">from_params</span><span class="o">.</span><span class="n">random_seed</span>
-    <span class="k">if</span> <span class="n">to_params</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">to_params</span><span class="o">.</span><span class="n">is_eval</span> <span class="o">=</span> <span class="n">from_params</span><span class="o">.</span><span class="n">is_eval</span>
     <span class="k">if</span> <span class="n">to_params</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">to_params</span><span class="o">.</span><span class="n">is_inference</span> <span class="o">=</span> <span class="n">from_params</span><span class="o">.</span><span class="n">is_inference</span>
     <span class="k">if</span> <span class="n">to_params</span><span class="o">.</span><span class="n">allow_implicit_capture</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -558,10 +556,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">do_eval</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">do_eval</span>
-    <span class="c1"># TODO(zhifengc): Deprecate and remove BaseLayer.params.is_eval.</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">do_eval</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">parent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
