@@ -349,7 +349,6 @@ class InferenceGraphExporter(object):
 
     # Configure the model.
     model_cfg.random_seed = random_seed
-    model_cfg.is_eval = True
     model_cfg.is_inference = True
 
     if disable_packed_input:
