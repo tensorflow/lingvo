@@ -910,7 +910,7 @@ class SymmetricScheduledClipQDomain(QDomain):
     return tf.clip_by_value(t, min_value, max_value)
 
   def QuantizeTensors(self, t_name, ts, eval_only=False):
-    if eval_only and not self.params.is_eval:
+    if eval_only and not self.do_eval:
       return ts
     else:
       return [

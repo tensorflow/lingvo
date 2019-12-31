@@ -253,10 +253,7 @@ class DistillationTaskTest(test_utils.TestCase):
   def testFProp(self):
     p = DistillationTestTask.Params()
     task = p.Instantiate()
-    self.assertFalse(task.params.is_eval)
-    self.assertFalse(task.teacher.params.is_eval)
     self.assertIsNotNone(task.teacher.params.input)
-    self.assertFalse(task.student.params.is_eval)
     self.assertIsNotNone(task.student.params.input)
     metrics = task.FPropDefaultTheta()[0]
     self.assertItemsEqual(['loss', 'num_samples_in_batch'],

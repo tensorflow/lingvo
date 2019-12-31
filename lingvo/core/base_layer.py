@@ -236,8 +236,6 @@ class BaseLayer(tf.Module):
       to_params.fprop_dtype = from_params.fprop_dtype
     if to_params.random_seed is None:
       to_params.random_seed = from_params.random_seed
-    if to_params.is_eval is None:
-      to_params.is_eval = from_params.is_eval
     if to_params.is_inference is None:
       to_params.is_inference = from_params.is_inference
     if to_params.allow_implicit_capture is None:
@@ -413,10 +411,7 @@ class BaseLayer(tf.Module):
 
   @property
   def do_eval(self):
-    if self.cluster.do_eval is not None:
-      return self.cluster.do_eval
-    # TODO(zhifengc): Deprecate and remove BaseLayer.params.is_eval.
-    return self.params.is_eval
+    return self.cluster.do_eval
 
   @property
   def parent(self):

@@ -931,7 +931,6 @@ class Evaler(base_runner.BaseRunner):
     super(Evaler, self).__init__(*args, **kwargs)
     self._job_name = 'evaler_' + eval_type
     self._output_name = 'eval_' + eval_type
-    self.params.is_eval = True  # TODO(zhifengc): Remove me.
     self.params.cluster.do_eval = True
     self._cluster = cluster_factory.Cluster(self.params.cluster)
     self._eval_dir = os.path.join(self._logdir, self._output_name)
@@ -1127,7 +1126,6 @@ class Decoder(base_runner.BaseRunner):
   def __init__(self, decoder_type, *args, **kwargs):
     super(Decoder, self).__init__(*args, **kwargs)
     self._job_name = 'decoder_' + decoder_type
-    self.params.is_eval = True  # TODO(zhifengc): Remove me.
     self.params.cluster.do_eval = True
     self._cluster = cluster_factory.Cluster(self.params.cluster)
     self._decoder_dir = GetDecoderDir(self._logdir, self._job_name,

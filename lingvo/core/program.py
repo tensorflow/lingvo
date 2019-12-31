@@ -26,6 +26,7 @@ import time
 import lingvo.compat as tf
 from lingvo.core import base_model
 from lingvo.core import checkpointer
+from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import metrics
 from lingvo.core import py_utils
@@ -318,10 +319,6 @@ class EvalProgram(BaseProgram):
   evaluation.
   """
 
-  def __init__(self, params):
-    super(EvalProgram, self).__init__(params)
-    self._task_params.is_eval = True
-
   def BuildTpuSubgraph(self):
     tf.logging.info('EvalProgram BuildTpuSubGraph')
     with py_utils.OpportunisticVariableReuseScope(True):
@@ -337,11 +334,12 @@ class EvalProgram(BaseProgram):
         Returns:
           Per-step eval metrics.
         """
-        self._model = self._task_params.Instantiate()
-        self._model.ConstructFPropGraph()
-        per_step_eval_metrics = self._eval_metrics.SetMetrics(
-            self._model.GetTask().eval_metrics, args)
-        return per_step_eval_metrics
+        with cluster_factory.SetEval(True):
+          self._model = self._task_params.Instantiate()
+          self._model.ConstructFPropGraph()
+          per_step_eval_metrics = self._eval_metrics.SetMetrics(
+              self._model.GetTask().eval_metrics, args)
+          return per_step_eval_metrics
 
       @tpu_function.on_device_training_loop
       def TpuEval():
@@ -390,10 +388,6 @@ class DecodeProgram(BaseProgram):
   decoder run.
   """
 
-  def __init__(self, params):
-    super(DecodeProgram, self).__init__(params)
-    self._task_params.is_eval = True
-
   def _WriteSummaries(self, job_name, global_step, summaries):
     for unused_name, summary in sorted(summaries.items()):
       self._summary_writer.add_summary(summary, global_step)
@@ -410,12 +404,13 @@ class DecodeProgram(BaseProgram):
 
     def _DecodeFn():
       with py_utils.OpportunisticVariableReuseScope(True):
-        self._model = self._task_params.Instantiate()
-        self._model_task = self._model.GetTask()
-        input_batch = self._model_task.GetInputBatch()
-        metrics_dict = self._model_task.Decode(input_batch)
-        self.metrics_nm = py_utils.NestedMap(metrics_dict)
-        return self.metrics_nm.Flatten()
+        with cluster_factory.SetEval(True):
+          self._model = self._task_params.Instantiate()
+          self._model_task = self._model.GetTask()
+          input_batch = self._model_task.GetInputBatch()
+          metrics_dict = self._model_task.Decode(input_batch)
+          self.metrics_nm = py_utils.NestedMap(metrics_dict)
+          return self.metrics_nm.Flatten()
 
     batch_parallel_res = tf.tpu.batch_parallel(
         _DecodeFn,

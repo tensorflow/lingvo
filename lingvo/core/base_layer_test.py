@@ -72,24 +72,20 @@ class BaseLayerTest(test_utils.TestCase):
     layer_base_p = base_layer.BaseLayer.Params()
     from_param = layer_base_p.Copy()
     to_param = layer_base_p.Copy()
-    from_param.is_eval = False
     from_param.vn.global_vn = True
     from_param.random_seed = 1234
     from_param.skip_lp_regularization = True
     # Target use default, overwrite.
     base_layer.BaseLayer.CopyBaseParams(from_param, to_param)
-    self.assertEqual(False, to_param.is_eval)
     self.assertTrue(to_param.vn.global_vn)
     self.assertEqual(1234, to_param.random_seed)
     self.assertTrue(to_param.skip_lp_regularization)
     to_param = layer_base_p.Copy()
-    to_param.is_eval = True
     to_param.vn.per_step_vn = True
     to_param.random_seed = 4321
     to_param.skip_lp_regularization = False
     # Target does not use default, should not overwrite.
     base_layer.BaseLayer.CopyBaseParams(from_param, to_param)
-    self.assertEqual(True, to_param.is_eval)
     self.assertTrue(to_param.vn.per_step_vn)
     self.assertFalse(to_param.vn.global_vn)
     self.assertEqual(4321, to_param.random_seed)
