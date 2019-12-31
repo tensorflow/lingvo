@@ -299,8 +299,6 @@
                         <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span>
                                              <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">())</span>
 
     <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetUninitializedVars</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">uninitialized_var_names</span><span class="p">:</span>
@@ -309,6 +307,7 @@
     <span class="c1"># uninitialized_var_names is a list of strings without &quot;:0&quot; suffix.</span>
     <span class="c1"># tf.report_uninitialized_variables returns binary strings.</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">binary_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Remaining uninitialized vars: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
 
     <span class="c1"># Need to retrieve vars, removing &quot;:0&quot; suffix from names.</span>
     <span class="n">uninitialized_vars</span> <span class="o">=</span> <span class="p">[</span>
@@ -316,7 +315,7 @@
         <span class="k">if</span> <span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="ow">in</span> <span class="n">uninitialized_var_names</span>
     <span class="p">]</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialize variables: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                    <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">uninitialized_vars</span><span class="p">])</span>
+                    <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">uninitialized_vars</span><span class="p">])</span>
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span><span class="n">uninitialized_vars</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="Checkpointer.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
