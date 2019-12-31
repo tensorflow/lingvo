@@ -196,7 +196,7 @@ class Controller(base_runner.BaseRunner):
 
     self._ExportMetrics(params=self.params)
     self._model_analysis, self._total_num_params = _ModelAnalysis(self._model)
-    tf.logging.info(self._model_analysis)
+    py_utils.LogMultiLines('MODEL ANALYSIS', self._model_analysis)
     self._WriteToLog(self._model_analysis, self._control_dir,
                      'model_analysis.txt')
     self._WriteToLog(self.params.ToText(), self._control_dir, 'params.txt')

@@ -75,7 +75,6 @@ tf.flags.DEFINE_bool(
     'variable handles directly for weight-sharing / multi-core '
     'inference on TPUs.')
 
-
 FLAGS = tf.flags.FLAGS
 
 ENQUEUE_OPS = '__lingvo_enqueue_ops'
@@ -803,8 +802,8 @@ _get_opportunistic_variable_reuse = _CollectionGetter(
 
 _VARIABLE_RENAME_RULES_KEY = ('__lingvo_variable_rename_rules',)
 
-_get_rename_rules_stack = _CollectionGetter(_VARIABLE_RENAME_RULES_KEY,
-                                            lambda: [])
+_get_rename_rules_stack = _CollectionGetter(
+    _VARIABLE_RENAME_RULES_KEY, lambda: [])
 
 
 @contextlib.contextmanager
@@ -1065,6 +1064,13 @@ def GetOrCreateGlobalStep():
     return tf.train.get_or_create_global_step()
 
 
+def LogMultiLines(label, lines):
+  if not isinstance(lines, (list, tuple)):
+    lines = lines.split('\n')
+  for line in lines:
+    tf.logging.info('%s: %s', label, line)
+
+
 def _LogPlacement(label, theta, copy):
   """Logs theta and its copy's device placement."""
 
@@ -1073,8 +1079,8 @@ def _LogPlacement(label, theta, copy):
     return [x.device for x in m.Flatten()]
 
   tf.logging.info('=== %s ===', label)
-  tf.logging.info(
-      '%s',
+  LogMultiLines(
+      label,
       theta.Pack(
           [('%s -> %s' % (x[0], x[1]))
            for x in zip(GetDevices(theta), GetDevices(copy))]).DebugString())
@@ -1348,8 +1354,8 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
   """
 
   if grad_scale is not None:
-    vs_gs_scale = vs_gs_scale.Transform(
-        lambda v_g: (v_g[0], v_g[1], grad_scale))
+    vs_gs_scale = vs_gs_scale.Transform(lambda v_g: (v_g[0], v_g[1], grad_scale)
+                                       )
 
   def ScaleOrZero(var, grad, scale):
     grad = CheckNumerics(grad, 'Gradient for %s is not finite.' % var.name)
@@ -1405,16 +1411,15 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
     else:
       return var
 
+  def Skip(v_g):
+    return v_g[0] not in tf.get_collection(SKIP_LP_REGULARIZATION)
+
   if p == 2.0:
     lp_loss = 0.5 * lp_regularizer_weight * SumSquared(
-        var_grads.Filter(
-            lambda v_g: v_g[0] not in tf.get_collection(SKIP_LP_REGULARIZATION))
-        .Transform(GetVar).Flatten())
+        var_grads.Filter(Skip).Transform(GetVar).Flatten())
   elif p == 1.0:
     lp_loss = lp_regularizer_weight * SumAbs(
-        var_grads.Filter(
-            lambda v_g: v_g[0] not in tf.get_collection(SKIP_LP_REGULARIZATION))
-        .Transform(GetVar).Flatten())
+        var_grads.Filter(Skip).Transform(GetVar).Flatten())
 
   def LpGrad(item):
     """Adjusts item's grad w/ Lp loss term."""
@@ -1800,8 +1805,8 @@ def DeterministicDropout(x, keep_prob, seeds, name=None):
 BATCH_NORM_UPDATES = 'batch_norm_updates'
 
 _BATCH_NORM_UPDATES_DICT = '__batch_norm_update_dict'
-_get_batch_norm_updates_dict = _CollectionGetter(_BATCH_NORM_UPDATES_DICT,
-                                                 lambda: {})
+_get_batch_norm_updates_dict = _CollectionGetter(
+    _BATCH_NORM_UPDATES_DICT, lambda: {})
 
 
 def UpdateBatchNormVars(batch_norm_var, batch_norm_stats, decay):
@@ -1858,8 +1863,8 @@ def FindRelevantBatchNormUpdates(loss, batch_norm_updates):
 
 
 _MODEL_SPLIT_ID_STACK = '__model_split_id_stack'
-_get_model_split_id_stack = _CollectionGetter(_MODEL_SPLIT_ID_STACK,
-                                              lambda: [0])
+_get_model_split_id_stack = _CollectionGetter(
+    _MODEL_SPLIT_ID_STACK, lambda: [0])
 
 
 def GetModelSplit():
