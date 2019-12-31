@@ -2609,23 +2609,6 @@ def FindRelevantBatchNormUpdates(loss, batch_norm_updates):
   return relevant_updates, irrelevant_updates
 
 
-_MODEL_SPLIT_ID_STACK = '__model_split_id_stack'
-_get_model_split_id_stack = _CollectionGetter(_MODEL_SPLIT_ID_STACK,
-                                              lambda: [0])
-
-
-def GetModelSplit():
-  return _get_model_split_id_stack()[-1]
-
-
-@contextlib.contextmanager
-def ModelSplit(split_id):
-  assert split_id >= 0
-  _get_model_split_id_stack().append(split_id)
-  yield
-  _get_model_split_id_stack().pop()
-
-
 _SAMPLE_STEP_KEY = 'sample_step'
 
 

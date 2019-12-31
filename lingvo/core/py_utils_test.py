@@ -845,13 +845,6 @@ class PyUtilsTest(test_utils.TestCase):
     self.assertTrue(set([p1, p2, p3]) == z2_needed)
     self.assertTrue(set([p1, p2, p3, p4]) == z2_p4_needed)
 
-  def testModelSplit(self):
-    with py_utils.ModelSplit(2):
-      assert py_utils.GetModelSplit() == 2
-      with py_utils.ModelSplit(3):
-        assert py_utils.GetModelSplit() == 3
-    assert py_utils.GetModelSplit() == 0
-
   def testArgMax(self):
 
     def Compute(x):

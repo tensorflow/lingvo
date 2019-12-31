@@ -468,21 +468,22 @@ class BaseTask(base_layer.BaseLayer):
 
     all_metrics = []
     all_per_example_tensors = []
-    for w_id, w_devs in enumerate(dev_list_per_replica):
-      # Make local copy of the vars, shard on devices for this worker.
-      theta_local = py_utils.CreateLocalTheta(
-          theta, w_devs, label='worker %d' % w_id)
+    with cluster:
+      for w_id, w_devs in enumerate(dev_list_per_replica):
+        # Make local copy of the vars, shard on devices for this worker.
+        theta_local = py_utils.CreateLocalTheta(
+            theta, w_devs, label='worker %d' % w_id)
 
-      for s_id in range(splits_per_replica):
-        # s_id-th split for the w_id-th worker.
-        split_id = splits_per_replica * w_id + s_id
-        with py_utils.ModelSplit(split_id):
-          with tf.device(cluster.WorkerDeviceInModelSplit(0)):
-            with tf.name_scope('tower_%d_%d' % (w_id, s_id)):
-              batch = input_batch[split_id]
-              metrics, per_example = self.FPropTower(theta_local, batch)
-        all_metrics.append(metrics)
-        all_per_example_tensors.append(per_example)
+        for s_id in range(splits_per_replica):
+          # s_id-th split for the w_id-th worker.
+          split_id = splits_per_replica * w_id + s_id
+          with cluster_factory.SetModelSplit(split_id) as c:
+            with tf.device(c.WorkerDeviceInModelSplit(0)):
+              with tf.name_scope('tower_%d_%d' % (w_id, s_id)):
+                batch = input_batch[split_id]
+                metrics, per_example = self.FPropTower(theta_local, batch)
+          all_metrics.append(metrics)
+          all_per_example_tensors.append(per_example)
 
     return py_utils.WeightedAvgOfMetrics(
         all_metrics), py_utils.ConcatPerExampleTensors(all_per_example_tensors)

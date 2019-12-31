@@ -23,7 +23,6 @@ import heapq
 import threading
 import lingvo.compat as tf
 from lingvo.core import hyperparams
-from lingvo.core import py_utils
 import numpy as np
 from six.moves import range
 
@@ -113,6 +112,7 @@ class _Cluster(object):
         'add_summary', None, 'Whether to add summaries. If None, '
         'decides based on the job type.')
     p.Define('do_eval', None, 'Whether to do eval.')
+    p.Define('split_id', 0, 'Split id for the model.')
     return p
 
   @classmethod
@@ -151,6 +151,7 @@ class _Cluster(object):
 
   def __enter__(self):
     _CLUSTER_STACK.stack.append(self)
+    return self
 
   def __exit__(self, type_arg, value_arg, traceback_arg):
     stack = _CLUSTER_STACK.stack
@@ -387,16 +388,20 @@ class _Cluster(object):
 
     Returns:
       A string. The device to place ops onto.
+
+    Raises:
+      ValueError: if split_id of cluster is incorrectly set.
     """
     devices = self.available_devices.reshape([-1]).tolist()
     if not devices:
       return ''
     else:
-      model_split = py_utils.GetModelSplit()
-      assert model_split < self.num_splits_per_client, (
-          '%d %d' % (model_split, self.num_splits_per_client))
+      split_id = self.params.split_id
+      if split_id < 0 or split_id >= self.num_splits_per_client:
+        raise ValueError('split_id (%d) not in [0, %d)' %
+                         (split_id, self.num_splits_per_client))
       devices_per_split = self.num_devices_per_split
-      return devices[devices_per_split * model_split +
+      return devices[devices_per_split * split_id +
                      device_index % devices_per_split]
 
   def GetPlacer(self, strategy=None):

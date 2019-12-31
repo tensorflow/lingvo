@@ -96,3 +96,22 @@ def SetEval(mode):
     A new Cluster instance.
   """
   return Current().params.Copy().Set(do_eval=mode).Instantiate()
+
+
+def SetModelSplit(split_id):
+  """Returns the current cluster with the model split id set.
+
+  E.g.::
+
+    def FProp(...):
+      with cluster_factory.SetModelSplit(1) as c:
+        with tf.device(c.WorkerDeviceInModelSplit(0)):
+          ...
+
+  Args:
+    split_id: Integer split id for the model.
+
+  Returns:
+    A new Cluster instance.
+  """
+  return Current().params.Copy().Set(split_id=split_id).Instantiate()

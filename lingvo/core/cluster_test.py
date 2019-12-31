@@ -21,7 +21,6 @@ from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
-from lingvo.core import py_utils
 from lingvo.core import test_utils
 import numpy as np
 from six.moves import range
@@ -365,6 +364,15 @@ class ClusterTest(test_utils.TestCase):
         job_name='/job:input', task_id=0, device_name='CPU', device_id=0)
     self.assertEqual(input_device, expected_device)
 
+  def testModelSplit(self):
+    p = cluster_factory.Cluster.Params()
+    with p.Instantiate() as c:
+      with cluster_factory.SetModelSplit(2) as c1:
+        self.assertEqual(c1.params.split_id, 2)
+        with cluster_factory.SetModelSplit(3) as c2:
+          self.assertEqual(c2.params.split_id, 3)
+      self.assertEqual(c.params.split_id, 0)
+
   def testInputTargets(self):
     p = cluster_factory.Cluster.Params()
     p.input.name = '/job:input'
@@ -381,11 +389,11 @@ class ClusterTest(test_utils.TestCase):
     p.worker.replicas = 4
     p.worker.gpus_per_replica = 4
     p.worker.devices_per_split = 2
-    c = cluster_factory.Cluster(p)
-    with py_utils.ModelSplit(1):
-      d = c.WorkerDeviceInModelSplit(1)
-    expected_device = c._MakeDeviceString(
-        job_name='/job:trainer', task_id=0, device_name='GPU', device_id=3)
+    with cluster_factory.Cluster(p):
+      with cluster_factory.SetModelSplit(1) as c:
+        d = c.WorkerDeviceInModelSplit(1)
+        expected_device = c._MakeDeviceString(
+            job_name='/job:trainer', task_id=0, device_name='GPU', device_id=3)
     self.assertEqual(expected_device, d)
 
   def testWorkerDeviceInModelSplit(self):
@@ -397,11 +405,11 @@ class ClusterTest(test_utils.TestCase):
     p.worker.replicas = 4
     p.worker.gpus_per_replica = 4
     p.worker.devices_per_split = 2
-    c = cluster_factory.Cluster(p)
-    with py_utils.ModelSplit(1):
-      d = c.WorkerDeviceInModelSplit(1)
-    expected_device = c._MakeDeviceString(
-        job_name='/job:trainer', task_id=3, device_name='GPU', device_id=3)
+    with cluster_factory.Cluster(p):
+      with cluster_factory.SetModelSplit(1) as c:
+        d = c.WorkerDeviceInModelSplit(1)
+        expected_device = c._MakeDeviceString(
+            job_name='/job:trainer', task_id=3, device_name='GPU', device_id=3)
     self.assertEqual(expected_device, d)
 
   def testWorkerClusterDef(self):
