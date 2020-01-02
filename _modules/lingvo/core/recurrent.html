@@ -1220,7 +1220,7 @@
   <span class="k">def</span> <span class="nf">WrappedCellFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;cell_fn wrapped to propagate accumulators.&quot;&quot;&quot;</span>
     <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="n">symbols</span> <span class="o">=</span> <span class="n">symbol_to_tensor_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="n">symbols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">symbol_to_tensor_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
     <span class="n">symbol_values</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_symbol_values&#39;</span><span class="p">)</span>
     <span class="n">inner_symbol_to_tensor_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">symbols</span><span class="p">,</span> <span class="n">symbol_values</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">symbols</span><span class="p">:</span>
@@ -1238,7 +1238,7 @@
 
   <span class="k">def</span> <span class="nf">WrappedCellGradFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The wrapper function.&quot;&quot;&quot;</span>
-    <span class="n">symbols</span> <span class="o">=</span> <span class="n">symbol_to_tensor_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="n">symbols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">symbol_to_tensor_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
     <span class="n">symbol_values</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;_symbol_values&#39;</span><span class="p">]</span>
     <span class="n">inner_symbol_to_tensor_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">symbols</span><span class="p">,</span> <span class="n">symbol_values</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">symbols</span><span class="p">:</span>

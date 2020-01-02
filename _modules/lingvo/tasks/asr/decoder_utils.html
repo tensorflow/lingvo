@@ -189,7 +189,7 @@
 <div class="viewcode-block" id="Tokenize"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_utils.html#lingvo.tasks.asr.decoder_utils.Tokenize">[docs]</a><span class="k">def</span> <span class="nf">Tokenize</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a list containing non-empty tokens from the given string.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">):</span>
-    <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+    <span class="n">string</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">ensure_text</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">()</span></div>
 
 

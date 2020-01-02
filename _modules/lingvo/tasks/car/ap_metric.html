@@ -171,6 +171,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core.metrics</span> <span class="kn">import</span> <span class="n">BaseMetric</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">breakdown_metric</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 
 <span class="c1"># TODO(shlens): Consider making this internal data structure a list of NestedMap</span>
@@ -663,7 +665,7 @@
       <span class="c1">#</span>
       <span class="c1"># if not KITTI, metric_weights are all equal.</span>
       <span class="n">metric_weights</span> <span class="o">=</span> <span class="p">{}</span>
-      <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+      <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
       <span class="k">for</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
         <span class="k">if</span> <span class="s1">&#39;moderate&#39;</span> <span class="ow">in</span> <span class="n">keys</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
           <span class="c1"># The KITTI case.</span>

@@ -178,6 +178,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">lr_util</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">starnet</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 
 <span class="c1"># Set $KITTI_DIR to the base path of where all the KITTI files can be found.</span>
@@ -307,7 +308,7 @@
   <span class="k">if</span> <span class="n">job</span> <span class="o">!=</span> <span class="s1">&#39;decoder&#39;</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">params</span>
 
-  <span class="n">extractor_params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+  <span class="n">extractor_params</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">extractors</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
   <span class="n">extractor_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">cls</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">extractor_params</span><span class="p">]</span>
 
   <span class="c1"># Add images if not present.</span>

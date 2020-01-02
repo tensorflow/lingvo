@@ -716,7 +716,7 @@
 
   <span class="k">if</span> <span class="n">pooling_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">segment_pooling_functions</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`pooling_method` must be one of </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-        <span class="n">segment_pooling_functions</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="nb">list</span><span class="p">(</span><span class="n">segment_pooling_functions</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
   <span class="n">segment_fn</span> <span class="o">=</span> <span class="n">segment_pooling_functions</span><span class="p">[</span><span class="n">pooling_method</span><span class="p">]</span>
 
   <span class="n">points</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>

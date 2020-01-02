@@ -143,7 +143,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.py_utils</h1><div class="highlight"><pre>
-<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
 <span class="c1"># Lint as: python2, python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
@@ -382,7 +383,8 @@
 
 
 <span class="k">def</span> <span class="nf">_Save</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
-  <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%08d</span><span class="s1">.</span><span class="si">%s</span><span class="s1">.npy&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span> <span class="n">steps</span><span class="p">,</span> <span class="n">key</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+  <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%08d</span><span class="s1">.</span><span class="si">%s</span><span class="s1">.npy&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">ensure_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">),</span> <span class="n">steps</span><span class="p">,</span>
+                                 <span class="n">six</span><span class="o">.</span><span class="n">ensure_text</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
     <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
 

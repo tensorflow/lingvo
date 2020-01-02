@@ -170,14 +170,8 @@
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 
-<div class="viewcode-block" id="_IsUnicode"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers._IsUnicode">[docs]</a><span class="k">def</span> <span class="nf">_IsUnicode</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-  <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">)</span></div>
-
-
 <div class="viewcode-block" id="_ToUnicode"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers._ToUnicode">[docs]</a><span class="k">def</span> <span class="nf">_ToUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">_IsUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">line</span></div>
+  <span class="k">return</span> <span class="n">six</span><span class="o">.</span><span class="n">ensure_text</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_Tokenize"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers._Tokenize">[docs]</a><span class="k">def</span> <span class="nf">_Tokenize</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>

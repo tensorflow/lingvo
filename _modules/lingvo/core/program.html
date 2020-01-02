@@ -143,7 +143,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.program</h1><div class="highlight"><pre>
-<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
 <span class="c1"># Lint as: python2, python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
@@ -177,7 +178,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 <span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="n">xrange</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
@@ -335,8 +336,8 @@
       <span class="n">outfeed_devices</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">()</span>
       <span class="k">assert</span> <span class="n">device_assignment</span>
-      <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">num_replicas</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">core</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">num_cores_per_replica</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">num_replicas</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">core</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">num_cores_per_replica</span><span class="p">):</span>
           <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">host_device</span><span class="p">(</span><span class="n">replica</span><span class="p">,</span> <span class="n">core</span><span class="p">)):</span>
             <span class="n">outfeed_devices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">tpu_ops</span><span class="o">.</span><span class="n">outfeed_dequeue_tuple</span><span class="p">(</span>
