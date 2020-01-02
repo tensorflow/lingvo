@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # -*- coding: utf-8 -*-
 # Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
@@ -237,7 +238,8 @@ def Log(value, prefix, **kwargs):
 
 
 def _Save(steps, prefix, key, val):
-  filename = '%s.%08d.%s.npy' % (prefix.decode(), steps, key.decode())
+  filename = '%s.%08d.%s.npy' % (six.ensure_text(prefix), steps,
+                                 six.ensure_text(key))
   with tf.gfile.Open(filename, 'w') as outfile:
     np.save(outfile, val)
 

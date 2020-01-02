@@ -31,6 +31,7 @@ from lingvo.core import tokenizers
 from lingvo.tasks.lm import input_generator as lm_inp
 from lingvo.tasks.lm import layers as lm_layers
 from lingvo.tasks.lm import model
+from six.moves import range
 
 
 class WordLevelOneBwdsBase(base_model_params.SingleTaskModelParams):

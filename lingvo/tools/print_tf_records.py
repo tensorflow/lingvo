@@ -51,7 +51,9 @@ def _CustomShortDebugString(tf_example):
   for name, value in sorted(six.iteritems(tf_example.features.feature)):
     if value.HasField('bytes_list'):
       if FLAGS.bytes_as_utf8:
-        utf8_values = [v.decode('utf-8') for v in value.bytes_list.value]
+        utf8_values = [
+            six.ensure_text(v, 'utf-8') for v in value.bytes_list.value
+        ]
         value_string = _ListDebugString(utf8_values)
       else:
         value_string = _ListDebugString(value.bytes_list.value)

@@ -571,7 +571,7 @@ def SegmentPool3D(points,
 
   if pooling_method not in segment_pooling_functions:
     raise ValueError('`pooling_method` must be one of {}.'.format(
-        segment_pooling_functions.keys()))
+        list(segment_pooling_functions.keys())))
   segment_fn = segment_pooling_functions[pooling_method]
 
   points = py_utils.HasShape(points, [-1, -1, 3])

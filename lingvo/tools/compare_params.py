@@ -21,11 +21,12 @@ from __future__ import print_function
 
 from lingvo import compat as tf
 from lingvo import model_registry
+import six
 
 
 def _hyperparams_text_to_dict(cfg_text):
   """Converts hyperparams config text to a dictionary of key-value pairs."""
-  txt_list = cfg_text.split("\n")
+  txt_list = six.ensure_str(cfg_text).split("\n")
   pair_list = []
   for v in txt_list:
     if not v:

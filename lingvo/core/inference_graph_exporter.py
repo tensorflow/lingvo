@@ -236,7 +236,7 @@ def GetOutputOpNames(graph,
       output_op_names.add(node.name)
     elif preserve_colocation_nodes and '_class' in node.node_def.attr:
       for loc in node.node_def.attr['_class'].list.s:
-        loc = loc.decode('utf-8')
+        loc = six.ensure_text(loc, 'utf-8')
         if loc.startswith('loc:@'):
           loc_name = loc[5:]
           if loc_name not in reachable_vars:

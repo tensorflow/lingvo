@@ -25,14 +25,8 @@ import six
 from six.moves import range
 
 
-def _IsUnicode(s):
-  return isinstance(s, six.text_type)
-
-
 def _ToUnicode(line):
-  if not _IsUnicode(line):
-    return line.decode('utf-8')
-  return line
+  return six.ensure_text(line, 'utf-8')
 
 
 def _Tokenize(string):

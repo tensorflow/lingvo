@@ -24,6 +24,7 @@ from lingvo.core import hyperparams as _params
 from lingvo.core import hyperparams_pb2
 from lingvo.core import symbolic
 from lingvo.core import test_utils
+from six.moves import range
 from six.moves import zip
 
 FLAGS = tf.flags.FLAGS

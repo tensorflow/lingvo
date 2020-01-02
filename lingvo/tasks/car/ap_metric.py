@@ -26,6 +26,8 @@ from lingvo.core import py_utils
 from lingvo.core.metrics import BaseMetric
 from lingvo.tasks.car import breakdown_metric
 import numpy as np
+from six.moves import range
+from six.moves import zip
 
 
 # TODO(shlens): Consider making this internal data structure a list of NestedMap
@@ -518,7 +520,7 @@ class APMetrics(BaseMetric):
       #
       # if not KITTI, metric_weights are all equal.
       metric_weights = {}
-      keys = self.metadata.DifficultyLevels().keys()
+      keys = list(self.metadata.DifficultyLevels().keys())
       for difficulty in keys:
         if 'moderate' in keys and len(keys) == 3:
           # The KITTI case.

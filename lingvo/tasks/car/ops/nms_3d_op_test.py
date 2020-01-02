@@ -23,6 +23,7 @@ from lingvo import compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.car import ops
 import numpy as np
+from six.moves import range
 
 
 class Nms3dOpTest(test_utils.TestCase):

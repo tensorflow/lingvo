@@ -1,11 +1,4 @@
 load("//lingvo:lingvo.bzl", "py2and3_test")
-
-package(
-    default_visibility = ["//visibility:public"],
-)
-
-licenses(["notice"])  # Apache 2.0
-
 load(
     "//lingvo:lingvo.bzl",
     "custom_kernel_library",
@@ -17,6 +10,12 @@ load(
     "lingvo_proto_cc",
     "lingvo_proto_py",
 )
+
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+licenses(["notice"])  # Apache 2.0
 
 cc_library(
     name = "x_ops_helper",
@@ -46,6 +45,7 @@ gen_op_pylib(
 py_library(
     name = "ops",
     srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":py_x_ops",  # buildcleaner: keep
         "//lingvo:compat",

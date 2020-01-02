@@ -39,11 +39,13 @@ py_library(
     srcs = [
         "waymo_ap_metric.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/tasks/car:ap_metric",
         # Implicit numpy dependency.
+        # Implicit six dependency.
         # Implicit Waymo Open Dataset label dependency.
         # Implicit Waymo Open Dataset detection metrics dependency.
         # Implicit Waymo Open Dataset py_metrics dependency.
@@ -56,6 +58,7 @@ py_library(
 py_library(
     name = "waymo_decoder",
     srcs = ["waymo_decoder.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":waymo_ap_metric",
         ":waymo_metadata",
@@ -66,6 +69,7 @@ py_library(
         "//lingvo/tasks/car:detection_3d_metrics",
         "//lingvo/tasks/car:transform_util",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -74,6 +78,7 @@ py_library(
     srcs = [
         "waymo_metadata.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo/tasks/car:evaluation_metadata",
     ],
@@ -97,10 +102,12 @@ py_library(
 py_library(
     name = "export_to_submission_format_lib",
     srcs = ["export_to_submission_format.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit absl.flags dependency.
         "//lingvo:compat",
         "//lingvo/core/ops:record_py_pb2",
+        # Implicit six dependency.
         # Implicit Waymo Open Dataset metrics_proto dependency.
     ],
 )
@@ -109,7 +116,9 @@ py_binary(
     name = "export_to_submission_format",
     srcs = ["export_to_submission_format.py"],
     python_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":export_to_submission_format_lib",
+        # Implicit six dependency.
     ],
 )

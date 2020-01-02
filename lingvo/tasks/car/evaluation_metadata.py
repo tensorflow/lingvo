@@ -20,6 +20,8 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+from six.moves import range
+from six.moves import zip
 
 
 class EvaluationMetadata(object):
@@ -34,7 +36,7 @@ class EvaluationMetadata(object):
 
   def LabelMap(self):
     """Return a label map of int -> str for each class."""
-    return dict(zip(range(self.NumClasses()), self.ClassNames()))
+    return dict(zip(range(self.NumClasses())), self.ClassNames())
 
   def NumClasses(self):
     """Total number of classes for the dataset."""

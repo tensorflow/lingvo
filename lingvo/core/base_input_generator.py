@@ -28,7 +28,9 @@ from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
 import six
+from six.moves import map
 from six.moves import range
+from six.moves import zip
 
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import io_ops

@@ -26,6 +26,7 @@ from lingvo.core import hyperparams
 from lingvo.core import py_utils
 
 import six
+from six.moves import range
 
 
 class DataSource(object):

@@ -10,6 +10,7 @@ py_binary(
     name = "kitti_exporter",
     srcs = ["kitti_exporter.py"],
     python_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":kitti_data",
         # Implicit network file system dependency.
@@ -19,6 +20,7 @@ py_binary(
         # Implicit absl.logging dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -28,6 +30,7 @@ py_binary(
         "create_kitti_crop_dataset.py",
     ],
     python_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit absl.app dependency.
         # Implicit absl.flags dependency.
@@ -48,6 +51,7 @@ py_binary(
 py_library(
     name = "kitti_data",
     srcs = ["kitti_data.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         # Implicit numpy dependency.
@@ -73,6 +77,7 @@ py_test(
 py_library(
     name = "export_kitti_detection_lib",
     srcs = ["export_kitti_detection.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":kitti_data",
         # Implicit absl.flags dependency.
@@ -80,6 +85,7 @@ py_library(
         "//lingvo/core/ops:record_py_pb2",
         "//lingvo/tasks/car:kitti_metadata",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -87,8 +93,10 @@ py_binary(
     name = "export_kitti_detection",
     srcs = ["export_kitti_detection.py"],
     python_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":export_kitti_detection_lib",
+        # Implicit six dependency.
     ],
 )
 
@@ -97,6 +105,7 @@ py_binary(
     srcs = ["compare_params_main.py"],
     main = "compare_params_main.py",
     python_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit absl.flags dependency.
         "//lingvo:compat",

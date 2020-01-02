@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # -*- coding: utf-8 -*-
 # Lint as: python2, python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
@@ -32,7 +33,7 @@ from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
 import six
-from six.moves import xrange
+from six.moves import range
 from six.moves import zip
 
 # pylint:disable=g-direct-tensorflow-import
@@ -190,8 +191,8 @@ class TrainProgram(BaseProgram):
       outfeed_devices = []
       device_assignment = py_utils.GetTpuDeviceAssignment()
       assert device_assignment
-      for replica in xrange(device_assignment.num_replicas):
-        for core in xrange(device_assignment.num_cores_per_replica):
+      for replica in range(device_assignment.num_replicas):
+        for core in range(device_assignment.num_cores_per_replica):
           with tf.device(device_assignment.host_device(replica, core)):
             outfeed_devices.append(
                 tpu_ops.outfeed_dequeue_tuple(

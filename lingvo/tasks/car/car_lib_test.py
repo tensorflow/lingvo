@@ -23,6 +23,7 @@ import lingvo.compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.car import car_lib
 import numpy as np
+from six.moves import range
 
 
 class CarLibTest(test_utils.TestCase):

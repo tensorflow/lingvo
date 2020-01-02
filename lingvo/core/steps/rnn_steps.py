@@ -23,6 +23,7 @@ from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import step
+from six.moves import range
 
 
 class RnnStep(step.Step):

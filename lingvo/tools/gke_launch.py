@@ -75,6 +75,7 @@ import tempfile
 
 from absl import app
 from absl import flags
+import six
 import yaml
 
 FLAGS = flags.FLAGS
@@ -167,9 +168,9 @@ def set_pod_cpu_memory(cfg, cpu_memory):
 def decoder_template(job_name, model, image, logdir, decoder_type,
                      decoder_gpus):
   """Constructs the base yaml config for the decoder."""
-  name = job_name + ".decoder"
+  name = six.ensure_str(job_name) + ".decoder"
   container_name = name.replace(".", "-")
-  job = "decoder_" + decoder_type
+  job = "decoder_" + six.ensure_str(decoder_type)
   return """
 apiVersion: v1
 kind: Pod
@@ -193,13 +194,13 @@ spec:
 
 
 def _tpu_resource(tpu_type):
-  version, num_chips = tpu_type.split("-")
+  version, num_chips = six.ensure_str(tpu_type).split("-")
   return "cloud-tpus.google.com/{}: {}".format(version, num_chips)
 
 
 def tpu_training_template(job_name, model, image, logdir, tpu_type):
   """Constructs the base yaml config for the TPU trainer."""
-  name = job_name + ".trainer"
+  name = six.ensure_str(job_name) + ".trainer"
   container_name = name.replace(".", "-")
   tpu_string = _tpu_resource(tpu_type)
   return """apiVersion: batch/v1
@@ -232,7 +233,7 @@ spec:
 
 def tensorboard_template(job_name, logdir, port):
   """Constructs the tensorboard YAML template."""
-  job_name = job_name + ".tensorboard"
+  job_name = six.ensure_str(job_name) + ".tensorboard"
   container_name = job_name.replace(".", "-")
 
   print("To poll for tensorboard address, run: $ kubectl get service %s -w" %
@@ -298,7 +299,7 @@ def build_docker_image(image, base_image, code_directory, extra_envs):
       "ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/kubernetes/bin/nvidia/lib64",
       "ENV PATH=${PATH}:/home/kubernetes/bin/nvidia/bin",
   ]
-  for env_pairs in extra_envs.split(","):
+  for env_pairs in six.ensure_str(extra_envs).split(","):
     envs += ["ENV %s" % env_pairs]
 
   copy_code = ["WORKDIR /tmp/lingvo", "COPY . ."]
@@ -345,9 +346,11 @@ def get_gke_cluster(gke_cluster_spec):
   active_clusters = subprocess.check_output(
       ["gcloud", "container", "clusters", "list"])
   cluster_names = [
-      c.split(" ")[0] for c in active_clusters.split("\n")[1:] if c
+      c.split(b" ")[0] for c in active_clusters.split(b"\n")[1:] if c
   ]
-  filtered = [c for c in cluster_names if gke_cluster_spec in c]
+  filtered = [
+      c for c in cluster_names if six.ensure_binary(gke_cluster_spec) in c
+  ]
 
   if len(filtered) > 1:
     raise ValueError("Cluster filter was not precise enough.")
@@ -356,11 +359,13 @@ def get_gke_cluster(gke_cluster_spec):
     return None
 
   result = subprocess.check_output(["kubectl", "config", "view"])
-  result = result.split("\n")
-  clusters = [r.lstrip() for r in result if "    cluster: " in r]
+  result = result.split(b"\n")
+  clusters = [
+      r.lstrip() for r in result if "    cluster: " in r.decode("utf-8")
+  ]
   cluster = [r for r in clusters if filtered[0] in r]
   assert len(cluster) == 1
-  cluster = cluster[0].split(" ")[1]
+  cluster = cluster[0].split(b" ")[1]
   return cluster
 
 
@@ -455,7 +460,7 @@ def main(argv):
     trainer_path = os.path.join(root, "tpu_train.yaml")
     loaded = yaml.safe_dump(tpu_cfg)
     with open(trainer_path, "w") as f:
-      f.write(loaded)
+      f.write(six.ensure_str(loaded))
 
     if "print" in actions:
       print("\n\nTPU yaml: \n%s" % loaded)
@@ -481,7 +486,7 @@ def main(argv):
     assert decoder_cluster
     decoder_path = os.path.join(root, "decoder.yaml")
     with open(decoder_path, "w") as f:
-      f.write(yaml.safe_dump(decoder_cfg))
+      f.write(six.ensure_str(yaml.safe_dump(decoder_cfg)))
 
     if "print" in actions:
       print("Decoder yaml: \n%s" % yaml.safe_dump(decoder_cfg))

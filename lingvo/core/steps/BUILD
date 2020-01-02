@@ -67,6 +67,7 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/core:rnn_cell",
         "//lingvo/core:step",
+        # Implicit six dependency.
     ],
 )
 

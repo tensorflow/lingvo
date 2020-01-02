@@ -324,7 +324,7 @@ class AsrModel(base_model.BaseTask):
   # TODO(prabhavalkar): Add support to save out the decoded hypotheses.
   def PostProcessDecodeOut(self, dec_out_dict, dec_metrics_dict):
     p = self.params
-    assert 'topk_scores' in dec_out_dict, dec_out_dict.keys()
+    assert 'topk_scores' in dec_out_dict, list(dec_out_dict.keys())
     topk_scores = dec_out_dict['topk_scores']
     topk_decoded = dec_out_dict['topk_decoded']
     transcripts = dec_out_dict['transcripts']

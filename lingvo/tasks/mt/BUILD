@@ -25,6 +25,7 @@ py_test(
     shard_count = 2,
     deps = [
         ":layers_test_lib",
+        # Implicit six dependency.
     ],
 )
 
@@ -102,6 +103,7 @@ py_test(
     shard_count = 20,
     deps = [
         ":decoder_test_lib",
+        # Implicit six dependency.
     ],
 )
 
@@ -180,6 +182,7 @@ py_test(
     shard_count = 20,
     deps = [
         ":model_test_lib",
+        # Implicit six dependency.
     ],
 )
 

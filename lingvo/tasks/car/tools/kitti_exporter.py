@@ -101,6 +101,7 @@ from lingvo import compat as tf
 from lingvo.tasks.car.tools import kitti_data
 import numpy as np
 from PIL import Image
+from six.moves import range
 
 FLAGS = flags.FLAGS
 

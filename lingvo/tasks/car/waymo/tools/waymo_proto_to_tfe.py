@@ -227,7 +227,8 @@ class WaymoOpenDatasetConverter(beam.DoFn):
     })
     # Extract camera image data and the calibrations.
     self.extract_camera_images(feature, item.images, camera_calibrations_dict)
-    self.extract_camera_calibrations(feature, camera_calibrations_dict.values())
+    self.extract_camera_calibrations(feature,
+                                     list(camera_calibrations_dict.values()))
 
     return self._emitter_fn(key, output)
 

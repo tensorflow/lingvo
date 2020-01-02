@@ -30,6 +30,7 @@ from lingvo.tasks.car import car_layers
 
 import numpy as np
 import six
+from six.moves import zip
 
 
 # Keys for NestedMap for points: points, features, and padding.

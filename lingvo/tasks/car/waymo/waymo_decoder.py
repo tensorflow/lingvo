@@ -27,6 +27,7 @@ from lingvo.tasks.car import transform_util
 from lingvo.tasks.car.waymo import waymo_ap_metric
 from lingvo.tasks.car.waymo import waymo_metadata
 import numpy as np
+from six.moves import range
 
 
 class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):

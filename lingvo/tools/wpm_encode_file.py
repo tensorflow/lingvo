@@ -22,6 +22,7 @@ from __future__ import print_function
 import lingvo.compat as tf
 from lingvo.core import wpm_encoder
 import numpy as np
+import six
 from six import text_type
 from six.moves import zip
 
@@ -89,7 +90,7 @@ def _MakeTfExample(enc, src_i, src_s, tgt_i, tgt_s):
 
 def _Preprocess(text):
   if not isinstance(text, text_type):
-    text = text.decode('utf-8')
+    text = six.ensure_text(text, 'utf-8')
   return text.strip().replace(' </s>', '')
 
 

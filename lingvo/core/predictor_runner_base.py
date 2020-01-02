@@ -39,6 +39,8 @@ from absl import flags
 from lingvo import compat as tf
 from lingvo.core import predictor
 from lingvo.core import py_utils
+import six
+from six.moves import range
 
 flags.DEFINE_string(
     'checkpoint', None, 'Either a checkpoint file to load,'
@@ -141,7 +143,7 @@ class PredictorRunnerBase(object):
       if tf.gfile.IsDirectory(self._checkpoint):
         if tf.train.latest_checkpoint(self._checkpoint):
           break
-      elif tf.gfile.Exists(self._checkpoint + '.index'):
+      elif tf.gfile.Exists(six.ensure_str(self._checkpoint) + '.index'):
         break
       tf.logging.log_first_n(tf.logging.INFO,
                              'Waiting for checkpoint to be available.', 1)
@@ -263,7 +265,7 @@ class PredictorRunnerBase(object):
     while True:
       # TODO(jonathanasdf): how to determine when training finished?
       path = tf.train.latest_checkpoint(self._checkpoint)
-      step_str = re.search(r'ckpt-(\d{8})', path).group(1)
+      step_str = re.search(r'ckpt-(\d{8})', six.ensure_str(path)).group(1)
       step = int(step_str)
       if step - prev_step >= self._prediction_step_interval:
         output_dir = os.path.join(self._output_dir, 'step_' + step_str)

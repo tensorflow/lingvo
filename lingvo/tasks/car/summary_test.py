@@ -22,6 +22,7 @@ from lingvo import compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.car import summary
 import numpy as np
+from six.moves import range
 
 
 class SummaryTest(test_utils.TestCase):

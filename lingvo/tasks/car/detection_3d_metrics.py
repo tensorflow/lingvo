@@ -31,6 +31,7 @@ import numpy as np
 import PIL.Image as Image
 import PIL.ImageDraw as ImageDraw
 import PIL.ImageFont as ImageFont
+from six.moves import range
 from tensorboard.plugins.mesh import summary as mesh_summary
 
 

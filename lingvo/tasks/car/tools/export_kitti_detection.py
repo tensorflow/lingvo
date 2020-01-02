@@ -48,6 +48,7 @@ from lingvo.core.ops import record_pb2
 from lingvo.tasks.car import kitti_metadata
 from lingvo.tasks.car.tools import kitti_data
 import numpy as np
+from six.moves import zip
 
 
 FLAGS = flags.FLAGS

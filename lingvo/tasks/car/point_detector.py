@@ -27,6 +27,8 @@ from lingvo.tasks.car import detection_decoder
 
 from lingvo.tasks.car import kitti_decoder
 import numpy as np
+from six.moves import range
+from six.moves import zip
 
 
 class PointDetectorBase(base_model.BaseTask):

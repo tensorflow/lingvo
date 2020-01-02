@@ -29,6 +29,7 @@ from lingvo.tasks.car import kitti_ap_metric
 from lingvo.tasks.car import kitti_metadata
 from lingvo.tasks.car import transform_util
 import numpy as np
+from six.moves import range
 
 
 class KITTIDecoder(base_decoder.BaseDecoder):

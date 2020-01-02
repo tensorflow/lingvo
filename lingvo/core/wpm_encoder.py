@@ -61,7 +61,7 @@ class WpmEncoder(object):
     self._pieces = []
     for line in lines:
       if isinstance(line, six.binary_type):
-        line = line.decode('utf-8')
+        line = six.ensure_text(line, 'utf-8')
       piece = line.strip().split('\t')[0]
       self._pieces.append(piece)
     self._merge_prob = merge_prob

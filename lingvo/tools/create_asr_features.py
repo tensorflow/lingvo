@@ -105,7 +105,7 @@ def _ReadTranscriptions():
     f = tar.extractfile(tarinfo)
     u = 0
     for l in f.readlines():
-      uttid, txt = l.strip('\n').split(' ', 1)
+      uttid, txt = l.strip(b'\n').split(b' ', 1)
       trans[uttid] = txt
       u += 1
     tf.logging.info('[%s] = %d utterances', key, u)

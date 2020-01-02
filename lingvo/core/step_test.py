@@ -25,6 +25,7 @@ from lingvo.core import builder_layers
 from lingvo.core import py_utils
 from lingvo.core import step
 from lingvo.core import test_utils
+from six.moves import range
 
 
 class TextStep(step.Step):

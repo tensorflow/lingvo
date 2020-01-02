@@ -22,6 +22,7 @@ py_library(
 py_library(
     name = "detection_3d_lib",
     srcs = ["detection_3d_lib.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":geometry",
         "//lingvo:compat",
@@ -34,6 +35,7 @@ py_library(
 py_library(
     name = "detection_decoder",
     srcs = ["detection_decoder.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":detection_3d_lib",
         "//lingvo:compat",
@@ -48,12 +50,14 @@ py_test(
         ":detection_decoder",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
+        # Implicit six dependency.
     ],
 )
 
 py_library(
     name = "detection_3d_metrics",
     srcs = ["detection_3d_metrics.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":summary",
         ":transform_util",
@@ -64,6 +68,7 @@ py_library(
         "//lingvo/core:py_utils",
         # Implicit matplotlib dependency.
         # Implicit numpy dependency.
+        # Implicit six dependency.
         # Implicit Tensorboard dependency.
     ],
 )
@@ -89,6 +94,7 @@ py_test(
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -108,6 +114,7 @@ py_library(
     srcs = [
         "ap_metric.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":breakdown_metric",
         "//lingvo:compat",
@@ -115,6 +122,7 @@ py_library(
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -129,6 +137,7 @@ py_library(
         "//lingvo/core:hyperparams",
         "//lingvo/core:plot",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -143,6 +152,7 @@ py_test(
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -182,6 +192,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -209,6 +220,7 @@ py_library(
 py_library(
     name = "input_extractor",
     srcs = ["input_extractor.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -232,6 +244,7 @@ py_test(
 py_library(
     name = "base_decoder",
     srcs = ["base_decoder.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -243,6 +256,7 @@ py_library(
 py_library(
     name = "base_extractor",
     srcs = ["base_extractor.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
@@ -251,6 +265,7 @@ py_library(
         "//lingvo/core:generic_input",
         "//lingvo/core:hyperparams",
         "//lingvo/core:py_utils",
+        # Implicit six dependency.
     ],
 )
 
@@ -259,6 +274,7 @@ py_library(
     srcs = [
         "kitti_ap_metric.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":ap_metric",
         "//lingvo:compat",
@@ -271,6 +287,7 @@ py_library(
 py_library(
     name = "kitti_decoder",
     srcs = ["kitti_decoder.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":base_decoder",
         ":detection_3d_lib",
@@ -283,6 +300,7 @@ py_library(
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -323,6 +341,7 @@ py_test(
 py_library(
     name = "pillars",
     srcs = ["pillars.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":builder_lib",
         ":detection_3d_lib",
@@ -341,6 +360,7 @@ py_library(
 py_library(
     name = "point_detector",
     srcs = ["point_detector.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":detection_decoder",
         ":kitti_decoder",
@@ -349,6 +369,7 @@ py_library(
         "//lingvo/core:base_model",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -368,6 +389,7 @@ py_library(
 py_library(
     name = "starnet",
     srcs = ["starnet.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":builder_lib",
         ":detection_3d_lib",
@@ -392,6 +414,7 @@ py_library(
         "//lingvo/core:plot",
         # Implicit matplotlib dependency.
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -415,6 +438,7 @@ py_test(
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -450,6 +474,7 @@ py_test(
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
@@ -462,12 +487,14 @@ py_test(
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 
 py_library(
     name = "input_preprocessors",
     srcs = ["input_preprocessors.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":car_lib",
         ":detection_3d_lib",
@@ -477,6 +504,7 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/tasks/car/ops",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 

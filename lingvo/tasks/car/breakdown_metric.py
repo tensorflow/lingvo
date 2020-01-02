@@ -28,6 +28,7 @@ from lingvo import compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import plot
 import numpy as np
+from six.moves import range
 
 
 class BreakdownMetric(object):
@@ -162,7 +163,7 @@ def ByName(breakdown_metric_name):
   }
   if breakdown_metric_name not in breakdown_mapping:
     raise ValueError('Invalid breakdown name: %s, valid names are %s' %
-                     (breakdown_metric_name, breakdown_mapping.keys()))
+                     (breakdown_metric_name, list(breakdown_mapping.keys())))
   return breakdown_mapping[breakdown_metric_name]
 
 
@@ -222,7 +223,7 @@ class ByDistance(BreakdownMetric):
       scalars, _ = compute_metrics_fn(distance=d)
       self._average_precisions[d] = [s['ap'] for s in scalars]
       self._values[d] = value_at_histogram
-    assert len(self._values) == len(self._average_precisions.keys())
+    assert len(self._values) == len(list(self._average_precisions.keys()))
     tf.logging.info('Calculating AP by distance: finished')
 
   def GenerateSummaries(self, name):
@@ -327,7 +328,7 @@ class ByNumPoints(BreakdownMetric):
     for n, _ in enumerate(self._values):
       _, curves = compute_metrics_fn(num_points=n)
       self._precision_recall[n] = np.array([c['pr'] for c in curves])
-    assert len(self._values) == len(self._precision_recall.keys())
+    assert len(self._values) == len(list(self._precision_recall.keys()))
     tf.logging.info('Calculating max recall by number of points: finished')
 
   def GenerateSummaries(self, name):
@@ -528,7 +529,7 @@ class ByRotation(BreakdownMetric):
       scalars, _ = compute_metrics_fn(rotation=r)
       self._average_precisions[r] = [s['ap'] for s in scalars]
       self._values[r] = value_at_histogram
-    assert len(self._values) == len(self._average_precisions.keys())
+    assert len(self._values) == len(list(self._average_precisions.keys()))
     tf.logging.info('Calculating AP by rotation: finished')
 
   def GenerateSummaries(self, name):

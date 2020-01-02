@@ -33,6 +33,7 @@ import os
 from absl import flags
 from lingvo import compat as tf
 from lingvo.core.ops import record_pb2
+from six.moves import range
 from waymo_open_dataset.protos import metrics_pb2
 
 FLAGS = flags.FLAGS

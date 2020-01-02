@@ -25,6 +25,7 @@ from lingvo.core import datasource
 from lingvo.core import generic_input
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
+from six.moves import zip
 
 # Items exceeding this value will be dropped and not sent to the trainer.
 BUCKET_UPPER_BOUND = 9999
@@ -120,11 +121,12 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     flattened_processors = dict(p.preprocessors.IterParams())
 
     # Validate that all keys in preprocessors_order appear are valid.
-    if not set(p.preprocessors_order).issubset(flattened_processors.keys()):
+    if not set(p.preprocessors_order).issubset(
+        list(flattened_processors.keys())):
       raise ValueError(
           'preprocessor_order specifies keys which were not found in '
           'preprocessors. preprocessors_order={} preprocessors keys={}'.format(
-              p.preprocessors_order, flattened_processors.keys()))
+              p.preprocessors_order, list(flattened_processors.keys())))
 
     preprocessors = [flattened_processors[key] for key in p.preprocessors_order]
     self.CreateChildren('preprocessors', preprocessors)
@@ -134,7 +136,8 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     if not dtypes.IsCompatible(shapes):
       raise ValueError('{} vs. {}'.format(dtypes.DebugString(),
                                           shapes.DebugString()))
-    dtypes.Pack(zip(dtypes.Flatten(), shapes.Flatten())).VLog(0, 'InpGen: ')
+    dtypes.Pack(list(zip(dtypes.Flatten(),
+                         shapes.Flatten()))).VLog(0, 'InpGen: ')
 
   def Shape(self):
     shapes = self._extractors.Transform(lambda x: x.Shape())

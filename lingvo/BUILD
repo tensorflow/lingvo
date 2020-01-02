@@ -285,6 +285,7 @@ genrule(
 py_library(
     name = "executor_lib",
     srcs = ["executor.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":base_runner",
         ":compat",

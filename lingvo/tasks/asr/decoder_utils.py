@@ -44,7 +44,7 @@ def SetRnnCellNodes(decoder_params, rnn_cell_params):
 def Tokenize(string):
   """Returns a list containing non-empty tokens from the given string."""
   if not isinstance(string, six.text_type):
-    string = string.decode('utf-8')
+    string = six.ensure_text(string, 'utf-8')
   return string.split()
 
 

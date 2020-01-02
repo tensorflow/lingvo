@@ -22,6 +22,7 @@ from lingvo import compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.car import detection_3d_lib
 import numpy as np
+from six.moves import range
 
 
 class Utils3DTest(test_utils.TestCase):

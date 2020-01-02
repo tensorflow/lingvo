@@ -1,9 +1,3 @@
-package(default_visibility = [
-    "//visibility:public",
-])
-
-licenses(["notice"])  # Apache 2.0
-
 load("//lingvo:lingvo.bzl", "py2and3_test")
 load(
     "//lingvo:lingvo.bzl",
@@ -13,6 +7,12 @@ load(
     "lingvo_cc_library",
     "lingvo_cc_test",
 )
+
+package(default_visibility = [
+    "//visibility:public",
+])
+
+licenses(["notice"])  # Apache 2.0
 
 lingvo_cc_library(
     name = "box_util",
@@ -47,6 +47,7 @@ gen_op_pylib(
 py_library(
     name = "ops",
     srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":py_car_ops",  # buildcleaner: keep
         "//lingvo:compat",
@@ -140,6 +141,7 @@ py_test(
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
+        # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
 )
@@ -161,6 +163,7 @@ py_test(
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 

@@ -27,6 +27,8 @@ from lingvo.tasks.car import detection_3d_lib
 from lingvo.tasks.car import geometry
 from lingvo.tasks.car import ops
 import numpy as np
+from six.moves import range
+from six.moves import zip
 # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
@@ -3259,7 +3261,7 @@ class RandomApplyPreprocessor(Preprocessor):
               shapes, shapes_transformed))
 
     shapes_zipped = shapes.Pack(
-        zip(shapes.Flatten(), shapes_transformed.Flatten()))
+        list(zip(shapes.Flatten(), shapes_transformed.Flatten())))
     shapes_compatible = shapes_zipped.Transform(
         lambda xs: xs[0].is_compatible_with(xs[1]))
 

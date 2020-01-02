@@ -20,14 +20,18 @@ DESCRIPTION:
   This script is the Windows version of //third_party/gpus/crosstool/crosstool_wrapper_is_not_gcc
 """
 
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 
 from argparse import ArgumentParser
 import os
-import subprocess
-import re
-import sys
 import pipes
+import re
+import subprocess
+import sys
+
+import six
 
 # Template values set by cuda_autoconf.
 CPU_COMPILER = ('/dt7/usr/bin/gcc')
@@ -88,7 +92,7 @@ def GetNvccOptions(argv):
 
   if args.nvcc_options:
     options = _update_options(sum(args.nvcc_options, []))
-    return (['--' + a for a in options], leftover)
+    return (['--' + six.ensure_str(a) for a in options], leftover)
   return ([], leftover)
 
 
@@ -121,13 +125,13 @@ def InvokeNvcc(argv, log=False):
     opt = ['-O2']
 
   include_options, argv = GetOptionValue(argv, 'I')
-  includes = ["-I " + include for include in include_options]
+  includes = ['-I ' + six.ensure_str(include) for include in include_options]
 
   defines, argv = GetOptionValue(argv, 'D')
-  defines = ['-D' + define for define in defines]
+  defines = ['-D' + six.ensure_str(define) for define in defines]
 
   undefines, argv = GetOptionValue(argv, 'U')
-  undefines = ['-U' + define for define in undefines]
+  undefines = ['-U' + six.ensure_str(define) for define in undefines]
 
   # The rest of the unrecongized options should be passed to host compiler
   host_compiler_options = [option for option in argv if option not in (src_files + out_file)]

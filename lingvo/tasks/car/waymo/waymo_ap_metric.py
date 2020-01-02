@@ -33,6 +33,7 @@ from lingvo.tasks.car import ap_metric
 from lingvo.tasks.car import breakdown_metric
 
 import numpy as np
+from six.moves import range
 from waymo_open_dataset import label_pb2
 from waymo_open_dataset.metrics.ops import py_metrics_ops
 from waymo_open_dataset.metrics.python import config_util_py as config_util

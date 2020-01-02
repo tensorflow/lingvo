@@ -31,11 +31,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import six
 from six.moves import range
+from six.moves import zip
 
 
 def ToUnicode(text):
   if not isinstance(text, six.text_type):
-    text = text.decode('utf-8')
+    text = six.ensure_text(text, 'utf-8')
   return text
 
 

@@ -41,6 +41,7 @@ from lingvo.core import builder_layers
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 import six
+from six.moves import range
 
 
 class Step(base_layer.BaseLayer):

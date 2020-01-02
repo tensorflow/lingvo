@@ -1,4 +1,8 @@
 load("//lingvo:lingvo.bzl", "py2and3_test")
+load(
+    "//lingvo:lingvo.bzl",
+    "lingvo_cc_binary",
+)
 
 package(
     default_visibility = ["//visibility:public"],
@@ -6,18 +10,15 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
-load(
-    "//lingvo:lingvo.bzl",
-    "lingvo_cc_binary",
-)
-
 py_binary(
     name = "gke_launch",
     srcs = ["gke_launch.py"],
-    python_version = "PY2",
+    python_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit absl.app dependency.
         # Implicit absl.flags dependency.
+        # Implicit six dependency.
         # Implicit yaml dependency.
     ],
 )
@@ -50,6 +51,7 @@ py_binary(
     srcs_version = "PY2AND3",
     deps = [
         ":wpm_encode_file_lib",
+        # Implicit six dependency.
     ],
 )
 
@@ -103,6 +105,7 @@ py_library(
 py_library(
     name = "beam_utils",
     srcs = ["beam_utils.py"],
+    srcs_version = "PY2AND3",
 )
 
 py_test(
@@ -135,9 +138,11 @@ py_test(
 py_library(
     name = "compare_params_lib",
     srcs = ["compare_params.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo:model_registry",
+        # Implicit six dependency.
     ],
 )
 

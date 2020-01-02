@@ -786,11 +786,13 @@ py_test(
 py_library(
     name = "predictor_runner_base",
     srcs = ["predictor_runner_base.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":predictor_lib",
         ":py_utils",
         # Implicit absl.flags dependency.
         # Implicit concurrent.futures dependency.
+        # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
 )
@@ -985,6 +987,7 @@ py_test(
     shard_count = 6,
     deps = [
         ":recurrent_test_lib",
+        # Implicit six dependency.
     ],
 )
 
@@ -1408,6 +1411,7 @@ lingvo_cuda_py2and3_test(
 py_library(
     name = "computation_cost",
     srcs = ["computation_cost.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":bn_layers",
         # Implicit tensorflow dependency.
@@ -1417,6 +1421,7 @@ py_library(
 py_library(
     name = "checkpointer_lib",
     srcs = ["checkpointer.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":cluster_factory",
         ":py_utils",
@@ -1428,6 +1433,7 @@ py_library(
 py_library(
     name = "program_lib",
     srcs = ["program.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":checkpointer_lib",
         ":hyperparams",
@@ -1465,6 +1471,7 @@ py_test(
         ":step",
         ":test_utils",
         "//lingvo:compat",
+        # Implicit six dependency.
     ],
 )
 

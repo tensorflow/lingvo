@@ -33,6 +33,7 @@ from lingvo.tasks.car import kitti_input_generator
 from lingvo.tasks.car import lr_util
 from lingvo.tasks.car import starnet
 import numpy as np
+from six.moves import zip
 
 
 # Set $KITTI_DIR to the base path of where all the KITTI files can be found.
@@ -162,7 +163,7 @@ def AddLaserAndCamera(params):
   if job != 'decoder':
     return params
 
-  extractor_params = dict(params.extractors.IterParams()).values()
+  extractor_params = list(dict(params.extractors.IterParams()).values())
   extractor_classes = [p.cls for p in extractor_params]
 
   # Add images if not present.

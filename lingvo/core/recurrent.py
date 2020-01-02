@@ -1075,7 +1075,7 @@ def _WrapCellFnWithSymbolValues(cell_fn, symbol_to_tensor_map):
   def WrappedCellFn(theta, state0, inputs):
     """cell_fn wrapped to propagate accumulators."""
     theta = theta.copy()
-    symbols = symbol_to_tensor_map.keys()
+    symbols = list(symbol_to_tensor_map.keys())
     symbol_values = theta.pop('_symbol_values')
     inner_symbol_to_tensor_map = dict(zip(symbols, symbol_values))
     if symbols:
@@ -1093,7 +1093,7 @@ def _WrapCellGradFnWithSymbolValues(cell_grad, cell_fn, symbol_to_tensor_map):
 
   def WrappedCellGradFn(theta, state0, inputs, extras, dstate1):
     """The wrapper function."""
-    symbols = symbol_to_tensor_map.keys()
+    symbols = list(symbol_to_tensor_map.keys())
     symbol_values = theta['_symbol_values']
     inner_symbol_to_tensor_map = dict(zip(symbols, symbol_values))
     if symbols:
