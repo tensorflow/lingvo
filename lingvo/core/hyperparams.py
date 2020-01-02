@@ -711,3 +711,6 @@ class InstantiableParams(Params):
 
     # The class initializer is expected to support initialization using Params.
     return self.cls(self)
+
+  def Copy(self):
+    return self._CopyTo(type(self)(self.cls))
