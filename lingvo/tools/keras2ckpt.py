@@ -25,6 +25,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
 import lingvo.compat as tf
 from tensorflow.python.ops import io_ops
 
@@ -45,10 +46,14 @@ def main(argv):
     assert dtype != tf.string  # tf.string is not supported by py_func.
     return tf.py_func(lambda: val, [], dtype)
 
+  out_prefix = FLAGS.out if FLAGS.out else os.path.join("/tmp",
+    FLAGS.dataset, FLAGS.dataset)
+  tf.logging.info("Save %s dataset to %s ckpt." % (FLAGS.dataset, out_prefix))
+
   with tf.Session() as sess:
     sess.run(
         io_ops.save_v2(
-            prefix=FLAGS.out if FLAGS.out else "/tmp/" + FLAGS.dataset,
+            prefix=out_prefix,
             tensor_names=["x_train", "y_train", "x_test", "y_test"],
             shape_and_slices=[""] * 4,
             tensors=[wrap(x_train),
