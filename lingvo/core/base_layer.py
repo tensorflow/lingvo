@@ -440,7 +440,7 @@ class BaseLayer(tf.Module):
     """Returns the child layer of the given name."""
     if name == '_private_children':
       raise AttributeError(
-          'pre-mature access to __getattr__ before _private_children'
+          'pre-mature access to __getattr__ before _private_children '
           'is created.')
     if name in self._private_children:
       return self._private_children[name]
