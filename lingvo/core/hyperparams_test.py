@@ -485,6 +485,29 @@ escaping_single : 'In "quotes"'
   str: "test"
 }""")
 
+  def testDiff(self):
+    a = _params.Params()
+    d_inner = _params.Params()
+    d_inner.Define('hey', 'hi', '')
+    a.Define('a', 42, '')
+    a.Define('c', 'C', '')
+    a.Define('d', d_inner, '')
+    b = a.Copy()
+
+    # Everything is the same so we don't expect diffs.
+    self.assertEqual(a.TextDiff(b), '')
+
+    a.a = 43
+    self.assertEqual(a.TextDiff(b), '> a: 43\n' '< a: 42\n')
+
+    b.d.hey = 'hello'
+    self.assertEqual(
+        a.TextDiff(b), '> a: 43\n'
+        '< a: 42\n'
+        '? d:\n'
+        '>   hey: hi\n'
+        '<   hey: hello\n')
+
 
 if __name__ == '__main__':
   tf.test.main()

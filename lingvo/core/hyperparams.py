@@ -692,6 +692,38 @@ class Params(object):
       types[k.strip()] = v.strip()
     self.FromText(text, type_overrides=types)
 
+  def TextDiff(self, other):
+    """Return the differences between this object and another as a string.
+
+    Args:
+      other: The other Params object.
+
+    Returns:
+      A string of differences.
+    """
+
+    def TextDiffHelper(a, b, spaces):
+      """Return the differences between a and b as a string."""
+      a_keys = set([key for key, _ in a.IterParams()])
+      b_keys = set([key for key, _ in b.IterParams()])
+      all_keys = a_keys.union(b_keys)
+      diff = ''
+      for key in sorted(all_keys):
+        if key in a_keys and key not in b_keys:
+          diff += '>' + spaces + key + ': ' + str(a.Get(key)) + '\n'
+        elif key in b_keys and key not in a_keys:
+          diff += '<' + spaces + key + ': ' + str(b.Get(key)) + '\n'
+        elif a.Get(key) != b.Get(key):
+          if isinstance(a.Get(key), Params):
+            diff += '?' + spaces + key + ':\n'
+            diff += TextDiffHelper(a.Get(key), b.Get(key), spaces + '  ')
+          else:
+            diff += '>' + spaces + key + ': ' + str(a.Get(key)) + '\n'
+            diff += '<' + spaces + key + ': ' + str(b.Get(key)) + '\n'
+      return diff
+
+    return TextDiffHelper(self, other, spaces=' ')
+
 
 class InstantiableParams(Params):
   """Params which can be instantiated.
