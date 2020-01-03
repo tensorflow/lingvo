@@ -90,7 +90,45 @@ tf.flags.DEFINE_bool(
     'variable handles directly for weight-sharing / multi-core '
     'inference on TPUs.')
 
+# NOTE: Using absl flags in libraries are frowned upon for several reasons:
+#
+# 1) They require app.run() or explicit flag parsing, preventing the use of
+# these libraries in environments that don't look like normal binaries (colab
+# notebooks).
+#
+# 2) They are process-level globals that cannot be scoped or configured except
+# once during binary startup.
+#
+# Because py_utils is a library, no more flags should be used in this file; the
+# existing flags are present for backwards compatibility.  Instead, consider
+# using a stack-scoped configuration object such as the Cluster object. We guard
+# against issue 1 above by using _FromGlobal below, which uses the default value
+# of the FLAG even if flags are unparsed.
+
 FLAGS = tf.flags.FLAGS
+
+
+def _FromGlobal(field_name):
+  """Get 'field_name' from a global configuration object.
+
+  Currently the global configuration object used is FLAGS, but this may
+  change to Cluster() or an equivalent stack-scoped config object.
+
+  Args:
+    field_name: The string field name to look up.
+
+  Returns:
+    The value associated with the global configuration string 'field_name'.
+  """
+  # TODO(b/145831327): check the field name in the current cluster object.
+  # If explicitly set, use that value instead of using the FLAG value.
+
+  # Now check the FLAGS object for backwards compatibility.
+  #
+  # If not explicitly set, get the field from the FLAGS object.  If FLAGS
+  # have not been parsed yet, the default value of the flag will be used.
+  return FLAGS[field_name].value
+
 
 ENQUEUE_OPS = '__lingvo_enqueue_ops'
 CLOSE_QUEUE_OPS = '__lingvo_close_queue_ops'
@@ -107,42 +145,42 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
 def Assert(condition, data, *args, **kwargs):
-  if FLAGS.enable_asserts:
+  if _FromGlobal('enable_asserts'):
     return tf.Assert(condition, data, *args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_equal(*args, **kwargs):  # pylint: disable=invalid-name
-  if FLAGS.enable_asserts:
+  if _FromGlobal('enable_asserts'):
     return tf.assert_equal(*args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_greater_equal(*args, **kwargs):  # pylint: disable=invalid-name
-  if FLAGS.enable_asserts:
+  if _FromGlobal('enable_asserts'):
     return tf.assert_greater_equal(*args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_greater(*args, **kwargs):  # pylint: disable=invalid-name
-  if FLAGS.enable_asserts:
+  if _FromGlobal('enable_asserts'):
     return tf.assert_greater(*args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_less_equal(*args, **kwargs):  # pylint: disable=invalid-name
-  if FLAGS.enable_asserts:
+  if _FromGlobal('enable_asserts'):
     return tf.assert_less_equal(*args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_less(*args, **kwargs):  # pylint: disable=invalid-name
-  if FLAGS.enable_asserts:
+  if _FromGlobal('enable_asserts'):
     return tf.assert_less(*args, **kwargs)
   else:
     return tf.no_op()
@@ -155,7 +193,7 @@ def assert_between(x, l, r, *args, **kwargs):  # pylint: disable=invalid-name
 
 
 def assert_shape_match(*args, **kwargs):  # pylint: disable=invalid-name
-  if FLAGS.enable_asserts:
+  if _FromGlobal('enable_asserts'):
     filepath, line, func, _ = traceback.extract_stack(limit=3)[-2]
     kwargs['msg'] = 'LINGVO ASSERT %s:%s(%s)' % (re.sub(
         r'.*/', '', filepath), line, func)
@@ -165,7 +203,7 @@ def assert_shape_match(*args, **kwargs):  # pylint: disable=invalid-name
 
 
 def assert_same_dim0(xs, *args, **kwargs):  # pylint: disable=invalid-name
-  if FLAGS.enable_asserts:
+  if _FromGlobal('enable_asserts'):
     return ops.assert_same_dim0(xs, *args, **kwargs)
   else:
     return tf.no_op()
@@ -182,7 +220,7 @@ def _CheckNumerics(x, message=None, *args, **kwargs):
 
 def CheckNumerics(inp, message=None, *args, **kwargs):
   """Check numerics for tensors in inp."""
-  if not FLAGS.enable_check_numerics:
+  if not _FromGlobal('enable_check_numerics'):
     return inp
   if isinstance(inp, list):
     return [_CheckNumerics(x, message, *args, **kwargs) for x in inp]
@@ -278,7 +316,7 @@ def HasRank(tensor, expected_rank):
         'Ranks did not match, got %d, '
         'expected %d') % (tensor.shape.ndims, expected_rank)
     return tensor
-  if FLAGS.enable_asserts:
+  if _FromGlobal('enable_asserts'):
     return with_dependencies([tf.assert_equal(tf.rank(tensor), expected_rank)],
                              tensor)
   else:
@@ -314,7 +352,7 @@ def HasShape(tensor, expected_shape, ndims=None):
   Raises:
     A runtime error if the assertion fails.
   """
-  if FLAGS.enable_asserts:
+  if _FromGlobal('enable_asserts'):
     filepath, line, func, _ = traceback.extract_stack(limit=3)[-2]
     msg = 'LINGVO ASSERT %s:%s(%s)' % (re.sub(r'.*/', '',
                                                  filepath), line, func)
@@ -362,29 +400,29 @@ def GetShape(tensor, ndims=None):
 
 
 def use_xla():  # pylint: disable=invalid-name
-  res = FLAGS.xla_device
+  res = _FromGlobal('xla_device')
   if res:
-    assert FLAGS.xla_device in ('', 'cpu', 'gpu', 'tpu')
+    assert res in ('', 'cpu', 'gpu', 'tpu')
   return res
 
 
 def use_tpu():  # pylint: disable=invalid-name
-  res = FLAGS.xla_device == 'tpu'
+  res = _FromGlobal('xla_device') == 'tpu'
   if res:
-    assert not FLAGS.enable_asserts  # asserts not supported on tpu
+    assert not _FromGlobal('enable_asserts')  # asserts not supported on tpu
   return res
 
 
 def nas_run():  # pylint: disable=invalid-name
-  return FLAGS.nas_run
+  return _FromGlobal('nas_run')
 
 
 def tpu_compat():  # pylint: disable=invalid-name
-  return use_tpu() or FLAGS.tpu_compatible
+  return use_tpu() or _FromGlobal('tpu_compatible')
 
 
 def use_resource_variables():  # pylint: disable=invalid-name
-  return FLAGS.use_resource_var or tpu_compat()
+  return _FromGlobal('use_resource_var') or tpu_compat()
 
 
 @contextlib.contextmanager
@@ -1480,7 +1518,7 @@ def CreateVariable(name,
           use_resource=scope.use_resource or use_resource_variables())
     with tf.variable_scope(var_scope), \
         tf.variable_scope(var_name, reuse=reuse) as scope:
-      if FLAGS.pin_vars_to_cpu:
+      if _FromGlobal('pin_vars_to_cpu'):
         with tf.device('/cpu:0'):
           return tf.get_variable(
               'var',
@@ -1522,7 +1560,7 @@ def CreateVariable(name,
     for col in p.collections:
       tf.add_to_collection(col, var)
 
-  if FLAGS.no_identity_on_vars:
+  if _FromGlobal('no_identity_on_vars'):
     with tf.device(var.device):
       return var, var
   else:
@@ -2671,7 +2709,7 @@ def AddDebugTensor(tensor, summarize=None, name=None):
   Returns:
     A Tensor that evaluates to the same value as the input tensor.
   """
-  if FLAGS.print_debug_tensors:
+  if _FromGlobal('print_debug_tensors'):
     step = _GetSampleStep()
     tensors_to_print = ([] if step is None else [step]) + [tensor]
     with tf.name_scope(name) as s:

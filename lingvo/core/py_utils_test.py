@@ -22,6 +22,7 @@ from __future__ import print_function
 import copy
 import itertools
 import os
+import sys
 
 from lingvo import model_registry
 import lingvo.compat as tf
@@ -2340,6 +2341,20 @@ class UniformSamplerTest(tf.test.TestCase):
     # in which items were added to the sampler.
     self.assertGreater(min(distribution), 0.009)
     self.assertLess(max(distribution), 0.011)
+
+
+class FromGlobalTest(tf.test.TestCase):
+
+  def testAccessAssertFlagWhenUnparsed(self):
+    tf.flags.FLAGS.unparse_flags()
+    # Accessing the flag value directly fails.
+    with self.assertRaises(tf.flags._exceptions.UnparsedFlagAccessError):
+      result = FLAGS.enable_asserts
+    result = py_utils._FromGlobal('enable_asserts')
+    # Default value of this flag is True.
+    self.assertTrue(result)
+    # Reparse args.
+    tf.flags.FLAGS(sys.argv)
 
 
 if __name__ == '__main__':
