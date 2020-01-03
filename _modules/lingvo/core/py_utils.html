@@ -2399,12 +2399,27 @@
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Unexpected type for ConcatRecursively: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">splits</span><span class="p">))</span>
 
 
-<span class="k">def</span> <span class="nf">AddToPruningCollections</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">AddToPruningCollections</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span>
+                            <span class="n">mask</span><span class="p">,</span>
+                            <span class="n">threshold</span><span class="p">,</span>
+                            <span class="n">gradient</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">old_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">old_old_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Add mask, threshold, and weight vars to their respective collections.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">mask</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">MASK_COLLECTION</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">MASK_COLLECTION</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">THRESHOLD_COLLECTION</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+
+    <span class="c1"># Add gradient, old_weight, and old_old_weight to collections approximating</span>
+    <span class="c1"># gradient and hessian, where old_weight is the weight tensor one step</span>
+    <span class="c1"># before and old_old_weight is the weight tensor two steps before.</span>
+    <span class="k">if</span> <span class="n">gradient</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">old_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">old_old_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">WEIGHT_GRADIENT_COLLECTION</span><span class="p">,</span> <span class="n">gradient</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">OLD_WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">old_weight</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">OLD_OLD_WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">old_old_weight</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">WeightedAvg</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">sum_reduction_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>

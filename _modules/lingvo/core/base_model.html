@@ -715,21 +715,22 @@
         <span class="n">all_losses</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">BATCH_NORM_UPDATES</span><span class="p">))</span>
     <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;bn_updates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">relevant_bn_updates</span>
 
-    <span class="c1"># Get the op to update the weight masks and thresholds</span>
-    <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;mask_updates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetMaskUpdateOp</span><span class="p">()</span>
-
     <span class="c1"># Post training step update.</span>
     <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;post_step&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">train_ops</span><span class="p">)):</span>
-      <span class="n">true_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">true_global_step</span><span class="p">):</span>
-        <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">true_global_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="o">!=</span> <span class="n">true_global_step</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">):</span>
-          <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
-              <span class="n">increment_global_steps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-      <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;global_step&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">increment_global_steps</span>
+      <span class="c1"># Get the op to update the weight masks and thresholds</span>
+      <span class="n">mask_update_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetMaskUpdateOp</span><span class="p">()</span>
+      <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;mask_updates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask_update_op</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">mask_update_op</span><span class="p">]):</span>
+        <span class="n">true_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">true_global_step</span><span class="p">):</span>
+          <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">true_global_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="o">!=</span> <span class="n">true_global_step</span><span class="p">:</span>
+          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">):</span>
+            <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
+                <span class="n">increment_global_steps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;global_step&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">increment_global_steps</span>
 
     <span class="c1"># If we are using Tpu Embeddings, generate the monolithic send</span>
     <span class="c1"># gradient op.</span>
