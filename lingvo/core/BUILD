@@ -157,6 +157,7 @@ py_test(
         ":base_input_generator",
         ":test_utils",
         "//lingvo:compat",
+        # Implicit mock dependency.
         # Implicit numpy dependency.
         # Implicit six dependency.
     ],

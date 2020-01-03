@@ -25,6 +25,7 @@ import tempfile
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import test_utils
+import mock
 import numpy as np
 
 from six.moves import range
@@ -108,6 +109,25 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
         self.assertEqual(eval_inputs.audio.shape, (p.batch_size, 48000))
       with self.assertRaisesRegex(tf.errors.OutOfRangeError, 'End of sequence'):
         sess.run(inputs)
+
+  def testRespectsInfeedBatchSize(self):
+    p = ToyInputGenerator.Params()
+    p.batch_size = 3
+    self._tmpdir, p.input_files = _CreateFakeTFRecordFiles()
+    p.dataset_type = tf.data.TFRecordDataset
+
+    ig = p.Instantiate()
+    batch = ig.InputBatch()
+    self.assertEqual(batch.audio.shape[0], p.batch_size)
+    self.assertEqual(p.batch_size, ig.InfeedBatchSize())
+
+    tf.reset_default_graph()
+    ig = p.Instantiate()
+    with mock.patch.object(
+        ig, 'InfeedBatchSize', return_value=42) as mock_method:
+      batch = ig.InputBatch()
+      self.assertEqual(batch.audio.shape[0], 42)
+    mock_method.assert_called()
 
 
 if __name__ == '__main__':

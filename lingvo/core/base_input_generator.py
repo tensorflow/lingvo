@@ -882,7 +882,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
       dataset = dataset.shuffle(p.randomize_shuffle_size)
     dataset = dataset.take(p.num_examples)
     dataset = dataset.repeat(p.num_epochs)
-    dataset = dataset.batch(p.batch_size, drop_remainder=True)
+    dataset = dataset.batch(self.InfeedBatchSize(), drop_remainder=True)
     dataset = dataset.map(
         ParseAndProcess, num_parallel_calls=p.parallel_readers)
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
