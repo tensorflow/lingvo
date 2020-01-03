@@ -332,6 +332,7 @@
           <span class="n">fetch_keys</span><span class="p">,</span>
           <span class="n">validate_fetches</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
           <span class="n">session_run_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">run_metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
           <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs predictor.</span>
 
@@ -340,6 +341,7 @@
 <span class="sd">      validate_fetches: if True, raises a KeyError if a specified fetch is</span>
 <span class="sd">        invalid. If False, returns None for invalid fetches instead.</span>
 <span class="sd">      session_run_options: Optional tf.RunOptions() to use in the session.</span>
+<span class="sd">      run_metadata: Optional tf.RunMetadata() to use in the session.</span>
 <span class="sd">      **kwargs: a dict of inputs to feed.</span>
 
 <span class="sd">    Returns:</span>
@@ -372,7 +374,11 @@
       <span class="n">run_options</span> <span class="o">=</span> <span class="n">session_run_options</span>
 
     <span class="n">fetched_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RunWithValidSession</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="n">valid_fetches</span><span class="p">,</span> <span class="n">feed_dict</span><span class="o">=</span><span class="n">feeds</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="o">.</span><span class="n">run</span><span class="p">,</span>
+        <span class="n">valid_fetches</span><span class="p">,</span>
+        <span class="n">feed_dict</span><span class="o">=</span><span class="n">feeds</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">,</span>
+        <span class="n">run_metadata</span><span class="o">=</span><span class="n">run_metadata</span><span class="p">)</span>
     <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">fetch_keys</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fetch</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">valid_fetch_idxs</span><span class="p">,</span> <span class="n">fetched_results</span><span class="p">):</span>
       <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">fetch</span>
