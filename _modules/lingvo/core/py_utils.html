@@ -235,7 +235,45 @@
     <span class="s1">&#39;variable handles directly for weight-sharing / multi-core &#39;</span>
     <span class="s1">&#39;inference on TPUs.&#39;</span><span class="p">)</span>
 
+<span class="c1"># NOTE: Using absl flags in libraries are frowned upon for several reasons:</span>
+<span class="c1">#</span>
+<span class="c1"># 1) They require app.run() or explicit flag parsing, preventing the use of</span>
+<span class="c1"># these libraries in environments that don&#39;t look like normal binaries (colab</span>
+<span class="c1"># notebooks).</span>
+<span class="c1">#</span>
+<span class="c1"># 2) They are process-level globals that cannot be scoped or configured except</span>
+<span class="c1"># once during binary startup.</span>
+<span class="c1">#</span>
+<span class="c1"># Because py_utils is a library, no more flags should be used in this file; the</span>
+<span class="c1"># existing flags are present for backwards compatibility.  Instead, consider</span>
+<span class="c1"># using a stack-scoped configuration object such as the Cluster object. We guard</span>
+<span class="c1"># against issue 1 above by using _FromGlobal below, which uses the default value</span>
+<span class="c1"># of the FLAG even if flags are unparsed.</span>
+
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<span class="k">def</span> <span class="nf">_FromGlobal</span><span class="p">(</span><span class="n">field_name</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Get &#39;field_name&#39; from a global configuration object.</span>
+
+<span class="sd">  Currently the global configuration object used is FLAGS, but this may</span>
+<span class="sd">  change to Cluster() or an equivalent stack-scoped config object.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    field_name: The string field name to look up.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The value associated with the global configuration string &#39;field_name&#39;.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># TODO(b/145831327): check the field name in the current cluster object.</span>
+  <span class="c1"># If explicitly set, use that value instead of using the FLAG value.</span>
+
+  <span class="c1"># Now check the FLAGS object for backwards compatibility.</span>
+  <span class="c1">#</span>
+  <span class="c1"># If not explicitly set, get the field from the FLAGS object.  If FLAGS</span>
+  <span class="c1"># have not been parsed yet, the default value of the flag will be used.</span>
+  <span class="k">return</span> <span class="n">FLAGS</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+
 
 <span class="n">ENQUEUE_OPS</span> <span class="o">=</span> <span class="s1">&#39;__lingvo_enqueue_ops&#39;</span>
 <span class="n">CLOSE_QUEUE_OPS</span> <span class="o">=</span> <span class="s1">&#39;__lingvo_close_queue_ops&#39;</span>
@@ -252,42 +290,42 @@
 
 
 <span class="k">def</span> <span class="nf">Assert</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
 
 
 <span class="k">def</span> <span class="nf">assert_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
 
 
 <span class="k">def</span> <span class="nf">assert_greater_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
 
 
 <span class="k">def</span> <span class="nf">assert_greater</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_greater</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
 
 
 <span class="k">def</span> <span class="nf">assert_less_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_less_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
 
 
 <span class="k">def</span> <span class="nf">assert_less</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_less</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
@@ -300,7 +338,7 @@
 
 
 <span class="k">def</span> <span class="nf">assert_shape_match</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="n">filepath</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">extract_stack</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
     <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;msg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;LINGVO ASSERT </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
         <span class="sa">r</span><span class="s1">&#39;.*/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">filepath</span><span class="p">),</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
@@ -310,7 +348,7 @@
 
 
 <span class="k">def</span> <span class="nf">assert_same_dim0</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">assert_same_dim0</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
@@ -327,7 +365,7 @@
 
 <span class="k">def</span> <span class="nf">CheckNumerics</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Check numerics for tensors in inp.&quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_check_numerics</span><span class="p">:</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_check_numerics&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">inp</span>
   <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">[</span><span class="n">_CheckNumerics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inp</span><span class="p">]</span>
@@ -423,7 +461,7 @@
         <span class="s1">&#39;Ranks did not match, got </span><span class="si">%d</span><span class="s1">, &#39;</span>
         <span class="s1">&#39;expected </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span><span class="p">,</span> <span class="n">expected_rank</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tensor</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">with_dependencies</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span> <span class="n">expected_rank</span><span class="p">)],</span>
                              <span class="n">tensor</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
@@ -459,7 +497,7 @@
 <span class="sd">  Raises:</span>
 <span class="sd">    A runtime error if the assertion fails.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="n">filepath</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">extract_stack</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
     <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;LINGVO ASSERT </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;.*/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
                                                  <span class="n">filepath</span><span class="p">),</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
@@ -507,29 +545,29 @@
 
 
 <span class="k">def</span> <span class="nf">use_xla</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="n">res</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span>
+  <span class="n">res</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;xla_device&#39;</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
-    <span class="k">assert</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="s1">&#39;gpu&#39;</span><span class="p">,</span> <span class="s1">&#39;tpu&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">res</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="s1">&#39;gpu&#39;</span><span class="p">,</span> <span class="s1">&#39;tpu&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">res</span>
 
 
 <span class="k">def</span> <span class="nf">use_tpu</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="n">res</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span>
+  <span class="n">res</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;xla_device&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span>
   <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span>  <span class="c1"># asserts not supported on tpu</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">)</span>  <span class="c1"># asserts not supported on tpu</span>
   <span class="k">return</span> <span class="n">res</span>
 
 
 <span class="k">def</span> <span class="nf">nas_run</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">return</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">nas_run</span>
+  <span class="k">return</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;nas_run&#39;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">tpu_compat</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">return</span> <span class="n">use_tpu</span><span class="p">()</span> <span class="ow">or</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu_compatible</span>
+  <span class="k">return</span> <span class="n">use_tpu</span><span class="p">()</span> <span class="ow">or</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;tpu_compatible&#39;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">use_resource_variables</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">return</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">use_resource_var</span> <span class="ow">or</span> <span class="n">tpu_compat</span><span class="p">()</span>
+  <span class="k">return</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_resource_var&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">tpu_compat</span><span class="p">()</span>
 
 
 <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
@@ -1625,7 +1663,7 @@
           <span class="n">use_resource</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">use_resource</span> <span class="ow">or</span> <span class="n">use_resource_variables</span><span class="p">())</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_scope</span><span class="p">),</span> \
         <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">reuse</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">pin_vars_to_cpu</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;pin_vars_to_cpu&#39;</span><span class="p">):</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/cpu:0&#39;</span><span class="p">):</span>
           <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
               <span class="s1">&#39;var&#39;</span><span class="p">,</span>
@@ -1667,7 +1705,7 @@
     <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">no_identity_on_vars</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;no_identity_on_vars&#39;</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">var</span><span class="p">,</span> <span class="n">var</span>
   <span class="k">else</span><span class="p">:</span>
@@ -2816,7 +2854,7 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A Tensor that evaluates to the same value as the input tensor.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">print_debug_tensors</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;print_debug_tensors&#39;</span><span class="p">):</span>
     <span class="n">step</span> <span class="o">=</span> <span class="n">_GetSampleStep</span><span class="p">()</span>
     <span class="n">tensors_to_print</span> <span class="o">=</span> <span class="p">([]</span> <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[</span><span class="n">step</span><span class="p">])</span> <span class="o">+</span> <span class="p">[</span><span class="n">tensor</span><span class="p">]</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
