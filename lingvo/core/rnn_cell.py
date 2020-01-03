@@ -334,8 +334,22 @@ class LSTMCellSimple(RNNCell):
         self.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
         self.CreateVariable(
             'threshold', threshold_pc, theta_fn=None, trainable=False)
+        # for gradient based pruning
+        # gradient and weight snapshots
+        grad_pc = py_utils.WeightParams(wm_pc.shape,
+                                        py_utils.WeightInit.Constant(0.0),
+                                        p.dtype)
+        self.CreateVariable('gradient', grad_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'old_weight', grad_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'old_old_weight', grad_pc, theta_fn=None, trainable=False)
+
         py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                         self.vars.threshold)
+                                         self.vars.threshold,
+                                         self.vars.gradient,
+                                         self.vars.old_weight,
+                                         self.vars.old_old_weight)
 
       if p.num_hidden_nodes:
         w_proj = py_utils.WeightParams(
@@ -352,13 +366,21 @@ class LSTMCellSimple(RNNCell):
           self.CreateVariable(
               'proj_mask', proj_mask_pc, theta_fn=None, trainable=False)
           self.CreateVariable(
-              'proj_threshold',
-              proj_threshold_pc,
-              theta_fn=None,
-              trainable=False)
+              'proj_threshold', proj_threshold_pc, trainable=False)
+          # for gradient based pruning
+          # gradient and weight snapshots
+          proj_grad_pc = py_utils.WeightParams(
+              w_proj.shape, py_utils.WeightInit.Constant(0.0), p.dtype)
+          self.CreateVariable('proj_gradient', proj_grad_pc, trainable=False)
+          self.CreateVariable('proj_old_weight', proj_grad_pc, trainable=False)
+          self.CreateVariable(
+              'proj_old_old_weight', proj_grad_pc, trainable=False)
           py_utils.AddToPruningCollections(self.vars.w_proj,
                                            self.vars.proj_mask,
-                                           self.vars.proj_threshold)
+                                           self.vars.proj_threshold,
+                                           self.vars.proj_gradient,
+                                           self.vars.proj_old_weight,
+                                           self.vars.proj_old_old_weight)
 
       if p.enable_lstm_bias:
         bias_pc = py_utils.WeightParams(
@@ -1806,8 +1828,22 @@ class SRUCell(RNNCell):
         self.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
         self.CreateVariable(
             'threshold', threshold_pc, theta_fn=None, trainable=False)
+
+        # for gradient based pruning
+        # gradient and weight snapshots
+        grad_pc = py_utils.WeightParams(wm_pc.shape,
+                                        py_utils.WeightInit.Constant(0.0),
+                                        p.dtype)
+        self.CreateVariable('gradient', grad_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'old_weight', grad_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'old_old_weight', grad_pc, theta_fn=None, trainable=False)
         py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                         self.vars.threshold)
+                                         self.vars.threshold,
+                                         self.vars.gradient,
+                                         self.vars.old_weight,
+                                         self.vars.old_old_weight)
 
       bias_pc = py_utils.WeightParams(
           shape=[self.num_gates * self.hidden_size],
@@ -1831,13 +1867,21 @@ class SRUCell(RNNCell):
           self.CreateVariable(
               'proj_mask', proj_mask_pc, theta_fn=None, trainable=False)
           self.CreateVariable(
-              'proj_threshold',
-              proj_threshold_pc,
-              theta_fn=None,
-              trainable=False)
+              'proj_threshold', proj_threshold_pc, trainable=False)
+          # for gradient based pruning
+          # gradient and weight snapshots
+          proj_grad_pc = py_utils.WeightParams(
+              w_proj.shape, py_utils.WeightInit.Constant(0.0), p.dtype)
+          self.CreateVariable('proj_gradient', proj_grad_pc, trainable=False)
+          self.CreateVariable('proj_old_weight', proj_grad_pc, trainable=False)
+          self.CreateVariable(
+              'proj_old_old_weight', proj_grad_pc, trainable=False)
           py_utils.AddToPruningCollections(self.vars.w_proj,
                                            self.vars.proj_mask,
-                                           self.vars.proj_threshold)
+                                           self.vars.proj_threshold,
+                                           self.vars.proj_gradient,
+                                           self.vars.proj_old_weight,
+                                           self.vars.proj_old_old_weight)
 
       # TODO(yuansg): b/136014373 investigate the layer norm initialization and
       # implementation, try skipping LP regularization on layer norm and bias.

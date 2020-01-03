@@ -570,21 +570,22 @@ class BaseTask(base_layer.BaseLayer):
         all_losses, tf.get_collection(py_utils.BATCH_NORM_UPDATES))
     train_ops['bn_updates'] = relevant_bn_updates
 
-    # Get the op to update the weight masks and thresholds
-    train_ops['mask_updates'] = self._GetMaskUpdateOp()
-
     # Post training step update.
     train_ops['post_step'] = self.PostTrainingStepUpdate(self.global_step)
 
     with tf.control_dependencies(tf.nest.flatten(train_ops)):
-      true_global_step = py_utils.GetOrCreateGlobalStepVar()
-      with tf.colocate_with(true_global_step):
-        increment_global_steps = tf.assign_add(true_global_step, 1)
-      if self._global_step_var != true_global_step:
-        with tf.colocate_with(self._global_step_var):
-          increment_global_steps = tf.group(
-              increment_global_steps, tf.assign_add(self._global_step_var, 1))
-      train_ops['global_step'] = increment_global_steps
+      # Get the op to update the weight masks and thresholds
+      mask_update_op = self._GetMaskUpdateOp()
+      train_ops['mask_updates'] = mask_update_op
+      with tf.control_dependencies([mask_update_op]):
+        true_global_step = py_utils.GetOrCreateGlobalStepVar()
+        with tf.colocate_with(true_global_step):
+          increment_global_steps = tf.assign_add(true_global_step, 1)
+        if self._global_step_var != true_global_step:
+          with tf.colocate_with(self._global_step_var):
+            increment_global_steps = tf.group(
+                increment_global_steps, tf.assign_add(self._global_step_var, 1))
+        train_ops['global_step'] = increment_global_steps
 
     # If we are using Tpu Embeddings, generate the monolithic send
     # gradient op.
