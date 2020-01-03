@@ -187,6 +187,7 @@ class Predictor(object):
           fetch_keys,
           validate_fetches=True,
           session_run_options=None,
+          run_metadata=None,
           **kwargs):
     """Runs predictor.
 
@@ -195,6 +196,7 @@ class Predictor(object):
       validate_fetches: if True, raises a KeyError if a specified fetch is
         invalid. If False, returns None for invalid fetches instead.
       session_run_options: Optional tf.RunOptions() to use in the session.
+      run_metadata: Optional tf.RunMetadata() to use in the session.
       **kwargs: a dict of inputs to feed.
 
     Returns:
@@ -227,7 +229,11 @@ class Predictor(object):
       run_options = session_run_options
 
     fetched_results = self._RunWithValidSession(
-        tf.Session.run, valid_fetches, feed_dict=feeds, options=run_options)
+        tf.Session.run,
+        valid_fetches,
+        feed_dict=feeds,
+        options=run_options,
+        run_metadata=run_metadata)
     results = [None] * len(fetch_keys)
     for i, fetch in zip(valid_fetch_idxs, fetched_results):
       results[i] = fetch
