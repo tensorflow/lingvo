@@ -46,8 +46,7 @@ def main(argv):
     assert dtype != tf.string  # tf.string is not supported by py_func.
     return tf.py_func(lambda: val, [], dtype)
 
-  out_prefix = FLAGS.out if FLAGS.out else os.path.join("/tmp",
-    FLAGS.dataset, FLAGS.dataset)
+  out_prefix = FLAGS.out or os.path.join("/tmp", FLAGS.dataset, FLAGS.dataset)
   tf.logging.info("Save %s dataset to %s ckpt." % (FLAGS.dataset, out_prefix))
 
   with tf.Session() as sess:
