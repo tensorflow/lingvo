@@ -229,8 +229,8 @@
 
     <span class="c1"># Program dirs are where the summaries are written to.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">:</span>
-      <span class="n">program_dir_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span>
-      <span class="p">)</span>
+      <span class="n">program_dir_name</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">task_name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">program_dir_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="n">program_dir_name</span><span class="p">)</span>
@@ -271,9 +271,12 @@
     <span class="sd">&quot;&quot;&quot;Execute the program using the given session handle.&quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
+<div class="viewcode-block" id="BaseProgram.CreateCheckpointer"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.CreateCheckpointer">[docs]</a>  <span class="k">def</span> <span class="nf">CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="BaseProgram.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Restore from checkpoint if necessary.&quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="TrainProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram">[docs]</a><span class="k">class</span> <span class="nc">TrainProgram</span><span class="p">(</span><span class="n">BaseProgram</span><span class="p">):</span>
@@ -288,9 +291,6 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">TrainProgram</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">StepRateTracker</span><span class="p">()</span>
-
-<div class="viewcode-block" id="TrainProgram._CreateCheckpointer"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram._CreateCheckpointer">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TrainProgram._OutfeedEnqueue"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram._OutfeedEnqueue">[docs]</a>  <span class="k">def</span> <span class="nf">_OutfeedEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">per_example_tensors</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">per_example_tensors</span><span class="p">:</span>
@@ -421,12 +421,7 @@
       <span class="c1"># Get metric result from a single replica; they are all same here.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">tpu_ops</span> <span class="o">=</span> <span class="p">[[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">batch_parallel_res</span><span class="p">],</span> <span class="n">outfeed_dequeue_op</span><span class="p">]</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-                                                    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpu_ops</span></div>
-
-<div class="viewcode-block" id="TrainProgram.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TrainProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Executing train program for </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_name</span><span class="p">)</span>
@@ -503,13 +498,8 @@
           <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
       <span class="c1"># Get metric result from a single replica; they are all same here.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">tpu_ops</span> <span class="o">=</span> <span class="p">[[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">batch_parallel_res</span><span class="p">]]</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-                                                     <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
 
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpu_ops</span></div>
-
-<div class="viewcode-block" id="EvalProgram.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="EvalProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Executing eval program for </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_name</span><span class="p">)</span>
@@ -563,15 +553,9 @@
         <span class="n">num_shards</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span><span class="p">,</span>
         <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-                                                   <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
-
     <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">batch_parallel_res</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">None</span></div>
-
-<div class="viewcode-block" id="DecodeProgram.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DecodeProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Executing decode program for </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_name</span><span class="p">)</span>
