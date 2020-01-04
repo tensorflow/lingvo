@@ -125,8 +125,8 @@ class AttentionStep(step.Step):
         PrepareExternalInputs.
       step_inputs: A NestedMap containing an 'inputs' tensor with the query
         vector to use.
-      padding: A [batch] 0/1 float tensor, where 1.0 means that this batch slot
-        is not used.
+      padding: A [batch, 1] 0/1 float tensor, where 1.0 means that this batch
+        slot is not used.
       state0: A NestedMap of state, either produced by ZeroState or a previous
         invocation of this graph.
 
@@ -233,8 +233,8 @@ class AttentionBlockStep(step.Step):
         PrepareExternalInputs.
       step_inputs: Unused. All of the input for this step comes from
         external_inputs and previous step state.
-      padding: A 0/1 float tensor, where 1.0 means that this batch slot is not
-        used.
+      padding: A [batch, 1] 0/1 float tensor, where 1.0 means that this batch
+        slot is not used.
       state0: A NestedMap of state, either produced by ZeroState or a previous
         invocation of this graph.
 
