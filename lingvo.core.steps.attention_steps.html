@@ -251,8 +251,8 @@ children layers.</p></li>
 PrepareExternalInputs.</p></li>
 <li><p><strong>step_inputs</strong> – A NestedMap containing an ‘inputs’ tensor with the query
 vector to use.</p></li>
-<li><p><strong>padding</strong> – A [batch] 0/1 float tensor, where 1.0 means that this batch slot
-is not used.</p></li>
+<li><p><strong>padding</strong> – A [batch, 1] 0/1 float tensor, where 1.0 means that this batch
+slot is not used.</p></li>
 <li><p><strong>state0</strong> – A NestedMap of state, either produced by ZeroState or a previous
 invocation of this graph.</p></li>
 </ul>
@@ -338,8 +338,8 @@ its children layers.</p></li>
 PrepareExternalInputs.</p></li>
 <li><p><strong>step_inputs</strong> – Unused. All of the input for this step comes from
 external_inputs and previous step state.</p></li>
-<li><p><strong>padding</strong> – A 0/1 float tensor, where 1.0 means that this batch slot is not
-used.</p></li>
+<li><p><strong>padding</strong> – A [batch, 1] 0/1 float tensor, where 1.0 means that this batch
+slot is not used.</p></li>
 <li><p><strong>state0</strong> – A NestedMap of state, either produced by ZeroState or a previous
 invocation of this graph.</p></li>
 </ul>
