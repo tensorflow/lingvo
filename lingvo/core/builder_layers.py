@@ -1061,9 +1061,9 @@ class LinearLayer(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       computation_cost.Add(
           self, 'flops',
-          tf.reduce_prod(tf.cast(tf.shape(inputs)[:-1], tf.int64)) * tf.cast(
-              symbolic.EvalExpr(symbolic.TENSOR_VALUES,
-                                p.input_dims * p.output_dims), tf.int64) * 2)
+          tf.reduce_prod(tf.cast(tf.shape(inputs)[:-1], tf.int64)) *
+          tf.cast(symbolic.ToTensor(p.input_dims * p.output_dims), tf.int64) *
+          2)
       return py_utils.ProjectLastDim(inputs, theta.w, p.input_dims,
                                      p.output_dims)
 
