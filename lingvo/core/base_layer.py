@@ -200,10 +200,6 @@ class BaseLayer(tf.Module):
         'params_init', py_utils.DefaultParamInit(),
         'How model weights should be initialized. Not to be confused with '
         'hyperparams.')
-    # is_eval is used to generate graph for eval purpose, typically
-    # the eval graph is forward pass of training graph without
-    # regularization, e.g. dropout.
-    p.Define('is_eval', None, 'True if in eval mode.')
     # In addition to is_eval, also makes additional alterations for graphs
     # being used for inference.
     p.Define('is_inference', None, 'True if in inference mode.')
