@@ -84,8 +84,8 @@ class BaseProgram(object):
 
     # Program dirs are where the summaries are written to.
     if p.task_name:
-      program_dir_name = p.task_name + '_' + p.name + '_' + p.dataset_name.lower(
-      )
+      program_dir_name = (
+          p.task_name + '_' + p.name + '_' + p.dataset_name.lower())
     else:
       program_dir_name = p.name + '_' + p.dataset_name.lower()
     self._program_dir = os.path.join(self._logdir, program_dir_name)
@@ -126,9 +126,12 @@ class BaseProgram(object):
     """Execute the program using the given session handle."""
     raise NotImplementedError()
 
+  def CreateCheckpointer(self):
+    self._checkpointer = checkpointer.Checkpointer(self._checkpoint_dir,
+                                                   self._model)
+
   def RestoreIfNeeded(self, sess):
-    """Restore from checkpoint if necessary."""
-    raise NotImplementedError()
+    self._checkpointer.RestoreIfNeeded(sess)
 
 
 class TrainProgram(BaseProgram):
@@ -143,9 +146,6 @@ class TrainProgram(BaseProgram):
   def __init__(self, params):
     super(TrainProgram, self).__init__(params)
     self._step_rate_tracker = summary_utils.StepRateTracker()
-
-  def _CreateCheckpointer(self, train_dir, model):
-    return checkpointer.Checkpointer(train_dir, model)
 
   def _OutfeedEnqueue(self, per_example_tensors):
     if not per_example_tensors:
@@ -276,12 +276,7 @@ class TrainProgram(BaseProgram):
       # Get metric result from a single replica; they are all same here.
       self.tpu_ops = [[t[0] for t in batch_parallel_res], outfeed_dequeue_op]
 
-      self._checkpointer = self._CreateCheckpointer(self._checkpoint_dir,
-                                                    self._model)
     return self.tpu_ops
-
-  def RestoreIfNeeded(self, sess):
-    self._checkpointer.RestoreIfNeeded(sess)
 
   def Run(self, sess):
     tf.logging.info('Executing train program for %s.', self._task_name)
@@ -358,13 +353,8 @@ class EvalProgram(BaseProgram):
           device_assignment=py_utils.GetTpuDeviceAssignment())
       # Get metric result from a single replica; they are all same here.
       self.tpu_ops = [[t[0] for t in batch_parallel_res]]
-      self._checkpointer = checkpointer.Checkpointer(self._checkpoint_dir,
-                                                     self._model)
 
       return self.tpu_ops
-
-  def RestoreIfNeeded(self, sess):
-    self._checkpointer.RestoreIfNeeded(sess)
 
   def Run(self, sess):
     tf.logging.info('Executing eval program for %s.', self._task_name)
@@ -418,15 +408,9 @@ class DecodeProgram(BaseProgram):
         num_shards=self.data_parallelism,
         device_assignment=py_utils.GetTpuDeviceAssignment())
 
-    self._checkpointer = checkpointer.Checkpointer(self._checkpoint_dir,
-                                                   self._model)
-
     self.metrics = py_utils.NestedMap(self.metrics_nm)
     self.metrics = self.metrics.Pack(batch_parallel_res)
     return None
-
-  def RestoreIfNeeded(self, sess):
-    self._checkpointer.RestoreIfNeeded(sess)
 
   def Run(self, sess):
     tf.logging.info('Executing decode program for %s.', self._task_name)

@@ -95,7 +95,7 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
 
 
 class ExecutorTpu(base_runner.BaseRunner):
-  """This is an experimental BaseRunner that does arbitrary multi-program execution on a TPU.
+  """An experimental runner that does arbitrary multi-program execution on TPU.
 
   Overview of operation:
 
@@ -215,7 +215,8 @@ class ExecutorTpu(base_runner.BaseRunner):
     def _WaitTillInit():
       """Wait until the model is ready."""
       try:
-        with self._GetSession(cluster_def=self._cluster_def) as sess:
+        with self._graph.as_default(), self._GetSession(
+            cluster_def=self._cluster_def) as sess:
           topology = sess.run(
               tf.tpu.initialize_system(embedding_config=None, job=None))
           device_assignment = device_assignment_lib.device_assignment(
@@ -238,8 +239,10 @@ class ExecutorTpu(base_runner.BaseRunner):
         with py_utils.VariableRenameScope(self._variable_renaming_rules):
           for program in self._programs:
             program.BuildTpuSubgraph()
-          self.initialize_tables = tf.tables_initializer()
-          self._initialize_local_vars = tf.local_variables_initializer()
+        for program in self._programs:
+          program.CreateCheckpointer()
+        self._initialize_tables = tf.tables_initializer()
+        self._initialize_local_vars = tf.local_variables_initializer()
 
         self._checkpoint_dir = os.path.join(logdir, 'train')
         self.save_only_checkpointer = checkpointer.Checkpointer(
@@ -255,13 +258,11 @@ class ExecutorTpu(base_runner.BaseRunner):
   def _Loop(self):
     with tf.container(self._container_id), self._GetSession(
         cluster_def=self._cluster_def) as sess:
-      sess.run(self.initialize_tables)
-      sess.run(self._initialize_local_vars)
-      sess.run(tf.tpu.initialize_system(embedding_config=None, job=None))
-
       # Initialize the variables first, if needed.
       for program in self._programs:
         program.RestoreIfNeeded(sess)
+      sess.run(self._initialize_tables)
+      sess.run(self._initialize_local_vars)
 
       while True:
         global_step = sess.run(py_utils.GetGlobalStep())

@@ -277,7 +277,7 @@ class Controller(base_runner.BaseRunner):
         self._params = self._model.params
         self._model.ConstructFPropBPropGraph()
         self._summary_op = tf.summary.merge_all()
-        self.initialize_tables = tf.tables_initializer()
+        self._initialize_tables = tf.tables_initializer()
         self._initialize_local_vars = tf.local_variables_initializer()
         self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
         self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
@@ -316,7 +316,7 @@ class Controller(base_runner.BaseRunner):
         return
 
       # This initializes local tables
-      sess.run(self.initialize_tables)
+      sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
 
@@ -386,7 +386,7 @@ class Trainer(base_runner.BaseRunner):
         self._model = self.params.Instantiate()
         self._params = self._model.params
         self._model.ConstructFPropBPropGraph()
-      self.initialize_tables = tf.tables_initializer()
+      self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
@@ -447,7 +447,7 @@ class Trainer(base_runner.BaseRunner):
       return
     with tf.container(self._container_id), self._GetSession() as sess:
       # This initializes local tables
-      sess.run(self.initialize_tables)
+      sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
       global_step = self._WaitUntilInit(sess, self._start_up_delay_steps)
@@ -648,7 +648,7 @@ class TrainerTpu(base_runner.BaseRunner):
         self._tpu_train_ops = (
             _ConstructPostTrainingLoop(all_tpu_ops, outfeed_dequeue_op))
 
-      self.initialize_tables = tf.tables_initializer()
+      self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
 
       if FLAGS.checkpoint_in_trainer_tpu:
@@ -809,7 +809,7 @@ class TrainerTpu(base_runner.BaseRunner):
           if self._tpu_embedding is not None else None)
       sess.run(
           tf.tpu.initialize_system(embedding_config=config_proto, job=None))
-      sess.run(self.initialize_tables)
+      sess.run(self._initialize_tables)
       sess.run(self._initialize_local_vars)
       if FLAGS.run_locally == 'tpu':
         sess.run(tf.global_variables_initializer())
@@ -956,7 +956,7 @@ class Evaler(base_runner.BaseRunner):
         # exactly the same.
         self._model.ConstructFPropGraph()
         self._model_task = self._model.GetTask(self._model_task_name)
-      self.initialize_tables = tf.tables_initializer()
+      self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for eval models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
@@ -980,7 +980,7 @@ class Evaler(base_runner.BaseRunner):
     """The main loop."""
     with tf.container(self._container_id), self._GetSession() as sess:
       # This initializes local tables
-      sess.run(self.initialize_tables)
+      sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
 
@@ -1007,7 +1007,7 @@ class Evaler(base_runner.BaseRunner):
     """Runs eval once on the latest checkpoint."""
     with tf.container(self._container_id), self._GetSession() as sess:
       # This initializes local tables
-      sess.run(self.initialize_tables)
+      sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
       path = tf.train.latest_checkpoint(self._train_dir)
@@ -1023,7 +1023,7 @@ class Evaler(base_runner.BaseRunner):
   def EvalCheckpoint(self, ckpt_id):
     with tf.container(self._container_id), self._GetSession() as sess:
       # This initializes local tables
-      sess.run(self.initialize_tables)
+      sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
       path = '{}/ckpt-{:08d}'.format(self._train_dir, ckpt_id)
@@ -1158,7 +1158,7 @@ class Decoder(base_runner.BaseRunner):
 
         self._dec_output = self._model_task.Decode(input_batch)
         self._summary_op = tf.summary.merge_all()
-      self.initialize_tables = tf.tables_initializer()
+      self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for decoder models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
@@ -1182,7 +1182,7 @@ class Decoder(base_runner.BaseRunner):
     with tf.container(
         self._container_id), self._GetSession(inline=False) as sess:
       # This initializes local tables
-      sess.run(self.initialize_tables)
+      sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
 
@@ -1296,7 +1296,7 @@ class Decoder(base_runner.BaseRunner):
     """Runs decoder on the latest checkpoint."""
     with tf.container(self._container_id), self._GetSession() as sess:
       # This initializes local tables
-      sess.run(self.initialize_tables)
+      sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
       path = tf.train.latest_checkpoint(self._train_dir)

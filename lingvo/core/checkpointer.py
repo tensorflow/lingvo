@@ -13,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# pylint: disable=line-too-long
 """Checkpointing utilities for save/restore."""
-# pylint: enable=line-too-long
 
 from __future__ import absolute_import
 from __future__ import division
@@ -49,9 +47,6 @@ class Checkpointer(object):
     self._train_dir = train_dir
     self._save_only = save_only
 
-    self._uninitialized_vars = tf.report_uninitialized_variables(
-        tf.global_variables())
-
     self._save_path = os.path.join(self._train_dir, 'ckpt')
 
     if train_params:
@@ -70,6 +65,9 @@ class Checkpointer(object):
     self._next_checkpoint_seconds = 0
     self._save_interval_seconds = self._train_params.save_interval_seconds
     self._saver = self._GetSaver()
+
+    self._uninitialized_vars = tf.report_uninitialized_variables(
+        tf.global_variables())
 
   def _GetSaver(self):
     """Returns a saver."""
@@ -91,7 +89,9 @@ class Checkpointer(object):
     tf.logging.info('Load from checkpoint %s.', checkpoint_path)
     self._saver.restore(sess, checkpoint_path)
     tf.logging.info('Load checkpoint done.')
-    tf.logging.info('Uninitialized vars: %s', self.GetUninitializedVars(sess))
+    # Successfully restored from checkpoint.
+    uninitialized_var_names = self.GetUninitializedVars(sess)
+    assert not uninitialized_var_names, uninitialized_var_names
 
   def MaybeSave(self, sess, gsteps):
     """If it's time to save, save the checkpoint.
@@ -124,17 +124,33 @@ class Checkpointer(object):
     return path
 
   def GetUninitializedVars(self, sess):
-    return list(sess.run(self._uninitialized_vars))
+    return sorted(list(sess.run(self._uninitialized_vars)))
 
   def RestoreIfNeeded(self, sess):
     """If vars are not initialized, restore from checkpoint."""
     assert not self._save_only
     uninitialized_var_names = self.GetUninitializedVars(sess)
+    # uninitialized_var_names is a list of strings without ":0" suffix.
+    # tf.report_uninitialized_variables returns binary strings.
+    assert all(isinstance(s, six.binary_type) for s in uninitialized_var_names)
     if not uninitialized_var_names:
+      # All variables are already initialized.
       return
 
     tf.logging.info('Uninitialized var list: %s', uninitialized_var_names)
+
+    # There should only be uninitialized variables if all variables are
+    # uninitialized.
+    all_var_names = [
+        six.ensure_binary(v.name[:-2]) for v in tf.global_variables()
+    ]
+    assert (set(uninitialized_var_names) == set(all_var_names)
+           ), sorted(set(all_var_names) - set(uninitialized_var_names))
+
     if self._Restore(sess):
+      # Successfully restored from checkpoint.
+      uninitialized_var_names = self.GetUninitializedVars(sess)
+      assert not uninitialized_var_names, uninitialized_var_names
       return
 
     if (self._params.train.init_from_checkpoint_rules or
@@ -155,14 +171,12 @@ class Checkpointer(object):
         py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(),
                                              tp.init_from_checkpoint_rules)
 
-    uninitialized_var_names = self.GetUninitializedVars(sess)
-    if not uninitialized_var_names:
-      return
+      uninitialized_var_names = self.GetUninitializedVars(sess)
+      if not uninitialized_var_names:
+        return
 
-    # uninitialized_var_names is a list of strings without ":0" suffix.
-    # tf.report_uninitialized_variables returns binary strings.
-    assert all(isinstance(s, six.binary_type) for s in uninitialized_var_names)
-    tf.logging.info('Remaining uninitialized vars: %s', uninitialized_var_names)
+      tf.logging.info('Remaining uninitialized vars: %s',
+                      uninitialized_var_names)
 
     # Need to retrieve vars, removing ":0" suffix from names.
     uninitialized_vars = [
@@ -170,7 +184,7 @@ class Checkpointer(object):
         if six.ensure_binary(v.name[:-2]) in uninitialized_var_names
     ]
     tf.logging.info('Initialize variables: %s',
-                    [v.name[:-2] for v in uninitialized_vars])
+                    sorted([v.name[:-2] for v in uninitialized_vars]))
     sess.run(tf.variables_initializer(uninitialized_vars))
 
   def RestoreGlobalStepIfNeeded(self, sess):
