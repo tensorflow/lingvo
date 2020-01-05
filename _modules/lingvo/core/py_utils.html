@@ -196,7 +196,6 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="kn">import</span> <span class="n">deprecation</span>
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
-
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
                      <span class="s1">&#39;If False, we disable all asserts.&#39;</span><span class="p">)</span>
 
@@ -2068,9 +2067,9 @@
 <span class="sd">      corresponding op.</span>
 <span class="sd">    gate_gradients: If True, add a tuple around the gradients returned for an</span>
 <span class="sd">      operations. This avoids some race conditions.</span>
-<span class="sd">    compute_gradients_fn: Function to use to compute gradients. If None,</span>
-<span class="sd">      use default. compute_gradients_fn should have the same signature as</span>
-<span class="sd">      this function, but without the last argument.</span>
+<span class="sd">    compute_gradients_fn: Function to use to compute gradients. If None, use</span>
+<span class="sd">      default. compute_gradients_fn should have the same signature as this</span>
+<span class="sd">      function, but without the last argument.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    var_grad - a `.NestedMap` of (variable, gradient). You can view</span>
@@ -3820,6 +3819,64 @@
                   <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
 
   <span class="k">return</span> <span class="n">outputs</span>
+
+
+<span class="k">def</span> <span class="nf">_DefineDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    fwd: A callable xs: NestedMap -&gt; ys: NestedMap.</span>
+<span class="sd">    bak: A callable xs, ys, dys: NestedMap -&gt; dxs: NestedMap. The custom</span>
+<span class="sd">      backprop function for fwd.</span>
+<span class="sd">    args: A NestedMap of tf.Tensor.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A NestedMap w/ fields:</span>
+<span class="sd">      defun: A tf.Defun wraps fwd</span>
+<span class="sd">      args:  A NestedMap of tf.DType</span>
+<span class="sd">      rets:  A NestedMap of tf.DType</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="n">fwd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+  <span class="c1"># fwd signature (tf.Tensor dtypes).</span>
+  <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+  <span class="n">get_dtype</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
+  <span class="n">sigs</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span>
+      <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">),</span> <span class="n">rets</span><span class="o">=</span><span class="n">rets</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">))</span>
+
+  <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">bak</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">xs</span> <span class="o">=</span> <span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
+    <span class="n">dys</span> <span class="o">=</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">dxs</span> <span class="o">=</span> <span class="n">bak</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dxs</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+
+  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">python_grad_func</span><span class="o">=</span><span class="n">Backward</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">Forward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">fwd</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">))</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+
+  <span class="n">sigs</span><span class="o">.</span><span class="n">defun</span> <span class="o">=</span> <span class="n">Forward</span>
+  <span class="k">return</span> <span class="n">sigs</span>
+
+
+<span class="k">def</span> <span class="nf">CallDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak and calls it with args.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    fwd: A callable xs: NestedMap -&gt; ys: NestedMap.</span>
+<span class="sd">    bak: A callable xs, ys, dys: NestedMap -&gt; dxs: NestedMap. The custom</span>
+<span class="sd">      backprop function for fwd.</span>
+<span class="sd">    args: A NestedMap of tf.Tensor.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A NestedMap equivalent to what fwd(args) computes.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">sigs</span> <span class="o">=</span> <span class="n">_DefineDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="n">rets</span> <span class="o">=</span> <span class="n">sigs</span><span class="o">.</span><span class="n">defun</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rets</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+    <span class="n">rets</span> <span class="o">=</span> <span class="p">[</span><span class="n">rets</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
 </pre></div>
 
            </div>

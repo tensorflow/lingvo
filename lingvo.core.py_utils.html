@@ -1214,9 +1214,9 @@ AggregationMethod.</p></li>
 corresponding op.</p></li>
 <li><p><strong>gate_gradients</strong> – If True, add a tuple around the gradients returned for an
 operations. This avoids some race conditions.</p></li>
-<li><p><strong>compute_gradients_fn</strong> – Function to use to compute gradients. If None,
-use default. compute_gradients_fn should have the same signature as
-this function, but without the last argument.</p></li>
+<li><p><strong>compute_gradients_fn</strong> – Function to use to compute gradients. If None, use
+default. compute_gradients_fn should have the same signature as this
+function, but without the last argument.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -2143,6 +2143,49 @@ tensor by using Einsum for the compute.</p>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>An output Tensor of the same rank as inputs, the last dimension is
 output_dim.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils._DefineDefun">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DefineDefun</code><span class="sig-paren">(</span><em class="sig-param">fwd</em>, <em class="sig-param">bak</em>, <em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DefineDefun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DefineDefun" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps fwd in a defun with custom gradient bak.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fwd</strong> – A callable xs: NestedMap -&gt; ys: NestedMap.</p></li>
+<li><p><strong>bak</strong> – A callable xs, ys, dys: NestedMap -&gt; dxs: NestedMap. The custom
+backprop function for fwd.</p></li>
+<li><p><strong>args</strong> – A NestedMap of tf.Tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>defun: A tf.Defun wraps fwd
+args:  A NestedMap of tf.DType
+rets:  A NestedMap of tf.DType</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A NestedMap w/ fields</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.CallDefun">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">CallDefun</code><span class="sig-paren">(</span><em class="sig-param">fwd</em>, <em class="sig-param">bak</em>, <em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CallDefun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CallDefun" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps fwd in a defun with custom gradient bak and calls it with args.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fwd</strong> – A callable xs: NestedMap -&gt; ys: NestedMap.</p></li>
+<li><p><strong>bak</strong> – A callable xs, ys, dys: NestedMap -&gt; dxs: NestedMap. The custom
+backprop function for fwd.</p></li>
+<li><p><strong>args</strong> – A NestedMap of tf.Tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap equivalent to what fwd(args) computes.</p>
 </dd>
 </dl>
 </dd></dl>
