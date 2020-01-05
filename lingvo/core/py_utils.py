@@ -51,7 +51,6 @@ from tensorflow.python.tpu import tpu_function
 from tensorflow.python.util import deprecation
 # pylint: enable=g-direct-tensorflow-import
 
-
 tf.flags.DEFINE_bool('enable_asserts', True,
                      'If False, we disable all asserts.')
 
@@ -1923,9 +1922,9 @@ def ComputeGradients(
       corresponding op.
     gate_gradients: If True, add a tuple around the gradients returned for an
       operations. This avoids some race conditions.
-    compute_gradients_fn: Function to use to compute gradients. If None,
-      use default. compute_gradients_fn should have the same signature as
-      this function, but without the last argument.
+    compute_gradients_fn: Function to use to compute gradients. If None, use
+      default. compute_gradients_fn should have the same signature as this
+      function, but without the last argument.
 
   Returns:
     var_grad - a `.NestedMap` of (variable, gradient). You can view
@@ -3675,3 +3674,61 @@ def ProjectLastDim(inputs, weight, input_dim, output_dim):
                   axis=0))
 
   return outputs
+
+
+def _DefineDefun(fwd, bak, args):
+  """Wraps fwd in a defun with custom gradient bak.
+
+  Args:
+    fwd: A callable xs: NestedMap -> ys: NestedMap.
+    bak: A callable xs, ys, dys: NestedMap -> dxs: NestedMap. The custom
+      backprop function for fwd.
+    args: A NestedMap of tf.Tensor.
+
+  Returns:
+    A NestedMap w/ fields:
+      defun: A tf.Defun wraps fwd
+      args:  A NestedMap of tf.DType
+      rets:  A NestedMap of tf.DType
+  """
+  assert fwd is not None
+
+  # fwd signature (tf.Tensor dtypes).
+  rets = fwd(args)
+  get_dtype = lambda x: x.dtype
+  sigs = NestedMap(
+      args=args.Transform(get_dtype), rets=rets.Transform(get_dtype))
+
+  def Backward(op, *args):
+    assert bak is not None
+    xs = sigs.args.Pack(op.inputs)
+    ys = sigs.rets.Pack(op.outputs)
+    dys = sigs.rets.Pack(args)
+    dxs = bak(xs, ys, dys)
+    return dxs.Flatten()
+
+  @tf.Defun(*sigs.args.Flatten(), python_grad_func=Backward)
+  def Forward(*args):
+    return fwd(sigs.args.Pack(args)).Flatten()
+
+  sigs.defun = Forward
+  return sigs
+
+
+def CallDefun(fwd, bak, args):
+  """Wraps fwd in a defun with custom gradient bak and calls it with args.
+
+  Args:
+    fwd: A callable xs: NestedMap -> ys: NestedMap.
+    bak: A callable xs, ys, dys: NestedMap -> dxs: NestedMap. The custom
+      backprop function for fwd.
+    args: A NestedMap of tf.Tensor.
+
+  Returns:
+    A NestedMap equivalent to what fwd(args) computes.
+  """
+  sigs = _DefineDefun(fwd, bak, args)
+  rets = sigs.defun(*args.Flatten())
+  if not isinstance(rets, (tuple, list)):
+    rets = [rets]
+  return sigs.rets.Pack(rets)

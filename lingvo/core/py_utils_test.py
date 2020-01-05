@@ -2000,7 +2000,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
       self.assertAllClose(zero_state_v, expected_zero_state)
 
 
-class RematerializeFnTest(tf.test.TestCase):
+class RematerializeFnTest(test_utils.TestCase):
 
   def testRandomNormal(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
@@ -2026,7 +2026,7 @@ class RematerializeFnTest(tf.test.TestCase):
       self.assertAllEqual(v2, v4)
 
 
-class StatefulRandomOpsInDefunTest(tf.test.TestCase):
+class StatefulRandomOpsInDefunTest(test_utils.TestCase):
 
   def testFunctionWithStatelessOp(self):
 
@@ -2155,7 +2155,7 @@ class StatefulRandomOpsInDefunTest(tf.test.TestCase):
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessFunctionalFor))
 
 
-class RecordFormatTest(tf.test.TestCase):
+class RecordFormatTest(test_utils.TestCase):
 
   def testRecordFormatFromFilePattern(self):
     record_format, path = py_utils.RecordFormatFromFilePattern(
@@ -2169,7 +2169,7 @@ class RecordFormatTest(tf.test.TestCase):
     self.assertEqual(path, '/path/to/baz')
 
 
-class ReadFileLinesTest(tf.test.TestCase):
+class ReadFileLinesTest(test_utils.TestCase):
 
   def testReadFileLines(self):
     contents = [
@@ -2198,7 +2198,7 @@ class ReadFileLinesTest(tf.test.TestCase):
       py_utils.ReadFileLines(path)
 
 
-class FocalLossTest(tf.test.TestCase):
+class FocalLossTest(test_utils.TestCase):
 
   def _testNpFL(self, logits, labels, alpha, gamma):
     self.assertEqual(logits.shape, labels.shape)
@@ -2308,7 +2308,7 @@ class FocalLossTest(tf.test.TestCase):
           self._testTfSCEFLLabelProbs(logits, label_probs, alpha, gamma))
 
 
-class UniformSamplerTest(tf.test.TestCase):
+class UniformSamplerTest(test_utils.TestCase):
 
   def testUniformSamplerSamples(self):
     sampler = py_utils.UniformSampler(5)
@@ -2343,7 +2343,7 @@ class UniformSamplerTest(tf.test.TestCase):
     self.assertLess(max(distribution), 0.011)
 
 
-class FromGlobalTest(tf.test.TestCase):
+class FromGlobalTest(test_utils.TestCase):
 
   def testAccessAssertFlagWhenUnparsed(self):
     tf.flags.FLAGS.unparse_flags()
@@ -2355,6 +2355,33 @@ class FromGlobalTest(tf.test.TestCase):
     self.assertTrue(result)
     # Reparse args.
     tf.flags.FLAGS(sys.argv)
+
+
+class CallDefunTest(test_utils.TestCase):
+
+  def testSimple(self):
+    with self.session() as sess:
+
+      def Bak(xs, ys, dys):
+        del ys
+        return py_utils.NestedMap(
+            w=tf.matmul(dys.y, tf.transpose(xs.x)) + 100.,
+            x=tf.matmul(tf.transpose(xs.w), dys.y) + 200.)
+
+      def Fwd(xs):
+        return py_utils.NestedMap(y=tf.matmul(xs.w, xs.x))
+
+      a = np.array([[1.0, 2.0], [0.0, -3.0]])
+      b = np.array([[2.0, 0.0], [1.0, 1.0]])
+      xs = py_utils.NestedMap(w=tf.constant(a), x=tf.constant(b))
+      ys = py_utils.CallDefun(Fwd, Bak, xs)
+      loss = tf.reduce_sum(tf.square(ys.y))
+      dw, dx, dy = tf.gradients(xs=xs.Flatten() + ys.Flatten(), ys=loss)
+      y, dw, dx, dy = sess.run([ys.y, dw, dx, dy])
+      self.assertAllEqual(y, a.dot(b))
+      self.assertAllEqual(dy, 2 * y)
+      self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
+      self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
 
 
 if __name__ == '__main__':
