@@ -117,7 +117,7 @@ class GenericInputProcessor : public RecordProcessor {
     opts.step_container = &step_container;
     opts.runner = ThreadLocalRunner::PerThread().runner();
 
-    // Generates <record, source_id> pair as the resulting Tensors.
+    // Generates <source_id, record> pair as the resulting Tensors.
     TensorVec args(2);
     args[0] = Tensor(DT_INT32, {});
     args[0].scalar<int32>()() = record.source_id;
