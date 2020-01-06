@@ -263,7 +263,6 @@ class Controller(base_runner.BaseRunner):
   def __init__(self, *args, **kwargs):
     super(Controller, self).__init__(*args, **kwargs)
     assert not self._model_task_name, 'Controller needs all tasks!'
-    tf.gfile.MakeDirs(self._train_dir)
     self._control_dir = os.path.join(self._logdir, 'control')
     tf.gfile.MakeDirs(self._control_dir)
     self._summary_writer = self._CreateSummaryWriter(self._control_dir)

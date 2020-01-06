@@ -77,6 +77,7 @@ class BaseRunner(object):
     self.params.cluster.logdir = logdir
     self._cluster = cluster_factory.Cluster(self.params.cluster)
     self._train_dir = os.path.join(self._logdir, 'train')
+    tf.gfile.MakeDirs(self._train_dir)
     self._graph = tf.Graph()
     self._summary_writer = None
     self.initialize_tables = None
