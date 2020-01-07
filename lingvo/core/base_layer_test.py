@@ -67,8 +67,8 @@ class TestLayer(base_layer.BaseLayer):
 class BaseLayerTest(test_utils.TestCase):
 
   def testCopyBaseParams(self):
-    # CopyBaseParams should only overwrite is_eval/vn setting when target use
-    # default is_eval/vn config.
+    # CopyBaseParams should only overwrite vn setting when target use
+    # default vn config.
     layer_base_p = base_layer.BaseLayer.Params()
     from_param = layer_base_p.Copy()
     to_param = layer_base_p.Copy()

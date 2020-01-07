@@ -200,10 +200,9 @@ class BaseLayer(tf.Module):
         'params_init', py_utils.DefaultParamInit(),
         'How model weights should be initialized. Not to be confused with '
         'hyperparams.')
-    # In addition to is_eval, also makes additional alterations for graphs
-    # being used for inference.
+    # Makes additional alterations for graphs being used for inference.
     p.Define('is_inference', None, 'True if in inference mode.')
-    # In addition to is_eval/is_inference, indicate that the inference graph is
+    # In addition to is_inference, indicate that the inference graph is
     # for a single step.
     p.Define(
         'allow_implicit_capture', None,
