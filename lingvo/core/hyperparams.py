@@ -405,11 +405,11 @@ class Params(object):
       elif isinstance(val, list):
         param_pb.list_val.CopyFrom(hyperparams_pb2.HyperparamRepeated())
         for v in val:
-          param_pb.list_val.items.append(_ToParamValue(v))
+          param_pb.list_val.items.extend([_ToParamValue(v)])
       elif isinstance(val, tuple):
         param_pb.tuple_val.CopyFrom(hyperparams_pb2.HyperparamRepeated())
         for v in val:
-          param_pb.tuple_val.items.append(_ToParamValue(v))
+          param_pb.tuple_val.items.extend([_ToParamValue(v)])
       elif isinstance(val, dict):
         param_pb.dict_val.CopyFrom(hyperparams_pb2.Hyperparam())
         for k, v in val.items():
