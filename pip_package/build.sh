@@ -86,7 +86,6 @@ bazel build ...
 bazel test lingvo/core/...
 
 DST_DIR="/tmp/lingvo_pip_pkg_build"
-rm -rf "$DST_DIR" || true
 ./pip_package/build_pip_pkg.sh "$DST_DIR" ${PYTHON_VERSION}
 # Comment the following line if you run this outside of the container.
 if [[ "${PIP_MANYLINUX2010}" == "1" ]]; then

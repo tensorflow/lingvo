@@ -21,7 +21,7 @@ from setuptools import setup
 from setuptools.command.install import install
 from setuptools.dist import Distribution
 
-__version__ = '0.6.0'
+__version__ = '0.6.1'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -72,7 +72,7 @@ setup(
     author_email='lingvo-bot@google.com',
     packages=find_packages(include=['lingvo*'], exclude=[]),
     include_package_data=True,
-    python_requires='>=3',
+    python_requires='>=3.6',
     install_requires=REQUIRED_PACKAGES,
     zip_safe=False,
     cmdclass={
@@ -87,6 +87,7 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Software Development',
