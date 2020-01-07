@@ -33,7 +33,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import importlib
 import inspect
 import os
 import re
@@ -1790,27 +1789,6 @@ class RunnerManager(object):
   def Start(self):
     """Start the process."""
     tf.logging.set_verbosity(tf.logging.INFO)
-
-    # First try to see whether the model has been fetched by lingvo
-    # model_imports already.
-    try:
-      model_cls = self.model_registry.GetClass(self._model_name)
-    except LookupError as e:
-      # Try importing the module path implicitly defined by FLAGS.model so we
-      # can register those models.
-      module_name = self._model_name.rpartition('.')[0]
-      try:
-        module_obj = importlib.import_module(module_name)
-      except ImportError:
-        warn_str = ('\n\nAlso, unable to import `%s` as '
-                    'an external params module.\n\n' % module_name)
-        raise LookupError(str(e) + warn_str)
-      tf.logging.info('Imported custom params: %s' % module_obj)
-      # Strip off 'params.'
-      self._model_name = self._model_name.replace('params.', '')
-      model_cls = self.model_registry.GetClass(self._model_name)
-      if model_cls is None:
-        raise e
 
     if FLAGS.mode == 'inspect_model':
       self.InspectModel()

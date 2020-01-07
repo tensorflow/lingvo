@@ -23,32 +23,22 @@ from __future__ import division
 from __future__ import print_function
 
 import importlib
-import re
 import lingvo.compat as tf
-import six
 
 
-def _Import(task_root, name):
+def _Import(name):
   """Imports the python module of the given name."""
   tf.logging.info('Importing %s', name)
   try:
     importlib.import_module(name)
     tf.logging.info('Imported %s', name)
   except ImportError as e:
-    errmsg = str(e)
-    if six.PY2:
-      match_str = 'No module named.*'
-    else:
-      match_str = 'No module named.*%s' % task_root
-    if re.match(match_str, errmsg):
-      # Expected that some imports may be missing.
-      tf.logging.info('Expected error importing %s: %s', name, errmsg)
-    else:
-      tf.logging.info('Unexpected error importing %s: %s', name, errmsg)
-      raise
+    # It is expected that some imports may be missing.
+    tf.logging.info('Could not import %s: %s', name, e)
 
 
 _TASK_ROOT = 'lingvo.tasks'
+
 
 # LINT.IfChange(task_dirs)
 _TASK_DIRS = (
@@ -68,13 +58,20 @@ def ImportAllParams(task_root=_TASK_ROOT, task_dirs=_TASK_DIRS):
     # By our code repository convention, there is a params.py under the task's
     # params directory. params.py imports _all_ modules that may registers a
     # model param.
-    _Import(task_root, '{}.{}.params.params'.format(task_root, task))
+    _Import('{}.{}.params.params'.format(task_root, task))
 
 
 def ImportParams(model_name, task_root=_TASK_ROOT, task_dirs=_TASK_DIRS):
-  # Import precisely the params/.*py file that may defines the model.
-  for task in task_dirs:
-    if model_name.startswith(task + '.'):
-      # 'model_name' follows <task>.<path>.<class name>
-      path = model_name[:model_name.rfind('.')][len(task) + 1:]
-      _Import(task_root, '{}.{}.params.{}'.format(task_root, task, path))
+  """Attempts to only import the files that may contain the model."""
+  # 'model_name' follows <task>.<path>.<class name>
+  if '.' not in model_name:
+    raise ValueError('Invalid model name %s' % model_name)
+  model_module = model_name.rpartition('.')[0]
+  # Try importing the module directly, in case it's a local import.
+  _Import(model_module)
+
+  # Try built-in tasks imports.
+  for task in sorted(task_dirs):
+    if model_module.startswith(task + '.'):
+      path = model_module[len(task) + 1:]
+      _Import('{}.{}.params.{}'.format(task_root, task, path))

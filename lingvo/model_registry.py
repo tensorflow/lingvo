@@ -94,13 +94,10 @@ class _ModelRegistryHelper(object):
     path = path.replace(path_prefix, '')
 
     # Removes 'params.' if exists.
-    if 'params.' not in path:
-      # Sometimes, we define a param class in a unittest.
-      if not inspect.getfile(src_cls).endswith('test.py'):
-        raise ValueError('Model params being registered must be '
-                         'in a params subfolder or a test.')
+    if 'params.' in path:
+      path = path.replace('params.', '')
+    if inspect.getfile(src_cls).endswith('test.py'):
       return 'test.{}'.format(src_cls.__name__)
-    path = path.replace('params.', '')
     return '{}.{}'.format(path, src_cls.__name__)
 
   @classmethod
