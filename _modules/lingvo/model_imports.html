@@ -168,32 +168,22 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">importlib</span>
-<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
-<span class="kn">import</span> <span class="nn">six</span>
 
 
-<div class="viewcode-block" id="_Import"><a class="viewcode-back" href="../../lingvo.model_imports.html#lingvo.model_imports._Import">[docs]</a><span class="k">def</span> <span class="nf">_Import</span><span class="p">(</span><span class="n">task_root</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="_Import"><a class="viewcode-back" href="../../lingvo.model_imports.html#lingvo.model_imports._Import">[docs]</a><span class="k">def</span> <span class="nf">_Import</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Imports the python module of the given name.&quot;&quot;&quot;</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Importing </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
   <span class="k">try</span><span class="p">:</span>
     <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Imported </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
   <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-    <span class="n">errmsg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">six</span><span class="o">.</span><span class="n">PY2</span><span class="p">:</span>
-      <span class="n">match_str</span> <span class="o">=</span> <span class="s1">&#39;No module named.*&#39;</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">match_str</span> <span class="o">=</span> <span class="s1">&#39;No module named.*</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">task_root</span>
-    <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">match_str</span><span class="p">,</span> <span class="n">errmsg</span><span class="p">):</span>
-      <span class="c1"># Expected that some imports may be missing.</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Expected error importing </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">errmsg</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Unexpected error importing </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">errmsg</span><span class="p">)</span>
-      <span class="k">raise</span></div>
+    <span class="c1"># It is expected that some imports may be missing.</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Could not import </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span></div>
 
 
 <span class="n">_TASK_ROOT</span> <span class="o">=</span> <span class="s1">&#39;lingvo.tasks&#39;</span>
+
 
 <span class="c1"># LINT.IfChange(task_dirs)</span>
 <span class="n">_TASK_DIRS</span> <span class="o">=</span> <span class="p">(</span>
@@ -213,16 +203,23 @@
     <span class="c1"># By our code repository convention, there is a params.py under the task&#39;s</span>
     <span class="c1"># params directory. params.py imports _all_ modules that may registers a</span>
     <span class="c1"># model param.</span>
-    <span class="n">_Import</span><span class="p">(</span><span class="n">task_root</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.params.params&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_root</span><span class="p">,</span> <span class="n">task</span><span class="p">))</span></div>
+    <span class="n">_Import</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.params.params&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_root</span><span class="p">,</span> <span class="n">task</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="ImportParams"><a class="viewcode-back" href="../../lingvo.model_imports.html#lingvo.model_imports.ImportParams">[docs]</a><span class="k">def</span> <span class="nf">ImportParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">task_root</span><span class="o">=</span><span class="n">_TASK_ROOT</span><span class="p">,</span> <span class="n">task_dirs</span><span class="o">=</span><span class="n">_TASK_DIRS</span><span class="p">):</span>
-  <span class="c1"># Import precisely the params/.*py file that may defines the model.</span>
-  <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">task_dirs</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">task</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span><span class="p">):</span>
-      <span class="c1"># &#39;model_name&#39; follows &lt;task&gt;.&lt;path&gt;.&lt;class name&gt;</span>
-      <span class="n">path</span> <span class="o">=</span> <span class="n">model_name</span><span class="p">[:</span><span class="n">model_name</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)][</span><span class="nb">len</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
-      <span class="n">_Import</span><span class="p">(</span><span class="n">task_root</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.params.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_root</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">path</span><span class="p">))</span></div>
+  <span class="sd">&quot;&quot;&quot;Attempts to only import the files that may contain the model.&quot;&quot;&quot;</span>
+  <span class="c1"># &#39;model_name&#39; follows &lt;task&gt;.&lt;path&gt;.&lt;class name&gt;</span>
+  <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">model_name</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid model name </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">model_name</span><span class="p">)</span>
+  <span class="n">model_module</span> <span class="o">=</span> <span class="n">model_name</span><span class="o">.</span><span class="n">rpartition</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="c1"># Try importing the module directly, in case it&#39;s a local import.</span>
+  <span class="n">_Import</span><span class="p">(</span><span class="n">model_module</span><span class="p">)</span>
+
+  <span class="c1"># Try built-in tasks imports.</span>
+  <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">task_dirs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">model_module</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">task</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span><span class="p">):</span>
+      <span class="n">path</span> <span class="o">=</span> <span class="n">model_module</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+      <span class="n">_Import</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.params.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_root</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">path</span><span class="p">))</span></div>
 </pre></div>
 
            </div>
