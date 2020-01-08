@@ -301,8 +301,7 @@ class BaseTask(base_layer.BaseLayer):
     tp = p.train
     # p.train can be None if this task is the teacher/student task in a
     # DistillationTask.
-    if tp and self.cluster.job in ('worker', 'trainer', 'trainer_client',
-                                   'controller', 'executor_tpu'):
+    if tp:
       self._SetLearnerFromLegacyParams(tp)
       if tp.learner is not None:
         if isinstance(tp.learner, (list, tuple)):
