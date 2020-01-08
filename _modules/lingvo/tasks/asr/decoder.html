@@ -823,30 +823,6 @@
                                   <span class="n">states</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;_PostBeamSearchStepCallback&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="AsrDecoderBase.FPropWithPredictionsAndPerExampleTensors"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.FPropWithPredictionsAndPerExampleTensors">[docs]</a>  <span class="k">def</span> <span class="nf">FPropWithPredictionsAndPerExampleTensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                               <span class="n">theta</span><span class="p">,</span>
-                                               <span class="n">encoder_outputs</span><span class="p">,</span>
-                                               <span class="n">targets</span><span class="p">,</span>
-                                               <span class="n">targets_per_batch_element</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-    <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
-                                          <span class="n">targets_per_batch_element</span><span class="p">)</span>
-    <span class="n">metrics</span><span class="p">,</span> <span class="n">per_sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">per_sequence</span></div>
-
-<div class="viewcode-block" id="AsrDecoderBase.FPropWithPerExampleLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.FPropWithPerExampleLoss">[docs]</a>  <span class="k">def</span> <span class="nf">FPropWithPerExampleLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                              <span class="n">encoder_outputs</span><span class="p">,</span>
-                              <span class="n">targets</span><span class="p">,</span>
-                              <span class="n">targets_per_batch_element</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-    <span class="n">metrics</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropWithPredictionsAndPerExampleTensors</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">targets_per_batch_element</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="AsrDecoderBase.FPropWithPredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.FPropWithPredictions">[docs]</a>  <span class="k">def</span> <span class="nf">FPropWithPredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns FProp() results together with predictions.&quot;&quot;&quot;</span>
-    <span class="n">metrics</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropWithPredictionsAndPerExampleTensors</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">predictions</span></div>
-
 <div class="viewcode-block" id="AsrDecoderBase.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes loss metrics and per-sequence losses.</span>
 
