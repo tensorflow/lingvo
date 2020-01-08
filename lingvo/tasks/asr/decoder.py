@@ -678,30 +678,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
                                   states):
     raise NotImplementedError('_PostBeamSearchStepCallback')
 
-  def FPropWithPredictionsAndPerExampleTensors(self,
-                                               theta,
-                                               encoder_outputs,
-                                               targets,
-                                               targets_per_batch_element=1):
-    predictions = self.ComputePredictions(self.theta, encoder_outputs, targets,
-                                          targets_per_batch_element)
-    metrics, per_sequence = self.ComputeLoss(self.theta, predictions, targets)
-    return metrics, predictions, per_sequence
-
-  def FPropWithPerExampleLoss(self,
-                              encoder_outputs,
-                              targets,
-                              targets_per_batch_element=1):
-    metrics, _, per_example = self.FPropWithPredictionsAndPerExampleTensors(
-        self.theta, encoder_outputs, targets, targets_per_batch_element)
-    return metrics, per_example['loss']
-
-  def FPropWithPredictions(self, encoder_outputs, targets):
-    """Returns FProp() results together with predictions."""
-    metrics, predictions, _ = self.FPropWithPredictionsAndPerExampleTensors(
-        self.theta, encoder_outputs, targets)
-    return metrics, predictions
-
   def ComputeLoss(self, theta, predictions, targets):
     """Computes loss metrics and per-sequence losses.
 

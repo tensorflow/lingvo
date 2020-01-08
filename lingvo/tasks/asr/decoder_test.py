@@ -115,7 +115,8 @@ class DecoderTest(test_utils.TestCase):
         'paddings': target_paddings,
         'transcripts': target_transcripts,
     })
-    return dec.FPropWithPerExampleLoss(encoder_outputs, targets)
+    decoder_outputs = dec.FPropDefaultTheta(encoder_outputs, targets)
+    return decoder_outputs.metrics, decoder_outputs.per_sequence['loss']
 
   def _testDecoderFPropHelper(self, params):
     metrics, per_sequence_loss = self._getDecoderFPropMetrics(params)
