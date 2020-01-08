@@ -109,10 +109,14 @@ class BaseProgram(object):
 
   def _InfeedLoop(self, sess):
     tf.logging.info('_InfeedLoop start')
-    for i in range(self._steps_per_loop):
-      tf.logging.vlog(1, '_InfeedLoop %d', i)
-      sess.run(self._model.GetTask().input_generator.tpu_infeed_op)
-    tf.logging.info('_InfeedLoop done')
+    try:
+      for i in range(self._steps_per_loop):
+        tf.logging.vlog(1, '_InfeedLoop %d', i)
+        sess.run(self._model.GetTask().input_generator.tpu_infeed_op)
+      tf.logging.info('_InfeedLoop done')
+    except Exception as e:
+      tf.logging.info('_InfeedLoop exception %r %s', e, e)
+      raise
 
   def BuildTpuSubgraph(self):
     """Sub classes should construct a model/graph to be executed by Run.
