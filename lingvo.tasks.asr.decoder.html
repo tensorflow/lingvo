@@ -556,11 +556,6 @@ emitted.</p></li>
 <dl class="method">
 <dt id="lingvo.tasks.asr.decoder.AsrDecoderBase.ComputeLoss">
 <code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predictions</em>, <em class="sig-param">targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder.html#AsrDecoderBase.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder.AsrDecoderBase.ComputeLoss" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.asr.decoder.AsrDecoderBase.ComputeMetricsAndPerSequenceLoss">
-<code class="sig-name descname">ComputeMetricsAndPerSequenceLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predictions</em>, <em class="sig-param">targets</em>, <em class="sig-param">targets_per_batch_element=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder.html#AsrDecoderBase.ComputeMetricsAndPerSequenceLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder.AsrDecoderBase.ComputeMetricsAndPerSequenceLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes loss metrics and per-sequence losses.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -570,13 +565,12 @@ layer and its children layers.</p></li>
 <li><p><strong>predictions</strong> – A NestedMap containing logits (and possibly other fields).</p></li>
 <li><p><strong>targets</strong> – A dict of string to tensors representing the targets one is
 trying to predict. Each tensor in targets is of shape [batch, time].</p></li>
-<li><p><strong>targets_per_batch_element</strong> – Number of target sequences per utterance.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>(metrics, per_sequence_loss), where metrics is a dictionary containing
-metrics for the xent loss and prediction accuracy. per_sequence_loss is a
-(-log(p)) vector of size [bs].</p>
+metrics for the xent loss and prediction accuracy. per_sequence is a
+dictionary containing ‘loss’, a (-log(p)) vector of size [bs].</p>
 </dd>
 </dl>
 </dd></dl>
