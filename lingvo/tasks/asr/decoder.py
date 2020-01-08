@@ -685,9 +685,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
                                                targets_per_batch_element=1):
     predictions = self.ComputePredictions(self.theta, encoder_outputs, targets,
                                           targets_per_batch_element)
-    metrics, per_sequence_loss = self.ComputeMetricsAndPerSequenceLoss(
-        self.theta, predictions, targets, targets_per_batch_element)
-    return metrics, predictions, {'loss': per_sequence_loss}
+    metrics, per_sequence = self.ComputeLoss(self.theta, predictions, targets)
+    return metrics, predictions, per_sequence
 
   def FPropWithPerExampleLoss(self,
                               encoder_outputs,
@@ -704,15 +703,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     return metrics, predictions
 
   def ComputeLoss(self, theta, predictions, targets):
-    metrics, per_sequence_loss = self.ComputeMetricsAndPerSequenceLoss(
-        theta, predictions, targets)
-    return metrics, {'loss': per_sequence_loss}
-
-  def ComputeMetricsAndPerSequenceLoss(self,
-                                       theta,
-                                       predictions,
-                                       targets,
-                                       targets_per_batch_element=1):
     """Computes loss metrics and per-sequence losses.
 
     Args:
@@ -721,14 +711,12 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       predictions: A NestedMap containing logits (and possibly other fields).
       targets: A dict of string to tensors representing the targets one is
           trying to predict. Each tensor in targets is of shape [batch, time].
-      targets_per_batch_element: Number of target sequences per utterance.
 
     Returns:
       (metrics, per_sequence_loss), where metrics is a dictionary containing
-      metrics for the xent loss and prediction accuracy. per_sequence_loss is a
-      (-log(p)) vector of size [bs].
+      metrics for the xent loss and prediction accuracy. per_sequence is a
+      dictionary containing 'loss', a (-log(p)) vector of size [bs].
     """
-    del targets_per_batch_element
     p = self.params
     with tf.name_scope(p.name):
       if 'probs' in targets:
@@ -761,7 +749,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
                                      shape=[], dtype=py_utils.FPropDtype(p)))
           merged_metrics[k] = AddToMetric(merged_metrics[k], loss_weight, v)
         merged_per_sequence_loss += loss_weight * per_sequence_loss
-      return merged_metrics, merged_per_sequence_loss
+      return merged_metrics, {'loss': merged_per_sequence_loss}
 
   def CreateTargetInfoMisc(self, targets):
     """Return a NestedMap corresponding to the 'misc' field in TargetInfo."""
