@@ -385,6 +385,10 @@
 
     <span class="n">classification_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">classification_logits</span><span class="p">)</span>
 
+    <span class="c1"># Score scaler.</span>
+    <span class="k">if</span> <span class="s1">&#39;score_scaler&#39;</span> <span class="ow">in</span> <span class="n">bboxes_and_logits</span><span class="p">:</span>
+      <span class="n">classification_scores</span> <span class="o">*=</span> <span class="n">bboxes_and_logits</span><span class="o">.</span><span class="n">score_scaler</span>
+
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/cpu:0&#39;</span><span class="p">):</span>
       <span class="c1"># Decode the predicted bboxes, performing NMS.</span>
       <span class="n">per_cls_bboxes</span><span class="p">,</span> <span class="n">per_cls_bbox_scores</span><span class="p">,</span> <span class="n">per_cls_valid_mask</span> <span class="o">=</span> <span class="p">(</span>
