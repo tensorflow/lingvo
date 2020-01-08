@@ -219,3 +219,21 @@ filegroup(
         "wpm-ende*.voc",
     ]),
 )
+
+py_library(
+    name = "base_config",
+    srcs = ["base_config.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":decoder",
+        ":encoder",
+        ":input_generator",
+        "//lingvo/core:attention",
+        "//lingvo/core:layers",
+        "//lingvo/core:optimizer",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:rnn_cell",
+        "//lingvo/core:rnn_layers",
+        "//lingvo/core:schedule",
+    ],
+)

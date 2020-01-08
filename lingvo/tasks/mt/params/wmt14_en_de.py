@@ -23,9 +23,9 @@ import os
 
 from lingvo import model_registry
 from lingvo.core import base_model_params
+from lingvo.tasks.mt import base_config
 from lingvo.tasks.mt import input_generator
 from lingvo.tasks.mt import model
-from lingvo.tasks.mt.params import base_config
 
 
 @model_registry.RegisterSingleTaskModel

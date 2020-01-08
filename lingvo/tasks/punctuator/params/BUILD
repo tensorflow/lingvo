@@ -18,6 +18,7 @@ py_library(
         "//lingvo:compat",
         "//lingvo:model_registry",
         "//lingvo/core:base_model_params",
+        "//lingvo/tasks/mt:base_config",
         "//lingvo/tasks/mt/params",
         "//lingvo/tasks/punctuator:input_generator",
         "//lingvo/tasks/punctuator:model",

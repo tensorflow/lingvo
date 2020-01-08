@@ -23,7 +23,7 @@ import os
 from lingvo import model_registry
 import lingvo.compat as tf
 from lingvo.core import base_model_params
-from lingvo.tasks.mt.params import base_config
+from lingvo.tasks.mt import base_config
 from lingvo.tasks.punctuator import input_generator
 from lingvo.tasks.punctuator import model
 
