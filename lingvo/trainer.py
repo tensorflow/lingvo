@@ -416,9 +416,12 @@ class Trainer(base_runner.BaseRunner):
     self._start_up_delay_steps = (((worker_id + 1) * worker_id / 2) *
                                   self.params.train.start_up_delay_steps)
 
-  def _SummarizeValue(self, steps, tag, value, writer):
+  def _SummarizeValue(self, steps, tag, value, writer=None):
     if writer:
       writer.add_summary(metrics.CreateScalarSummary(tag, value), steps)
+    else:
+      self._summary_writer.add_summary(
+          metrics.CreateScalarSummary(tag, value), steps)
 
   def Start(self):
     self._RunLoop('trainer', self._Loop)
@@ -495,18 +498,17 @@ class Trainer(base_runner.BaseRunner):
         model_task.ProcessFPropResults(sess, global_step, eval_metrics,
                                        per_example_tensors)
 
-        step_rate, example_rate = self._step_rate_tracker.ComputeStepRate(
+        step_rate, example_rate, total_examples = self._step_rate_tracker.ComputeStepRate(
             global_step, eval_metrics['num_samples_in_batch'][0])
-        self._SummarizeValue(global_step, 'global_step/sec', step_rate,
-                             self._summary_writer)
-        self._SummarizeValue(global_step, 'examples/sec', example_rate,
-                             self._summary_writer)
+        self._SummarizeValue(global_step, 'global_step/sec', step_rate)
+        self._SummarizeValue(global_step, 'examples/sec', example_rate)
+        self._SummarizeValue(global_step, 'total_samples', total_examples)
 
         msg = 'step:%6d, steps/sec: %0.2f, examples/sec: %0.2f' % (
             global_step, step_rate, example_rate)
         for key, (val, _) in sorted(six.iteritems(eval_metrics)):
           msg += ' %s:%.8g' % (key, val)
-          self._SummarizeValue(global_step, key, val, self._summary_writer)
+          self._SummarizeValue(global_step, key, val)
         if global_step >= next_status_step:
           self._SetStatusMessage(msg)
           self._ExportMetrics(
@@ -866,11 +868,12 @@ class TrainerTpu(base_runner.BaseRunner):
         self._model.ProcessFPropResults(sess, global_step, eval_metrics,
                                         outfeeds)
 
-        step_rate, example_rate = self._step_rate_tracker.ComputeStepRate(
+        step_rate, example_rate, total_examples = self._step_rate_tracker.ComputeStepRate(
             global_step,
             eval_metrics['num_samples_in_batch'][0] * self._steps_per_loop)
         self._SummarizeValue(global_step, 'global_step/sec', step_rate)
         self._SummarizeValue(global_step, 'examples/sec', example_rate)
+        self._SummarizeValue(global_step, 'total_samples', total_examples)
 
         msg = 'step:%6d, steps/sec: %0.2f, examples/sec: %0.2f' % (
             global_step, step_rate, example_rate)

@@ -318,7 +318,7 @@ class StepRateTracker(object):
   """A class that tracks step/example rate."""
 
   def __init__(self):
-    self._time_steps = []  # A short history of (timestamp, global_step)
+    self._time_steps = []  # History of (timestamp, global_step, total_examples)
 
   def ComputeStepRate(self, current_steps, total_examples):
     """Computes the overall step rate."""
@@ -339,4 +339,4 @@ class StepRateTracker(object):
       rate = (s1 - s0) / elapsed_secs
       example_rate = (e1 - e0) / elapsed_secs
     tf.logging.info('Steps/second: %f, Examples/second: %f', rate, example_rate)
-    return rate, example_rate
+    return rate, example_rate, total_examples
