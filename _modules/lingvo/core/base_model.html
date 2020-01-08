@@ -446,8 +446,7 @@
     <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
     <span class="c1"># p.train can be None if this task is the teacher/student task in a</span>
     <span class="c1"># DistillationTask.</span>
-    <span class="k">if</span> <span class="n">tp</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span>
-                                   <span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">tp</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_SetLearnerFromLegacyParams</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
