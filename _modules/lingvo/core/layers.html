@@ -171,6 +171,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">bn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">computation_cost</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">constants</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_with_time_padding</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">quant_utils</span>
@@ -2324,7 +2325,7 @@
     <span class="c1"># flags passed to @tf.Defun</span>
     <span class="n">compiled</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_xla</span><span class="p">()</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="k">def</span> <span class="nf">EmbBprop</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">,</span> <span class="n">drets</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Embedding backprop.</span>
 
@@ -2348,12 +2349,13 @@
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="k">del</span> <span class="n">embs</span>
       <span class="n">num</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">dembs</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">weight_shape</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">dembs</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">weight_shape</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">weight_shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
         <span class="n">drets_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">drets</span><span class="p">)</span>
         <span class="n">drets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">drets</span><span class="p">,</span> <span class="p">[</span><span class="n">drets_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="n">emb_shape_suf</span><span class="p">)</span>
 
-      <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
+                <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
       <span class="k">def</span> <span class="nf">EmbBpropLoop</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">,</span> <span class="n">drets</span><span class="p">,</span> <span class="n">dembs</span><span class="p">):</span>
         <span class="c1"># row_id = ids_vec[i]</span>
         <span class="n">row_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
@@ -2372,7 +2374,12 @@
           <span class="n">rewrite_with_while</span><span class="o">=</span><span class="n">compiled</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">dembs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">)</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">grad_func</span><span class="o">=</span><span class="n">EmbBprop</span><span class="p">)</span>
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="n">grad_func</span><span class="o">=</span><span class="n">EmbBprop</span><span class="p">,</span>
+        <span class="n">_implements</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_type</span> <span class="o">+</span> <span class="s1">&#39;.EmbFProp&#39;</span><span class="p">,</span>
+        <span class="n">_reference</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">REFERENCE_ANNOTATION</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">EmbFprop</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Embedding forward prop.</span>
 
@@ -2392,9 +2399,10 @@
 <span class="sd">        [num ids in ids_vec, embedding dims].</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="n">num</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">rets</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="n">num</span><span class="p">]</span> <span class="o">+</span> <span class="n">emb_shape_suf</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">rets</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="n">num</span><span class="p">]</span> <span class="o">+</span> <span class="n">emb_shape_suf</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
 
-      <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
       <span class="k">def</span> <span class="nf">EmbFpropLoop</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">,</span> <span class="n">rets</span><span class="p">):</span>
         <span class="c1"># row_id = ids_vec[i]</span>
         <span class="n">row_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
@@ -2415,7 +2423,13 @@
         <span class="n">rets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">rets</span><span class="p">,</span> <span class="p">[</span><span class="n">num</span><span class="p">,</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)])</span>
       <span class="k">return</span> <span class="n">rets</span>
 
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="n">_implements</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_type</span> <span class="o">+</span> <span class="s1">&#39;.EmbMatmul&#39;</span><span class="p">,</span>
+        <span class="n">_reference</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">REFERENCE_ANNOTATION</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">EmbMatmul</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Lookups embedding vectors by doing Matmul with one-hot vector.&quot;&quot;&quot;</span>
       <span class="c1"># lhs[i, j] is True iff ids_vec[i] == j.</span>
       <span class="n">lhs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
@@ -2423,6 +2437,7 @@
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">embs</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">embs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">EmbGather</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Lookups embedding vectors.&quot;&quot;&quot;</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="o">==</span> <span class="s1">&#39;matmul&#39;</span><span class="p">:</span>
@@ -2458,6 +2473,12 @@
 <span class="sd">      A rank-(N+1) params.dtype tensor.</span>
 <span class="sd">      embs[indices, :] is the embedding vector for ids[indices].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;ids should be a tf.Tensor!&#39;</span><span class="p">)</span>
+      <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">ids</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;ids should be tf.int32, but is </span><span class="si">%s</span><span class="s1">!&#39;</span><span class="p">,</span> <span class="n">ids</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_xla</span><span class="p">():</span>
       <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
