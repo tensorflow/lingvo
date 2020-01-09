@@ -1356,6 +1356,30 @@ class ReadOnlyAttrDictViewTest(test_utils.TestCase):
     self.assertEquals(1, view['test'])
 
 
+class PadPadSequenceToTest(test_utils.TestCase):
+
+  def test2DInputs(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      x = tf.random_normal(shape=(3, 3), seed=123456)
+      padding = tf.constant([[0, 0, 0], [0, 0, 1], [0, 1, 1]], tf.float32)
+      length = 6
+      new_x, new_padding = py_utils.PadSequenceTo(x, padding, length, 0)
+      self.assertEqual(new_x.shape.as_list(), [3, 6])
+      real_x, real_padding = sess.run([new_x, new_padding])
+      # pyformat: disable
+      expected_x = [[0.38615, 2.975221, -0.852826, 0., 0., 0.],
+                    [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
+                    [0.255314, -0.985647, 1.461641, 0., 0., 0.]]
+      expected_padding = [
+          [0., 0., 0., 1., 1., 1.],
+          [0., 0., 1., 1., 1., 1.],
+          [0., 1., 1., 1., 1., 1.]
+      ]
+      # pyformat: enable
+      self.assertAllClose(expected_x, real_x)
+      self.assertAllClose(expected_padding, real_padding)
+
+
 class PadSequenceDimensionTest(test_utils.TestCase):
 
   def testPadSequenceDimension_2D(self):
