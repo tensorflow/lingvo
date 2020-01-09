@@ -1595,24 +1595,28 @@ class RunnerManager(object):
     threads = []
     tf.logging.info('Starting runners')
     for runner in runners:
-      t = threading.Thread(target=runner.Start)
+      runner_class_name = str(runner)
+      t = threading.Thread(target=runner.Start, name=runner_class_name)
       t.daemon = True
       t.start()
       threads.append(t)
       if runner.enqueue_ops:
         tf.logging.info('Total num runner.enqueue_ops: %d',
                         len(runner.enqueue_ops))
-        for enqueue_op in runner.enqueue_ops:
+        for i, enqueue_op in enumerate(runner.enqueue_ops):
 
           def StartEnqueue(runner, op):
             tf.logging.info('Starting enqueue op %s', op.name)
             return lambda: runner.StartEnqueueOp(op)
 
-          tq = threading.Thread(target=StartEnqueue(runner, enqueue_op))
+          enqueue_name = '%s-enqueue-%d' % (runner_class_name, i)
+          tq = threading.Thread(
+              target=StartEnqueue(runner, enqueue_op), name=enqueue_name)
           tq.start()
           threads.append(tq)
     tf.logging.info('Waiting for runners to finish...')
     for t in threads:
+      tf.logging.info('Waiting for thread to finish: %s' % t.name)
       while True:
         t.join(1)
         if not t.isAlive():
