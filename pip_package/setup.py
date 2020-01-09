@@ -21,7 +21,7 @@ from setuptools import setup
 from setuptools.command.install import install
 from setuptools.dist import Distribution
 
-__version__ = '0.6.2'
+__version__ = '0.6.3'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -40,7 +40,7 @@ REQUIRED_PACKAGES = [
     'sklearn',
     'sympy',
     'tensorflow-gpu',
-    'waymo-open-dataset-2-0-0',
+    'waymo-open-dataset-tf-2-0-0',
 ]
 
 
