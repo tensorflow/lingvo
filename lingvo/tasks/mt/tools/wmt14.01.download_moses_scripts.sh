@@ -16,7 +16,7 @@
 
 set -eu
 
-. ./lingvo/tasks/mt/tools/wmt14_lib.sh
+. wmt14_lib.sh
 
 mkdir -p "${ROOT}"
 git clone https://github.com/moses-smt/mosesdecoder.git ${ROOT}/mosesdecoder

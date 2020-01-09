@@ -16,7 +16,7 @@
 
 set -eu
 
-. lingvo/tasks/asr/tools/librispeech_lib.sh
+. librispeech_lib.sh
 
 mkdir -p "${ROOT}/raw"
 

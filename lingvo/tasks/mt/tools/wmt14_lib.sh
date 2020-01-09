@@ -14,8 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 
-source lingvo/shell_utils.sh
-
 ROOT=/tmp/wmt14
 
 SRC=en
@@ -40,8 +38,7 @@ function tokenize {
     "${output_base}.${lang}"
 }
 
-WPM_BINARY="$(wheres-the-bin //lingvo/tools:wpm_encode_file)"
-WPM_VOC=lingvo/tasks/mt/wpm-${SRC}${TGT}.voc
+WPM_VOC=../wpm-${SRC}${TGT}.voc
 
 function wpm_encode {
   local source_files="$1"
@@ -55,7 +52,7 @@ function wpm_encode {
     local shard_id=$((n - 1))
     local output_filepath=$(printf ${output_template} ${shard_id} ${num_shards})
     set -x
-    nice -n 20 ${WPM_BINARY} --wpm_filepath=${WPM_VOC} --source_filepaths="${source_files}" \
+    nice -n 20 python3 -m lingvo.tools.wpm_encode_file --wpm_filepath=${WPM_VOC} --source_filepaths="${source_files}" \
       --target_filepaths="${target_files}" --num_shards="${num_shards}" --shard_id="${shard_id}" \
       --max_len="$max_len" \
       --output_filepath="${output_filepath}" --logtostderr || touch convert.FAILED &
@@ -65,5 +62,4 @@ function wpm_encode {
   ! [ -f convert.FAILED ]
 }
 
-test -x ${WPM_BINARY} || (echo 1>&2 "Please build wpm_encode_file binary."; exit 1)
 test -f ${WPM_VOC} || (echo 1>&2 "Could not locate wpm file: ${WPM_VOC}"; exit 2)

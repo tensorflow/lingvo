@@ -13,14 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Common shell utils.
 
-wheres-the-bin() {
-  local target=${1:?} query
-  query=$(bazel query --output=build -- "$target") || return
-  printf "%s/%s\n" \
-    "$(bazel info -c opt bazel-bin \
-      $(grep python_version <<<"$query" \
-        | sed -e 's/.*python_version.*\(PY[23]\).*/--python_version=\1/'))" \
-    "$(bazel query "$target" | sed -e 's!:!/!g' -e 's!^//!!' )"
-}
+set -eu
+
+./librispeech.01.download_train.sh
+./librispeech.02.download_devtest.sh
+./librispeech.03.parameterize_train.sh
+./librispeech.04.parameterize_devtest.sh

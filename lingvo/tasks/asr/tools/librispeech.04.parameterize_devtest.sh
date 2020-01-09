@@ -14,17 +14,15 @@
 # limitations under the License.
 # ==============================================================================
 
-source lingvo/shell_utils.sh
-
 set -eu
 
-. lingvo/tasks/asr/tools/librispeech_lib.sh
+. librispeech_lib.sh
 
 mkdir -p "${ROOT}/devtest"
 
 for subset in {dev,test}-{clean,other}; do
   set -x
-  "$(wheres-the-bin //lingvo/tools:create_asr_features)" \
+  python3 -m lingvo.tools.create_asr_features \
     --logtostderr \
     --input_tarball="${ROOT}/raw/${subset}.tar.gz" --generate_tfrecords \
     --shard_id=0 --num_shards=1 --num_output_shards=1 \

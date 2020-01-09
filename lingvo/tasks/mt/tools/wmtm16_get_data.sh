@@ -16,8 +16,8 @@
 
 set -eu
 
-./lingvo/tasks/mt/tools/wmtm16.01.download_moses_scripts.sh
-./lingvo/tasks/mt/tools/wmtm16.02.download_data.sh
-./lingvo/tasks/mt/tools/wmtm16.03.unpack_data.sh
-./lingvo/tasks/mt/tools/wmtm16.04.tokenize_data.sh
-./lingvo/tasks/mt/tools/wmtm16.05.wpm_encode_data.sh
+./wmtm16.01.download_moses_scripts.sh
+./wmtm16.02.download_data.sh
+./wmtm16.03.unpack_data.sh
+./wmtm16.04.tokenize_data.sh
+./wmtm16.05.wpm_encode_data.sh

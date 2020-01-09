@@ -16,7 +16,7 @@
 
 set -eu
 
-. ./lingvo/tasks/mt/tools/wmt14_lib.sh
+. wmt14_lib.sh
 
 # --- TEST SET.
 mkdir -p "${ROOT}/tokenized/test"

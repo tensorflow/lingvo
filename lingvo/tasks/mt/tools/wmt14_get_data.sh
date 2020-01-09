@@ -16,12 +16,12 @@
 
 set -eu
 
-./lingvo/tasks/mt/tools/wmt14.01.download_moses_scripts.sh
-./lingvo/tasks/mt/tools/wmt14.02.download_train.sh
-./lingvo/tasks/mt/tools/wmt14.03.download_devtest.sh
-./lingvo/tasks/mt/tools/wmt14.04.unpack_train.sh
-./lingvo/tasks/mt/tools/wmt14.05.unpack_devtest.sh
-./lingvo/tasks/mt/tools/wmt14.06.tokenize_train.sh
-./lingvo/tasks/mt/tools/wmt14.07.tokenize_devtest.sh
-./lingvo/tasks/mt/tools/wmt14.08.wpm_encode_train.sh
-./lingvo/tasks/mt/tools/wmt14.09.wpm_encode_devtest.sh
+./wmt14.01.download_moses_scripts.sh
+./wmt14.02.download_train.sh
+./wmt14.03.download_devtest.sh
+./wmt14.04.unpack_train.sh
+./wmt14.05.unpack_devtest.sh
+./wmt14.06.tokenize_train.sh
+./wmt14.07.tokenize_devtest.sh
+./wmt14.08.wpm_encode_train.sh
+./wmt14.09.wpm_encode_devtest.sh
