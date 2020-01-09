@@ -80,7 +80,7 @@ class BaseRunner(object):
     tf.gfile.MakeDirs(self._train_dir)
     self._graph = tf.Graph()
     self._summary_writer = None
-    self.initialize_tables = None
+    self._initialize_tables = None
     self._dequeue_thread_complete = False
 
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
@@ -269,8 +269,8 @@ class BaseRunner(object):
     sess = session_override or self._GetSession()
 
     with tf.container(self._container_id), sess:
-      if self.initialize_tables is not None:
-        sess.run(self.initialize_tables)
+      if self._initialize_tables is not None:
+        sess.run(self._initialize_tables)
       gsteps = py_utils.GetGlobalStep()
       local_enqueue_steps = 0
 
