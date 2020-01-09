@@ -1706,6 +1706,27 @@ ret[:, :seq_len, …] == x.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.PadSequenceTo">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">PadSequenceTo</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">padding</em>, <em class="sig-param">length</em>, <em class="sig-param">pad_val</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#PadSequenceTo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.PadSequenceTo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pads <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">length</span></code> using <code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_val</span></code> along the 2nd dim.</p>
+<p>Pads <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">length</span></code> using <code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_val</span></code>, and <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding</span></code> using 1.
+Raise error if <code class="xref py py-obj docutils literal notranslate"><span class="pre">x.shape[:2]</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding.shape</span></code> are not the same.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – A Tensor of shape [batch, seqlen] or [batch, seqlen, …].</p></li>
+<li><p><strong>padding</strong> – A 0/1 Tensor of shape [batch, seqlen]. 1 is for padded locations.</p></li>
+<li><p><strong>length</strong> – A Python int, the length to pad to.</p></li>
+<li><p><strong>pad_val</strong> – A Python numeric, used for padding x.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tuple of padded x and padding.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.ApplyPadding">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ApplyPadding</code><span class="sig-paren">(</span><em class="sig-param">padding</em>, <em class="sig-param">x</em>, <em class="sig-param">padded=None</em>, <em class="sig-param">broadcast=True</em>, <em class="sig-param">use_select=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ApplyPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ApplyPadding" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies padding to a tensor.</p>
