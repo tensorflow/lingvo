@@ -1892,9 +1892,9 @@ def _ComputeGradientsTpuNas(loss, all_vars, grad_aggregation_method,
         # Note(yonghui): gradient of a weight param can be all zero if that
         # weight param is not used in the forward computation, e.g. as in
         # switchable layers in neural architecture search.
-        zero_threashold = 1e-8
+        zero_threshold = 1e-8
         g_is_non_zero = tf.cast(
-            tf.reduce_sum(tf.math.abs(g)) > zero_threashold, g.dtype)
+            tf.reduce_sum(tf.math.abs(g)) > zero_threshold, g.dtype)
         num_updates = tf.maximum(tf.tpu.cross_replica_sum(g_is_non_zero), 1.0)
         normalized_g = tf.tpu.cross_replica_sum(g) / num_updates
         aggregated_grads.append(normalized_g)
