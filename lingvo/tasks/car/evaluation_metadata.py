@@ -36,7 +36,7 @@ class EvaluationMetadata(object):
 
   def LabelMap(self):
     """Return a label map of int -> str for each class."""
-    return dict(zip(range(self.NumClasses())), self.ClassNames())
+    return dict(zip(range(self.NumClasses()), self.ClassNames()))
 
   def NumClasses(self):
     """Total number of classes for the dataset."""
