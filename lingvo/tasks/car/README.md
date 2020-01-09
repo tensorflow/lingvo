@@ -17,13 +17,13 @@ First, you will need to setup a GCP account.
 
 Some useful resources:
 
-* https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app
-* https://cloud.google.com/tpu/docs/kubernetes-engine-setup
-* https://cloud.google.com/kubernetes-engine/docs/troubleshooting
+*   https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app
+*   https://cloud.google.com/tpu/docs/kubernetes-engine-setup
+*   https://cloud.google.com/kubernetes-engine/docs/troubleshooting
 
-You may also consider reading the [TensorFlow Minigo Cloud
-TPU](https://github.com/tensorflow/minigo/tree/master/cluster) script repository
-for managing GCP resources.
+You may also consider reading the
+[TensorFlow Minigo Cloud TPU](https://github.com/tensorflow/minigo/tree/master/cluster)
+script repository for managing GCP resources.
 
 #### Cloud TPU cluster setup
 
@@ -31,36 +31,36 @@ __IMPORTANT: These commands will result in VMs and other GCP resources being
 created and will result in charges to your GCP account! Proceed with care!__
 
 To properly create the CloudTPU cluster, one should follow the TPU documentation
-above.  An example might be:
+above. An example might be:
 
     gcloud container clusters create tpu_v3_cluster --cluster-version=1.13 --scopes=cloud-platform,gke-default --enable-ip-alias --enable-tpu --zone=europe-west4-a
 
-where we create a TPU-compatible cluster in a zone that contains V3 TPU pods.
-We only need to specify the size of the TPU pod we want when we create the job.
+where we create a TPU-compatible cluster in a zone that contains V3 TPU pods. We
+only need to specify the size of the TPU pod we want when we create the job.
 
 #### GPU cluster setup
 
 __IMPORTANT: These commands will result in VMs and other GCP resources being
 created and will result in charges to your GCP account! Proceed with care!__
 
-First, create the cluster.  You may need to get [GPU
-quota](https://cloud.google.com/compute/quotas#gpus) in the zone you want for
-the GPU type you want.
+First, create the cluster. You may need to get
+[GPU quota](https://cloud.google.com/compute/quotas#gpus) in the zone you want
+for the GPU type you want.
 
 For example, here we create a P100 cluster of size 1 using high-memory CPU
 instances (which are useful for evaluating / decoding):
 
     gcloud container clusters create p100-europe-west4-a-nh16 --accelerator type=nvidia-tesla-p100,count=1 --num-nodes=1 --zone europe-west4-a --scopes=cloud-platform,gke-default --enable-ip-alias --cluster-version=1.13 --machine-type=n1-highmem-16
 
-
-To be able to launch GPU jobs on this cluster, one must then install the drivers.
+To be able to launch GPU jobs on this cluster, one must then install the
+drivers.
 
     kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/cos/daemonset-preloaded.yaml
 
-To check that the GPUs have been fully initialized with these drivers, you can run:
+To check that the GPUs have been fully initialized with these drivers, you can
+run:
 
     kubectl get no -w -o yaml | grep -E 'hostname:|nvidia.com/gpu'
-
 
 #### Docker setup
 
@@ -68,16 +68,13 @@ It is required to use Docker to be able to push Docker images for GKE to load.
 
 One should set up docker following instructions online.
 
-We have provided a lingvo-compatible dockerfile that comes with the
-lingvo pip package pre-installed.  One should build the docker with
-the GPU nvidia-docker base for running on GPUs.  For example,
-from the current repo:
+We have provided a lingvo-compatible dockerfile that comes with the lingvo pip
+package pre-installed. One should build the docker with the GPU nvidia-docker
+base for running on GPUs. For example, from the current repo:
 
-    docker build --tag tensorflow:lingvo_lib_gpu --build-arg base_image=nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04 - < lingvo/docker/lib.dockerfile
+    docker build --tag tensorflow:lingvo_lib_gpu --build-arg base_image=nvidia/cuda:10.0-cudnn7-runtime-ubuntu18.04 - < lingvo/docker/lib.dockerfile
 
 This will be the base docker image you will use to run lingvo jobs on GKE.
-
-
 
 #### Data prep
 
@@ -85,14 +82,14 @@ To train our existing models without modification, one must first upload
 TF.Example versions of the datasets to GCS.
 
 We have provided scripts to process the raw data in the tools/ and waymo/tools
-subdirectories.  For example, one can run tools/kitti_exporter.py to create the
+subdirectories. For example, one can run tools/kitti_exporter.py to create the
 TFRecord TFExample files from the raw KITTI data; one can then upload the
 results to GCS under a bucket you own.
 
 ## Launching the training job on a 4x4 Cloud TPU V3.
 
 We have provided a python script that launches / manages GKE jobs at
-lingvo/tools/gke_launch.py.  Let's say you want to reproduce the
+lingvo/tools/gke_launch.py. Let's say you want to reproduce the
 model used for training the StarNet Pedestrian/Cyclist model on KITTI named
 StarNetPedCycModel0704 in params/kitti.py.
 

@@ -65,7 +65,7 @@ python_bin_path=$(which python || which python3 || die "Cannot find Python binar
 
   echo
   echo '== check pips ==================================================='
-  pip list 2>&1 | grep "proto\|numpy\|tensorflow"
+  pip list 2>&1 | grep "proto\|numpy\|tensorflow\|lingvo"
 
 
   echo

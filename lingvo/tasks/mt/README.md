@@ -7,19 +7,12 @@ are short, meaning you can build a working system quickly, using only CPUs.
 
 ## Download and prepare the data
 
-We provide scripts to download the data. The script requires such tools as
-`git`, `perl`, `wget`, and standard bash utilities to run properly.
-
-First, build the wordpiece model encoding tool:
-
-```python
-bazel build -c opt //lingvo/tools:wpm_encode_file
-```
-
-Then, run the data ingestion scripts:
+We provide scripts to download the data. These scripts require the repository to
+be git cloned and assumes the lingvo pip package is installed.
 
 ```shell
-bash lingvo/tasks/mt/tools/wmtm16_get_data.sh
+cd lingvo/tasks/mt/tools
+./wmtm16_get_data.sh
 ```
 
 The master script above calls scripts for individual steps. If any step fails,
@@ -43,18 +36,12 @@ sudo apt-get install aria2
 
 MT training is most naturally run on a cluster with many parallel processes, but
 for this small task, we can run locally, taking advantage of multiple CPUs on a
-reasonable development machine. First, build the training executable:
-
-```shell
-bazel build -c opt //lingvo:trainer
-```
-
-Then launch:
+reasonable development machine.
 
 ```shell
 mkdir /tmp/wmtm16/log
 
-bazel-bin/lingvo/trainer \
+python3 -m lingvo.trainer \
   --run_locally=cpu --mode=sync --saver_max_to_keep=3 \
   --logdir=/tmp/wmtm16/log \
   --job=controller,trainer_client \
@@ -69,7 +56,7 @@ to start two other processes to monitor our progress, one to track the
 perplexity assigned to reference translations:
 
 ```shell
-bazel-bin/lingvo/trainer \
+python3 -m lingvo.trainer \
   --run_locally=cpu --mode=sync --saver_max_to_keep=3 \
   --logdir=/tmp/wmtm16/log \
   --job=evaler_Dev \
@@ -81,7 +68,7 @@ And one to report the accuracy of the decoder's output when compared to those
 reference translations:
 
 ```shell
-bazel-bin/lingvo/trainer \
+python3 -m lingvo.trainer \
   --run_locally=cpu --mode=sync --saver_max_to_keep=3 \
   --logdir=/tmp/wmtm16/log \
   --job=decoder_Dev \
@@ -106,18 +93,16 @@ Translation](http://aclweb.org/anthology/P18-1008)
 
 ## Downloading the data
 
-We provide scripts to download the data. The script requires such tools as
-`git`, `perl`, `wget`, and standard bash utilities to run properly.
+We provide scripts to download the data. These scripts require the repository to
+be git cloned and assumes the lingvo pip package is installed.
 
-First, build the wordpiece model encoding tool:
-
-```python
-bazel build -c opt lingvo/tools:wpm_encode_file
+```shell
+cd lingvo/tasks/mt/tools
+./wmt14_get_data.sh
 ```
 
-Then, run the data ingestion scripts. The master script,
-`lingvo/tasks/mt/tools/wmt14_get_data.sh`. If any step
-fails, it can be re-run by hand.
+The master script above calls scripts for individual steps. If any step fails,
+it can be re-run by hand.
 
 In total, `13GB` of free space are required. The location is configured in
 `lingvo/tasks/mt/tools/wmt14_lib.sh`, defaulting to
@@ -209,9 +194,11 @@ machine.
 
 ## Setting up your cluster
 
+**NOTE: This section is outdated and may not work as documented.**
+
 We provide a script running a docker fleet as an debugging example
-(`lingvo/docker/run_distributed.py`). Please take a look
-at the script to see the cluster configuration.
+(`lingvo/docker/run_distributed.py`). Please take a look at the
+script to see the cluster configuration.
 
 ### Shared filesystem
 
@@ -288,6 +275,9 @@ For decoding, each process has its own cluster spec, for instance,
 `decoder_test=dec.example.com:3984`.
 
 ### Uploading the binary
+
+**NOTE: This section is outdated and needs to be updated to use the pip package
+instead.**
 
 There is a single binary which can be obtained as follows:
 

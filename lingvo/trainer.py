@@ -1822,8 +1822,7 @@ class RunnerManager(object):
 
     if FLAGS.job.startswith('evaler_once_'):
       # E.g., trainer --model=foo.bar.Model --logdir=...
-      # --brain_run_locally=true --run_locally=cpu --mode=sync
-      # --job=evaler_once_test@65200
+      # --run_locally=cpu --mode=sync --job=evaler_once_test@65200
       self.RunEvalerOnce()
       return
 
