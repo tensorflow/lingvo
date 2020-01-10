@@ -27,8 +27,7 @@ import numpy as np
 from six.moves import range
 from six.moves import zip
 try:
-  # pylint: disable=g-import-not-at-top
-  import sklearn.metrics
+  import sklearn.metrics  # pylint: disable=g-import-not-at-top
   HAS_SKLEARN = True
 except ImportError:
   HAS_SKLEARN = False

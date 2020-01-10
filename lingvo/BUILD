@@ -19,7 +19,7 @@ config_setting(
 
 config_setting(
     name = "py3_mode",
-    values = {"force_python": "PY3"},
+    flag_values = {"@bazel_tools//tools/python:python_version": "PY3"},
 )
 
 py_library(

@@ -646,8 +646,12 @@ py_library(
         "//lingvo:compat",
         # Implicit numpy dependency.
         # Implicit six dependency.
-        # Implicit sklearn dependency.
-    ],
+    ] + select({
+        "//lingvo:py3_mode": [
+            # Implicit sklearn dependency.
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 py_test(
