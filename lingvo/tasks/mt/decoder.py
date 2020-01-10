@@ -191,8 +191,8 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
               tf.cast(tf.reshape(tf.argmax(logits, 1), [-1]), tf.int32),
               tf.reshape(target_labels, [-1])), p.dtype)
       correct_next_preds = tf.reduce_sum(
-          correct_preds * tf.reshape(target_weights, [-1]))
-      num_preds = tf.reduce_sum(target_weights)
+          correct_preds * tf.reshape(tf.cast(target_weights, p.dtype), [-1]))
+      num_preds = tf.reduce_sum(tf.cast(target_weights, p.dtype))
       accuracy = tf.identity(
           correct_next_preds / num_preds,
           name='fraction_of_correct_next_step_preds')

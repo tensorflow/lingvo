@@ -429,6 +429,7 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
         'If set, encoder outputs a list of layer outputs while decoder '
         'expects a list of source input vectors.')
     p.Define('max_seq_len', 300, 'Max. seq len for decoding.')
+    p.Define('target_vocab_size', 0, 'Target vocab size, if different.')
 
     # Supporting task embeddings as additional input.
     p.Define('dec_task_emb', None,
@@ -458,6 +459,8 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
 
       if p.add_tgt_embedding_layer:
         params = p.token_emb.Copy()
+        if p.target_vocab_size:
+          params.vocab_size = p.target_vocab_size
         params.name = 'tgt_token_emb'
         self.CreateChild('tgt_token_emb', params)
         params = p.position_emb.Copy()
