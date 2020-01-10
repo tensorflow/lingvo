@@ -2993,7 +2993,7 @@ def ReversePaddedSequence(inputs, paddings):
   return tf.reverse_sequence(inputs, inputs_length, seq_axis=0, batch_axis=1)
 
 
-def ConcatenatePadddedSequences(input0, input1, padding0, padding1, seq_dim=1):
+def ConcatenatePaddedSequences(input0, input1, padding0, padding1, seq_dim=1):
   """Concatenates input sequences with varying lenghts as defined by paddings.
 
   This is a helper function for concatenating 2 batches of input sequences,

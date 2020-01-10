@@ -1685,7 +1685,7 @@ class ReversePaddedSequenceTest(test_utils.TestCase):
       self.assertAllClose(expected_output, actual_output)
 
 
-class ConcatenatePadddedSequencesTest(test_utils.TestCase):
+class ConcatenatePaddedSequencesTest(test_utils.TestCase):
 
   def _ComputeFloatOutputAndVerify(self,
                                    input0,
@@ -1716,7 +1716,7 @@ class ConcatenatePadddedSequencesTest(test_utils.TestCase):
         tf_padding1 = padding1
 
       actual_outputs = sess.run(
-          py_utils.ConcatenatePadddedSequences(
+          py_utils.ConcatenatePaddedSequences(
               tf_input0,
               tf_input1,
               padding0=tf_padding0,
