@@ -370,9 +370,20 @@ class GPipeTransformerSoftmaxLayer(layers.SimpleFullSoftmax):
              'Bool, whether inputs to this layer come from decoder or not.')
     return p
 
-  def FProp(self, theta, source_vecs, source_paddings, target_vecs,
-            target_paddings, source_segment_id, target_segment_id,
-            transparent_acc, transparent_acc_helper):
+  def FProp(self,
+            theta,
+            source_vecs,
+            source_paddings,
+            target_vecs,
+            target_paddings,
+            source_segment_id,
+            target_segment_id,
+            transparent_acc,
+            transparent_acc_helper,
+            source_task_id=None,
+            target_task_id=None):
+    del source_task_id
+    del target_task_id
     p = self.params
     if p.inputs_from_decoder:
       transformer_output = target_vecs
@@ -425,6 +436,8 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
     p.Define('enc_task_emb', None,
              'Adds task embeddings to every encoder timestep.')
     p.Define('batch_dim', 1, 'The batch dimension.')
+    p.Define('ret_task_ids', False,
+             'Includes src_task_id and tgt_id in the fprop returns')
     return p
 
   @base_layer.initializer
@@ -541,8 +554,10 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
                                          self.tgt_dropout, target_id,
                                          target_pos_id, tgt_task_emb_theta,
                                          tgt_task_emb, target_task_id)
-      return (source_vecs, source_paddings, target_vecs, target_paddings,
+      rets = (source_vecs, source_paddings, target_vecs, target_paddings,
               source_segment_id, target_segment_id, None, None)
+      rets += (source_task_id, target_task_id) if p.ret_task_ids else ()
+      return rets
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -559,8 +574,7 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
     if p.add_tgt_embedding_layer:
       tgt_dim_0, tgt_dim_1 = args[1]
       new_args[1] = tshape.Shape([tgt_dim_0, tgt_dim_1, dim])
-    new_args[5] = None
-    new_args[6] = None
+    new_args = new_args[:5] + [None, None] + new_args[5:]
     new_args = tuple(new_args[:7])
     return py_utils.NestedMap(flops=flops, out_shapes=(new_inputs,) + new_args)
 
