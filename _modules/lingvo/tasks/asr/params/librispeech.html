@@ -185,9 +185,8 @@
 
     <span class="c1"># Insert path to the base directory where the data are stored here.</span>
     <span class="c1"># Generated using scripts in lingvo/tasks/asr/tools.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">PrefixedDataSourceWrapper</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_type</span> <span class="o">=</span> <span class="s1">&#39;tfrecord&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">PrefixedDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_type</span> <span class="o">=</span> <span class="s1">&#39;tfrecord&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern_prefix</span> <span class="o">=</span> <span class="s1">&#39;/tmp/librispeech&#39;</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">frame_size</span> <span class="o">=</span> <span class="mi">80</span>
@@ -217,34 +216,34 @@
 
 <div class="viewcode-block" id="Librispeech960Base.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;train/train.tfrecords-*&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;train/train.tfrecords-*&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">281241</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="Librispeech960Base.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/dev-clean.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2703</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="Librispeech960Base.Devother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Devother">[docs]</a>  <span class="k">def</span> <span class="nf">Devother</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/dev-other.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2864</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="Librispeech960Base.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/test-clean.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2620</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="Librispeech960Base.Testother"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960Base.Testother">[docs]</a>  <span class="k">def</span> <span class="nf">Testother</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s1">&#39;devtest/test-other.tfrecords-00000-of-00001&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2939</span>
     <span class="k">return</span> <span class="n">p</span></div>

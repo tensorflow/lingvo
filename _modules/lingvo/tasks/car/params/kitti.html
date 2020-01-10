@@ -190,7 +190,7 @@
 <span class="c1"># Specifications for the different dataset splits.</span>
 <div class="viewcode-block" id="KITTITrainSpec"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.KITTITrainSpec">[docs]</a><span class="k">def</span> <span class="nf">KITTITrainSpec</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
       <span class="s1">&#39;kitti_object_3dop_train.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
   <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">3712</span>
   <span class="k">return</span> <span class="n">p</span></div>
@@ -198,16 +198,14 @@
 
 <div class="viewcode-block" id="KITTIValSpec"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.KITTIValSpec">[docs]</a><span class="k">def</span> <span class="nf">KITTIValSpec</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
-      <span class="s1">&#39;kitti_object_3dop_val.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;kitti_object_3dop_val.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
   <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">3769</span>
   <span class="k">return</span> <span class="n">p</span></div>
 
 
 <div class="viewcode-block" id="KITTITestSpec"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.params.kitti.html#lingvo.tasks.car.params.kitti.KITTITestSpec">[docs]</a><span class="k">def</span> <span class="nf">KITTITestSpec</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
-      <span class="s1">&#39;kitti_object_test.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;kitti_object_test.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
   <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">7518</span>
   <span class="k">return</span> <span class="n">p</span></div>
 
@@ -451,11 +449,9 @@
         <span class="n">kitti_input_generator</span><span class="o">.</span><span class="n">KITTILabelExtractor</span><span class="o">.</span><span class="n">KITTI_CLASS_NAMES</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
             <span class="n">class_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">class_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">INCLUDED_CLASSES</span>
     <span class="p">]</span>
-    <span class="n">groundtruth_db</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">PrefixedDataSourceWrapper</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">groundtruth_db</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">PrefixedDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">groundtruth_db</span><span class="o">.</span><span class="n">file_pattern_prefix</span> <span class="o">=</span> <span class="n">_KITTI_BASE</span>
-    <span class="n">groundtruth_db</span><span class="o">.</span><span class="n">base_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">groundtruth_db</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s1">&#39;kitti_train_object_cls.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
+    <span class="n">groundtruth_db</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;kitti_train_object_cls.tfrecord-*-of-00100&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">preprocessors</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;bbox_aug&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">GroundTruthAugmentor</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>

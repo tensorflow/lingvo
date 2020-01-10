@@ -534,19 +534,12 @@
     <span class="k">return</span> <span class="n">ret</span></div></div>
 
 
-<div class="viewcode-block" id="PrefixedDataSourceWrapper"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.PrefixedDataSourceWrapper">[docs]</a><span class="k">class</span> <span class="nc">PrefixedDataSourceWrapper</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Prepends paths to file patterns of another DataSource.</span>
+<div class="viewcode-block" id="PrefixedDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.PrefixedDataSource">[docs]</a><span class="k">class</span> <span class="nc">PrefixedDataSource</span><span class="p">(</span><span class="n">SimpleDataSource</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Prepends path prefix to file patterns.&quot;&quot;&quot;</span>
 
-<span class="sd">  Target DataSource must have parameter `file_patterns`. Resulting file patterns</span>
-<span class="sd">  are of the form [file_pattern_prefix/]pattern</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="PrefixedDataSourceWrapper.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.PrefixedDataSourceWrapper.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="PrefixedDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.PrefixedDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PrefixedDataSourceWrapper</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;base_datasource&#39;</span><span class="p">,</span> <span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-             <span class="s1">&#39;Wrapped DataSource that has a `file_patterns` parameter.&#39;</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PrefixedDataSource</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;file_pattern_prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
         <span class="s1">&#39;Prefix to add to file_pattern, eg. a base directory that contains &#39;</span>
@@ -555,21 +548,13 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">PrefixedDataSourceWrapper</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">PrefixedDataSource</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">cls</span> <span class="ow">is</span> <span class="n">SimpleDataSource</span><span class="p">,</span> <span class="p">(</span>
-        <span class="s1">&#39;PrefixedDataSourceWrapper currently only supports SimpleDataSource&#39;</span><span class="p">)</span>
-
-    <span class="n">patterns</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern_prefix</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span> <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">)</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_datasource</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">base_datasource</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-
-<div class="viewcode-block" id="PrefixedDataSourceWrapper.BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.PrefixedDataSourceWrapper.BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datasource</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+    <span class="n">patterns</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern_prefix</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span> <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
