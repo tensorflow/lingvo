@@ -389,19 +389,12 @@ class CurriculumDataSource(DataSource):
     return ret
 
 
-class PrefixedDataSourceWrapper(DataSource):
-  """Prepends paths to file patterns of another DataSource.
-
-  Target DataSource must have parameter `file_patterns`. Resulting file patterns
-  are of the form [file_pattern_prefix/]pattern
-  """
+class PrefixedDataSource(SimpleDataSource):
+  """Prepends path prefix to file patterns."""
 
   @classmethod
   def Params(cls):
-    p = super(PrefixedDataSourceWrapper, cls).Params()
-
-    p.Define('base_datasource', SimpleDataSource.Params(),
-             'Wrapped DataSource that has a `file_patterns` parameter.')
+    p = super(PrefixedDataSource, cls).Params()
     p.Define(
         'file_pattern_prefix', '',
         'Prefix to add to file_pattern, eg. a base directory that contains '
@@ -410,18 +403,10 @@ class PrefixedDataSourceWrapper(DataSource):
     return p
 
   def __init__(self, params):
-    super(PrefixedDataSourceWrapper, self).__init__(params)
+    super(PrefixedDataSource, self).__init__(params)
 
     p = self.params
 
-    assert p.base_datasource.cls is SimpleDataSource, (
-        'PrefixedDataSourceWrapper currently only supports SimpleDataSource')
-
-    patterns = p.base_datasource.file_pattern.split(',')
-    p.base_datasource.file_pattern = ','.join(
+    patterns = p.file_pattern.split(',')
+    p.file_pattern = ','.join(
         os.path.join(p.file_pattern_prefix, pattern) for pattern in patterns)
-
-    self._datasource = p.base_datasource.Instantiate()
-
-  def BuildDataSource(self, *args, **kwargs):
-    return self._datasource.BuildDataSource(*args, **kwargs)

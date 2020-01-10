@@ -241,9 +241,9 @@ class DatasourceTest(tf.test.TestCase):
       ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
   def testPrefixDataSourceSucceedsWithDirectory(self):
-    ds_params = datasource.PrefixedDataSourceWrapper.Params().Set(
-        base_datasource=datasource.SimpleDataSource.Params().Set(
-            file_pattern='filename-*.tfrecord', file_type=None),
+    ds_params = datasource.PrefixedDataSource.Params().Set(
+        file_pattern='filename-*.tfrecord',
+        file_type=None,
         file_pattern_prefix='/dir/')
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
@@ -254,10 +254,9 @@ class DatasourceTest(tf.test.TestCase):
     self.assertAllEqual(ret.data, [[b'/dir/filename-*.tfrecord']])
 
   def testPrefixDataSourceSucceedsWithMultiplePatterns(self):
-    ds_params = datasource.PrefixedDataSourceWrapper.Params().Set(
-        base_datasource=datasource.SimpleDataSource.Params().Set(
-            file_pattern='filename-*.tfrecord,other/file/pattern/*',
-            file_type=None),
+    ds_params = datasource.PrefixedDataSource.Params().Set(
+        file_pattern='filename-*.tfrecord,other/file/pattern/*',
+        file_type=None,
         file_pattern_prefix='/dir/')
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
@@ -269,9 +268,9 @@ class DatasourceTest(tf.test.TestCase):
         ret.data, [[b'/dir/filename-*.tfrecord,/dir/other/file/pattern/*']])
 
   def testPrefixDataSourceSucceedsWithGcsBucket(self):
-    ds_params = datasource.PrefixedDataSourceWrapper.Params().Set(
-        base_datasource=datasource.SimpleDataSource.Params().Set(
-            file_pattern='filename-*.tfrecord', file_type=None),
+    ds_params = datasource.PrefixedDataSource.Params().Set(
+        file_pattern='filename-*.tfrecord',
+        file_type=None,
         file_pattern_prefix='gs://bucket/dir')
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
@@ -282,9 +281,9 @@ class DatasourceTest(tf.test.TestCase):
     self.assertAllEqual(ret.data, [[b'gs://bucket/dir/filename-*.tfrecord']])
 
   def testPrefixDataSourceSucceedsWithFileType(self):
-    ds_params = datasource.PrefixedDataSourceWrapper.Params().Set(
-        base_datasource=datasource.SimpleDataSource.Params().Set(
-            file_pattern='filename-*.tfrecord', file_type='tfrecord'),
+    ds_params = datasource.PrefixedDataSource.Params().Set(
+        file_pattern='filename-*.tfrecord',
+        file_type='tfrecord',
         file_pattern_prefix='dir')
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
@@ -293,13 +292,6 @@ class DatasourceTest(tf.test.TestCase):
       ret.data = sess.run([ret.data])
 
     self.assertAllEqual(ret.data, [[b'tfrecord:dir/filename-*.tfrecord']])
-
-  def testPrefixDataSourceFailsWithUnsupportedType(self):
-    ds_params = datasource.PrefixedDataSourceWrapper.Params().Set(
-        base_datasource=datasource.ChainingDataSource.Params())
-
-    with self.assertRaises(AssertionError):
-      ds_params.Instantiate()
 
 
 if __name__ == '__main__':

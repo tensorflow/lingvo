@@ -490,11 +490,10 @@ class KITTIBase(input_extractor.BaseExtractor):
     # Subclasses should set the following in file_datasource:
     # - file_pattern_prefix: path to data directory (may be overridden at
     #   runtime)
-    # - base_datasource.file_pattern: file pattern of records relative to the
+    # - file_pattern: file pattern of records relative to the
     #   data directory
-    p.file_datasource = datasource.PrefixedDataSourceWrapper.Params()
-    p.file_datasource.base_datasource = datasource.SimpleDataSource.Params()
-    p.file_datasource.base_datasource.file_type = 'tfrecord'
+    p.file_datasource = datasource.PrefixedDataSource.Params()
+    p.file_datasource.file_type = 'tfrecord'
 
     return p
 

@@ -40,9 +40,8 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
 
     # Insert path to the base directory where the data are stored here.
     # Generated using scripts in lingvo/tasks/asr/tools.
-    p.file_datasource = datasource.PrefixedDataSourceWrapper.Params()
-    p.file_datasource.base_datasource = datasource.SimpleDataSource.Params()
-    p.file_datasource.base_datasource.file_type = 'tfrecord'
+    p.file_datasource = datasource.PrefixedDataSource.Params()
+    p.file_datasource.file_type = 'tfrecord'
     p.file_datasource.file_pattern_prefix = '/tmp/librispeech'
 
     p.frame_size = 80
@@ -72,34 +71,34 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
 
   def Train(self):
     p = self._CommonInputParams(is_eval=False)
-    p.file_datasource.base_datasource.file_pattern = 'train/train.tfrecords-*'
+    p.file_datasource.file_pattern = 'train/train.tfrecords-*'
     p.num_samples = 281241
     return p
 
   def Dev(self):
     p = self._CommonInputParams(is_eval=True)
-    p.file_datasource.base_datasource.file_pattern = (
+    p.file_datasource.file_pattern = (
         'devtest/dev-clean.tfrecords-00000-of-00001')
     p.num_samples = 2703
     return p
 
   def Devother(self):
     p = self._CommonInputParams(is_eval=True)
-    p.file_datasource.base_datasource.file_pattern = (
+    p.file_datasource.file_pattern = (
         'devtest/dev-other.tfrecords-00000-of-00001')
     p.num_samples = 2864
     return p
 
   def Test(self):
     p = self._CommonInputParams(is_eval=True)
-    p.file_datasource.base_datasource.file_pattern = (
+    p.file_datasource.file_pattern = (
         'devtest/test-clean.tfrecords-00000-of-00001')
     p.num_samples = 2620
     return p
 
   def Testother(self):
     p = self._CommonInputParams(is_eval=True)
-    p.file_datasource.base_datasource.file_pattern = (
+    p.file_datasource.file_pattern = (
         'devtest/test-other.tfrecords-00000-of-00001')
     p.num_samples = 2939
     return p

@@ -45,7 +45,7 @@ _KITTI_BASE = os.environ.get('KITTI_DIR', 'FILL-ME-IN')
 # Specifications for the different dataset splits.
 def KITTITrainSpec(params):
   p = params.Copy()
-  p.file_datasource.base_datasource.file_pattern = (
+  p.file_datasource.file_pattern = (
       'kitti_object_3dop_train.tfrecord-*-of-00100')
   p.num_samples = 3712
   return p
@@ -53,16 +53,14 @@ def KITTITrainSpec(params):
 
 def KITTIValSpec(params):
   p = params.Copy()
-  p.file_datasource.base_datasource.file_pattern = (
-      'kitti_object_3dop_val.tfrecord-*-of-00100')
+  p.file_datasource.file_pattern = ('kitti_object_3dop_val.tfrecord-*-of-00100')
   p.num_samples = 3769
   return p
 
 
 def KITTITestSpec(params):
   p = params.Copy()
-  p.file_datasource.base_datasource.file_pattern = (
-      'kitti_object_test.tfrecord-*-of-00100')
+  p.file_datasource.file_pattern = ('kitti_object_test.tfrecord-*-of-00100')
   p.num_samples = 7518
   return p
 
@@ -306,11 +304,9 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
         kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES.index(
             class_name) for class_name in self.INCLUDED_CLASSES
     ]
-    groundtruth_db = datasource.PrefixedDataSourceWrapper.Params()
+    groundtruth_db = datasource.PrefixedDataSource.Params()
     groundtruth_db.file_pattern_prefix = _KITTI_BASE
-    groundtruth_db.base_datasource = datasource.SimpleDataSource.Params()
-    groundtruth_db.base_datasource.file_pattern = (
-        'kitti_train_object_cls.tfrecord-*-of-00100')
+    groundtruth_db.file_pattern = ('kitti_train_object_cls.tfrecord-*-of-00100')
 
     p.preprocessors.Define(
         'bbox_aug', (input_preprocessors.GroundTruthAugmentor.Params().Set(

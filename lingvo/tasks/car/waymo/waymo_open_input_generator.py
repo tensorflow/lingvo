@@ -957,8 +957,7 @@ class WaymoSparseLaser(input_extractor.BaseExtractor):
         ],
     )
 
-    p.file_datasource = datasource.PrefixedDataSourceWrapper.Params()
-    p.file_datasource.base_datasource = datasource.SimpleDataSource.Params()
-    p.file_datasource.base_datasource.file_type = 'tfrecord'
+    p.file_datasource = datasource.PrefixedDataSource.Params()
+    p.file_datasource.file_type = 'tfrecord'
 
     return p
