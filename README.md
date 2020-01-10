@@ -11,29 +11,26 @@ A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
 
 ### Installation
 
-There are multiple ways to set up Lingvo: through pip, docker, or cloning the
-repository.
+There are two ways to set up Lingvo: installing a fixed version through pip, or
+cloning the repository and building it with bazel. Docker configurations are
+provided for each case.
+
+If you would just like to use the framework as-is, it is easiest to just install
+it through pip. This makes it possible to develop and train custom models using
+a frozen version of the Lingvo framework. However, it is difficult to modify the
+framework code or implement new custom ops.
+
+If you would like to develop the framework further and potentially contribute
+pull requests, you should avoid using pip and clone the repository instead.
 
 **pip:**
 
-The easiest way to get started is to install the
-[Lingvo pip package](https://pypi.org/project/lingvo) (available for python 3.6
-and 3.7).
+The [Lingvo pip package](https://pypi.org/project/lingvo) (available for python
+3.6 and 3.7) can be installed with just `pip3 install lingvo`.
 
-For an example of how to develop and train a custom model, see the
-[codelab](https://colab.research.google.com/github/tensorflow/lingvo/blob/master/codelabs/introduction.ipynb).
-
-**docker:**
-
-Docker configurations are provided. Instructions can be found in the comments on
-the top of each file.
-
-*   [lib.dockerfile](docker/lib.dockerfile) has the Lingvo pip package
-    preinstalled.
-*   [dev.dockerfile](docker/dev.dockerfile) can be used to build Lingvo from
-    sources using Bazel.
-
-[How to install docker.](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
+See the
+[codelab](https://colab.research.google.com/github/tensorflow/lingvo/blob/master/codelabs/introduction.ipynb)
+for how to get started with the pip package.
 
 **From sources:**
 
@@ -46,7 +43,21 @@ The prerequisites are:
 Refer to [docker/dev.dockerfile](docker/dev.dockerfile) for a set of working
 requirements.
 
-git clone the repository, then use bazel to build and run targets directly.
+`git clone` the repository, then use bazel to build and run targets directly.
+The `python -m module` commands in the codelab need to be mapped onto `bazel
+run` commands.
+
+**docker:**
+
+Docker configurations are available for both situations. Instructions can be
+found in the comments on the top of each file.
+
+*   [lib.dockerfile](docker/lib.dockerfile) has the Lingvo pip package
+    preinstalled.
+*   [dev.dockerfile](docker/dev.dockerfile) can be used to build Lingvo from
+    sources.
+
+[How to install docker.](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
 
 ### Running the MNIST image model
 
