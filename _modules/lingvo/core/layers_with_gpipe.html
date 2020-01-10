@@ -515,9 +515,20 @@
              <span class="s1">&#39;Bool, whether inputs to this layer come from decoder or not.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="GPipeTransformerSoftmaxLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerSoftmaxLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span>
-            <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span>
-            <span class="n">transparent_acc</span><span class="p">,</span> <span class="n">transparent_acc_helper</span><span class="p">):</span>
+<div class="viewcode-block" id="GPipeTransformerSoftmaxLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerSoftmaxLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">theta</span><span class="p">,</span>
+            <span class="n">source_vecs</span><span class="p">,</span>
+            <span class="n">source_paddings</span><span class="p">,</span>
+            <span class="n">target_vecs</span><span class="p">,</span>
+            <span class="n">target_paddings</span><span class="p">,</span>
+            <span class="n">source_segment_id</span><span class="p">,</span>
+            <span class="n">target_segment_id</span><span class="p">,</span>
+            <span class="n">transparent_acc</span><span class="p">,</span>
+            <span class="n">transparent_acc_helper</span><span class="p">,</span>
+            <span class="n">source_task_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">target_task_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">source_task_id</span>
+    <span class="k">del</span> <span class="n">target_task_id</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">inputs_from_decoder</span><span class="p">:</span>
       <span class="n">transformer_output</span> <span class="o">=</span> <span class="n">target_vecs</span>
@@ -570,6 +581,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;enc_task_emb&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Adds task embeddings to every encoder timestep.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;batch_dim&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The batch dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ret_task_ids&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Includes src_task_id and tgt_id in the fprop returns&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -686,8 +699,10 @@
                                          <span class="bp">self</span><span class="o">.</span><span class="n">tgt_dropout</span><span class="p">,</span> <span class="n">target_id</span><span class="p">,</span>
                                          <span class="n">target_pos_id</span><span class="p">,</span> <span class="n">tgt_task_emb_theta</span><span class="p">,</span>
                                          <span class="n">tgt_task_emb</span><span class="p">,</span> <span class="n">target_task_id</span><span class="p">)</span>
-      <span class="k">return</span> <span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
-              <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+      <span class="n">rets</span> <span class="o">=</span> <span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
+              <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="n">rets</span> <span class="o">+=</span> <span class="p">(</span><span class="n">source_task_id</span><span class="p">,</span> <span class="n">target_task_id</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ret_task_ids</span> <span class="k">else</span> <span class="p">()</span>
+      <span class="k">return</span> <span class="n">rets</span></div>
 
 <div class="viewcode-block" id="GPipeTransformerEmbeddingLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -704,8 +719,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_tgt_embedding_layer</span><span class="p">:</span>
       <span class="n">tgt_dim_0</span><span class="p">,</span> <span class="n">tgt_dim_1</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">new_args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="n">tgt_dim_0</span><span class="p">,</span> <span class="n">tgt_dim_1</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
-    <span class="n">new_args</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">new_args</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">new_args</span> <span class="o">=</span> <span class="n">new_args</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">new_args</span><span class="p">[</span><span class="mi">5</span><span class="p">:]</span>
     <span class="n">new_args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">new_args</span><span class="p">[:</span><span class="mi">7</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">new_inputs</span><span class="p">,)</span> <span class="o">+</span> <span class="n">new_args</span><span class="p">)</span></div></div>
 
