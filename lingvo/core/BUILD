@@ -344,7 +344,6 @@ py_test(
     srcs = ["cluster_test.py"],
     deps = [
         ":cluster_factory",
-        ":py_utils",
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
@@ -442,6 +441,7 @@ py_test(
     srcs = ["hyperparams_test.py"],
     deps = [
         ":hyperparams",
+        ":hyperparams_py_pb2",
         ":symbolic",
         ":test_utils",
         "//lingvo:compat",
@@ -720,7 +720,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":py_utils",
-        # Implicit Tkinter dependency.
+        # Implicit Tkinter dependency.  # buildcleaner: keep
         "//lingvo:compat",
         # Implicit matplotlib dependency.
         # Implicit numpy dependency.
@@ -793,8 +793,8 @@ py_library(
         ":py_utils",
         # Implicit absl.flags dependency.
         # Implicit concurrent.futures dependency.
+        "//lingvo:compat",
         # Implicit six dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -908,7 +908,6 @@ py_library(
         ":base_layer",
         ":py_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -1046,7 +1045,6 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -1415,7 +1413,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":bn_layers",
-        # Implicit tensorflow dependency.
+        "//lingvo:compat",
     ],
 )
 
@@ -1436,7 +1434,9 @@ py_library(
     srcs = ["program.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":base_model",
         ":checkpointer_lib",
+        ":cluster_factory",
         ":hyperparams",
         ":metrics",
         ":py_utils",
