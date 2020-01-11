@@ -574,6 +574,7 @@
         <span class="s1">&#39;If set, encoder outputs a list of layer outputs while decoder &#39;</span>
         <span class="s1">&#39;expects a list of source input vectors.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_seq_len&#39;</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="s1">&#39;Max. seq len for decoding.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Target vocab size, if different.&#39;</span><span class="p">)</span>
 
     <span class="c1"># Supporting task embeddings as additional input.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dec_task_emb&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -603,6 +604,8 @@
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_tgt_embedding_layer</span><span class="p">:</span>
         <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">target_vocab_size</span><span class="p">:</span>
+          <span class="n">params</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_vocab_size</span>
         <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;tgt_token_emb&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;tgt_token_emb&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
         <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
