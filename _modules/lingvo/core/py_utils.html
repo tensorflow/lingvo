@@ -559,6 +559,17 @@
   <span class="k">return</span> <span class="n">shapes</span></div>
 
 
+<div class="viewcode-block" id="GetSize"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetSize">[docs]</a><span class="k">def</span> <span class="nf">GetSize</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
+  <span class="n">shape</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
+
+  <span class="n">prod</span> <span class="o">=</span> <span class="mi">1</span>
+  <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">:</span>
+    <span class="n">prod</span> <span class="o">=</span> <span class="n">prod</span> <span class="o">*</span> <span class="n">d</span>
+  <span class="k">return</span> <span class="n">prod</span></div>
+
+
 <div class="viewcode-block" id="use_xla"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.use_xla">[docs]</a><span class="k">def</span> <span class="nf">use_xla</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="n">res</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;xla_device&#39;</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
@@ -591,6 +602,17 @@
     <span class="k">yield</span></div>
 
 
+<div class="viewcode-block" id="_ThreadLocalStack"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._ThreadLocalStack">[docs]</a><span class="k">class</span> <span class="nc">_ThreadLocalStack</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">_ThreadLocalStack</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+
+<span class="c1"># TODO(jamesqin): remove once b/147439702 is fixed.</span>
+<span class="n">_OUTSIDE_COMPILATION</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">()</span>
+
+
 <div class="viewcode-block" id="RunOnTpuHost"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.RunOnTpuHost">[docs]</a><span class="k">def</span> <span class="nf">RunOnTpuHost</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Runs the given function call on TPU host.</span>
 
@@ -598,14 +620,41 @@
 
 <span class="sd">  Args:</span>
 <span class="sd">    func: the function to invoke.</span>
+<span class="sd">    *args: args of func</span>
+<span class="sd">    **kwargs: kwargs of func</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    The function return value.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">use_tpu</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">outside_compilation</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">_OUTSIDE_COMPILATION</span><span class="p">,</span> <span class="s1">&#39;on&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="n">_OUTSIDE_COMPILATION</span><span class="o">.</span><span class="n">on</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">outside_compilation</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">_OUTSIDE_COMPILATION</span><span class="o">.</span><span class="n">on</span> <span class="o">=</span> <span class="kc">False</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="tpu_host"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.tpu_host">[docs]</a><span class="k">def</span> <span class="nf">tpu_host</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Decorates a python function to only run on TPU hosts.</span>
+
+<span class="sd">  This function has no effect when running on CPU/GPU.</span>
+
+<span class="sd">  Example:</span>
+<span class="sd">    @py_utils.tpu_host()</span>
+<span class="sd">    def ComputeWER(self):</span>
+<span class="sd">      # Call a custom op computing WER.</span>
+<span class="sd">  Args:</span>
+<span class="sd">    func: the function to invoke</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A TPU-host only function</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">Wrapped</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">RunOnTpuHost</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">Wrapped</span></div>
 
 
 <span class="n">_tpu_device_assignment</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1453,13 +1502,6 @@
 <span class="n">_ALL_VARS_KEY</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;__lingvo_all_vars&#39;</span><span class="p">,)</span>
 
 <span class="n">_get_all_vars</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span><span class="n">_ALL_VARS_KEY</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="p">{})</span>
-
-
-<div class="viewcode-block" id="_ThreadLocalStack"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._ThreadLocalStack">[docs]</a><span class="k">class</span> <span class="nc">_ThreadLocalStack</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">):</span>
-
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">_ThreadLocalStack</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span></div>
 
 
 <span class="n">_VARIABLE_SHAPE_PREFIXES</span> <span class="o">=</span> <span class="n">_ThreadLocalStack</span><span class="p">()</span><span class="o">.</span><span class="n">stack</span>
@@ -3002,30 +3044,43 @@
   <span class="k">return</span> <span class="n">x</span></div>
 
 
-<div class="viewcode-block" id="PadSequenceTo"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.PadSequenceTo">[docs]</a><span class="k">def</span> <span class="nf">PadSequenceTo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Pads `x` and `padding` to `length` using `pad_val` along the 2nd dim.</span>
+<div class="viewcode-block" id="PadSequenceTo"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.PadSequenceTo">[docs]</a><span class="k">def</span> <span class="nf">PadSequenceTo</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Pads `xs` and `padding` to `length` using `pad_val` along the 2nd dim.</span>
 
-<span class="sd">  Pads `x` to `length` using `pad_val`, and `padding` using 1.</span>
+<span class="sd">  Pads `xs` to `length` using `pad_val`, and `padding` using 1.</span>
 <span class="sd">  Raise error if `x.shape[:2]` and `padding.shape` are not the same.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    x: A Tensor of shape [batch, seqlen] or [batch, seqlen, ...].</span>
+<span class="sd">    xs: A Tensor or a list of Tensors of shape [batch, seqlen] or [batch,</span>
+<span class="sd">      seqlen, ...].</span>
 <span class="sd">    padding: A 0/1 Tensor of shape [batch, seqlen]. 1 is for padded locations.</span>
 <span class="sd">    length: A Python int, the length to pad to.</span>
 <span class="sd">    pad_val: A Python numeric, used for padding x.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A tuple of padded x and padding.</span>
+<span class="sd">    A tuple of padded xs and padding.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+    <span class="n">new_xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">xs</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">new_xs</span> <span class="o">=</span> <span class="n">xs</span>
 
-  <span class="n">batch</span><span class="p">,</span> <span class="n">slen</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">new_xs</span><span class="p">:</span>
+    <span class="n">batch</span><span class="p">,</span> <span class="n">slen</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
-  <span class="n">padding</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-  <span class="n">padding</span> <span class="o">=</span> <span class="n">HasShape</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">slen</span><span class="p">])</span>
+    <span class="n">padding</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">padding</span> <span class="o">=</span> <span class="n">HasShape</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">slen</span><span class="p">])</span>
 
-  <span class="n">x</span> <span class="o">=</span> <span class="n">PadSequenceDimension</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">)</span>
+    <span class="n">new_x</span> <span class="o">=</span> <span class="n">PadSequenceDimension</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">)</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_x</span><span class="p">)</span>
   <span class="n">padding</span> <span class="o">=</span> <span class="n">PadSequenceDimension</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-  <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">padding</span></div>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">padding</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">res</span><span class="p">),</span> <span class="n">padding</span></div>
 
 
 <div class="viewcode-block" id="ApplyPadding"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ApplyPadding">[docs]</a><span class="k">def</span> <span class="nf">ApplyPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">padded</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">broadcast</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_select</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>

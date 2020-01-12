@@ -235,10 +235,12 @@
 <span class="sd">  Sub-classes can customize behavior by implementing the following functions,</span>
 <span class="sd">  which will modify the behavior of the decoder:</span>
 
-<span class="sd">  - GetTargetLabelSequencesWithBeamSearch: Needed for EMBR training.</span>
-<span class="sd">  - _InitBeamSearchStateCallback: Needed by beam search decoder.</span>
-<span class="sd">  - _PreBeamSearchStepCallback</span>
-<span class="sd">  - _PostBeamSearchStepCallback</span>
+<span class="sd">  For beam search decoder:</span>
+<span class="sd">    - _InitBeamSearchStateCallback</span>
+<span class="sd">    - _PreBeamSearchStepCallback</span>
+<span class="sd">    - _PostBeamSearchStepCallback</span>
+<span class="sd">  For EMBR training:</span>
+<span class="sd">    - ComputeHypsWithBeamSearch</span>
 
 <span class="sd">  - MiscZeroState: NestedMap which represents the initial state for the</span>
 <span class="sd">    &#39;misc_states&#39; in the DecoderStepState. The default implementation returns</span>

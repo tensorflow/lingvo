@@ -223,11 +223,19 @@ the model after making the previous predictions):</p>
 </ol>
 <p>Sub-classes can customize behavior by implementing the following functions,
 which will modify the behavior of the decoder:</p>
-<ul class="simple">
-<li><p>GetTargetLabelSequencesWithBeamSearch: Needed for EMBR training.</p></li>
-<li><p>_InitBeamSearchStateCallback: Needed by beam search decoder.</p></li>
+<dl class="simple">
+<dt>For beam search decoder:</dt><dd><ul class="simple">
+<li><p>_InitBeamSearchStateCallback</p></li>
 <li><p>_PreBeamSearchStepCallback</p></li>
 <li><p>_PostBeamSearchStepCallback</p></li>
+</ul>
+</dd>
+<dt>For EMBR training:</dt><dd><ul class="simple">
+<li><p>ComputeHypsWithBeamSearch</p></li>
+</ul>
+</dd>
+</dl>
+<ul class="simple">
 <li><p>MiscZeroState: NestedMap which represents the initial state for the
 ‘misc_states’ in the DecoderStepState. The default implementation returns
 an empty NestedMap.</p></li>

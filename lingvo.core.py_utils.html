@@ -375,6 +375,11 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.GetSize">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GetSize</code><span class="sig-paren">(</span><em class="sig-param">tensor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetSize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.use_xla">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">use_xla</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#use_xla"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.use_xla" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -404,6 +409,12 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">outside_all_rewrites</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#outside_all_rewrites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.outside_all_rewrites" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="class">
+<dt id="lingvo.core.py_utils._ThreadLocalStack">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_ThreadLocalStack</code><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ThreadLocalStack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ThreadLocalStack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_thread._local</span></code></p>
+</dd></dl>
+
 <dl class="function">
 <dt id="lingvo.core.py_utils.RunOnTpuHost">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">RunOnTpuHost</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#RunOnTpuHost"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.RunOnTpuHost" title="Permalink to this definition">¶</a></dt>
@@ -411,10 +422,35 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <p>Invokes func(*args, **kwargs) directly if not running on tpu.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>func</strong> – the function to invoke.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> – the function to invoke.</p></li>
+<li><p><strong>*args</strong> – args of func</p></li>
+<li><p><strong>**kwargs</strong> – kwargs of func</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The function return value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.tpu_host">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">tpu_host</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#tpu_host"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.tpu_host" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorates a python function to only run on TPU hosts.</p>
+<p>This function has no effect when running on CPU/GPU.</p>
+<p class="rubric">Example</p>
+<p>&#64;py_utils.tpu_host()
+def ComputeWER(self):</p>
+<blockquote>
+<div><p># Call a custom op computing WER.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>func</strong> – the function to invoke</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A TPU-host only function</p>
 </dd>
 </dl>
 </dd></dl>
@@ -985,12 +1021,6 @@ new_name_format will be interpolated using the matched groups.</p>
 <dt id="lingvo.core.py_utils.GenerateSeedFromName">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GenerateSeedFromName</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GenerateSeedFromName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GenerateSeedFromName" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a random seed from a name string.</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="lingvo.core.py_utils._ThreadLocalStack">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_ThreadLocalStack</code><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ThreadLocalStack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ThreadLocalStack" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_thread._local</span></code></p>
 </dd></dl>
 
 <dl class="function">
@@ -1713,21 +1743,22 @@ ret[:, :seq_len, …] == x.</p>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.PadSequenceTo">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">PadSequenceTo</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">padding</em>, <em class="sig-param">length</em>, <em class="sig-param">pad_val</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#PadSequenceTo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.PadSequenceTo" title="Permalink to this definition">¶</a></dt>
-<dd><p>Pads <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">length</span></code> using <code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_val</span></code> along the 2nd dim.</p>
-<p>Pads <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">length</span></code> using <code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_val</span></code>, and <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding</span></code> using 1.
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">PadSequenceTo</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">padding</em>, <em class="sig-param">length</em>, <em class="sig-param">pad_val</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#PadSequenceTo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.PadSequenceTo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pads <code class="xref py py-obj docutils literal notranslate"><span class="pre">xs</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">length</span></code> using <code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_val</span></code> along the 2nd dim.</p>
+<p>Pads <code class="xref py py-obj docutils literal notranslate"><span class="pre">xs</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">length</span></code> using <code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_val</span></code>, and <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding</span></code> using 1.
 Raise error if <code class="xref py py-obj docutils literal notranslate"><span class="pre">x.shape[:2]</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding.shape</span></code> are not the same.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – A Tensor of shape [batch, seqlen] or [batch, seqlen, …].</p></li>
+<li><p><strong>xs</strong> – A Tensor or a list of Tensors of shape [batch, seqlen] or [batch,
+seqlen, …].</p></li>
 <li><p><strong>padding</strong> – A 0/1 Tensor of shape [batch, seqlen]. 1 is for padded locations.</p></li>
 <li><p><strong>length</strong> – A Python int, the length to pad to.</p></li>
 <li><p><strong>pad_val</strong> – A Python numeric, used for padding x.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A tuple of padded x and padding.</p>
+<dd class="field-even"><p>A tuple of padded xs and padding.</p>
 </dd>
 </dl>
 </dd></dl>
