@@ -208,6 +208,22 @@ def assert_same_dim0(xs, *args, **kwargs):  # pylint: disable=invalid-name
     return tf.no_op()
 
 
+def assert_even_divide(denorm, num):  # pylint: disable=invalid-name
+  """Asserts that denorm is evenly divided by num."""
+  denorm = tf.convert_to_tensor(denorm)
+  num = tf.convert_to_tensor(num)
+
+  if denorm.dtype not in (tf.int32, tf.int64):
+    raise ValueError('denorminator.dtype is not tf.int32 or tf.int64.')
+  if num.dtype not in (tf.int32, tf.int64):
+    raise ValueError('numerator.dtype is not tf.int32 or tf.int64.')
+
+  num = HasShape(num, GetShape(denorm))
+
+  quo = denorm // num
+  return assert_equal(quo * num, denorm)
+
+
 def _CheckNumerics(x, message=None, *args, **kwargs):
   if x.dtype.is_floating:
     if 'name' not in kwargs:

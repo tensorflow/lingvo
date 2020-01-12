@@ -961,6 +961,15 @@ class PyUtilsTest(test_utils.TestCase):
       self.assertAllClose(outputs.eval(),
                           np.einsum('bti,io->bto', inputs_p, weight_p))
 
+  def testAssertEvenDivide(self):
+    with self.session() as sess:
+      op = py_utils.assert_even_divide(4, 2)
+      sess.run(op)
+
+      op = py_utils.assert_even_divide(4, 3)
+      with self.assertRaises(tf.errors.InvalidArgumentError):
+        sess.run(op)
+
 
 class DeterministicDropoutTest(test_utils.TestCase):
 

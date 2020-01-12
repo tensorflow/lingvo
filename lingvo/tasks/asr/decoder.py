@@ -736,11 +736,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     else:
       return py_utils.NestedMap()
 
-  def ComputePredictions(self,
-                         theta,
-                         encoder_outputs,
-                         targets,
-                         targets_per_batch_element=1):
+  def ComputePredictions(self, theta, encoder_outputs, targets):
     """Computes logits.
 
     Args:
@@ -749,7 +745,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       encoder_outputs: a NestedMap computed by encoder.
       targets: A dict of string to tensors representing the targets one is
         trying to predict. Each tensor in targets is of shape [batch, time].
-      targets_per_batch_element: (unused).
 
     Returns:
       A NestedMap object containing logit tensors as values, each of shape
@@ -757,7 +752,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       'logits'.
     """
     assert getattr(encoder_outputs, 'src_segment_id', None) is None
-    del targets_per_batch_element
     p = self.params
     self.contextualizer.SetContextMap(targets, theta.contextualizer)
     if 'weights' not in targets and 'paddings' in targets:
