@@ -881,11 +881,7 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="AsrDecoderBase.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                         <span class="n">theta</span><span class="p">,</span>
-                         <span class="n">encoder_outputs</span><span class="p">,</span>
-                         <span class="n">targets</span><span class="p">,</span>
-                         <span class="n">targets_per_batch_element</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="AsrDecoderBase.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes logits.</span>
 
 <span class="sd">    Args:</span>
@@ -894,7 +890,6 @@
 <span class="sd">      encoder_outputs: a NestedMap computed by encoder.</span>
 <span class="sd">      targets: A dict of string to tensors representing the targets one is</span>
 <span class="sd">        trying to predict. Each tensor in targets is of shape [batch, time].</span>
-<span class="sd">      targets_per_batch_element: (unused).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A NestedMap object containing logit tensors as values, each of shape</span>
@@ -902,7 +897,6 @@
 <span class="sd">      &#39;logits&#39;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="s1">&#39;src_segment_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
-    <span class="k">del</span> <span class="n">targets_per_batch_element</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">contextualizer</span><span class="o">.</span><span class="n">SetContextMap</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">contextualizer</span><span class="p">)</span>
     <span class="k">if</span> <span class="s1">&#39;weights&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">targets</span> <span class="ow">and</span> <span class="s1">&#39;paddings&#39;</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
