@@ -220,6 +220,7 @@ to_float = tf1.to_float
 to_int32 = tf1.to_int32
 to_int64 = tf1.to_int64
 tpu = tf1.tpu
+train.AdadeltaOptimizer = tf1.train.AdadeltaOptimizer
 train.AdagradOptimizer = tf1.train.AdagradOptimizer
 train.AdamOptimizer = tf1.train.AdamOptimizer
 train.export_meta_graph = tf1.train.export_meta_graph
