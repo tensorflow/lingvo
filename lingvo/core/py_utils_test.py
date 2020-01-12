@@ -41,7 +41,7 @@ import six
 from six.moves import range
 from six.moves import zip
 
-from tensorflow.python.ops import functional_ops
+from tensorflow.python.ops import functional_ops  # pylint:disable=g-direct-tensorflow-import
 
 FLAGS = tf.flags.FLAGS
 
@@ -466,6 +466,27 @@ class PyUtilsTest(test_utils.TestCase):
     self.assertIsNone(f.shape.ndims)
     # GetShape() will return a Tensor.
     self.assertIsInstance(py_utils.GetShape(f), tf.Tensor)
+
+  def testGetSize(self):
+    a = tf.constant([1])
+    self.assertEqual(py_utils.GetSize(a), 1)
+
+    b = tf.constant([[1, 2]])
+    self.assertEqual(py_utils.GetSize(b), 2)
+
+    d = tf.placeholder(tf.float32, shape=(1, None))
+    self.assertIsInstance(py_utils.GetSize(d), tf.Tensor)
+
+    @tf.Defun(tf.float32)
+    def Identity(x):
+      return x
+
+    f = py_utils.GetSize(Identity(d))
+    self.assertIsInstance(f, tf.Tensor)
+
+    with self.session() as sess:
+      f_v = sess.run(f, feed_dict={d: np.array([[1, 2]])})
+      self.assertEqual(2, f_v)
 
   def testGetRank(self):
     a = tf.constant([1])
@@ -970,6 +991,32 @@ class PyUtilsTest(test_utils.TestCase):
       with self.assertRaises(tf.errors.InvalidArgumentError):
         sess.run(op)
 
+  @mock.patch.object(tf.tpu, 'outside_compilation', autospec=True)
+  def testTpuHostDecorator(self, mock_outside_compilation):
+
+    with self.session(use_gpu=False), mock.patch(
+        'lingvo.core.py_utils.use_tpu', return_value=True):
+
+      def noop_outside_compilation(func, *args, **kwargs):  # pylint:disable=invalid-name
+        return func(*args, **kwargs)
+
+      mock_outside_compilation.side_effect = noop_outside_compilation
+
+      @py_utils.tpu_host
+      def foo(x):  # pylint:disable=invalid-name
+        return bar(x) * x
+
+      @py_utils.tpu_host
+      def bar(x):  #  pylint:disable=invalid-name
+        return tf.log(x)
+
+      x = tf.random_uniform([])
+      y = foo(x)
+      unused_z = y * y
+
+      self.assertTrue(py_utils.use_tpu())
+      self.assertEqual(1, mock_outside_compilation.call_count)
+
 
 class DeterministicDropoutTest(test_utils.TestCase):
 
@@ -1345,24 +1392,24 @@ class ReadOnlyAttrDictViewTest(test_utils.TestCase):
     view = py_utils.ReadOnlyAttrDictView(backing)
     backing['test'] = 1
 
-    self.assertEquals(1, view['test'])
-    self.assertEquals(1, view.test)
+    self.assertEqual(1, view['test'])
+    self.assertEqual(1, view.test)
     # Item assign.
     with self.assertRaises(AttributeError):
       view['test'] = 2
-    self.assertEquals(1, view['test'])
+    self.assertEqual(1, view['test'])
     # Attr assign.
     with self.assertRaises(AttributeError):
       view.test = 2
-    self.assertEquals(1, view['test'])
+    self.assertEqual(1, view['test'])
     # Delete attr.
     with self.assertRaises(AttributeError):
       del view.test
-    self.assertEquals(1, view['test'])
+    self.assertEqual(1, view['test'])
     # Delete item.
     with self.assertRaises(AttributeError):
       del view['test']
-    self.assertEquals(1, view['test'])
+    self.assertEqual(1, view['test'])
 
 
 class PadPadSequenceToTest(test_utils.TestCase):
@@ -1372,8 +1419,29 @@ class PadPadSequenceToTest(test_utils.TestCase):
       x = tf.random_normal(shape=(3, 3), seed=123456)
       padding = tf.constant([[0, 0, 0], [0, 0, 1], [0, 1, 1]], tf.float32)
       length = 6
+      new_xs, new_padding = py_utils.PadSequenceTo([x, x], padding, length, 0)
+
+      real_xs, real_padding = sess.run([new_xs, new_padding])
+      # pyformat: disable
+      expected_x = [[0.38615, 2.975221, -0.852826, 0., 0., 0.],
+                    [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
+                    [0.255314, -0.985647, 1.461641, 0., 0., 0.]]
+      expected_padding = [
+          [0., 0., 0., 1., 1., 1.],
+          [0., 0., 1., 1., 1., 1.],
+          [0., 1., 1., 1., 1., 1.]
+      ]
+      # pyformat: enable
+      self.assertAllClose([expected_x, expected_x], real_xs)
+      self.assertAllClose(expected_padding, real_padding)
+
+  def testSingleInput(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      x = tf.random_normal(shape=(3, 3), seed=123456)
+      padding = tf.constant([[0, 0, 0], [0, 0, 1], [0, 1, 1]], tf.float32)
+      length = 6
       new_x, new_padding = py_utils.PadSequenceTo(x, padding, length, 0)
-      self.assertEqual(new_x.shape.as_list(), [3, 6])
+
       real_x, real_padding = sess.run([new_x, new_padding])
       # pyformat: disable
       expected_x = [[0.38615, 2.975221, -0.852826, 0., 0., 0.],

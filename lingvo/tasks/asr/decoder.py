@@ -90,10 +90,12 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
   Sub-classes can customize behavior by implementing the following functions,
   which will modify the behavior of the decoder:
 
-  - GetTargetLabelSequencesWithBeamSearch: Needed for EMBR training.
-  - _InitBeamSearchStateCallback: Needed by beam search decoder.
-  - _PreBeamSearchStepCallback
-  - _PostBeamSearchStepCallback
+  For beam search decoder:
+    - _InitBeamSearchStateCallback
+    - _PreBeamSearchStepCallback
+    - _PostBeamSearchStepCallback
+  For EMBR training:
+    - ComputeHypsWithBeamSearch
 
   - MiscZeroState: NestedMap which represents the initial state for the
     'misc_states' in the DecoderStepState. The default implementation returns

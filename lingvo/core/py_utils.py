@@ -414,6 +414,17 @@ def GetShape(tensor, ndims=None):
   return shapes
 
 
+def GetSize(tensor):
+  shape = GetShape(tensor)
+  if isinstance(shape, tf.Tensor):
+    return tf.size(tensor)
+
+  prod = 1
+  for d in shape:
+    prod = prod * d
+  return prod
+
+
 def use_xla():  # pylint: disable=invalid-name
   res = _FromGlobal('xla_device')
   if res:
@@ -446,6 +457,17 @@ def outside_all_rewrites():  # pylint: disable=invalid-name
     yield
 
 
+class _ThreadLocalStack(threading.local):
+
+  def __init__(self):
+    super(_ThreadLocalStack, self).__init__()
+    self.stack = []
+
+
+# TODO(jamesqin): remove once b/147439702 is fixed.
+_OUTSIDE_COMPILATION = threading.local()
+
+
 def RunOnTpuHost(func, *args, **kwargs):
   r"""Runs the given function call on TPU host.
 
@@ -453,14 +475,41 @@ def RunOnTpuHost(func, *args, **kwargs):
 
   Args:
     func: the function to invoke.
+    *args: args of func
+    **kwargs: kwargs of func
 
   Returns:
     The function return value.
   """
-  if use_tpu():
-    return tf.tpu.outside_compilation(func, *args, **kwargs)
+  if use_tpu() and not getattr(_OUTSIDE_COMPILATION, 'on', False):
+    _OUTSIDE_COMPILATION.on = True
+    res = tf.tpu.outside_compilation(func, *args, **kwargs)
+    _OUTSIDE_COMPILATION.on = False
   else:
-    return func(*args, **kwargs)
+    res = func(*args, **kwargs)
+  return res
+
+
+def tpu_host(func):  # pylint: disable=invalid-name
+  r"""Decorates a python function to only run on TPU hosts.
+
+  This function has no effect when running on CPU/GPU.
+
+  Example:
+    @py_utils.tpu_host()
+    def ComputeWER(self):
+      # Call a custom op computing WER.
+  Args:
+    func: the function to invoke
+
+  Returns:
+    A TPU-host only function
+  """
+
+  def Wrapped(*args, **kwargs):
+    return RunOnTpuHost(func, *args, **kwargs)
+
+  return Wrapped
 
 
 _tpu_device_assignment = None
@@ -1308,13 +1357,6 @@ def GenerateSeedFromName(name):
 _ALL_VARS_KEY = ('__lingvo_all_vars',)
 
 _get_all_vars = _CollectionGetter(_ALL_VARS_KEY, lambda: {})
-
-
-class _ThreadLocalStack(threading.local):
-
-  def __init__(self):
-    super(_ThreadLocalStack, self).__init__()
-    self.stack = []
 
 
 _VARIABLE_SHAPE_PREFIXES = _ThreadLocalStack().stack
@@ -2857,30 +2899,43 @@ def PadSequenceDimension(x, length, pad_val, shape=None):
   return x
 
 
-def PadSequenceTo(x, padding, length, pad_val):
-  """Pads `x` and `padding` to `length` using `pad_val` along the 2nd dim.
+def PadSequenceTo(xs, padding, length, pad_val):
+  """Pads `xs` and `padding` to `length` using `pad_val` along the 2nd dim.
 
-  Pads `x` to `length` using `pad_val`, and `padding` using 1.
+  Pads `xs` to `length` using `pad_val`, and `padding` using 1.
   Raise error if `x.shape[:2]` and `padding.shape` are not the same.
 
   Args:
-    x: A Tensor of shape [batch, seqlen] or [batch, seqlen, ...].
+    xs: A Tensor or a list of Tensors of shape [batch, seqlen] or [batch,
+      seqlen, ...].
     padding: A 0/1 Tensor of shape [batch, seqlen]. 1 is for padded locations.
     length: A Python int, the length to pad to.
     pad_val: A Python numeric, used for padding x.
 
   Returns:
-    A tuple of padded x and padding.
+    A tuple of padded xs and padding.
   """
+  if not isinstance(xs, (list, tuple)):
+    new_xs = [xs]
+  else:
+    new_xs = xs
 
-  batch, slen = GetShape(x, 2)
+  res = []
+  for x in new_xs:
+    batch, slen = GetShape(x, 2)
 
-  padding = HasRank(padding, 2)
-  padding = HasShape(padding, [batch, slen])
+    padding = HasRank(padding, 2)
+    padding = HasShape(padding, [batch, slen])
 
-  x = PadSequenceDimension(x, length, pad_val)
+    new_x = PadSequenceDimension(x, length, pad_val)
+    res.append(new_x)
   padding = PadSequenceDimension(padding, length, tf.cast(1, padding.dtype))
-  return x, padding
+
+  if not isinstance(xs, (list, tuple)):
+    assert len(res) == 1
+    return res[0], padding
+  else:
+    return tuple(res), padding
 
 
 def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
