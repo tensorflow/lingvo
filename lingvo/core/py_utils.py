@@ -495,10 +495,12 @@ def tpu_host(func):  # pylint: disable=invalid-name
 
   This function has no effect when running on CPU/GPU.
 
-  Example:
+  Example::
+
     @py_utils.tpu_host()
     def ComputeWER(self):
       # Call a custom op computing WER.
+
   Args:
     func: the function to invoke
 
