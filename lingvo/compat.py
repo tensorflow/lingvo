@@ -113,6 +113,7 @@ gradients = tf1.gradients
 graph_util.convert_variables_to_constants = (
     tf1.graph_util.convert_variables_to_constants)
 graph_util.extract_sub_graph = tf1.graph_util.extract_sub_graph
+GraphDef = tf1.GraphDef
 GraphKeys = tf1.GraphKeys
 GraphOptions = tf1.GraphOptions
 image.resize_bilinear = tf1.image.resize_bilinear
