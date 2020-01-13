@@ -90,6 +90,7 @@ convert_to_tensor = tf1.convert_to_tensor
 count_nonzero = tf1.count_nonzero
 data.make_initializable_iterator = tf1.data.make_initializable_iterator
 data.make_one_shot_iterator = tf1.data.make_one_shot_iterator
+data.Dataset = tf1.data.Dataset
 data.TFRecordDataset = tf1.data.TFRecordDataset
 decode_raw = tf1.decode_raw
 device = tf1.device
