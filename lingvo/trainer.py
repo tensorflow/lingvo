@@ -142,6 +142,11 @@ tf.flags.DEFINE_string(
     'evaler_dev and decoder_dev will only match the corresponding '
     'jobs that are on the dev set.')
 
+tf.flags.DEFINE_bool(
+    'add_summary', None,
+    'Whether we should output summaries. The default value "None", enables '
+    'summaries based on the job type.')
+
 
 @tf.flags.validator('vizier_reporting_job')
 def _ValidateVizierReportingJob(value):
@@ -1517,6 +1522,8 @@ class RunnerManager(object):
     cluster.decoder.name = FLAGS.decoder_job
     cluster.decoder.replicas = FLAGS.decoder_replicas
     cluster.decoder.gpus_per_replica = FLAGS.decoder_gpus
+
+    cluster.add_summary = FLAGS.add_summary
 
   def _CreateRunner(self, job, model_task_name, logdir, tf_master, trial):
     """Create a runner."""
