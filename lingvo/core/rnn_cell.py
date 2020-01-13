@@ -275,6 +275,7 @@ class LSTMCellSimple(RNNCell):
     p.Define('apply_pruning_to_projection', False,
              'Whether to prune the projection matrix while '
              'training')
+    p.Define('gradient_pruning', False, 'Whether to gradient prune the model')
     p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
              'Initialization parameters for bias')
 
@@ -339,18 +340,22 @@ class LSTMCellSimple(RNNCell):
         grad_pc = py_utils.WeightParams(wm_pc.shape,
                                         py_utils.WeightInit.Constant(0.0),
                                         p.dtype)
-        self.CreateVariable('gradient', grad_pc, theta_fn=None, trainable=False)
-        self.CreateVariable(
-            'old_weight', grad_pc, theta_fn=None, trainable=False)
-        self.CreateVariable(
-            'old_old_weight', grad_pc, theta_fn=None, trainable=False)
+        if p.gradient_pruning:
+          self.CreateVariable(
+              'gradient', grad_pc, theta_fn=None, trainable=False)
+          self.CreateVariable(
+              'old_weight', grad_pc, theta_fn=None, trainable=False)
+          self.CreateVariable(
+              'old_old_weight', grad_pc, theta_fn=None, trainable=False)
 
-        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                         self.vars.threshold,
-                                         self.vars.gradient,
-                                         self.vars.old_weight,
-                                         self.vars.old_old_weight)
-
+          py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                           self.vars.threshold,
+                                           self.vars.gradient,
+                                           self.vars.old_weight,
+                                           self.vars.old_old_weight)
+        else:
+          py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                           self.vars.threshold)
       if p.num_hidden_nodes:
         w_proj = py_utils.WeightParams(
             shape=[self.hidden_size, self.output_size],
@@ -371,17 +376,22 @@ class LSTMCellSimple(RNNCell):
           # gradient and weight snapshots
           proj_grad_pc = py_utils.WeightParams(
               w_proj.shape, py_utils.WeightInit.Constant(0.0), p.dtype)
-          self.CreateVariable('proj_gradient', proj_grad_pc, trainable=False)
-          self.CreateVariable('proj_old_weight', proj_grad_pc, trainable=False)
-          self.CreateVariable(
-              'proj_old_old_weight', proj_grad_pc, trainable=False)
-          py_utils.AddToPruningCollections(self.vars.w_proj,
-                                           self.vars.proj_mask,
-                                           self.vars.proj_threshold,
-                                           self.vars.proj_gradient,
-                                           self.vars.proj_old_weight,
-                                           self.vars.proj_old_old_weight)
-
+          if p.gradient_pruning:
+            self.CreateVariable('proj_gradient', proj_grad_pc, trainable=False)
+            self.CreateVariable(
+                'proj_old_weight', proj_grad_pc, trainable=False)
+            self.CreateVariable(
+                'proj_old_old_weight', proj_grad_pc, trainable=False)
+            py_utils.AddToPruningCollections(self.vars.w_proj,
+                                             self.vars.proj_mask,
+                                             self.vars.proj_threshold,
+                                             self.vars.proj_gradient,
+                                             self.vars.proj_old_weight,
+                                             self.vars.proj_old_old_weight)
+          else:
+            py_utils.AddToPruningCollections(self.vars.w_proj,
+                                             self.vars.proj_mask,
+                                             self.vars.proj_threshold)
       if p.enable_lstm_bias:
         bias_pc = py_utils.WeightParams(
             shape=[self.num_gates * self.hidden_size],
@@ -1775,6 +1785,7 @@ class SRUCell(RNNCell):
              'training')
     p.Define('apply_pruning_to_projection', False,
              'Whether to prune the weights in the projection layer')
+    p.Define('gradient_pruning', False, 'Whether to gradient prune the model')
     p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
              'Initialization parameters for bias')
     # Add cell-recursive vector into the SRU cells (arxiv.org/abs/1709.02755).
@@ -1834,17 +1845,21 @@ class SRUCell(RNNCell):
         grad_pc = py_utils.WeightParams(wm_pc.shape,
                                         py_utils.WeightInit.Constant(0.0),
                                         p.dtype)
-        self.CreateVariable('gradient', grad_pc, theta_fn=None, trainable=False)
-        self.CreateVariable(
-            'old_weight', grad_pc, theta_fn=None, trainable=False)
-        self.CreateVariable(
-            'old_old_weight', grad_pc, theta_fn=None, trainable=False)
-        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                         self.vars.threshold,
-                                         self.vars.gradient,
-                                         self.vars.old_weight,
-                                         self.vars.old_old_weight)
-
+        if p.gradient_pruning:
+          self.CreateVariable(
+              'gradient', grad_pc, theta_fn=None, trainable=False)
+          self.CreateVariable(
+              'old_weight', grad_pc, theta_fn=None, trainable=False)
+          self.CreateVariable(
+              'old_old_weight', grad_pc, theta_fn=None, trainable=False)
+          py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                           self.vars.threshold,
+                                           self.vars.gradient,
+                                           self.vars.old_weight,
+                                           self.vars.old_old_weight)
+        else:
+          py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                           self.vars.threshold)
       bias_pc = py_utils.WeightParams(
           shape=[self.num_gates * self.hidden_size],
           init=p.bias_init,
@@ -1872,17 +1887,22 @@ class SRUCell(RNNCell):
           # gradient and weight snapshots
           proj_grad_pc = py_utils.WeightParams(
               w_proj.shape, py_utils.WeightInit.Constant(0.0), p.dtype)
-          self.CreateVariable('proj_gradient', proj_grad_pc, trainable=False)
-          self.CreateVariable('proj_old_weight', proj_grad_pc, trainable=False)
-          self.CreateVariable(
-              'proj_old_old_weight', proj_grad_pc, trainable=False)
-          py_utils.AddToPruningCollections(self.vars.w_proj,
-                                           self.vars.proj_mask,
-                                           self.vars.proj_threshold,
-                                           self.vars.proj_gradient,
-                                           self.vars.proj_old_weight,
-                                           self.vars.proj_old_old_weight)
-
+          if p.gradient_pruning:
+            self.CreateVariable('proj_gradient', proj_grad_pc, trainable=False)
+            self.CreateVariable(
+                'proj_old_weight', proj_grad_pc, trainable=False)
+            self.CreateVariable(
+                'proj_old_old_weight', proj_grad_pc, trainable=False)
+            py_utils.AddToPruningCollections(self.vars.w_proj,
+                                             self.vars.proj_mask,
+                                             self.vars.proj_threshold,
+                                             self.vars.proj_gradient,
+                                             self.vars.proj_old_weight,
+                                             self.vars.proj_old_old_weight)
+          else:
+            py_utils.AddToPruningCollections(self.vars.w_proj,
+                                             self.vars.proj_mask,
+                                             self.vars.proj_threshold)
       # TODO(yuansg): b/136014373 investigate the layer norm initialization and
       # implementation, try skipping LP regularization on layer norm and bias.
       if p.apply_layer_norm:
