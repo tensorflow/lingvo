@@ -287,6 +287,11 @@
     <span class="s1">&#39;evaler_dev and decoder_dev will only match the corresponding &#39;</span>
     <span class="s1">&#39;jobs that are on the dev set.&#39;</span><span class="p">)</span>
 
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;add_summary&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s1">&#39;Whether we should output summaries. The default value &quot;None&quot;, enables &#39;</span>
+    <span class="s1">&#39;summaries based on the job type.&#39;</span><span class="p">)</span>
+
 
 <div class="viewcode-block" id="_ValidateVizierReportingJob"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer._ValidateVizierReportingJob">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">validator</span><span class="p">(</span><span class="s1">&#39;vizier_reporting_job&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">_ValidateVizierReportingJob</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
@@ -1661,7 +1666,9 @@
 
     <span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_job</span>
     <span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_replicas</span>
-    <span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span></div>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span>
+
+    <span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">add_summary</span></div>
 
 <div class="viewcode-block" id="RunnerManager._CreateRunner"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager._CreateRunner">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateRunner</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">tf_master</span><span class="p">,</span> <span class="n">trial</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a runner.&quot;&quot;&quot;</span>
