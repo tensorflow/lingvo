@@ -439,12 +439,12 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">tpu_host</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#tpu_host"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.tpu_host" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decorates a python function to only run on TPU hosts.</p>
 <p>This function has no effect when running on CPU/GPU.</p>
-<p class="rubric">Example</p>
-<p>&#64;py_utils.tpu_host()
-def ComputeWER(self):</p>
-<blockquote>
-<div><p># Call a custom op computing WER.</p>
-</div></blockquote>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@py_utils</span><span class="o">.</span><span class="n">tpu_host</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">ComputeWER</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="c1"># Call a custom op computing WER.</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>func</strong> – the function to invoke</p>
