@@ -32,6 +32,17 @@ namespace car {
 
 namespace {
 
+int BucketId(int bucket_x, int bucket_y, int bucket_z, int y_intervals,
+             int z_intervals) {
+  return (bucket_z + (bucket_y * z_intervals) +
+          (bucket_x * y_intervals * z_intervals));
+}
+
+int FindBucket(const float val, const float min_val,
+               const float interval_size) {
+  return static_cast<int>(std::floor((val - min_val) / interval_size));
+}
+
 // Given a sequence of identifiers (Add), returns k elements uniformly sampled
 // from the sequence.
 class UniformSampler {
@@ -271,8 +282,24 @@ PSUtils::Result PSUtils::DoSampling(const Tensor& points,
   // Max distance squared as the threshold.
   const float threshold = Square(opts_.max_dist);
 
+  // The idea behind the hash lookup is to only do neighbor / distance checks
+  // for plausibly close neighbors, rather than looking at all points for each
+  // center.  We do this by gridifying the points, and for each center only
+  // looking at points in nearby grid cells.  This a cheap version of a more
+  // sophisticated algorithm like using a KDTree or RangeTree.
+  const bool use_hash_lookup =
+      (opts_.neighbor_search_algorithm == PSUtils::Options::N_HASH);
+
   for (int cur_batch = 0; cur_batch < batch_size; ++cur_batch) {
     std::vector<bool> candidates(num_points);
+
+    float xmin = std::numeric_limits<float>::max();
+    float ymin = std::numeric_limits<float>::max();
+    float zmin = std::numeric_limits<float>::max();
+    float xmax = std::numeric_limits<float>::lowest();
+    float ymax = std::numeric_limits<float>::lowest();
+    float zmax = std::numeric_limits<float>::lowest();
+
     for (int i = 0; i < num_points; ++i) {
       // The first num_seeded_points are not candidates of the selector, because
       // they are always selected.
@@ -280,6 +307,61 @@ PSUtils::Result PSUtils::DoSampling(const Tensor& points,
           (i >= num_seeded_points && points_padding_t(cur_batch, i) == 0.0) &&
           (opts_.center_z_min <= points_t(cur_batch, i, 2)) &&
           (points_t(cur_batch, i, 2) <= opts_.center_z_max);
+
+      // Find min / max points for computing grid buckets.
+      if (use_hash_lookup && points_padding_t(cur_batch, i) == 0.0) {
+        xmin = std::min(points_t(cur_batch, i, 0), xmin);
+        xmax = std::max(points_t(cur_batch, i, 0), xmax);
+        ymin = std::min(points_t(cur_batch, i, 1), ymin);
+        ymax = std::max(points_t(cur_batch, i, 1), ymax);
+        zmin = std::min(points_t(cur_batch, i, 2), zmin);
+        zmax = std::max(points_t(cur_batch, i, 2), zmax);
+      }
+    }
+
+    // Adjust boundaries to avoid edge conditions.  We use max_dist as a
+    // conservative estimate.
+    xmin -= opts_.max_dist;
+    ymin -= opts_.max_dist;
+    zmin -= opts_.max_dist;
+    xmax += opts_.max_dist;
+    ymax += opts_.max_dist;
+    zmax += opts_.max_dist;
+
+    // Stores a mapping of bucket_id -> list of point indices.  The buckets are
+    // the voxelized breakdown of the 3D space and points fall into these
+    // voxels.  The length of the cube is the max_distance.
+    std::vector<std::vector<int>> buckets_vec;
+    std::vector<std::vector<float>> buckets_values;
+
+    const int x_intervals = std::ceil((xmax - xmin) / opts_.max_dist);
+    const int y_intervals = std::ceil((ymax - ymin) / opts_.max_dist);
+    const int z_intervals = std::ceil((zmax - zmin) / opts_.max_dist);
+
+    if (use_hash_lookup) {
+      // The number of buckets is the product of all the intervals.
+      buckets_vec.resize(x_intervals * y_intervals * z_intervals);
+      for (int i = 0; i < num_points; ++i) {
+        // Compute which bucket each valid point falls into.
+        //
+        // A valid is a non-padded, non-seeded point.
+        if (points_padding_t(cur_batch, i) == 0.0 && i >= num_seeded_points) {
+          int bucket_x =
+              FindBucket(points_t(cur_batch, i, 0), xmin, opts_.max_dist);
+          int bucket_y =
+              FindBucket(points_t(cur_batch, i, 1), ymin, opts_.max_dist);
+          int bucket_z =
+              FindBucket(points_t(cur_batch, i, 2), zmin, opts_.max_dist);
+          if (bucket_x >= 0 && bucket_x < x_intervals && bucket_y >= 0 &&
+              bucket_y < y_intervals && bucket_z >= 0 &&
+              bucket_z < z_intervals) {
+            // Compute the linearized bucket offset.
+            auto bucket_id = BucketId(bucket_x, bucket_y, bucket_z, y_intervals,
+                                      z_intervals);
+            buckets_vec[bucket_id].push_back(i);
+          }
+        }
+      }
     }
 
     Selector selector(candidates, Seed());
@@ -305,20 +387,55 @@ PSUtils::Result PSUtils::DoSampling(const Tensor& points,
       // Goes through all *non-seeded* points. If j-th point is within a radius
       // of center, adds it to the sampler.
       sampler.Reset();
-      for (int j = num_seeded_points; j < num_points; ++j) {
-        if (points_padding_t(cur_batch, j) == 0.0) {
-          auto ss_xy =
-              Square(points_t(cur_batch, k, 0) - points_t(cur_batch, j, 0)) +
-              Square(points_t(cur_batch, k, 1) - points_t(cur_batch, j, 1));
-          auto z = points_t(cur_batch, j, 2);
-          auto ss_xyz = ss_xy + Square(points_t(cur_batch, k, 2) - z);
-          if (ss_xyz <= threshold) {
-            sampler.Add(j, ss_xyz);
+
+      std::vector<int> neighbor_idx;
+      if (use_hash_lookup) {
+        // For each center, compute the bucket it is in.
+        int bucket_x =
+            FindBucket(points_t(cur_batch, k, 0), xmin, opts_.max_dist);
+        int bucket_y =
+            FindBucket(points_t(cur_batch, k, 1), ymin, opts_.max_dist);
+        int bucket_z =
+            FindBucket(points_t(cur_batch, k, 2), zmin, opts_.max_dist);
+
+        // Iterate over 3x3x3 buckets centered at [bucket_x, bucket_y, bucket_z]
+        //
+        // Extract the neighborhood indices from there.
+        for (int bx = bucket_x - 1; bx <= bucket_x + 1; ++bx) {
+          if (bx < 0 || bx >= x_intervals) continue;
+          for (int by = bucket_y - 1; by <= bucket_y + 1; ++by) {
+            if (by < 0 || by >= y_intervals) continue;
+            for (int bz = bucket_z - 1; bz <= bucket_z + 1; ++bz) {
+              if (bz < 0 || bz >= z_intervals) continue;
+              auto bucket_id = BucketId(bx, by, bz, y_intervals, z_intervals);
+              auto bucket_indices = buckets_vec[bucket_id];
+              neighbor_idx.insert(neighbor_idx.end(), bucket_indices.begin(),
+                                  bucket_indices.end());
+            }
           }
-          selector.Update(j, ss_xy);
+        }
+
+      } else {
+        neighbor_idx.reserve(num_points);
+        for (int j = num_seeded_points; j < num_points; ++j) {
+          if (points_padding_t(cur_batch, j) == 0.0) {
+            neighbor_idx.push_back(j);
+          }
         }
       }
 
+      // Iterate over all neighbor indices.
+      for (int j : neighbor_idx) {
+        auto ss_xy =
+            Square(points_t(cur_batch, k, 0) - points_t(cur_batch, j, 0)) +
+            Square(points_t(cur_batch, k, 1) - points_t(cur_batch, j, 1));
+        auto z = points_t(cur_batch, j, 2);
+        auto ss_xyz = ss_xy + Square(points_t(cur_batch, k, 2) - z);
+        if (ss_xyz <= threshold) {
+          sampler.Add(j, ss_xyz);
+        }
+        selector.Update(j, ss_xy);
+      }
       auto ids = sampler.Get();
       CHECK_LE(0, ids.size());
       CHECK_LE(ids.size(), opts_.num_neighbors);

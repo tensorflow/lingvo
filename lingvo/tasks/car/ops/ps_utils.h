@@ -54,6 +54,9 @@ class PSUtils {
     // The random seed.
     int random_seed = -1;
 
+    enum NeighborSearchAlgorithm { N_AUTO, N_HASH };
+    NeighborSearchAlgorithm neighbor_search_algorithm = N_AUTO;
+
     string DebugString() const;
   };
 

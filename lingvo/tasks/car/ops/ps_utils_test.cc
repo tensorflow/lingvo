@@ -209,10 +209,59 @@ TEST(PSUtilsTest, Farthest_Uniform) {
            3, 0, 5, 1, 4, 2, 0, 1}));  // 3rd example, last two are duplicates.
 }
 
+TEST(PSUtilsTest, Farthest_Uniform_Hash) {
+  PSUtils::Options opts;
+  opts.cmethod = PSUtils::Options::C_FARTHEST;
+  opts.nmethod = PSUtils::Options::N_UNIFORM;
+  opts.neighbor_search_algorithm = PSUtils::Options::N_HASH;
+  opts.num_centers = 8;
+  opts.num_neighbors = 16;
+  opts.max_dist = 1.0;
+  opts.random_seed = 12345;
+  PSUtils fu(opts);
+  Tensor points;
+  Tensor points_padding;
+  GeneratePoints(3, 8, 100, &points, &points_padding);
+  auto ret = fu.Sample(points, points_padding, 0);
+  Log(points, ret);
+  // Like above, but notice that the order is different since the algorithm is
+  // changed and uniform provides no ordering guarantees.
+  EXPECT_EQ(
+      GetCenters(points, ret),
+      std::vector<int>(
+          {3, 6, 1, 4, 7, 0, 2, 5,     // 1st example.
+           6, 4, 0, 2, 3, 1, 5, 4,     // 2nd example, last one is a duplicate.
+           3, 5, 1, 0, 4, 2, 0, 3}));  // 3rd example, last two are duplicates.
+}
+
 TEST(PSUtilsTest, Farthest_Closest) {
   PSUtils::Options opts;
   opts.cmethod = PSUtils::Options::C_FARTHEST;
   opts.nmethod = PSUtils::Options::N_CLOSEST;
+  opts.num_centers = 8;
+  opts.num_neighbors = 16;
+  opts.max_dist = 10.0;
+  opts.random_seed = 12345;
+  PSUtils fu(opts);
+  Tensor points;
+  Tensor points_padding;
+  GeneratePoints(3, 8, 100, &points, &points_padding);
+  auto ret = fu.Sample(points, points_padding, 0);
+  Log(points, ret);
+  // All 8 clusters are covered.
+  EXPECT_EQ(
+      GetCenters(points, ret),
+      std::vector<int>(
+          {3, 7, 0, 5, 1, 6, 4, 2,     // 1st example.
+           6, 0, 3, 1, 4, 5, 2, 0,     // 2nd example, last one is a duplicate.
+           3, 0, 5, 1, 4, 2, 0, 1}));  // 3rd example, last two are duplicates.
+}
+
+TEST(PSUtilsTest, Farthest_Closest_Hash) {
+  PSUtils::Options opts;
+  opts.cmethod = PSUtils::Options::C_FARTHEST;
+  opts.nmethod = PSUtils::Options::N_CLOSEST;
+  opts.neighbor_search_algorithm = PSUtils::Options::N_HASH;
   opts.num_centers = 8;
   opts.num_neighbors = 16;
   opts.max_dist = 10.0;
@@ -273,17 +322,11 @@ TEST(PSUtilsTest, TestSeeded) {
   EXPECT_EQ(points_t(0, indices_t(0, 0, 0), 0), 2.);
 }
 
-void BM_Farthest(int iters, int num_centers, int num_neighbors) {
+void BenchmarkFarthestPoint(int iters, int num_centers, int num_neighbors,
+                            PSUtils::Options opts) {
   testing::StopTiming();
   testing::SetLabel(strings::Printf("#Centers=%4d #Neighbors=%4d", num_centers,
                                     num_neighbors));
-  PSUtils::Options opts;
-  opts.cmethod = PSUtils::Options::C_FARTHEST;
-  opts.nmethod = PSUtils::Options::N_UNIFORM;
-  opts.num_centers = num_centers;
-  opts.num_neighbors = num_neighbors;
-  opts.max_dist = 1.0;
-  opts.random_seed = -1;
   PSUtils fu(opts);
   Tensor points;
   Tensor points_padding;
@@ -294,7 +337,33 @@ void BM_Farthest(int iters, int num_centers, int num_neighbors) {
   }
 }
 
+void BM_Farthest(int iters, int num_centers, int num_neighbors) {
+  PSUtils::Options opts;
+  opts.cmethod = PSUtils::Options::C_FARTHEST;
+  opts.nmethod = PSUtils::Options::N_UNIFORM;
+  opts.num_centers = num_centers;
+  opts.num_neighbors = num_neighbors;
+  opts.max_dist = 1.0;
+  opts.random_seed = -1;
+  BenchmarkFarthestPoint(iters, num_centers, num_neighbors, opts);
+}
+
 BENCHMARK(BM_Farthest)->RangePair(1, 1024, 1, 1024);
+
+void BM_FarthestHash(int iters, int num_centers, int num_neighbors) {
+  PSUtils::Options opts;
+  opts.cmethod = PSUtils::Options::C_FARTHEST;
+  opts.nmethod = PSUtils::Options::N_UNIFORM;
+  opts.neighbor_search_algorithm = PSUtils::Options::N_HASH;
+  opts.num_centers = num_centers;
+  opts.num_neighbors = num_neighbors;
+  opts.max_dist = 1.0;
+  opts.random_seed = -1;
+  BenchmarkFarthestPoint(iters, num_centers, num_neighbors, opts);
+}
+
+BENCHMARK(BM_FarthestHash)->RangePair(1, 1024, 1, 1024);
+
 #endif
 
 }  // namespace car
