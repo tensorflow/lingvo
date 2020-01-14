@@ -457,8 +457,8 @@
     <span class="p">(</span><span class="n">out_best_scores</span><span class="p">,</span> <span class="n">out_cumulative_scores</span><span class="p">,</span> <span class="n">out_scores</span><span class="p">,</span> <span class="n">out_hyps</span><span class="p">,</span>
      <span class="n">out_prev_hyps</span><span class="p">,</span> <span class="n">out_done_hyps</span><span class="p">,</span> <span class="n">out_atten_probs</span><span class="p">,</span>
      <span class="n">all_done</span><span class="p">)</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">beam_search_step</span><span class="p">(</span>
-         <span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">,</span>
-         <span class="n">bs_results</span><span class="o">.</span><span class="n">atten_probs</span><span class="p">,</span>
+         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">atten_probs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
          <span class="n">best_scores</span><span class="p">,</span>
          <span class="n">cumulative_scores</span><span class="p">,</span>
          <span class="n">in_scores</span><span class="p">,</span>

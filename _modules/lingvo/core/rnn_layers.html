@@ -1087,7 +1087,8 @@
               <span class="n">theta</span><span class="o">.</span><span class="n">packed_src</span><span class="p">,</span>
               <span class="n">rcell</span><span class="o">.</span><span class="n">GetOutput</span><span class="p">(</span><span class="n">state1</span><span class="o">.</span><span class="n">rnn</span><span class="p">),</span>
               <span class="n">state0_mod</span><span class="o">.</span><span class="n">atten_state</span><span class="p">,</span>
-              <span class="n">query_segment_id</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">segment_id</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+              <span class="n">query_segment_id</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">segment_id</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))))</span>
       <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
