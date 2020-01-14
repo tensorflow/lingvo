@@ -312,8 +312,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
     (out_best_scores, out_cumulative_scores, out_scores, out_hyps,
      out_prev_hyps, out_done_hyps, out_atten_probs,
      all_done) = ops.beam_search_step(
-         bs_results.log_probs,
-         bs_results.atten_probs,
+         tf.cast(bs_results.log_probs, dtype=p.dtype),
+         tf.cast(bs_results.atten_probs, dtype=p.dtype),
          best_scores,
          cumulative_scores,
          in_scores,

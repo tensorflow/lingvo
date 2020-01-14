@@ -942,7 +942,8 @@ class FRNNWithAttention(base_layer.BaseLayer):
               theta.packed_src,
               rcell.GetOutput(state1.rnn),
               state0_mod.atten_state,
-              query_segment_id=tf.squeeze(inputs.segment_id, 1)))
+              query_segment_id=tf.cast(
+                  tf.squeeze(inputs.segment_id, 1), py_utils.FPropDtype(p))))
       return state1, py_utils.NestedMap()
 
     if p.packed_input:

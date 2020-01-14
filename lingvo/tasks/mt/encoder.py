@@ -688,7 +688,7 @@ class TransformerEncoder(base_layer.BaseLayer):
       if p.model_dim != p.token_emb.embedding_dim:
         input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)
 
-      paddings = tf.transpose(paddings)
+      paddings = tf.cast(tf.transpose(paddings), py_utils.FPropDtype(p))
       if p.packed_input:
         src_segment_id = tf.transpose(src_segment_id)
       input_embs = self.input_dropout.FProp(theta.input_dropout, input_embs)

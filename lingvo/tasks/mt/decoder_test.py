@@ -71,6 +71,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
   def _DecoderParams(self,
                      per_word_avg_loss=False,
                      dtype=tf.float32,
+                     fprop_dtype=None,
                      decoder_cls=decoder.MTDecoderV1):
     p = decoder_cls.Params()
     p.name = 'decoder'
@@ -95,31 +96,34 @@ class DecoderTestCaseBase(test_utils.TestCase):
     for lp in base_layer.RecursiveFindLayerParams(p):
       lp.dtype = dtype
 
+    if fprop_dtype:
+      py_utils.UpdateFpropDtype(p, fprop_dtype)
+
     return p
 
   def _DecoderFPropHelper(self,
                           decoder_cls,
                           dtype,
+                          fprop_dtype,
                           feed_att_context_to_softmax,
+                          expected_loss,
                           per_example_tensors=False):
     with self.session(use_gpu=True):
       tf.set_random_seed(_TF_RANDOM_SEED)
-      p = self._DecoderParams(dtype=dtype, decoder_cls=decoder_cls)
+      p = self._DecoderParams(
+          dtype=dtype, fprop_dtype=fprop_dtype, decoder_cls=decoder_cls)
       p.per_example_tensors = per_example_tensors
 
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = p.Instantiate()
-      encoder_outputs, targets = self._Inputs(dtype=dtype)
+      encoder_outputs, targets = self._Inputs(dtype=fprop_dtype)
       fprop_out = dec.FPropDefaultTheta(encoder_outputs, targets)
       loss = fprop_out.metrics['loss'][0]
 
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
-      if p.feed_attention_context_vec_to_softmax:
-        CompareToGoldenSingleFloat(self, 7.640674, actual_loss)
-      else:
-        CompareToGoldenSingleFloat(self, 7.624605, actual_loss)
+      CompareToGoldenSingleFloat(self, expected_loss, actual_loss)
       if per_example_tensors:
         per_example = fprop_out.per_sequence
         self.assertIn('loss', per_example)
@@ -191,14 +195,29 @@ class DecoderTest(DecoderTestCaseBase):
     _ = decoder.MTDecoderV1(p)
 
   def testDecoderFPropFunctional(self):
-    self._DecoderFPropHelper(decoder.MTDecoderV1, tf.float64, False)
+    self._DecoderFPropHelper(decoder.MTDecoderV1, tf.float64, tf.float64, False,
+                             7.624605)
+
+  def testDecoderFPropFunctionalFloat64Dtype(self):
+    self._DecoderFPropHelper(decoder.MTDecoderV1, tf.float32, tf.float64, False,
+                             7.624684)
+
+  def testDecoderFPropFunctionalFloat64FpropDtype(self):
+    self._DecoderFPropHelper(decoder.MTDecoderV1, tf.float64, tf.float32, False,
+                             7.624604)
 
   def testDecoderFPropFunctionalFeedingAttContext(self):
-    self._DecoderFPropHelper(decoder.MTDecoderV1, tf.float64, True)
+    self._DecoderFPropHelper(decoder.MTDecoderV1, tf.float64, tf.float64, True,
+                             7.640674)
 
   def testDecoderFPropPerExampleTensors(self):
     self._DecoderFPropHelper(
-        decoder.MTDecoderV1, tf.float64, False, per_example_tensors=True)
+        decoder.MTDecoderV1,
+        tf.float64,
+        tf.float64,
+        False,
+        7.624605,
+        per_example_tensors=True)
 
   def testDecoderBPropFunctional(self):
     self._DecoderGradientCheckerHelper(decoder.MTDecoderV1)

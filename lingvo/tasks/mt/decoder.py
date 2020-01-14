@@ -656,7 +656,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
        atten_states) = self._atten.ComputeContextVectorWithSource(
            theta.frnn_with_atten.atten,
            encoder_outputs.packed_src,
-           tf.zeros([num_hyps, p.rnn_cell_dim], dtype=p.dtype),
+           tf.zeros([num_hyps, p.rnn_cell_dim], dtype=py_utils.FPropDtype(p)),
            attention_state=zero_atten_state)
 
     assert atten_states is not None
