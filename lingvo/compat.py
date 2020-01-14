@@ -190,6 +190,7 @@ saved_model.build_signature_def = tf1.saved_model.build_signature_def
 saved_model.load = tf1.saved_model.load
 saved_model.loader = tf1.saved_model.loader
 saved_model.signature_constants = tf1.saved_model.signature_constants
+saved_model.simple_save = tf1.saved_model.simple_save
 saved_model.tag_constants = tf1.saved_model.tag_constants
 saved_model.utils = tf1.saved_model.utils
 Session = tf1.Session
