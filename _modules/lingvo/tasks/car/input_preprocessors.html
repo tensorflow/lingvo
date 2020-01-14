@@ -3515,12 +3515,20 @@
     <span class="n">points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">points</span><span class="p">,</span> <span class="n">zeros</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="n">num_seeded_points</span> <span class="o">=</span> <span class="n">points_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;num_seeded_points&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">neighbor_algorithm</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span>
+    <span class="c1"># Based on benchmarks, the hash solution works better when the number of</span>
+    <span class="c1"># centers is &gt;= 16 and there are at least 10k points per point cloud.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_centers</span> <span class="o">&gt;=</span> <span class="mi">16</span><span class="p">:</span>
+      <span class="n">neighbor_algorithm</span> <span class="o">=</span> <span class="s1">&#39;hash&#39;</span>
+
     <span class="n">centers</span><span class="p">,</span> <span class="n">center_paddings</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">indices_paddings</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span>
         <span class="n">points</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
         <span class="n">points_padding</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="n">required_num_points</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
         <span class="n">num_seeded_points</span><span class="o">=</span><span class="n">num_seeded_points</span><span class="p">,</span>
         <span class="n">center_selector</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">center_selector</span><span class="p">,</span>
         <span class="n">neighbor_sampler</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">neighbor_sampler</span><span class="p">,</span>
+        <span class="n">neighbor_algorithm</span><span class="o">=</span><span class="n">neighbor_algorithm</span><span class="p">,</span>
         <span class="n">num_centers</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_centers</span><span class="p">,</span>
         <span class="n">center_z_min</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">keep_z_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
         <span class="n">center_z_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">keep_z_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>

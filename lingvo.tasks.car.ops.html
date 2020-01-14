@@ -323,7 +323,7 @@ the differences between KITTI AP and VOC AP.</p></li>
 
 <dl class="function">
 <dt id="lingvo.tasks.car.ops.sample_points">
-<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">sample_points</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">points_padding</em>, <em class="sig-param">num_seeded_points</em>, <em class="sig-param">center_selector</em>, <em class="sig-param">neighbor_sampler</em>, <em class="sig-param">num_centers</em>, <em class="sig-param">center_z_min</em>, <em class="sig-param">center_z_max</em>, <em class="sig-param">num_neighbors</em>, <em class="sig-param">max_distance</em>, <em class="sig-param">random_seed=-1</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.sample_points" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">sample_points</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">points_padding</em>, <em class="sig-param">num_seeded_points</em>, <em class="sig-param">center_selector</em>, <em class="sig-param">neighbor_sampler</em>, <em class="sig-param">num_centers</em>, <em class="sig-param">center_z_min</em>, <em class="sig-param">center_z_max</em>, <em class="sig-param">num_neighbors</em>, <em class="sig-param">max_distance</em>, <em class="sig-param">neighbor_algorithm='auto'</em>, <em class="sig-param">random_seed=-1</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.sample_points" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sample points among ‘points’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -355,6 +355,8 @@ Sample these many points within the neighborhood (P).</p></li>
 <li><p><strong>max_distance</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
 Points with L2 distances from a center larger than this
 threshold are not considered to be in the neighborhood.</p></li>
+<li><p><strong>neighbor_algorithm</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>.
+Valid options - ‘auto’, ‘hash’.</p></li>
 <li><p><strong>random_seed</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>. The random seed.</p></li>
 <li><p><strong>name</strong> – A name for the operation (optional).</p></li>
 </ul>
