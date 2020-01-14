@@ -32,6 +32,16 @@ from lingvo.core import task_scheduler
 
 from tensorflow.python.tpu import device_assignment as device_assignment_lib  # pylint: disable=g-direct-tensorflow-import
 
+tf.flags.DEFINE_bool(
+    'cluster_placer_in_executor', False,
+    'If True, cluster.GetPlacer() is used in Executor. ' +
+    'When running on TPU model weights can be distributed ' +
+    'across TPU hosts, for outrageously large models this ' +
+    'enables sharded checkpointing and reduces host memory ' +
+    'requirements, see _LeastLoadedPlacer in cluster.py.')
+
+FLAGS = tf.flags.FLAGS
+
 
 def GetExecutorParams(model_name, cluster_params, model_registry):
   """Get the params needed to instantiate the Executor.
@@ -235,7 +245,9 @@ class ExecutorTpu(base_runner.BaseRunner):
     _WaitTillInit()
 
     with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(self._cluster.GetPlacer()):
+      with self._cluster, tf.device(
+          self._cluster.job_spec.name if not FLAGS.cluster_placer_in_executor
+          else self._cluster.GetPlacer()):
         with py_utils.VariableRenameScope(self._variable_renaming_rules):
           for program in self._programs:
             program.BuildTpuSubgraph()
