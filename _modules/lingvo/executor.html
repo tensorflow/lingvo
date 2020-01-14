@@ -177,6 +177,16 @@
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">device_assignment_lib</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;cluster_placer_in_executor&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;If True, cluster.GetPlacer() is used in Executor. &#39;</span> <span class="o">+</span>
+    <span class="s1">&#39;When running on TPU model weights can be distributed &#39;</span> <span class="o">+</span>
+    <span class="s1">&#39;across TPU hosts, for outrageously large models this &#39;</span> <span class="o">+</span>
+    <span class="s1">&#39;enables sharded checkpointing and reduces host memory &#39;</span> <span class="o">+</span>
+    <span class="s1">&#39;requirements, see _LeastLoadedPlacer in cluster.py.&#39;</span><span class="p">)</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
 
 <div class="viewcode-block" id="GetExecutorParams"><a class="viewcode-back" href="../../lingvo.executor.html#lingvo.executor.GetExecutorParams">[docs]</a><span class="k">def</span> <span class="nf">GetExecutorParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">cluster_params</span><span class="p">,</span> <span class="n">model_registry</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Get the params needed to instantiate the Executor.</span>
@@ -380,7 +390,9 @@
     <span class="n">_WaitTillInit</span><span class="p">()</span>
 
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
-      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_placer_in_executor</span>
+          <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_variable_renaming_rules</span><span class="p">):</span>
           <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
             <span class="n">program</span><span class="o">.</span><span class="n">BuildTpuSubgraph</span><span class="p">()</span>
