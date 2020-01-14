@@ -43,6 +43,15 @@ class SamplePointsOp : public OpKernel {
       CHECK_EQ(method, "closest");
       opts_.nmethod = PSUtils::Options::N_CLOSEST;
     }
+
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("neighbor_algorithm", &method));
+    OP_REQUIRES(
+        ctx, method == "auto" || method == "hash",
+        errors::InvalidArgument(method, " is not a valid neighbor algorithm."));
+    if (method == "hash") {
+      opts_.neighbor_search_algorithm = PSUtils::Options::N_HASH;
+    }
+
     LOG(INFO) << "Sampling options: " << opts_.DebugString();
     OP_REQUIRES_OK(ctx, ctx->GetAttr("num_centers", &opts_.num_centers));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("center_z_min", &opts_.center_z_min));

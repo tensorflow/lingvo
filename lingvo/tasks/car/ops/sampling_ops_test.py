@@ -30,12 +30,13 @@ import numpy as np
 class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
 
   @parameterized.named_parameters([
-      ('uniform_uniform', 'uniform', 'uniform'),
-      ('uniform_closest', 'uniform', 'closest'),
-      ('farthest_uniform', 'farthest', 'uniform'),
-      ('farthest_closest', 'farthest', 'closest'),
+      ('uniform_uniform', 'uniform', 'uniform', 'auto'),
+      ('uniform_closest', 'uniform', 'closest', 'auto'),
+      ('farthest_uniform', 'farthest', 'uniform', 'auto'),
+      ('farthest_closest', 'farthest', 'closest', 'auto'),
+      ('farthest_closest_hash', 'farthest', 'closest', 'hash'),
   ])
-  def testBasic(self, cmethod, nmethod):
+  def testBasic(self, cmethod, nmethod, nalgo):
     b, n, m, k = 3, 10000, 128, 128
     g = tf.Graph()
     with g.as_default():
@@ -47,6 +48,7 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
           num_seeded_points=0,
           center_selector=cmethod,
           neighbor_sampler=nmethod,
+          neighbor_algorithm=nalgo,
           num_centers=m,
           center_z_min=-np.inf,
           center_z_max=np.inf,
@@ -73,12 +75,13 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
     self.assertTrue(np.all(np.logical_or(0. == p, 1. == p)))
 
   @parameterized.named_parameters([
-      ('uniform_uniform', 'uniform', 'uniform'),
-      ('uniform_closest', 'uniform', 'closest'),
-      ('farthest_uniform', 'farthest', 'uniform'),
-      ('farthest_closest', 'farthest', 'closest'),
+      ('uniform_uniform', 'uniform', 'uniform', 'auto'),
+      ('uniform_closest', 'uniform', 'closest', 'auto'),
+      ('farthest_uniform', 'farthest', 'uniform', 'auto'),
+      ('farthest_closest', 'farthest', 'closest', 'auto'),
+      ('farthest_closest_hash', 'farthest', 'closest', 'hash'),
   ])
-  def testZFilter(self, cmethod, nmethod):
+  def testZFilter(self, cmethod, nmethod, nalgo):
     b, n, m, k = 1, 10000, 128, 128
     g = tf.Graph()
     with g.as_default():

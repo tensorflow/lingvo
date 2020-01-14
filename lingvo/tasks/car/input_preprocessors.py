@@ -3370,12 +3370,20 @@ class SparseSampler(Preprocessor):
     points = tf.concat([points, zeros], axis=0)
 
     num_seeded_points = points_data.get('num_seeded_points', 0)
+
+    neighbor_algorithm = 'auto'
+    # Based on benchmarks, the hash solution works better when the number of
+    # centers is >= 16 and there are at least 10k points per point cloud.
+    if p.num_centers >= 16:
+      neighbor_algorithm = 'hash'
+
     centers, center_paddings, indices, indices_paddings = ops.sample_points(
         points=tf.expand_dims(points, 0),
         points_padding=tf.zeros([1, required_num_points], tf.float32),
         num_seeded_points=num_seeded_points,
         center_selector=p.center_selector,
         neighbor_sampler=p.neighbor_sampler,
+        neighbor_algorithm=neighbor_algorithm,
         num_centers=p.num_centers,
         center_z_min=p.keep_z_range[0],
         center_z_max=p.keep_z_range[1],

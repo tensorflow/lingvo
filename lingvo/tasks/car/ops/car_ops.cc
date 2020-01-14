@@ -192,6 +192,7 @@ REGISTER_OP("SamplePoints")
     .Output("indices_padding: float")
     .Attr("center_selector: string")
     .Attr("neighbor_sampler: string")
+    .Attr("neighbor_algorithm: string = \"auto\"")
     .Attr("num_centers: int")
     .Attr("center_z_min: float")
     .Attr("center_z_max: float")
@@ -237,6 +238,7 @@ indices_padding:
   [B, M, P]. 0/1 padding of indices.
 center_selector: Valid options - 'farthest', 'uniform'.
 neighbor_sampler: Valid options - 'uniform', 'closest'.
+neighbor_algorithm: Valid options - 'auto', 'hash'.
 num_centers: The number of centers to sample for each batch example (M).
 center_z_min: Points with z less than center_z_min are not considered for
  center selection.
