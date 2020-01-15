@@ -1555,7 +1555,9 @@
                    <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                    <span class="n">init_wrapper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">default_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                   <span class="n">default_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
+                   <span class="n">aggregation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableAggregation</span><span class="o">.</span><span class="n">NONE</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates tf.Variable according to param_config.</span>
 
 <span class="sd">  Args:</span>
@@ -1572,6 +1574,12 @@
 <span class="sd">      tf.GraphKeys.GLOBAL_VARIABLES).</span>
 <span class="sd">    default_seed: Seed to use for initialization if not specified in params.</span>
 <span class="sd">      Used for deterministic initialization in tests.</span>
+<span class="sd">    synchronization: Indicates when a distributed a variable will be aggregated.</span>
+<span class="sd">      Accepted values are constants defined in the class</span>
+<span class="sd">      tf.VariableSynchronization. By default the synchronization is set to AUTO</span>
+<span class="sd">      and the current DistributionStrategy chooses when to synchronize.</span>
+<span class="sd">    aggregation: Indicates how a distributed variable will be aggregated.</span>
+<span class="sd">      Accepted values are constants defined in the class tf.VariableAggregation.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    tf.identity(var), var pair. The tf.identity() node is colocated</span>
@@ -1731,7 +1739,9 @@
               <span class="n">v_init</span><span class="p">,</span>
               <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
               <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
-              <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">var_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span><span class="p">)</span>
+              <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">var_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+              <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
+              <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
             <span class="s1">&#39;var&#39;</span><span class="p">,</span>
@@ -1740,7 +1750,9 @@
             <span class="n">v_init</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
             <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
-            <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">var_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">var_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
+            <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">_get_opportunistic_variable_reuse</span><span class="p">()[</span><span class="mi">0</span><span class="p">]:</span>
     <span class="k">try</span><span class="p">:</span>
