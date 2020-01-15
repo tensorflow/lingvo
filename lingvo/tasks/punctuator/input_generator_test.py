@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import string
 import lingvo.compat as tf
+from lingvo.core import base_input_generator
 from lingvo.core import py_utils
 from lingvo.core import test_helper
 from lingvo.core import test_utils
@@ -59,7 +60,7 @@ class InputGeneratorTest(test_utils.TestCase):
     p = self._CreatePunctuatorInputParams()
     with self.session(use_gpu=False) as sess:
       inp = input_generator.PunctuatorInput(p)
-      tokenizer = inp.tokenizer_dict['default']
+      tokenizer = inp.tokenizer_dict[base_input_generator.DEFAULT_TOKENIZER_KEY]
 
       fetched = py_utils.NestedMap(sess.run(inp.GetPreprocessedInputBatch()))
       source_ids = fetched.src.ids
