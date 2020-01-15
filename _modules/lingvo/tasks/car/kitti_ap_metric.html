@@ -310,7 +310,9 @@
     <span class="n">f_pd_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_pd_score</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">score</span>
 
-    <span class="n">ap</span><span class="p">,</span> <span class="n">pr</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">average_precision3d</span><span class="p">(</span>
+    <span class="c1"># TODO(shlens): The third returned argument contain statistics for measuring</span>
+    <span class="c1"># the calibration error. Use it.</span>
+    <span class="n">ap</span><span class="p">,</span> <span class="n">pr</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">average_precision3d</span><span class="p">(</span>
         <span class="n">iou_threshold</span><span class="o">=</span><span class="n">f_iou</span><span class="p">,</span>
         <span class="n">groundtruth_bbox</span><span class="o">=</span><span class="n">f_gt_bbox</span><span class="p">,</span>
         <span class="n">groundtruth_imageid</span><span class="o">=</span><span class="n">f_gt_imgid</span><span class="p">,</span>
