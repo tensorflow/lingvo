@@ -2465,6 +2465,31 @@ class CallDefunTest(test_utils.TestCase):
 
       def Bak(xs, ys, dys):
         del ys
+        w, x = xs
+        return (tf.matmul(dys, tf.transpose(x)) + 100.,
+                tf.matmul(tf.transpose(w), dys) + 200.)
+
+      def Fwd(args):
+        w, x = args
+        return tf.matmul(w, x)
+
+      a = np.array([[1.0, 2.0], [0.0, -3.0]])
+      b = np.array([[2.0, 0.0], [1.0, 1.0]])
+      xs = [tf.constant(a), tf.constant(b)]
+      ys = py_utils.CallDefun(Fwd, Bak, xs)
+      loss = tf.reduce_sum(tf.square(ys))
+      dw, dx, dy = tf.gradients(xs=xs + [ys], ys=loss)
+      y, dw, dx, dy = sess.run([ys, dw, dx, dy])
+      self.assertAllEqual(y, a.dot(b))
+      self.assertAllEqual(dy, 2 * y)
+      self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
+      self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
+
+  def testNestedMap(self):
+    with self.session() as sess:
+
+      def Bak(xs, ys, dys):
+        del ys
         return py_utils.NestedMap(
             w=tf.matmul(dys.y, tf.transpose(xs.x)) + 100.,
             x=tf.matmul(tf.transpose(xs.w), dys.y) + 200.)
@@ -2483,7 +2508,6 @@ class CallDefunTest(test_utils.TestCase):
       self.assertAllEqual(dy, 2 * y)
       self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
       self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
-
 
 if __name__ == '__main__':
   tf.test.main()

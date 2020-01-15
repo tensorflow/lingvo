@@ -3791,16 +3791,16 @@ def _DefineDefun(fwd, bak, args):
   """Wraps fwd in a defun with custom gradient bak.
 
   Args:
-    fwd: A callable xs: NestedMap -> ys: NestedMap.
-    bak: A callable xs, ys, dys: NestedMap -> dxs: NestedMap. The custom
-      backprop function for fwd.
-    args: A NestedMap of tf.Tensor.
+    fwd: A callable xs: Nested Structure -> ys: Nested Structure.
+    bak: A callable xs, ys, dys: Nested Structure -> dxs: Nested Structure. The
+      custom backprop function for fwd.
+    args: A Nested Structure of tf.Tensor.
 
   Returns:
     A NestedMap w/ fields:
       defun: A tf.Defun wraps fwd
-      args:  A NestedMap of tf.DType
-      rets:  A NestedMap of tf.DType
+      args:  A Nested Structure of tf.DType
+      rets:  A Nested Structure of tf.DType
   """
   assert fwd is not None
 
@@ -3808,19 +3808,20 @@ def _DefineDefun(fwd, bak, args):
   rets = fwd(args)
   get_dtype = lambda x: x.dtype
   sigs = NestedMap(
-      args=args.Transform(get_dtype), rets=rets.Transform(get_dtype))
+      args=tf.nest.map_structure(get_dtype, args),
+      rets=tf.nest.map_structure(get_dtype, rets))
 
   def Backward(op, *args):
     assert bak is not None
-    xs = sigs.args.Pack(op.inputs)
-    ys = sigs.rets.Pack(op.outputs)
-    dys = sigs.rets.Pack(args)
+    xs = tf.nest.pack_sequence_as(sigs.args, op.inputs)
+    ys = tf.nest.pack_sequence_as(sigs.rets, op.outputs)
+    dys = tf.nest.pack_sequence_as(sigs.rets, args)
     dxs = bak(xs, ys, dys)
-    return dxs.Flatten()
+    return tf.nest.flatten(dxs)
 
-  @tf.Defun(*sigs.args.Flatten(), python_grad_func=Backward)
+  @tf.Defun(*tf.nest.flatten(sigs.args), python_grad_func=Backward)
   def Forward(*args):
-    return fwd(sigs.args.Pack(args)).Flatten()
+    return tf.nest.flatten(fwd(tf.nest.pack_sequence_as(sigs.args, args)))
 
   sigs.defun = Forward
   return sigs
@@ -3830,16 +3831,16 @@ def CallDefun(fwd, bak, args):
   """Wraps fwd in a defun with custom gradient bak and calls it with args.
 
   Args:
-    fwd: A callable xs: NestedMap -> ys: NestedMap.
-    bak: A callable xs, ys, dys: NestedMap -> dxs: NestedMap. The custom
-      backprop function for fwd.
-    args: A NestedMap of tf.Tensor.
+    fwd: A callable xs: Nested Structure -> ys: Nested Structure.
+    bak: A callable xs, ys, dys: Nested Structure -> dxs: Nested Structure. The
+      custom backprop function for fwd.
+    args: A Nested Structure of tf.Tensor.
 
   Returns:
-    A NestedMap equivalent to what fwd(args) computes.
+    A Nested Structure equivalent to what fwd(args) computes.
   """
   sigs = _DefineDefun(fwd, bak, args)
-  rets = sigs.defun(*args.Flatten())
-  if not isinstance(rets, (tuple, list)):
-    rets = [rets]
-  return sigs.rets.Pack(rets)
+  flat_rets = sigs.defun(*tf.nest.flatten(args))
+  if not isinstance(flat_rets, (tuple, list)):
+    flat_rets = [flat_rets]
+  return tf.nest.pack_sequence_as(sigs.rets, flat_rets)
