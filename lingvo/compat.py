@@ -19,7 +19,11 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow.compat.v1 as tf1
+import tensorflow.compat.v2 as tf_v2
 from tensorflow.compat.v2 import *  # pylint:disable=wildcard-import, g-bad-import-order
+
+# Add v1 symbols back to fix some failures of the explicit usage of v2 symbols.
+from tensorflow.compat.v1 import *  # pylint:disable=wildcard-import, g-bad-import-order
 
 # Import absl.flags and absl.logging to overwrite the Tensorflow ones.
 # This is the intended behavior in TF 2.0.
@@ -63,7 +67,7 @@ GetExtraArgs = _function_lib.get_extra_args
 
 # Move this V2 symbol here to avoid being overwritten by its following V1
 # version.
-where_v2 = where  # pylint: disable=undefined-variable, used-before-assignment
+where_v2 = tf_v2.where  # pylint: disable=undefined-variable, used-before-assignment
 
 # V1 symbols used in the codebase, and can be migrated to the v2 version later.
 # pylint: disable=undefined-variable
@@ -253,61 +257,61 @@ wrap_function = tf1.wrap_function
 
 # tf.compat.v2 symbols. Will remove the 'tf.compat.v2' prefix when the migration
 # is done.
-assert_greater_equal = debugging.assert_greater_equal
-assert_less_equal = debugging.assert_less_equal
-ceil = math.ceil
-extract_image_patches = image.extract_patches
-check_numerics = debugging.check_numerics
-cross = linalg.cross
-cumprod = math.cumprod
-dequantize = quantization.dequantize
-diag = linalg.tensor_diag
-erf = math.erf
-fake_quant_with_min_max_args = (quantization.fake_quant_with_min_max_args)
-fake_quant_with_min_max_vars = (quantization.fake_quant_with_min_max_vars)
-FixedLenFeature = io.FixedLenFeature
-FixedLenSequenceFeature = io.FixedLenSequenceFeature
-floordiv = math.floordiv
-floormod = math.floormod
-imag = math.imag
-image.resize_image_with_crop_or_pad = image.resize_with_crop_or_pad
-is_finite = math.is_finite
-is_inf = math.is_inf
-is_nan = math.is_nan
-is_non_decreasing = math.is_non_decreasing
-lin_space = linspace
-log = math.log
-log1p = math.log1p
-log_sigmoid = math.log_sigmoid
-logical_xor = math.logical_xor
-ceil = math.ceil
-matrix_band_part = linalg.band_part
-matrix_inverse = linalg.inv
-OpError = errors.OpError
-parse_example = io.parse_example
-parse_single_example = io.parse_single_example
-parse_single_sequence_example = io.parse_single_sequence_example
-parse_tensor = io.parse_tensor
-random_gamma = random.gamma
-random_normal = random.normal
-random_shuffle = random.shuffle
-random_uniform = random.uniform
-real = math.real
-reciprocal = math.reciprocal
-regex_replace = strings.regex_replace
-rint = math.rint
-rsqrt = math.rsqrt
-serialize_tensor = io.serialize_tensor
-sparse_reorder = sparse.reorder
-squared_difference = math.squared_difference
-string_join = strings.join
-string_to_number = strings.to_number
-train.Server = distribute.Server
-train.write_graph = io.write_graph
-truncated_normal = random.truncated_normal
-unsorted_segment_min = math.unsorted_segment_min
-unsorted_segment_sum = math.unsorted_segment_sum
-VarLenFeature = io.VarLenFeature
+assert_greater_equal = tf_v2.debugging.assert_greater_equal
+assert_less_equal = tf_v2.debugging.assert_less_equal
+ceil = tf_v2.math.ceil
+extract_image_patches = tf_v2.image.extract_patches
+check_numerics = tf_v2.debugging.check_numerics
+cross = tf_v2.linalg.cross
+cumprod = tf_v2.math.cumprod
+dequantize = tf_v2.quantization.dequantize
+diag = tf_v2.linalg.tensor_diag
+erf = tf_v2.math.erf
+fake_quant_with_min_max_args = (tf_v2.quantization.fake_quant_with_min_max_args)
+fake_quant_with_min_max_vars = (tf_v2.quantization.fake_quant_with_min_max_vars)
+FixedLenFeature = tf_v2.io.FixedLenFeature
+FixedLenSequenceFeature = tf_v2.io.FixedLenSequenceFeature
+floordiv = tf_v2.math.floordiv
+floormod = tf_v2.math.floormod
+imag = tf_v2.math.imag
+image.resize_image_with_crop_or_pad = tf_v2.image.resize_with_crop_or_pad
+is_finite = tf_v2.math.is_finite
+is_inf = tf_v2.math.is_inf
+is_nan = tf_v2.math.is_nan
+is_non_decreasing = tf_v2.math.is_non_decreasing
+lin_space = tf_v2.linspace
+log = tf_v2.math.log
+log1p = tf_v2.math.log1p
+log_sigmoid = tf_v2.math.log_sigmoid
+logical_xor = tf_v2.math.logical_xor
+ceil = tf_v2.math.ceil
+matrix_band_part = tf_v2.linalg.band_part
+matrix_inverse = tf_v2.linalg.inv
+OpError = tf_v2.errors.OpError
+parse_example = tf_v2.io.parse_example
+parse_single_example = tf_v2.io.parse_single_example
+parse_single_sequence_example = tf_v2.io.parse_single_sequence_example
+parse_tensor = tf_v2.io.parse_tensor
+random_gamma = tf_v2.random.gamma
+random_normal = tf_v2.random.normal
+random_shuffle = tf_v2.random.shuffle
+random_uniform = tf_v2.random.uniform
+real = tf_v2.math.real
+reciprocal = tf_v2.math.reciprocal
+regex_replace = tf_v2.strings.regex_replace
+rint = tf_v2.math.rint
+rsqrt = tf_v2.math.rsqrt
+serialize_tensor = tf_v2.io.serialize_tensor
+sparse_reorder = tf_v2.sparse.reorder
+squared_difference = tf_v2.math.squared_difference
+string_join = tf_v2.strings.join
+string_to_number = tf_v2.strings.to_number
+train.Server = tf_v2.distribute.Server
+train.write_graph = tf_v2.io.write_graph
+truncated_normal = tf_v2.random.truncated_normal
+unsorted_segment_min = tf_v2.math.unsorted_segment_min
+unsorted_segment_sum = tf_v2.math.unsorted_segment_sum
+VarLenFeature = tf_v2.io.VarLenFeature
 # pylint: enable=undefined-variable
 
 
