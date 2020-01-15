@@ -36,10 +36,10 @@ REQUIRED_PACKAGES = [
     'matplotlib',
     'model-pruning-google-research',
     'Pillow',
-    'protobuf>=3.7,<4',
+    'protobuf>=3.8,<4',
     'sklearn',
     'sympy',
-    'tensorflow-gpu',
+    'tensorflow-gpu>=2.0.0',
     'waymo-open-dataset-tf-2-0-0',
 ]
 

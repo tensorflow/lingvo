@@ -23,9 +23,7 @@ from lingvo import compat as tf
 
 # Try static linking:
 try:
-  # pylint: disable=g-import-not-at-top
-  from lingvo.core.ops import gen_x_ops
-  # pylint: enable=g-import-not-at-top
+  from lingvo.core.ops import gen_x_ops  # pylint: disable=g-import-not-at-top
 except ImportError:
   gen_x_ops = tf.load_op_library(
       tf.resource_loader.get_path_to_datafile('x_ops.so'))

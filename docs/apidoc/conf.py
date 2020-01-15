@@ -62,7 +62,7 @@ autodoc_member_order = 'bysource'
 napoleon_google_docstring = True
 default_role = 'py:obj'
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/2.7', None),
+    'python': ('https://docs.python.org/3.7', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
 }
 

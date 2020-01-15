@@ -58,8 +58,10 @@ RUN mkdir /bazel && \
     cd / && \
     rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
 
-ARG pip_dependencies='contextlib2 \
-      Pillow \
+ARG pip_dependencies=' \
+      apache-beam[gcp]>=2.8 \
+      contextlib2 \
+      google-api-python-client \
       h5py \
       ipykernel \
       jupyter \
@@ -67,7 +69,10 @@ ARG pip_dependencies='contextlib2 \
       matplotlib \
       model-pruning-google-research \
       numpy \
+      oauth2client \
       pandas \
+      Pillow \
+      pyyaml \
       recommonmark \
       scikit-learn==0.20.3 \
       scipy \
@@ -75,26 +80,19 @@ ARG pip_dependencies='contextlib2 \
       sphinx \
       sphinx_rtd_theme \
       sympy \
-      google-api-python-client \
-      oauth2client \
-      apache-beam[gcp]>=2.8'
+      waymo-open-dataset-tf-2-0-0'
 
 RUN pip3 --no-cache-dir install $pip_dependencies && \
     python3 -m ipykernel.kernelspec
 
-RUN jupyter serverextension enable --py jupyter_http_over_ws
-
 # The latest tensorflow requires CUDA 10 compatible nvidia drivers (410.xx).
 # If you are unable to update your drivers, an alternative is to compile
-# TensorFlow from source instead of installing from pip.
-RUN pip3 --no-cache-dir install tensorflow-gpu
+# tensorflow from source instead of installing from pip.
+# Ensure we install the correct version by uninstalling first.
+RUN pip3 uninstall -y tensorflow tensorflow-gpu tf-nightly tf-nightly-gpu
+RUN pip3 --no-cache-dir install tensorflow-gpu==2.0.0
 
-# Install pip packages that may depend on TensorFlow.
-
-# Because this image uses tf2, we install a special
-# version of waymo-open-dataset.
-ARG post_tf_pip_dependencies='waymo-open-dataset-tf-2-0-0'
-RUN pip3 --no-cache-dir install $post_tf_pip_dependencies
+RUN jupyter serverextension enable --py jupyter_http_over_ws
 
 # bazel assumes the python executable is "python".
 RUN ln -s /usr/bin/python3 /usr/bin/python
