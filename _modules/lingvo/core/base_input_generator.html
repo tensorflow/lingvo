@@ -185,6 +185,9 @@
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
+<span class="n">DEFAULT_TOKENIZER_KEY</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
+
+
 <div class="viewcode-block" id="BaseInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGenerator</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;The abstract base input generator.&quot;&quot;&quot;</span>
 
@@ -750,8 +753,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="s1">&#39;default&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">tokenizer_dict</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span>
+      <span class="k">assert</span> <span class="n">DEFAULT_TOKENIZER_KEY</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">tokenizer_dict</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">DEFAULT_TOKENIZER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">):</span>
@@ -762,8 +765,8 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">if</span> <span class="s1">&#39;default&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">DEFAULT_TOKENIZER_KEY</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">DEFAULT_TOKENIZER_KEY</span><span class="p">]</span>
 
   <span class="nd">@property</span>  <span class="c1"># Adjust batch size according to the cluster spec.</span>
   <span class="k">def</span> <span class="nf">scaled_bucket_batch_limit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -848,7 +851,7 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">maxlen</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span>
 
-    <span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">or</span> <span class="s1">&#39;default&#39;</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">or</span> <span class="n">DEFAULT_TOKENIZER_KEY</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span>
         <span class="n">strs</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">external_append_eos</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="n">languages</span><span class="p">)</span></div>
 
@@ -869,7 +872,7 @@
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If unknown token type.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">or</span> <span class="s1">&#39;default&#39;</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">or</span> <span class="n">DEFAULT_TOKENIZER_KEY</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator.Cast"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.Cast">[docs]</a>  <span class="k">def</span> <span class="nf">Cast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
