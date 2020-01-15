@@ -1410,7 +1410,9 @@ def CreateVariable(name,
                    trainable=True,
                    init_wrapper=None,
                    collections=None,
-                   default_seed=None):
+                   default_seed=None,
+                   synchronization=tf.VariableSynchronization.AUTO,
+                   aggregation=tf.VariableAggregation.NONE):
   """Creates tf.Variable according to param_config.
 
   Args:
@@ -1427,6 +1429,12 @@ def CreateVariable(name,
       tf.GraphKeys.GLOBAL_VARIABLES).
     default_seed: Seed to use for initialization if not specified in params.
       Used for deterministic initialization in tests.
+    synchronization: Indicates when a distributed a variable will be aggregated.
+      Accepted values are constants defined in the class
+      tf.VariableSynchronization. By default the synchronization is set to AUTO
+      and the current DistributionStrategy chooses when to synchronize.
+    aggregation: Indicates how a distributed variable will be aggregated.
+      Accepted values are constants defined in the class tf.VariableAggregation.
 
   Returns:
     tf.identity(var), var pair. The tf.identity() node is colocated
@@ -1586,7 +1594,9 @@ def CreateVariable(name,
               v_init,
               collections=collections,
               trainable=trainable,
-              validate_shape=True if var_shape is not None else False)
+              validate_shape=True if var_shape is not None else False,
+              synchronization=synchronization,
+              aggregation=aggregation)
       else:
         return tf.get_variable(
             'var',
@@ -1595,7 +1605,9 @@ def CreateVariable(name,
             v_init,
             collections=collections,
             trainable=trainable,
-            validate_shape=True if var_shape is not None else False)
+            validate_shape=True if var_shape is not None else False,
+            synchronization=synchronization,
+            aggregation=aggregation)
 
   if _get_opportunistic_variable_reuse()[0]:
     try:
