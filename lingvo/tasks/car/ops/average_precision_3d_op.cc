@@ -152,6 +152,15 @@ class AP3DOp final : public OpKernel {
       prediction.push_back(p);
     }
 
+    // Prediction score and binary indicator whether the prediction is a
+    // positive hit for each prediction for the specified IOU threshold.
+    Tensor out_score_and_hit(DT_FLOAT, {m, 2});
+    auto t_out_score_and_hit = out_score_and_hit.matrix<float>();
+    std::vector<float> is_hit;
+    is_hit.reserve(m);
+    std::vector<float> score;
+    score.reserve(m);
+
     Tensor out_ap(DT_FLOAT, {});
     Tensor out_pr(DT_FLOAT, {num_recall_points_, 2});
     auto t_out_pr = out_pr.matrix<float>();
@@ -162,17 +171,30 @@ class AP3DOp final : public OpKernel {
     if (ap_algorithm_ == APAlgorithm::kKITTI) {
       out_ap.scalar<float>()() =
           image::AveragePrecision<box::Upright3DBox>(opts).FromBoxesKITTI(
-              groundtruth, prediction, &pr);
+              groundtruth, prediction, &pr, &is_hit, &score);
     } else {
       out_ap.scalar<float>()() =
           image::AveragePrecision<box::Upright3DBox>(opts).FromBoxes(
               groundtruth, prediction, &pr);
+      // TODO(shlens): Potentially implement this statistic for the VOC analysis
+      // as well. In the mean time, we just insert dummy values.
+      for (int i = 0; i < prediction.size(); ++i) {
+        score.push_back(-1.0);
+        is_hit.push_back(-1.0);
+      }
     }
+    // Save out the detection score and the is_hit binary indicator.
+    CHECK_EQ(prediction.size(), is_hit.size());
+    for (int i = 0; i < prediction.size(); ++i) {
+      t_out_score_and_hit(i, 0) = static_cast<float>(score[i]);
+      t_out_score_and_hit(i, 1) = static_cast<float>(is_hit[i]);
+    }
+
     if (pr.size() < num_recall_points_) {
       LOG(WARNING) << "PR array size smaller than expected, expect: "
                    << num_recall_points_ << ", got " << pr.size();
     }
-    for (int i = 0; i < pr.size(); ++i) {
+    for (int i = 0; i < pr.size() && i < num_recall_points_; ++i) {
       t_out_pr(i, 0) = pr[i].p;
       t_out_pr(i, 1) = pr[i].r;
     }
@@ -182,6 +204,7 @@ class AP3DOp final : public OpKernel {
     }
     ctx->set_output(0, out_ap);
     ctx->set_output(1, out_pr);
+    ctx->set_output(2, out_score_and_hit);
   }
 
  private:

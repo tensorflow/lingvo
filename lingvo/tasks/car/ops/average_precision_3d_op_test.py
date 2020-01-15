@@ -35,10 +35,10 @@ class ImageMetricsOpsTest(test_utils.TestCase):
     scores = np.random.uniform(size=[num_bboxes])
     return bboxes, imageid, scores
 
-  def _GetAP(self, gt_bbox, gt_imgid, pd_bbox, pd_imgid, pd_score):
+  def _GetAP(self, gt_bbox, gt_imgid, pd_bbox, pd_imgid, pd_score, algorithm):
     g = tf.Graph()
     with g.as_default():
-      iou, pr = ops.average_precision3d(
+      iou, pr, score_and_hit = ops.average_precision3d(
           iou_threshold=0.5,
           groundtruth_bbox=gt_bbox,
           groundtruth_imageid=gt_imgid,
@@ -48,23 +48,69 @@ class ImageMetricsOpsTest(test_utils.TestCase):
           prediction_score=pd_score,
           prediction_ignore=tf.zeros_like(pd_imgid, dtype=tf.int32),
           num_recall_points=41,
-          algorithm='KITTI')
+          algorithm=algorithm)
     with self.session(graph=g) as sess:
-      val = sess.run([iou, pr])
+      val = sess.run([iou, pr, score_and_hit])
     return val
 
-  def testAPBasic(self):
+  def testAPKITTI(self):
     k, n, m = 10, 100, 20
     gt_bbox, gt_imgid, _ = self._GenerateRandomBBoxes(k, n)
     pd_bbox, pd_imgid, pd_score = self._GenerateRandomBBoxes(k, m)
     # IoU between two set of random boxes;
-    iou, _ = self._GetAP(gt_bbox, gt_imgid, pd_bbox, pd_imgid, pd_score)
+    iou, _, score_and_hit = self._GetAP(
+        gt_bbox, gt_imgid, pd_bbox, pd_imgid, pd_score, algorithm='KITTI')
+    self.assertAllEqual(score_and_hit.shape, (m, 2))
+    self.assertTrue(0 <= iou and iou <= 1.0)
+
+    # Make the predictions be a duplicate of the ground truth to emulate
+    # perfect detection.
+    iou, _, score_and_hit = self._GetAP(
+        gt_bbox, gt_imgid, gt_bbox, gt_imgid, np.ones(n), algorithm='KITTI')
+    self.assertAllEqual(score_and_hit.shape, (n, 2))
+    self.assertAllEqual(score_and_hit[:, 1], np.ones(n))
+    self.assertEqual(1, iou)
+
+    # Ditto as above but make the detection scores unique so that one can test
+    # that the scores are correctly returned.
+    iou, _, score_and_hit = self._GetAP(
+        gt_bbox,
+        gt_imgid,
+        gt_bbox,
+        gt_imgid,
+        np.linspace(0, 1, n),
+        algorithm='KITTI')
+    self.assertAllEqual(score_and_hit.shape, (n, 2))
+    self.assertAllClose(score_and_hit[:, 0], np.linspace(0, 1, n))
+    self.assertAllEqual(score_and_hit[:, 1], np.ones(n))
+    self.assertEqual(1, iou)
+
+    # IoU of empty detection
+    iou, _, score_and_hit = self._GetAP(
+        gt_bbox, gt_imgid, pd_bbox, pd_imgid + n, pd_score, algorithm='KITTI')
+    self.assertAllEqual(score_and_hit.shape, (m, 2))
+    self.assertAllEqual(score_and_hit[:, 1], np.zeros(m))
+    self.assertEqual(0, iou)
+
+  def testAPVOC(self):
+    k, n, m = 10, 100, 20
+    gt_bbox, gt_imgid, _ = self._GenerateRandomBBoxes(k, n)
+    pd_bbox, pd_imgid, pd_score = self._GenerateRandomBBoxes(k, m)
+    # IoU between two set of random boxes;
+    iou, _, _ = self._GetAP(
+        gt_bbox, gt_imgid, pd_bbox, pd_imgid, pd_score, algorithm='VOC')
     self.assertTrue(0 <= iou and iou <= 1.0)
     # IoU of perfect detection
-    iou, _ = self._GetAP(gt_bbox, gt_imgid, gt_bbox, gt_imgid, np.ones(n))
+    iou, _, score_and_hit = self._GetAP(
+        gt_bbox, gt_imgid, gt_bbox, gt_imgid, np.ones(n), algorithm='VOC')
+    # Just check that dummy values are returned.
+    self.assertAllEqual(score_and_hit.shape, (n, 2))
+    self.assertAllEqual(score_and_hit, -1.0 * np.ones(shape=(n, 2)))
+
     self.assertEqual(1, iou)
     # IoU of empty detection
-    iou, _ = self._GetAP(gt_bbox, gt_imgid, pd_bbox, pd_imgid + n, pd_score)
+    iou, _, _ = self._GetAP(
+        gt_bbox, gt_imgid, pd_bbox, pd_imgid + n, pd_score, algorithm='VOC')
     self.assertEqual(0, iou)
 
   def testAllZeroValue(self):
@@ -72,8 +118,13 @@ class ImageMetricsOpsTest(test_utils.TestCase):
     gt_bbox, gt_imgid, _ = self._GenerateRandomBBoxes(k, n)
     pd_bbox, pd_imgid, pd_score = self._GenerateRandomBBoxes(k, m)
     # IoU between two set of random boxes;
-    iou, pr = self._GetAP(gt_bbox * 0, gt_imgid * 0, pd_bbox * 0, pd_imgid * 0,
-                          pd_score * 0)
+    iou, pr, _ = self._GetAP(
+        gt_bbox * 0,
+        gt_imgid * 0,
+        pd_bbox * 0,
+        pd_imgid * 0,
+        pd_score * 0,
+        algorithm='KITTI')
     self.assertEqual(0, iou)
     self.assertAllEqual(pr.shape, (41, 2))
     self.assertAllEqual(np.zeros(41), pr[:, 0])

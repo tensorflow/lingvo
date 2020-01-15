@@ -137,7 +137,9 @@ class AveragePrecision {
   //         camera image space, has its height smaller than a threshold.
   float FromBoxesKITTI(const std::vector<Detection<BoxType>>& groundtruth,
                        const std::vector<Detection<BoxType>>& prediction,
-                       std::vector<PR>* pr_out = nullptr);
+                       std::vector<PR>* pr_out = nullptr,
+                       std::vector<float>* is_hit = nullptr,
+                       std::vector<float>* score = nullptr);
 
  private:
   Options opts_;
@@ -383,11 +385,14 @@ std::vector<float> FindThresholds(
 
 }  // namespace KITTI
 
+// TODO(shlens): Consider removing score as a returned value as this is in
+// theory already available in prediction. Another option is to combine as a
+// std::pair with is_hit.
 template <class BoxType>
 float AveragePrecision<BoxType>::FromBoxesKITTI(
     const std::vector<Detection<BoxType>>& groundtruth,
-    const std::vector<Detection<BoxType>>& prediction,
-    std::vector<PR>* pr_out) {
+    const std::vector<Detection<BoxType>>& prediction, std::vector<PR>* pr_out,
+    std::vector<float>* is_hit, std::vector<float>* score) {
   std::unordered_map<int64_t, std::vector<Detection<BoxType>>> gt_bins;
   std::unordered_map<int64_t, std::vector<Detection<BoxType>>> pd_bins;
   // Ensure that gt_bins and pd_bins have the same key sets.
@@ -397,8 +402,15 @@ float AveragePrecision<BoxType>::FromBoxesKITTI(
       pd_bins[box.imgid] = std::vector<Detection<BoxType>>();
     }
   }
-  for (const auto& box : prediction) {
+  std::vector<int64_t> index_to_image_id;
+  index_to_image_id.reserve(prediction.size());
+  std::vector<int64_t> index_to_prediction_index;
+  index_to_prediction_index.reserve(prediction.size());
+  for (int i = 0; i < prediction.size(); ++i) {
+    auto& box = prediction[i];
     pd_bins[box.imgid].push_back(box);
+    index_to_image_id.push_back(box.imgid);
+    index_to_prediction_index.push_back(pd_bins[box.imgid].size() - 1);
     if (gt_bins.find(box.imgid) == gt_bins.end()) {
       gt_bins[box.imgid] = std::vector<Detection<BoxType>>();
     }
@@ -408,6 +420,24 @@ float AveragePrecision<BoxType>::FromBoxesKITTI(
   std::unordered_map<int64_t, std::vector<KITTI::MatchResult>> pd_assignments;
   KITTI::MatchAll(gt_bins, pd_bins, KITTI::kBestScore, opts_.iou_threshold, 0,
                   &gt_assignments, &pd_assignments);
+  for (int i = 0; i < prediction.size(); ++i) {
+    const int image_id = index_to_image_id[i];
+    const int prediction_index = index_to_prediction_index[i];
+    const float detection_score =
+        pd_assignments[image_id][prediction_index].detection_score;
+    float correct = 0.0;
+    if (pd_assignments[image_id][prediction_index].matched_idx !=
+        KITTI::kUnMatched) {
+      correct = 1.0;
+    }
+    if (score != nullptr) {
+      score->push_back(detection_score);
+    }
+    if (is_hit != nullptr) {
+      is_hit->push_back(correct);
+    }
+  }
+
   const auto thresholds =
       KITTI::FindThresholds(gt_assignments, opts_.num_recall_points);
   pr_out->clear();

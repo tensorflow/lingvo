@@ -165,7 +165,9 @@ class KITTIAPMetrics(ap_metric.APMetrics):
     f_pd_score = tf.placeholder(tf.float32)
     feed_dict[f_pd_score] = feed_data.pd.score
 
-    ap, pr = ops.average_precision3d(
+    # TODO(shlens): The third returned argument contain statistics for measuring
+    # the calibration error. Use it.
+    ap, pr, _ = ops.average_precision3d(
         iou_threshold=f_iou,
         groundtruth_bbox=f_gt_bbox,
         groundtruth_imageid=f_gt_imgid,
