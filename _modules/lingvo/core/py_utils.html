@@ -3936,16 +3936,16 @@
   <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    fwd: A callable xs: NestedMap -&gt; ys: NestedMap.</span>
-<span class="sd">    bak: A callable xs, ys, dys: NestedMap -&gt; dxs: NestedMap. The custom</span>
-<span class="sd">      backprop function for fwd.</span>
-<span class="sd">    args: A NestedMap of tf.Tensor.</span>
+<span class="sd">    fwd: A callable xs: Nested Structure -&gt; ys: Nested Structure.</span>
+<span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs: Nested Structure. The</span>
+<span class="sd">      custom backprop function for fwd.</span>
+<span class="sd">    args: A Nested Structure of tf.Tensor.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A NestedMap w/ fields:</span>
 <span class="sd">      defun: A tf.Defun wraps fwd</span>
-<span class="sd">      args:  A NestedMap of tf.DType</span>
-<span class="sd">      rets:  A NestedMap of tf.DType</span>
+<span class="sd">      args:  A Nested Structure of tf.DType</span>
+<span class="sd">      rets:  A Nested Structure of tf.DType</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">assert</span> <span class="n">fwd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
@@ -3953,19 +3953,20 @@
   <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
   <span class="n">get_dtype</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
   <span class="n">sigs</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span>
-      <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">),</span> <span class="n">rets</span><span class="o">=</span><span class="n">rets</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">))</span>
+      <span class="n">args</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">,</span> <span class="n">args</span><span class="p">),</span>
+      <span class="n">rets</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">,</span> <span class="n">rets</span><span class="p">))</span>
 
   <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="k">assert</span> <span class="n">bak</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="n">xs</span> <span class="o">=</span> <span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
-    <span class="n">ys</span> <span class="o">=</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
-    <span class="n">dys</span> <span class="o">=</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">xs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
+    <span class="n">dys</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
     <span class="n">dxs</span> <span class="o">=</span> <span class="n">bak</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">dxs</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">dxs</span><span class="p">)</span>
 
-  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">python_grad_func</span><span class="o">=</span><span class="n">Backward</span><span class="p">)</span>
+  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="p">),</span> <span class="n">python_grad_func</span><span class="o">=</span><span class="n">Backward</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">Forward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">fwd</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">))</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">fwd</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">args</span><span class="p">)))</span>
 
   <span class="n">sigs</span><span class="o">.</span><span class="n">defun</span> <span class="o">=</span> <span class="n">Forward</span>
   <span class="k">return</span> <span class="n">sigs</span></div>
@@ -3975,19 +3976,19 @@
   <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak and calls it with args.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    fwd: A callable xs: NestedMap -&gt; ys: NestedMap.</span>
-<span class="sd">    bak: A callable xs, ys, dys: NestedMap -&gt; dxs: NestedMap. The custom</span>
-<span class="sd">      backprop function for fwd.</span>
-<span class="sd">    args: A NestedMap of tf.Tensor.</span>
+<span class="sd">    fwd: A callable xs: Nested Structure -&gt; ys: Nested Structure.</span>
+<span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs: Nested Structure. The</span>
+<span class="sd">      custom backprop function for fwd.</span>
+<span class="sd">    args: A Nested Structure of tf.Tensor.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A NestedMap equivalent to what fwd(args) computes.</span>
+<span class="sd">    A Nested Structure equivalent to what fwd(args) computes.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">sigs</span> <span class="o">=</span> <span class="n">_DefineDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-  <span class="n">rets</span> <span class="o">=</span> <span class="n">sigs</span><span class="o">.</span><span class="n">defun</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rets</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
-    <span class="n">rets</span> <span class="o">=</span> <span class="p">[</span><span class="n">rets</span><span class="p">]</span>
-  <span class="k">return</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span></div>
+  <span class="n">flat_rets</span> <span class="o">=</span> <span class="n">sigs</span><span class="o">.</span><span class="n">defun</span><span class="p">(</span><span class="o">*</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flat_rets</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+    <span class="n">flat_rets</span> <span class="o">=</span> <span class="p">[</span><span class="n">flat_rets</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">flat_rets</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
