@@ -168,9 +168,7 @@
 
 <span class="c1"># Try static linking:</span>
 <span class="k">try</span><span class="p">:</span>
-  <span class="c1"># pylint: disable=g-import-not-at-top</span>
-  <span class="kn">from</span> <span class="nn">lingvo.tasks.car.ops</span> <span class="kn">import</span> <span class="n">gen_car_ops</span>
-  <span class="c1"># pylint: enable=g-import-not-at-top</span>
+  <span class="kn">from</span> <span class="nn">lingvo.tasks.car.ops</span> <span class="kn">import</span> <span class="n">gen_car_ops</span>  <span class="c1"># pylint: disable=g-import-not-at-top</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
   <span class="n">gen_car_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">load_op_library</span><span class="p">(</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">resource_loader</span><span class="o">.</span><span class="n">get_path_to_datafile</span><span class="p">(</span><span class="s1">&#39;car_ops.so&#39;</span><span class="p">))</span>

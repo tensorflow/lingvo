@@ -199,10 +199,10 @@ output_points[i, j, k, num_points[i, j, k]:, :] are padded points.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>points</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
 [n, d]. d &gt;= 3 and the first 3 dimensions are treated as x,y,z.</p></li>
-<li><p><strong>num_points_per_cell</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of points to keep in each cell.</p></li>
-<li><p><strong>x_intervals</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of cells along x-axis.</p></li>
-<li><p><strong>y_intervals</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of cells along y-axis.</p></li>
-<li><p><strong>z_intervals</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of cells along z-axis.</p></li>
+<li><p><strong>num_points_per_cell</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of points to keep in each cell.</p></li>
+<li><p><strong>x_intervals</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of cells along x-axis.</p></li>
+<li><p><strong>y_intervals</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of cells along y-axis.</p></li>
+<li><p><strong>z_intervals</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. int. Number of cells along z-axis.</p></li>
 <li><p><strong>x_range</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>.
 tuple of two scalars: (xmin, xmax). Spatial span of the grid.</p></li>
 <li><p><strong>y_range</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>.
@@ -250,7 +250,7 @@ and suppressing one of them.</p></li>
 <li><p><strong>score_threshold</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
 A tf.float32 Tensor of shape [num_classes] specifying the
 minimum class score (per class) a box can have before it is removed.</p></li>
-<li><p><strong>max_boxes_per_class</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+<li><p><strong>max_boxes_per_class</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
 An integer specifying how many (at most) boxes to
 return for each class.</p></li>
 <li><p><strong>name</strong> – A name for the operation (optional).</p></li>
@@ -300,8 +300,8 @@ first match; 2 - Ignore all matches.</p></li>
 the KITTI AP. Valid values are 0 - Don’t ignore; 1 - Ignore the first match.</p></li>
 <li><p><strong>prediction_score</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
 [M]. M scores for each predicted bounding box.</p></li>
-<li><p><strong>num_recall_points</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> that is <code class="xref py py-obj docutils literal notranslate"><span class="pre">&gt;=</span> <span class="pre">1</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
-<li><p><strong>algorithm</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;KITTI&quot;</span></code>.
+<li><p><strong>num_recall_points</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> that is <code class="xref py py-obj docutils literal notranslate"><span class="pre">&gt;=</span> <span class="pre">1</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+<li><p><strong>algorithm</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;KITTI&quot;</span></code>.
 string. One of [“KITTI”, “VOC”]. See this paper “Supervised
 learning and evaluation of KITTI’s cars detector with DPM”, Section III.A for
 the differences between KITTI AP and VOC AP.</p></li>
@@ -340,24 +340,24 @@ If num_seeded_points &gt; 0, then the first
 num_seeded_points in points are considered to be seeded in the FPS
 sampling. Note that we assume that these points are <em>not</em> padded, and do
 not check padding when seeding them.</p></li>
-<li><p><strong>center_selector</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Valid options - ‘farthest’, ‘uniform’.</p></li>
-<li><p><strong>neighbor_sampler</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Valid options - ‘uniform’, ‘closest’.</p></li>
-<li><p><strong>num_centers</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+<li><p><strong>center_selector</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Valid options - ‘farthest’, ‘uniform’.</p></li>
+<li><p><strong>neighbor_sampler</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Valid options - ‘uniform’, ‘closest’.</p></li>
+<li><p><strong>num_centers</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
 The number of centers to sample for each batch example (M).</p></li>
-<li><p><strong>center_z_min</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
+<li><p><strong>center_z_min</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
 Points with z less than center_z_min are not considered for
 center selection.</p></li>
-<li><p><strong>center_z_max</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
+<li><p><strong>center_z_max</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
 Points with z greater than center_z_max are not considered
 for center selection.</p></li>
-<li><p><strong>num_neighbors</strong> – An <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+<li><p><strong>num_neighbors</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
 Sample these many points within the neighborhood (P).</p></li>
-<li><p><strong>max_distance</strong> – A <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#float" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
+<li><p><strong>max_distance</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
 Points with L2 distances from a center larger than this
 threshold are not considered to be in the neighborhood.</p></li>
-<li><p><strong>neighbor_algorithm</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/string.html#module-string" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>.
+<li><p><strong>neighbor_algorithm</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>.
 Valid options - ‘auto’, ‘hash’.</p></li>
-<li><p><strong>random_seed</strong> – An optional <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>. The random seed.</p></li>
+<li><p><strong>random_seed</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>. The random seed.</p></li>
 <li><p><strong>name</strong> – A name for the operation (optional).</p></li>
 </ul>
 </dd>

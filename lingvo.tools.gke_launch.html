@@ -162,8 +162,149 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-tools-gke-launch-module">
-<h1>lingvo.tools.gke_launch module<a class="headerlink" href="#lingvo-tools-gke-launch-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.tools.gke_launch">
+<span id="lingvo-tools-gke-launch-module"></span><h1>lingvo.tools.gke_launch module<a class="headerlink" href="#module-lingvo.tools.gke_launch" title="Permalink to this headline">¶</a></h1>
+<p>Launch script for GKE jobs.</p>
+<p>This script generates the GKE deployment configs for TPU training, GPU/CPU
+decoding, and TensorBoard jobs.</p>
+<p>It assumes you have:</p>
+<ol class="loweralpha simple">
+<li><p>Copied any input data to GCS.</p></li>
+<li><p>Docker and GKE/GCP tools installed locally.</p></li>
+<li><p>Created the TPU and GPU clusters using <code class="xref py py-obj docutils literal notranslate"><span class="pre">gcloud</span> <span class="pre">containers</span> <span class="pre">create</span></code>.</p></li>
+</ol>
+<p>This script launches jobs by:</p>
+<ol class="arabic simple">
+<li><p>Building a lingvo docker image built from –base_image, copying
+the directory pointed to by –build, writing that image to –image
+(with an automatically generated date-based tag for versioning).</p></li>
+<li><p>Identifying the full name of the GKE cluster that each accelerator
+job runs in based on –trainer_cell and –decoder_cell</p></li>
+<li><p>Writing out .yaml configuration files based on –name, –model, –logdir,
+that will launch the docker images for each job type.</p></li>
+</ol>
+<p>Usage looks something like:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>python3 lingvo/tools/gke_launch.py </dt><dd><p>–model=$MODEL –base_image=tensorflow:lingvo_lib_gpu –image=$DOCKER_IMAGE –logdir=$LOGDIR –tpu_type=$TPU_TYPE –trainer_cell=$TPU_CLUSTER_NAME –decoder_cell=$GPU_CLUSTER_NAME –decoder_gpus=1 –gpu_type=$GPU_TYPE –decoder=dev –extra_envs=KITTI_DIR=$GCS_PATH –name=$EXP_NAME –build=$YOUR_CODE_DIR $ACTION $TARGETS</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>ACTION specifies whether to start (up), stop (down) or reload the target jobs.
+One can also specify “print” to just print out the .yaml configuration files.</p>
+<p>TARGETS specifies whether the action affects all jobs (“all”) or just an
+individual job (“trainer”, “decoder”, “tensorboard”).</p>
+<p>See the flags definition below for details on the arguments.</p>
+<dl class="function">
+<dt id="lingvo.tools.gke_launch._get_or_add">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">_get_or_add</code><span class="sig-paren">(</span><em class="sig-param">cfg</em>, <em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#_get_or_add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch._get_or_add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets cfg[name], or adds ‘name’ with an empty dict if not present.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tools.gke_launch.add_gpu_to_pod">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">add_gpu_to_pod</code><span class="sig-paren">(</span><em class="sig-param">cfg</em>, <em class="sig-param">gpu_type</em>, <em class="sig-param">num_gpus</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#add_gpu_to_pod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch.add_gpu_to_pod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the appropriate GPU fields to cfg.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cfg</strong> – The YAML-based dictionary to update.</p></li>
+<li><p><strong>gpu_type</strong> – The type of GPU to launch on GKE.</p></li>
+<li><p><strong>num_gpus</strong> – The number of GPUs to launch in the task.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tools.gke_launch.set_pod_cpu_memory">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">set_pod_cpu_memory</code><span class="sig-paren">(</span><em class="sig-param">cfg</em>, <em class="sig-param">cpu_memory</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#set_pod_cpu_memory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch.set_pod_cpu_memory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the amount of CPU memory to request in the container.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tools.gke_launch.decoder_template">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">decoder_template</code><span class="sig-paren">(</span><em class="sig-param">job_name</em>, <em class="sig-param">model</em>, <em class="sig-param">image</em>, <em class="sig-param">logdir</em>, <em class="sig-param">decoder_type</em>, <em class="sig-param">decoder_gpus</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#decoder_template"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch.decoder_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the base yaml config for the decoder.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tools.gke_launch._tpu_resource">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">_tpu_resource</code><span class="sig-paren">(</span><em class="sig-param">tpu_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#_tpu_resource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch._tpu_resource" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tools.gke_launch.tpu_training_template">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">tpu_training_template</code><span class="sig-paren">(</span><em class="sig-param">job_name</em>, <em class="sig-param">model</em>, <em class="sig-param">image</em>, <em class="sig-param">logdir</em>, <em class="sig-param">tpu_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#tpu_training_template"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch.tpu_training_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the base yaml config for the TPU trainer.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tools.gke_launch.tensorboard_template">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">tensorboard_template</code><span class="sig-paren">(</span><em class="sig-param">job_name</em>, <em class="sig-param">logdir</em>, <em class="sig-param">port</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#tensorboard_template"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch.tensorboard_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the tensorboard YAML template.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tools.gke_launch.build_docker_image">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">build_docker_image</code><span class="sig-paren">(</span><em class="sig-param">image</em>, <em class="sig-param">base_image</em>, <em class="sig-param">code_directory</em>, <em class="sig-param">extra_envs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#build_docker_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch.build_docker_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build a docker image and push it to the location specified by image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> – String name of tag to use, e.g., ‘gcr.io/foo/bar:version’</p></li>
+<li><p><strong>base_image</strong> – String name of base lingvo image to build from.</p></li>
+<li><p><strong>code_directory</strong> – Location of directory whose contents will be copied into the
+image.</p></li>
+<li><p><strong>extra_envs</strong> – A comma-separated list of key=value environment variables to be
+built into the docker.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tools.gke_launch.get_gke_cluster">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">get_gke_cluster</code><span class="sig-paren">(</span><em class="sig-param">gke_cluster_spec</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#get_gke_cluster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch.get_gke_cluster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the full name of the GKE cluster given shorthand <code class="xref py py-obj docutils literal notranslate"><span class="pre">gke_cluster_spec</span></code>.</p>
+<p>For example, gcloud container cluster list produces:</p>
+<p>NAME                      LOCATION        …
+p100-europe-west4-a-nh16  europe-west4-a  …
+test-df-europe            europe-west4-a  …</p>
+<p>Then a gke_cluster_spec of ‘p100’ or ‘df’ will produce the fully-qualified
+cluster.</p>
+<p>A gke_cluster_spec of ‘europe’ will raise a ValueError because there are two
+active clusters that have the string ‘europe’ in them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>gke_cluster_spec</strong> – A string specifying a filter on active clusters.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The fully qualified GKE cluster name, or None if not found.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – If gke_cluster_spec does not uniquely identify an
+    active cluster.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tools.gke_launch.create_tpu_cluster">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">create_tpu_cluster</code><span class="sig-paren">(</span><em class="sig-param">cluster_name</em>, <em class="sig-param">zone</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#create_tpu_cluster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch.create_tpu_cluster" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tools.gke_launch.validate_args">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">validate_args</code><span class="sig-paren">(</span><em class="sig-param">argv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#validate_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch.validate_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates the input arguments. Raises a UsageError if invalid.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tools.gke_launch.main">
+<code class="sig-prename descclassname">lingvo.tools.gke_launch.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">argv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/gke_launch.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.gke_launch.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 
 
