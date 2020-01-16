@@ -1943,6 +1943,12 @@
         <span class="s1">&#39;max_rotation&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;The rotation amount will be randomly picked from &#39;</span>
         <span class="s1">&#39;[-max_rotation, max_rotation).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;include_world_rot_z&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to include the applied rotation as an additional tensor. &#39;</span>
+        <span class="s1">&#39;It can be helpful to disable this when using the preprocessor in a &#39;</span>
+        <span class="s1">&#39;way that expects the structure of the features to be the same &#39;</span>
+        <span class="s1">&#39;(e.g., as a branch in tf.cond).&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1978,15 +1984,18 @@
 
     <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bboxes_xyz</span><span class="p">,</span> <span class="n">bboxes_dims</span><span class="p">,</span> <span class="n">bboxes_rot</span><span class="p">],</span>
                                           <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">features</span><span class="o">.</span><span class="n">world_rot_z</span> <span class="o">=</span> <span class="n">rot</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">include_world_rot_z</span><span class="p">:</span>
+      <span class="n">features</span><span class="o">.</span><span class="n">world_rot_z</span> <span class="o">=</span> <span class="n">rot</span>
     <span class="k">return</span> <span class="n">features</span></div>
 
 <div class="viewcode-block" id="RandomWorldRotationAboutZAxis.TransformShapes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomWorldRotationAboutZAxis.TransformShapes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>
-    <span class="n">shapes</span><span class="o">.</span><span class="n">world_rot_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([])</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">include_world_rot_z</span><span class="p">:</span>
+      <span class="n">shapes</span><span class="o">.</span><span class="n">world_rot_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([])</span>
     <span class="k">return</span> <span class="n">shapes</span></div>
 
 <div class="viewcode-block" id="RandomWorldRotationAboutZAxis.TransformDTypes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomWorldRotationAboutZAxis.TransformDTypes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformDTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">):</span>
-    <span class="n">dtypes</span><span class="o">.</span><span class="n">world_rot_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">include_world_rot_z</span><span class="p">:</span>
+      <span class="n">dtypes</span><span class="o">.</span><span class="n">world_rot_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
     <span class="k">return</span> <span class="n">dtypes</span></div></div>
 
 
@@ -2799,11 +2808,7 @@
 <span class="sd">    labels.labels of shape [L]</span>
 
 <span class="sd">  Modifies the above features so that additional objects from</span>
-<span class="sd">  a groundtruth database are added. Also adds:</span>
-
-<span class="sd">    labels.bboxes_3d_real_object_mask of shape [L]</span>
-<span class="sd">    indcating which labels come from the current scene, rather</span>
-<span class="sd">    than those that are augmented from other scenes.</span>
+<span class="sd">  a groundtruth database are added.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="GroundTruthAugmentor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.GroundTruthAugmentor.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -3125,10 +3130,6 @@
         <span class="n">num_bboxes_in_scene</span> <span class="o">+</span> <span class="n">num_augmented_bboxes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_mask</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
         <span class="n">bboxes_3d_mask</span><span class="p">,</span> <span class="p">[</span><span class="n">max_bboxes</span><span class="p">])</span>
-    <span class="c1"># Keep track of which boxes were original.</span>
-    <span class="n">bboxes_3d_real_object_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">num_bboxes_in_scene</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_real_object_mask</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
-        <span class="n">bboxes_3d_real_object_mask</span><span class="p">,</span> <span class="p">[</span><span class="n">max_bboxes</span><span class="p">])</span>
 
     <span class="n">gt_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">gt_bboxes_3d_mask</span><span class="p">)</span>
     <span class="n">gt_labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">gt_labels</span><span class="p">,</span> <span class="p">[</span><span class="n">num_bboxes_in_scene</span><span class="p">])</span>
@@ -3139,11 +3140,9 @@
     <span class="k">return</span> <span class="n">features</span></div>
 
 <div class="viewcode-block" id="GroundTruthAugmentor.TransformShapes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.GroundTruthAugmentor.TransformShapes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>
-    <span class="n">shapes</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_real_object_mask</span> <span class="o">=</span> <span class="n">shapes</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_mask</span>
     <span class="k">return</span> <span class="n">shapes</span></div>
 
 <div class="viewcode-block" id="GroundTruthAugmentor.TransformDTypes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.GroundTruthAugmentor.TransformDTypes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformDTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">):</span>
-    <span class="n">dtypes</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_real_object_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
     <span class="k">return</span> <span class="n">dtypes</span></div></div>
 
 
