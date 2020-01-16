@@ -1798,6 +1798,12 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
         'max_rotation', None,
         'The rotation amount will be randomly picked from '
         '[-max_rotation, max_rotation).')
+    p.Define(
+        'include_world_rot_z', True,
+        'Whether to include the applied rotation as an additional tensor. '
+        'It can be helpful to disable this when using the preprocessor in a '
+        'way that expects the structure of the features to be the same '
+        '(e.g., as a branch in tf.cond).')
     return p
 
   @base_layer.initializer
@@ -1833,15 +1839,18 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
 
     features.labels.bboxes_3d = tf.concat([bboxes_xyz, bboxes_dims, bboxes_rot],
                                           axis=-1)
-    features.world_rot_z = rot
+    if p.include_world_rot_z:
+      features.world_rot_z = rot
     return features
 
   def TransformShapes(self, shapes):
-    shapes.world_rot_z = tf.TensorShape([])
+    if self.params.include_world_rot_z:
+      shapes.world_rot_z = tf.TensorShape([])
     return shapes
 
   def TransformDTypes(self, dtypes):
-    dtypes.world_rot_z = tf.float32
+    if self.params.include_world_rot_z:
+      dtypes.world_rot_z = tf.float32
     return dtypes
 
 
@@ -2654,11 +2663,7 @@ class GroundTruthAugmentor(Preprocessor):
     labels.labels of shape [L]
 
   Modifies the above features so that additional objects from
-  a groundtruth database are added. Also adds:
-
-    labels.bboxes_3d_real_object_mask of shape [L]
-    indcating which labels come from the current scene, rather
-    than those that are augmented from other scenes.
+  a groundtruth database are added.
   """
 
   @classmethod
@@ -2980,10 +2985,6 @@ class GroundTruthAugmentor(Preprocessor):
         num_bboxes_in_scene + num_augmented_bboxes, dtype=tf.float32)
     features.labels.bboxes_3d_mask = py_utils.PadOrTrimTo(
         bboxes_3d_mask, [max_bboxes])
-    # Keep track of which boxes were original.
-    bboxes_3d_real_object_mask = tf.ones(num_bboxes_in_scene, dtype=tf.float32)
-    features.labels.bboxes_3d_real_object_mask = py_utils.PadOrTrimTo(
-        bboxes_3d_real_object_mask, [max_bboxes])
 
     gt_labels = tf.boolean_mask(features.labels.labels, gt_bboxes_3d_mask)
     gt_labels = py_utils.HasShape(gt_labels, [num_bboxes_in_scene])
@@ -2994,11 +2995,9 @@ class GroundTruthAugmentor(Preprocessor):
     return features
 
   def TransformShapes(self, shapes):
-    shapes.labels.bboxes_3d_real_object_mask = shapes.labels.bboxes_3d_mask
     return shapes
 
   def TransformDTypes(self, dtypes):
-    dtypes.labels.bboxes_3d_real_object_mask = tf.float32
     return dtypes
 
 
