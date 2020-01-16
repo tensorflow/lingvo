@@ -402,7 +402,8 @@ class Params(object):
       param_pb = hyperparams_pb2.HyperparamValue()
       if isinstance(val, Params):
         param_pb.param_val.CopyFrom(_ToParam(val))
-      elif isinstance(val, list):
+      elif isinstance(val, list) or isinstance(val, range):
+        # The range function is serialized by explicitely calling it.
         param_pb.list_val.CopyFrom(hyperparams_pb2.HyperparamRepeated())
         for v in val:
           param_pb.list_val.items.extend([_ToParamValue(v)])
