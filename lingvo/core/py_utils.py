@@ -3805,15 +3805,13 @@ def _DefineDefun(fwd, bak, args):
   assert fwd is not None
 
   # fwd signature (tf.Tensor dtypes).
-  rets = fwd(args)
   get_dtype = lambda x: x.dtype
-  sigs = NestedMap(
-      args=tf.nest.map_structure(get_dtype, args),
-      rets=tf.nest.map_structure(get_dtype, rets))
+  sigs = NestedMap(args=tf.nest.map_structure(get_dtype, args))
 
   def Backward(op, *args):
     assert bak is not None
     xs = tf.nest.pack_sequence_as(sigs.args, op.inputs)
+    # Note: sigs.rets will be set during the Forward call.
     ys = tf.nest.pack_sequence_as(sigs.rets, op.outputs)
     dys = tf.nest.pack_sequence_as(sigs.rets, args)
     dxs = bak(xs, ys, dys)
@@ -3821,7 +3819,9 @@ def _DefineDefun(fwd, bak, args):
 
   @tf.Defun(*tf.nest.flatten(sigs.args), python_grad_func=Backward)
   def Forward(*args):
-    return tf.nest.flatten(fwd(tf.nest.pack_sequence_as(sigs.args, args)))
+    rets = fwd(tf.nest.pack_sequence_as(sigs.args, args))
+    sigs.rets = tf.nest.map_structure(get_dtype, rets)
+    return tf.nest.flatten(rets)
 
   sigs.defun = Forward
   return sigs
