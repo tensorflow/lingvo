@@ -71,7 +71,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
      self-attention Transformer Layers in N-gram mode. Can be activated by
      setting `is_masked` flag of this layer, and setting both
      `mask_type="ngram"` and `mask_ngram_order=N-1` to use as context only the
-     previous N-1 tokens (as expected for an N-gram model).
+     previous N-1 tokens (as expected for an N-gram model); for details and
+     experimental results see https://arxiv.org/abs/2001.04589.
   """
 
   @classmethod
