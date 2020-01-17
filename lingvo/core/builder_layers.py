@@ -832,7 +832,7 @@ class GraphLayer(base_layer.BaseLayer):
   def FProp(self, theta, *args):
     p = self.params
 
-    graph_tensors = GraphTensors()
+    graph_tensors = self._fprop = GraphTensors()
     with tf.name_scope(p.name):
       assert len(p.input_endpoints) == len(args)
       for n, t in zip(p.input_endpoints, args):
