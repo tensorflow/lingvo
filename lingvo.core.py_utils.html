@@ -2261,6 +2261,25 @@ custom backprop function for fwd.</p></li>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.WhileLoop">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">WhileLoop</code><span class="sig-paren">(</span><em class="sig-param">cond</em>, <em class="sig-param">body</em>, <em class="sig-param">loop_state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WhileLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WhileLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper to construct a while loop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cond</strong> – A callable NestedMap -&gt; tf.bool.</p></li>
+<li><p><strong>body</strong> – A callable NestedMap -&gt; NestedMap.</p></li>
+<li><p><strong>loop_state</strong> – A flattenable (NestedMap, list, tuple, etc.) representing the
+loop state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The final loop state in the same structure as loop_state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.ForLoop">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ForLoop</code><span class="sig-paren">(</span><em class="sig-param">body</em>, <em class="sig-param">start</em>, <em class="sig-param">limit</em>, <em class="sig-param">delta</em>, <em class="sig-param">loop_state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ForLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ForLoop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Helper to construct a for loop.</p>
