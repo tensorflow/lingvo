@@ -886,7 +886,7 @@ value and <code class="xref py py-obj docutils literal notranslate"><span class=
 
 <dl class="method">
 <dt id="lingvo.tasks.lm.layers.GPipeTransformerLm.CommonParams">
-<em class="property">classmethod </em><code class="sig-name descname">CommonParams</code><span class="sig-paren">(</span><em class="sig-param">vocab_size</em>, <em class="sig-param">model_dim</em>, <em class="sig-param">hidden_dim=1024</em>, <em class="sig-param">num_heads=8</em>, <em class="sig-param">num_layers=6</em>, <em class="sig-param">splits=1</em>, <em class="sig-param">num_micro_batches=1</em>, <em class="sig-param">num_shards=16</em>, <em class="sig-param">input_dropout_prob=0.0</em>, <em class="sig-param">residual_dropout_prob=0.1</em>, <em class="sig-param">atten_dropout_prob=0.0</em>, <em class="sig-param">relu_dropout_prob=0.0</em>, <em class="sig-param">softmax_max_alloc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#GPipeTransformerLm.CommonParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.GPipeTransformerLm.CommonParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">CommonParams</code><span class="sig-paren">(</span><em class="sig-param">vocab_size</em>, <em class="sig-param">model_dim</em>, <em class="sig-param">hidden_dim=1024</em>, <em class="sig-param">num_heads=8</em>, <em class="sig-param">num_layers=6</em>, <em class="sig-param">splits=1</em>, <em class="sig-param">num_micro_batches=1</em>, <em class="sig-param">micro_batch_size=None</em>, <em class="sig-param">num_shards=16</em>, <em class="sig-param">input_dropout_prob=0.0</em>, <em class="sig-param">residual_dropout_prob=0.1</em>, <em class="sig-param">atten_dropout_prob=0.0</em>, <em class="sig-param">relu_dropout_prob=0.0</em>, <em class="sig-param">softmax_max_alloc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#GPipeTransformerLm.CommonParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.GPipeTransformerLm.CommonParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Common setup for Transformer language models.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -898,6 +898,7 @@ value and <code class="xref py py-obj docutils literal notranslate"><span class=
 <li><p><strong>num_layers</strong> – number of layers in the transformer LM.</p></li>
 <li><p><strong>splits</strong> – list or number of partitions for GPipe.</p></li>
 <li><p><strong>num_micro_batches</strong> – number of micro batches for GPipe.</p></li>
+<li><p><strong>micro_batch_size</strong> – size of a micro batch.</p></li>
 <li><p><strong>num_shards</strong> – num_shards for softmax. Assert vocab_size % num_shards == 0</p></li>
 <li><p><strong>input_dropout_prob</strong> – dropout prob to the sums of the token embeddings and
 the position embeddings.</p></li>

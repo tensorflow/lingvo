@@ -1367,6 +1367,7 @@
                    <span class="n">num_layers</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
                    <span class="n">splits</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                    <span class="n">num_micro_batches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                   <span class="n">micro_batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">num_shards</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
                    <span class="n">input_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                    <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
@@ -1383,6 +1384,7 @@
 <span class="sd">      num_layers: number of layers in the transformer LM.</span>
 <span class="sd">      splits: list or number of partitions for GPipe.</span>
 <span class="sd">      num_micro_batches: number of micro batches for GPipe.</span>
+<span class="sd">      micro_batch_size: size of a micro batch.</span>
 <span class="sd">      num_shards: num_shards for softmax. Assert vocab_size % num_shards == 0</span>
 <span class="sd">      input_dropout_prob: dropout prob to the sums of the token embeddings and</span>
 <span class="sd">        the position embeddings.</span>
@@ -1405,6 +1407,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">splits</span> <span class="o">=</span> <span class="n">splits</span>
     <span class="n">p</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
     <span class="n">p</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">num_micro_batches</span> <span class="o">=</span> <span class="n">num_micro_batches</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">micro_batch_size</span> <span class="o">=</span> <span class="n">micro_batch_size</span>
     <span class="n">p</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">num_encoder_layers</span> <span class="o">=</span> <span class="n">num_layers</span>
     <span class="n">p</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">state_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">:</span>
