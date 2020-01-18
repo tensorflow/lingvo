@@ -50,7 +50,13 @@ class BaseTrainerTest(test_utils.TestCase):
 
   def setUp(self):
     FLAGS.model_params_override = ''
-    FLAGS.tf_master = tf.train.Server.create_local_server().target
+    # TODO(donglin): Use tf.distribute.Server.create_local_server().target after
+    # create_local_server() has been updated to use 'localhost' as job name
+    # in OSS TensorFlow.
+    FLAGS.tf_master = tf.distribute.Server({'localhost': ['localhost:0']},
+                                           protocol='grpc',
+                                           config=None,
+                                           start=True).target
     FLAGS.vizier_reporting_job = 'decoder'
 
   def _CreateController(self, cfg):
@@ -100,10 +106,10 @@ class TrainerTest(BaseTrainerTest):
     cfg.cluster.task = 0
     cfg.cluster.mode = 'sync'
     cfg.cluster.job = 'trainer_client'
-    cfg.cluster.worker.name = '/job:local'
+    cfg.cluster.worker.name = '/job:localhost'
     cfg.cluster.worker.replicas = 1
     cfg.cluster.worker.gpus_per_replica = 0
-    cfg.cluster.ps.name = '/job:local'
+    cfg.cluster.ps.name = '/job:localhost'
     cfg.cluster.ps.replicas = 1
     cfg.cluster.ps.gpus_per_replica = 0
 
@@ -294,10 +300,10 @@ class ProcessFPropResultsTest(BaseTrainerTest):
     cfg.cluster.task = 0
     cfg.cluster.mode = 'sync'
     cfg.cluster.job = 'trainer_client'
-    cfg.cluster.worker.name = '/job:local'
+    cfg.cluster.worker.name = '/job:localhost'
     cfg.cluster.worker.replicas = 1
     cfg.cluster.worker.gpus_per_replica = 0
-    cfg.cluster.ps.name = '/job:local'
+    cfg.cluster.ps.name = '/job:localhost'
     cfg.cluster.ps.replicas = 1
     cfg.cluster.ps.gpus_per_replica = 0
     cfg.train.max_steps = steps
