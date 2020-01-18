@@ -3844,3 +3844,46 @@ def CallDefun(fwd, bak, args):
   if not isinstance(flat_rets, (tuple, list)):
     flat_rets = [flat_rets]
   return tf.nest.pack_sequence_as(sigs.rets, flat_rets)
+
+
+def _Itype():
+  """Loop iterator data type."""
+  return tf.int32 if use_xla() else tf.int64
+
+
+def ForLoop(body, start, limit, delta, loop_state):
+  """Helper to construct a for loop.
+
+  Args:
+    body: A callable (tf.int, NestedMap) -> NestedMap.
+    start: Loop variable's initial value.
+    limit: Loop variable's limit value.
+    delta: Loop variable's change per iteration.
+    loop_state: A flattenable (NestedMap, list, tuple, etc.) representing the
+      loop state.
+
+  Returns:
+    The final loop state in the same structure as loop_state.
+  """
+  state = NestedMap(
+      iter=tf.cast(start, _Itype()),
+      limit=tf.cast(limit, _Itype()),
+      delta=tf.cast(delta, _Itype()),
+      loop_state=loop_state)
+
+  dtypes = state.Transform(lambda x: x.dtype).Flatten()
+
+  @tf.Defun(*dtypes)
+  def LoopCond(*args):
+    s = state.Pack(args)
+    return tf.less(s.iter, s.limit)
+
+  @tf.Defun(*dtypes)
+  def LoopBody(*args):
+    s = state.Pack(args)
+    s.loop_state = body(s.iter, s.loop_state)
+    s.iter = tf.add(s.iter, s.delta)
+    return s.Flatten()
+
+  return state.Pack(
+      tf.While(input_=state.Flatten(), cond=LoopCond, body=LoopBody)).loop_state

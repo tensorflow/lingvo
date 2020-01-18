@@ -2509,5 +2509,26 @@ class CallDefunTest(test_utils.TestCase):
       self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
       self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
 
+
+class ForLoopTest(test_utils.TestCase):
+
+  def testSimple(self):
+    g = tf.Graph()
+    with g.as_default():
+
+      # Basel problem. \sum_1 1/i^2 = pi ^ 2 / 6. A slow convergent series.
+      def Body(i, state):
+        state.value = state.value + 1.0 / tf.square(tf.cast(i, tf.float32))
+        return state
+
+      state = py_utils.NestedMap(value=tf.constant(0.))
+      state = py_utils.ForLoop(Body, 1, 10000, 1, state)
+
+    with self.session(graph=g) as sess:
+      value = sess.run(state.value)
+
+    self.assertAllClose(np.pi * np.pi / 6, value, rtol=1e-3)
+
+
 if __name__ == '__main__':
   tf.test.main()
