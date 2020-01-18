@@ -1222,6 +1222,7 @@ class GPipeTransformerLm(BaseLanguageModel):
                    num_layers=6,
                    splits=1,
                    num_micro_batches=1,
+                   micro_batch_size=None,
                    num_shards=16,
                    input_dropout_prob=0.0,
                    residual_dropout_prob=0.1,
@@ -1238,6 +1239,7 @@ class GPipeTransformerLm(BaseLanguageModel):
       num_layers: number of layers in the transformer LM.
       splits: list or number of partitions for GPipe.
       num_micro_batches: number of micro batches for GPipe.
+      micro_batch_size: size of a micro batch.
       num_shards: num_shards for softmax. Assert vocab_size % num_shards == 0
       input_dropout_prob: dropout prob to the sums of the token embeddings and
         the position embeddings.
@@ -1260,6 +1262,7 @@ class GPipeTransformerLm(BaseLanguageModel):
     p.stack.splits = splits
     p.stack.model_dim = model_dim
     p.stack.num_micro_batches = num_micro_batches
+    p.stack.micro_batch_size = micro_batch_size
     p.stack.num_encoder_layers = num_layers
     p.stack.state_dtype = p.dtype
     if p.fprop_dtype:

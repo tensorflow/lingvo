@@ -173,6 +173,10 @@ class WordLevelOneBwdsSimpleSampledSoftmaxTiny(
 
 
 # Example large transformer model using GPIPE.
+# Instructions:
+# trainer --run_locally=gpu --mode=sync \
+# --model=lm.one_billion_wds.OneBWdsGPipeTransformerWPM \
+# --logdir=/tmp/lm/log --logtostderr --worker_split_size=4 --worker_gpus=4
 # Relative throughput on multiple V100s, each with 16GB ram.
 # GPUs throughput
 # 1    1
@@ -243,6 +247,7 @@ class OneBWdsGPipeTransformerWPM(WordLevelOneBwdsBase):
         num_layers=self.LAYERS,
         splits=self.SPLITS,
         num_micro_batches=self.NUM_MICRO_BATCHES,
+        micro_batch_size=self.BATCH_SIZE // self.NUM_MICRO_BATCHES,
         num_heads=16,
         softmax_max_alloc=128 * (2**20),
         atten_dropout_prob=0.1,
