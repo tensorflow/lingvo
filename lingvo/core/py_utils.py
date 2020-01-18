@@ -1360,7 +1360,6 @@ _ALL_VARS_KEY = ('__lingvo_all_vars',)
 
 _get_all_vars = _CollectionGetter(_ALL_VARS_KEY, lambda: {})
 
-
 _VARIABLE_SHAPE_PREFIXES = _ThreadLocalStack().stack
 
 
@@ -3851,6 +3850,36 @@ def _Itype():
   return tf.int32 if use_xla() else tf.int64
 
 
+def WhileLoop(cond, body, loop_state):
+  """Helper to construct a while loop.
+
+  Args:
+    cond: A callable NestedMap -> tf.bool.
+    body: A callable NestedMap -> NestedMap.
+    loop_state: A flattenable (NestedMap, list, tuple, etc.) representing the
+      loop state.
+
+  Returns:
+    The final loop state in the same structure as loop_state.
+  """
+  state = NestedMap(loop_state=loop_state)
+  dtypes = state.Transform(lambda x: x.dtype).Flatten()
+
+  @tf.Defun(*dtypes)
+  def LoopCond(*args):
+    s = state.Pack(args)
+    return cond(s.loop_state)
+
+  @tf.Defun(*dtypes)
+  def LoopBody(*args):
+    s = state.Pack(args)
+    s.loop_state = body(s.loop_state)
+    return s.Flatten()
+
+  return state.Pack(
+      tf.While(input_=state.Flatten(), cond=LoopCond, body=LoopBody)).loop_state
+
+
 def ForLoop(body, start, limit, delta, loop_state):
   """Helper to construct a for loop.
 
@@ -3871,19 +3900,12 @@ def ForLoop(body, start, limit, delta, loop_state):
       delta=tf.cast(delta, _Itype()),
       loop_state=loop_state)
 
-  dtypes = state.Transform(lambda x: x.dtype).Flatten()
+  def LoopCond(state):
+    return tf.less(state.iter, state.limit)
 
-  @tf.Defun(*dtypes)
-  def LoopCond(*args):
-    s = state.Pack(args)
-    return tf.less(s.iter, s.limit)
+  def LoopBody(state):
+    state.loop_state = body(state.iter, state.loop_state)
+    state.iter = tf.add(state.iter, state.delta)
+    return state
 
-  @tf.Defun(*dtypes)
-  def LoopBody(*args):
-    s = state.Pack(args)
-    s.loop_state = body(s.iter, s.loop_state)
-    s.iter = tf.add(s.iter, s.delta)
-    return s.Flatten()
-
-  return state.Pack(
-      tf.While(input_=state.Flatten(), cond=LoopCond, body=LoopBody)).loop_state
+  return WhileLoop(LoopCond, LoopBody, state).loop_state
