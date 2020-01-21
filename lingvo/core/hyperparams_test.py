@@ -284,7 +284,7 @@ list_of_params[0].bar : 2.71
 list_of_params[0].baz : 'hello'
 optional_bool : NoneType
 plain_dict : {'a': 10}
-proto : { int_val: 42 }
+proto : proto/lingvo.core.hyperparams_pb2/HyperparamValue/int_val: 42
 seqlen : [10, {'bar': 2.71, 'baz': 'hello'}, 30]
 some_class : complex
 tau : False
@@ -302,6 +302,7 @@ tuple : (1, 'NoneType')
         class : type/__main__/TestClass2
         tau : true
         tuple : (2, 3)
+        proto : proto/lingvo.core.hyperparams_pb2/HyperparamValue/string_val: "a/b"
         """)
 
     # Note that the 'hello' has turned into 'world'!
@@ -319,7 +320,7 @@ list_of_params[0].bar : 2.72
 list_of_params[0].baz : 'hello'
 optional_bool : True
 plain_dict : {'x': 0.3}
-proto : { int_val: 42 }
+proto : proto/lingvo.core.hyperparams_pb2/HyperparamValue/string_val: "a/b"
 seqlen : [1, 2.0, '3', [4]]
 some_class : complex
 tau : True

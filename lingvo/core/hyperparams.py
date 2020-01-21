@@ -548,7 +548,9 @@ class Params(object):
       if isinstance(val, tf.DType):
         return val.name
       if isinstance(val, message.Message):
-        return '{ %s }' % text_format.MessageToString(val, as_one_line=True)
+        proto_str = text_format.MessageToString(val, as_one_line=True)
+        return 'proto/%s/%s/%s' % (inspect.getmodule(val).__name__,
+                                   type(val).__name__, proto_str)
       if isinstance(val, type):
         return 'type/' + inspect.getmodule(val).__name__ + '/' + val.__name__
       return type(val).__name__
@@ -657,7 +659,8 @@ class Params(object):
             val = ast.literal_eval(val)
           except ValueError:
             pass
-      elif isinstance(old_val, type) or old_val is None:
+      elif (isinstance(old_val, type) or isinstance(old_val, message.Message) or
+            old_val is None):
         if val == 'NoneType':
           val = None
         elif old_val is None and val in ('False', 'false'):
@@ -666,8 +669,15 @@ class Params(object):
           val = True
         else:
           try:
-            _, pkg, cls = val.split('/')
-            val = getattr(sys.modules[pkg], cls)
+            val_type, pkg, cls = val.split('/', 2)
+            if val_type == 'type':
+              val = getattr(sys.modules[pkg], cls)
+            elif val_type == 'proto':
+              cls, proto_str = cls.split('/', 1)
+              proto_cls = getattr(sys.modules[pkg], cls)
+              if not issubclass(proto_cls, message.Message):
+                raise ValueError('%s is not a proto class.' % proto_cls)
+              val = text_format.Parse(proto_str, proto_cls())
           except ValueError as e:
             raise ValueError('Error processing %r : %r with %r' % (key, val, e))
       else:
