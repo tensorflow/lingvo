@@ -174,7 +174,7 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 
 
 <span class="c1"># Currently, quantization statistics cannot be accumulated across arbitrary</span>
@@ -826,6 +826,7 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span> <span class="o">=</span> <span class="n">Atten</span>
 
     <span class="k">def</span> <span class="nf">EncodeSource</span><span class="p">(</span><span class="n">src_w</span><span class="p">,</span> <span class="n">vecs</span><span class="p">,</span> <span class="n">ctxs</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Prepares source vec and ctx.&quot;&quot;&quot;</span>
       <span class="n">time</span><span class="p">,</span> <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
       <span class="n">ctxs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">ctxs</span><span class="p">,</span> <span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
       <span class="c1"># source_dim can be a symbolic expression.</span>
@@ -833,7 +834,10 @@
           <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">)]),</span> <span class="n">src_w</span><span class="p">),</span>
           <span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">transformed_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
+          <span class="n">transformed_vecs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;source_vecs_projected&#39;</span><span class="p">)</span>
       <span class="n">transposed_ctxs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">ctxs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="n">transposed_ctxs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">transposed_ctxs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;source_ctx&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">transformed_vecs</span><span class="p">,</span> <span class="n">transposed_ctxs</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_encode_source</span> <span class="o">=</span> <span class="n">EncodeSource</span>
@@ -1219,7 +1223,13 @@
 <span class="sd">        with dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_vecs</span>
+    <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span>
+                                       <span class="s1">&#39;concated_source_vecs&#39;</span><span class="p">)</span>
+
     <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_contexts</span>
+    <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">concated_source_contexts</span><span class="p">,</span>
+                                           <span class="s1">&#39;concated_source_contexts&#39;</span><span class="p">)</span>
+
     <span class="n">source_padding</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_padding</span>
     <span class="n">source_segment_id</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_segment_id</span>
     <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
