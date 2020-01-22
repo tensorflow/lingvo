@@ -29,7 +29,7 @@ from lingvo.core import symbolic
 
 import numpy as np
 
-from tensorflow.python.ops import inplace_ops
+from tensorflow.python.ops import inplace_ops  # pylint:disable=g-direct-tensorflow-import
 
 
 # Currently, quantization statistics cannot be accumulated across arbitrary
@@ -681,6 +681,7 @@ class AdditiveAttention(BaseAttentionLayer):
       self._ctx_vec = Atten
 
     def EncodeSource(src_w, vecs, ctxs):
+      """Prepares source vec and ctx."""
       time, batch = py_utils.GetShape(vecs, 2)
       ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
       # source_dim can be a symbolic expression.
@@ -688,7 +689,10 @@ class AdditiveAttention(BaseAttentionLayer):
           py_utils.Matmul(
               tf.reshape(vecs, [-1, symbolic.ToStatic(p.source_dim)]), src_w),
           [time, batch, -1])
+      transformed_vecs = tf.identity(
+          transformed_vecs, name='source_vecs_projected')
       transposed_ctxs = tf.transpose(ctxs, [1, 0, 2])
+      transposed_ctxs = tf.identity(transposed_ctxs, name='source_ctx')
       return transformed_vecs, transposed_ctxs
 
     self._encode_source = EncodeSource
@@ -1074,7 +1078,13 @@ class DotProductAttention(BaseAttentionLayer):
         with dimensions [target_batch, ...]
     """
     concated_source_vecs = packed_src.source_vecs
+    concated_source_vecs = tf.identity(concated_source_vecs,
+                                       'concated_source_vecs')
+
     concated_source_contexts = packed_src.source_contexts
+    concated_source_contexts = tf.identity(concated_source_contexts,
+                                           'concated_source_contexts')
+
     source_padding = packed_src.source_padding
     source_segment_id = packed_src.source_segment_id
     query_batch_size = tf.shape(query_vec)[0]
