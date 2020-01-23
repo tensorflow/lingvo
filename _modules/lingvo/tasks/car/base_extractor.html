@@ -284,6 +284,18 @@
     <span class="n">dtypes</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">dtypes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
                          <span class="n">shapes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())))</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;InpGen: &#39;</span><span class="p">)</span>
 
+<div class="viewcode-block" id="_BaseExtractor.FeatureMap"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get a mapping from feature names to feature tensors.&quot;&quot;&quot;</span>
+    <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">feature_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">FeatureMap</span><span class="p">()))</span>
+    <span class="k">return</span> <span class="n">feature_map</span></div>
+
+<div class="viewcode-block" id="_BaseExtractor.ContextMap"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.ContextMap">[docs]</a>  <span class="k">def</span> <span class="nf">ContextMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get a mapping from context names to context tensors.&quot;&quot;&quot;</span>
+    <span class="n">context_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">context_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">ContextMap</span><span class="p">()))</span>
+    <span class="k">return</span> <span class="n">context_map</span></div>
+
 <div class="viewcode-block" id="_BaseExtractor.Shape"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.Shape">[docs]</a>  <span class="k">def</span> <span class="nf">Shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Shape</span><span class="p">())</span>
     <span class="k">for</span> <span class="n">preprocessor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocessors</span><span class="p">:</span>
@@ -313,11 +325,11 @@
     <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
         <span class="n">processor</span><span class="o">=</span><span class="n">Proc</span><span class="p">,</span> <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="_BaseExtractor.ExtractUsingExtractors"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.ExtractUsingExtractors">[docs]</a>  <span class="k">def</span> <span class="nf">ExtractUsingExtractors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extracts Tensors from a tf.Example record using self.extractors.</span>
+<div class="viewcode-block" id="_BaseExtractor.ProcessFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.ProcessFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">ProcessFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process extracted features.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      record: A tf.Example input to pass to tf.parse_single_example.</span>
+<span class="sd">      features: A dict of extracted Tensors from the records.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of tensors:</span>
@@ -325,21 +337,6 @@
 <span class="sd">      - bucket_id: A scalar int Tensor.</span>
 <span class="sd">      - extracted: a NestedMap of Tensors extracted.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">context_map</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">feature_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">FeatureMap</span><span class="p">()))</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span> <span class="o">==</span> <span class="s1">&#39;SEQUENCE_EXAMPLE&#39;</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">context_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">ContextMap</span><span class="p">()))</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_PARSING_FUNCTIONS</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid record_type: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span><span class="p">))</span>
-    <span class="n">parsing_fn</span> <span class="o">=</span> <span class="n">_PARSING_FUNCTIONS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span><span class="p">]</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span> <span class="o">==</span> <span class="s1">&#39;SEQUENCE_EXAMPLE&#39;</span><span class="p">:</span>
-      <span class="n">features</span> <span class="o">=</span> <span class="n">parsing_fn</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">,</span> <span class="n">context_map</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">features</span> <span class="o">=</span> <span class="n">parsing_fn</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">)</span>
-
     <span class="k">def</span> <span class="nf">ExtractAndFilter</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;extract&#39;</span><span class="p">):</span>
@@ -391,6 +388,30 @@
         <span class="n">NullLike</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">max_bucket</span><span class="p">,</span> <span class="n">final_output</span></div>
+
+<div class="viewcode-block" id="_BaseExtractor.ExtractUsingExtractors"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.ExtractUsingExtractors">[docs]</a>  <span class="k">def</span> <span class="nf">ExtractUsingExtractors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extracts Tensors from a tf.Example record using self.extractors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      record: A tf.Example input to pass to tf.parse_single_example.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tuple of tensors:</span>
+
+<span class="sd">      - bucket_id: A scalar int Tensor.</span>
+<span class="sd">      - extracted: a NestedMap of Tensors extracted.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_PARSING_FUNCTIONS</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid record_type: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span><span class="p">))</span>
+
+    <span class="n">parsing_fn</span> <span class="o">=</span> <span class="n">_PARSING_FUNCTIONS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span><span class="p">]</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span> <span class="o">==</span> <span class="s1">&#39;SEQUENCE_EXAMPLE&#39;</span><span class="p">:</span>
+      <span class="n">features</span> <span class="o">=</span> <span class="n">parsing_fn</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FeatureMap</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">ContextMap</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">features</span> <span class="o">=</span> <span class="n">parsing_fn</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FeatureMap</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ProcessFeatures</span><span class="p">(</span><span class="n">features</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="_BaseExtractor.InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">batched_outputs</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSource</span><span class="p">()</span>

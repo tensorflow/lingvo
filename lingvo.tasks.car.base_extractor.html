@@ -205,6 +205,18 @@ extractor types are <em>required</em>:
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.tasks.car.base_extractor._BaseExtractor.FeatureMap">
+<code class="sig-name descname">FeatureMap</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/base_extractor.html#_BaseExtractor.FeatureMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.base_extractor._BaseExtractor.FeatureMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a mapping from feature names to feature tensors.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.base_extractor._BaseExtractor.ContextMap">
+<code class="sig-name descname">ContextMap</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/base_extractor.html#_BaseExtractor.ContextMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.base_extractor._BaseExtractor.ContextMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a mapping from context names to context tensors.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.tasks.car.base_extractor._BaseExtractor.Shape">
 <code class="sig-name descname">Shape</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/base_extractor.html#_BaseExtractor.Shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.base_extractor._BaseExtractor.Shape" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -236,6 +248,27 @@ treated as an empty list.</p></li>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A tuple of tf.Tensors where the tensors which contain the input data and
 have major dimension same as size of input batch.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.base_extractor._BaseExtractor.ProcessFeatures">
+<code class="sig-name descname">ProcessFeatures</code><span class="sig-paren">(</span><em class="sig-param">features</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/base_extractor.html#_BaseExtractor.ProcessFeatures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.base_extractor._BaseExtractor.ProcessFeatures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process extracted features.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>features</strong> – A dict of extracted Tensors from the records.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>bucket_id: A scalar int Tensor.</p></li>
+<li><p>extracted: a NestedMap of Tensors extracted.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A tuple of tensors</p>
 </dd>
 </dl>
 </dd></dl>
