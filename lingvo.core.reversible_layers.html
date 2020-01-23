@@ -1,0 +1,355 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.reversible_layers module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.rnn_cell module" href="lingvo.core.rnn_cell.html" />
+    <link rel="prev" title="lingvo.core.retry module" href="lingvo.core.retry.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.reversible_layers module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.reversible_layers.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.reversible_layers">
+<span id="lingvo-core-reversible-layers-module"></span><h1>lingvo.core.reversible_layers module<a class="headerlink" href="#module-lingvo.core.reversible_layers" title="Permalink to this headline">¶</a></h1>
+<p>Reversible layers for memory efficient Backpropagation.</p>
+<dl class="simple">
+<dt>[1] The Reversible Residual Network: Backpropagation Without Storing Activations</dt><dd><p><a class="reference external" href="https://arxiv.org/abs/1707.04585">https://arxiv.org/abs/1707.04585</a></p>
+</dd>
+</dl>
+<dl class="class">
+<dt id="lingvo.core.reversible_layers.RevNetLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.reversible_layers.</code><code class="sig-name descname">RevNetLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#RevNetLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.reversible_layers.RevNetLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A reversible residual block.</p>
+<p>Computes y1 = x1 + f(x2), y2 = x2 + g(y1), where f and g can be arbitrary
+functions that retain the input tensor shape.</p>
+<dl class="method">
+<dt id="lingvo.core.reversible_layers.RevNetLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#RevNetLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.reversible_layers.RevNetLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.reversible_layers.RevNetLayer.ReverseAndGrad">
+<code class="sig-name descname">ReverseAndGrad</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">outputs</em>, <em class="sig-param">d_outputs</em>, <em class="sig-param">f_seed</em>, <em class="sig-param">g_seed</em>, <em class="sig-param">*extra_inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#RevNetLayer.ReverseAndGrad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.reversible_layers.RevNetLayer.ReverseAndGrad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements Algorithm 1 in the revnet paper.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</p></li>
+<li><p><strong>outputs</strong> – A NestedMap: .split1 and .split2 corresponding to y1 and y2.</p></li>
+<li><p><strong>d_outputs</strong> – A NestedMap: .split1 and .split2 corresponding to dy1 and dy2,
+the total derivatives.</p></li>
+<li><p><strong>f_seed</strong> – Scalar tensor. The step seed used in forward for the f block.</p></li>
+<li><p><strong>g_seed</strong> – Scalar tensor. The step seed used in forward for the g block. The
+step seeds are needed for deterministic randomness, e.g. to ensure
+dropout generate the same random mask in forward and reverse_grad.</p></li>
+<li><p><strong>*extra_inputs</strong> – additional inputs that will be passed to both f and g. No
+gradient will be computed for these inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of NestedMaps</p>
+<ul class="simple">
+<li><p>inputs: .split1 and .split2 corresponding to x1 and x2.</p></li>
+<li><p>d_inputs: .split1 and .split2 corresponding to dx1 and dx2, the total
+derivatives with respect to inputs.</p></li>
+<li><p>d_theta: has the same structure as theta. The total derivatives with
+respect to weights.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.reversible_layers.RevNetLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inputs</em>, <em class="sig-param">*extra_inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#RevNetLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.reversible_layers.RevNetLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward pass.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</p></li>
+<li><p><strong>inputs</strong> – A NestedMap: .split1 and .split2 corresponding to x1 and x2.</p></li>
+<li><p><strong>*extra_inputs</strong> – additional inputs that will be passed to both f and g. No
+gradient will be computed for these inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap: .split1 and .split2 corresponding to y1 and y2.
+f_seed: Scalar tensor. The step seed used in forward for the f block.
+g_seed: Scalar tensor. The step seed used in forward for the g block.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>outputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.reversible_layers.StackedRevNetLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.reversible_layers.</code><code class="sig-name descname">StackedRevNetLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#StackedRevNetLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.reversible_layers.StackedRevNetLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Stacked RevNet layers with custom gradient.</p>
+<p>The standard backpropagation has peak memory footprint of</p>
+<blockquote>
+<div><p>Θ(num_layers x (activation_size_per_layer + param_size_per_layer)),</p>
+</div></blockquote>
+<p>which is reduced to</p>
+<blockquote>
+<div><p>Θ(activation_size_per_layer + num_layers x param_size_per_layer)),</p>
+</div></blockquote>
+<p>in the custom gradient implmentation, at the cost of extra computation for the
+reverse and potential accumulated numerical errors. See Section 3.2 in the
+revnet paper for the full discussion.</p>
+<dl class="method">
+<dt id="lingvo.core.reversible_layers.StackedRevNetLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#StackedRevNetLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.reversible_layers.StackedRevNetLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.reversible_layers.StackedRevNetLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inputs</em>, <em class="sig-param">*extra_inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#StackedRevNetLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.reversible_layers.StackedRevNetLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.reversible_layers.StackedRevNetLayer.FProp" title="lingvo.core.reversible_layers.StackedRevNetLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.reversible_layers.StackedRevNetLayer.FProp" title="lingvo.core.reversible_layers.StackedRevNetLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.rnn_cell.html" class="btn btn-neutral float-right" title="lingvo.core.rnn_cell module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.retry.html" class="btn btn-neutral float-left" title="lingvo.core.retry module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
