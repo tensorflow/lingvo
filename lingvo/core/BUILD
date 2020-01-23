@@ -203,6 +203,30 @@ py_test(
 )
 
 py_library(
+    name = "reversible_layers",
+    srcs = ["reversible_layers.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        "//lingvo:compat",
+        # Implicit six dependency.
+    ],
+)
+
+py_test(
+    name = "reversible_layers_test",
+    srcs = ["reversible_layers_test.py"],
+    deps = [
+        ":layers",
+        ":py_utils",
+        ":reversible_layers",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
     name = "decoder_lib",
     srcs = ["decoder_lib.py"],
     srcs_version = "PY2AND3",
