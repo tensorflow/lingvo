@@ -139,6 +139,18 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     dtypes.Pack(list(zip(dtypes.Flatten(),
                          shapes.Flatten()))).VLog(0, 'InpGen: ')
 
+  def FeatureMap(self):
+    """Get a mapping from feature names to feature tensors."""
+    feature_map = {}
+    self._extractors.Transform(lambda e: feature_map.update(e.FeatureMap()))
+    return feature_map
+
+  def ContextMap(self):
+    """Get a mapping from context names to context tensors."""
+    context_map = {}
+    self._extractors.Transform(lambda e: context_map.update(e.ContextMap()))
+    return context_map
+
   def Shape(self):
     shapes = self._extractors.Transform(lambda x: x.Shape())
     for preprocessor in self.preprocessors:
@@ -168,11 +180,11 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     return generic_input.GenericInput(
         processor=Proc, file_pattern=file_pattern, **args)
 
-  def ExtractUsingExtractors(self, record):
-    """Extracts Tensors from a tf.Example record using self.extractors.
+  def ProcessFeatures(self, features):
+    """Process extracted features.
 
     Args:
-      record: A tf.Example input to pass to tf.parse_single_example.
+      features: A dict of extracted Tensors from the records.
 
     Returns:
       A tuple of tensors:
@@ -180,21 +192,6 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
       - bucket_id: A scalar int Tensor.
       - extracted: a NestedMap of Tensors extracted.
     """
-    feature_map = {}
-    context_map = {}
-    self._extractors.Transform(lambda e: feature_map.update(e.FeatureMap()))
-    if self.params.record_type == 'SEQUENCE_EXAMPLE':
-      self._extractors.Transform(lambda e: context_map.update(e.ContextMap()))
-
-    if self.params.record_type not in _PARSING_FUNCTIONS:
-      raise ValueError('Invalid record_type: {}'.format(
-          self.params.record_type))
-    parsing_fn = _PARSING_FUNCTIONS[self.params.record_type]
-    if self.params.record_type == 'SEQUENCE_EXAMPLE':
-      features = parsing_fn(record, feature_map, context_map)
-    else:
-      features = parsing_fn(record, feature_map)
-
     def ExtractAndFilter(e):
       with tf.name_scope(e.params.name):
         with tf.name_scope('extract'):
@@ -246,6 +243,30 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
         NullLike)
 
     return max_bucket, final_output
+
+  def ExtractUsingExtractors(self, record):
+    """Extracts Tensors from a tf.Example record using self.extractors.
+
+    Args:
+      record: A tf.Example input to pass to tf.parse_single_example.
+
+    Returns:
+      A tuple of tensors:
+
+      - bucket_id: A scalar int Tensor.
+      - extracted: a NestedMap of Tensors extracted.
+    """
+    if self.params.record_type not in _PARSING_FUNCTIONS:
+      raise ValueError('Invalid record_type: {}'.format(
+          self.params.record_type))
+
+    parsing_fn = _PARSING_FUNCTIONS[self.params.record_type]
+    if self.params.record_type == 'SEQUENCE_EXAMPLE':
+      features = parsing_fn(record, self.FeatureMap(), self.ContextMap())
+    else:
+      features = parsing_fn(record, self.FeatureMap())
+
+    return self.ProcessFeatures(features)
 
   def InputBatch(self):
     batched_outputs, bucket_keys = self._BuildDataSource()
