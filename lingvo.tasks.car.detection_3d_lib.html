@@ -399,6 +399,9 @@ ignored. If set to None, the function will default to IOU2DRotatedBoxes.</p></li
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><p>NestedMap with the following keys</p>
 <ul class="simple">
+<li><p>assigned_gt_idx: shape [A] index corresponding to the index of the
+assigned ground truth box. Anchors not assigned to a ground truth box
+will have the index set to -1.</p></li>
 <li><p>assigned_gt_bbox: shape [A, 7] bbox parameters assigned to each anchor.</p></li>
 <li><p>assigned_gt_similarity_score: shape [A] (iou) score between the anchor
 and the gt bbox.</p></li>

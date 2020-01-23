@@ -475,6 +475,9 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      NestedMap with the following keys</span>
 
+<span class="sd">      - assigned_gt_idx: shape [A] index corresponding to the index of the</span>
+<span class="sd">        assigned ground truth box. Anchors not assigned to a ground truth box</span>
+<span class="sd">        will have the index set to -1.</span>
 <span class="sd">      - assigned_gt_bbox: shape [A, 7] bbox parameters assigned to each anchor.</span>
 <span class="sd">      - assigned_gt_similarity_score: shape [A] (iou) score between the anchor</span>
 <span class="sd">        and the gt bbox.</span>
@@ -577,7 +580,14 @@
                                 <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">assigned_reg_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">foreground_anchors</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
+    <span class="c1"># Set assigned_gt_idx such that dummy boxes have idx = -1.</span>
+    <span class="n">assigned_gt_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">anchor_gather_idx</span><span class="p">,</span> <span class="n">dummy_bbox_idx</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">anchor_gather_idx</span><span class="p">)</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">anchor_gather_idx</span><span class="p">)</span>
+    <span class="n">assigned_gt_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">assigned_gt_idx</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">assigned_gt_idx</span><span class="o">=</span><span class="n">assigned_gt_idx</span><span class="p">,</span>
         <span class="n">assigned_gt_bbox</span><span class="o">=</span><span class="n">assigned_gt_bbox</span><span class="p">,</span>
         <span class="n">assigned_gt_similarity_score</span><span class="o">=</span><span class="n">anchor_max_score</span><span class="p">,</span>
         <span class="n">assigned_gt_labels</span><span class="o">=</span><span class="n">assigned_gt_labels</span><span class="p">,</span>
