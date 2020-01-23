@@ -575,7 +575,7 @@ def Pack(tmpl, values):
   """Packs 'values' according to 'tmpl'."""
   values = list(values)
   flat_tmpl = Flatten(tmpl)
-  assert len(flat_tmpl) == len(values)
+  assert len(flat_tmpl) == len(values), (len(flat_tmpl), len(values))
   v_iter = iter(values)
   # Replace tensors in 'tmpl' with 'values'.
   return Transform(tmpl, lambda _: next(v_iter))
