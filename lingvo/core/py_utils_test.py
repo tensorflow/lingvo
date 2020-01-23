@@ -2666,6 +2666,29 @@ class CallDefunTest(test_utils.TestCase):
       self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
       self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
 
+  def testPreserveStaticShape(self):
+    with self.session() as sess:
+
+      def Bak(x, y, dy):
+        del x, y
+        return dy
+
+      def Fwd(args):
+        x = args
+        shape = py_utils.GetShape(x)
+        if isinstance(shape, tf.Tensor):
+          return tf.ones_like(x)
+        else:
+          for dim in shape:
+            if isinstance(dim, tf.Tensor):
+              return tf.ones_like(x) + 1
+          return tf.zeros_like(x)
+
+      a = np.array([[1.0, 2.0], [0.0, -3.0]])
+      x = tf.constant(a)
+      y = sess.run(py_utils.CallDefun(Fwd, Bak, x))
+      self.assertAllEqual(y, np.zeros_like(a))
+
   def testNestedMap(self):
     with self.session() as sess:
 

@@ -3807,6 +3807,9 @@ def _DefineDefun(fwd, bak, args):
   get_dtype = lambda x: x.dtype
   sigs = NestedMap(args=tf.nest.map_structure(get_dtype, args))
 
+  get_shape = lambda x: x.shape
+  arg_shapes = tf.nest.map_structure(get_shape, args)
+
   def Backward(op, *args):
     assert bak is not None
     xs = tf.nest.pack_sequence_as(sigs.args, op.inputs)
@@ -3818,6 +3821,8 @@ def _DefineDefun(fwd, bak, args):
 
   @tf.Defun(*tf.nest.flatten(sigs.args), python_grad_func=Backward)
   def Forward(*args):
+    for arg, shape in zip(args, tf.nest.flatten(arg_shapes)):
+      arg.set_shape(shape)
     rets = fwd(tf.nest.pack_sequence_as(sigs.args, args))
     sigs.rets = tf.nest.map_structure(get_dtype, rets)
     return tf.nest.flatten(rets)
