@@ -3448,18 +3448,36 @@
 
 <div class="viewcode-block" id="UpdateFpropDtype"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.UpdateFpropDtype">[docs]</a><span class="k">def</span> <span class="nf">UpdateFpropDtype</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Recursively update the fprop_dtype of the Params.&quot;&quot;&quot;</span>
+  <span class="c1"># Handle the case when the input &quot;params&quot; is not an instance of hyperparams</span>
+  <span class="c1"># For example, when UpdateDtype is called recursively for all the items in</span>
+  <span class="c1"># the &quot;sub&quot; list of SequentialLayer (see 1st elif below)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">):</span>
+    <span class="k">return</span>
+
   <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">):</span>
       <span class="n">UpdateFpropDtype</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
+        <span class="n">UpdateFpropDtype</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;fprop_dtype&#39;</span><span class="p">:</span>
       <span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">fprop_dtype</span></div>
 
 
 <div class="viewcode-block" id="UpdateDtype"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.UpdateDtype">[docs]</a><span class="k">def</span> <span class="nf">UpdateDtype</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Recursively update the dtype of the Params.&quot;&quot;&quot;</span>
+  <span class="c1"># Handle the case when the input &quot;params&quot; is not an instance of hyperparams</span>
+  <span class="c1"># For example, when UpdateDtype is called recursively for all the items in</span>
+  <span class="c1"># the &quot;sub&quot; list of SequentialLayer (see 1st elif below)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">):</span>
+    <span class="k">return</span>
+
   <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">):</span>
       <span class="n">UpdateDtype</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
+        <span class="n">UpdateDtype</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;dtype&#39;</span><span class="p">:</span>
       <span class="n">params</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span></div>
 
