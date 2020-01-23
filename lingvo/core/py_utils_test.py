@@ -1196,6 +1196,7 @@ class NestedMapTest(test_utils.TestCase):
 
   def _get_advanced_test_inputs(self):
     m = py_utils.NestedMap()
+    m.w = None
     m.y = (200, py_utils.NestedMap(z='abc'))
     m.x = {'foo': 1, 'bar': 'def'}
     m.z = self._TUPLE(5, 'xyz')
@@ -1226,10 +1227,12 @@ foo[2][0]     32"""
 
     m = self._get_advanced_test_inputs()
     res = m.DebugString()
-    x, _, yz = res.partition('\n')
+    w, x, y, z = res.split('\n')
+    self.assertEqual(w, 'w    None')
     self.assertTrue(x == "x    {'bar': 'def', 'foo': 1}" or
                     x == "x    {'foo': 1, 'bar': 'def'}")
-    self.assertEqual(yz, "y    (200, {'z': 'abc'})\nz    Tuple(x=5, y='xyz')")
+    self.assertEqual(y, "y    (200, {'z': 'abc'})")
+    self.assertEqual(z, "z    Tuple(x=5, y='xyz')")
 
   def testTransformBasic(self):
     n = py_utils.Transform(py_utils.NestedMap(), _AddOne)
@@ -1274,6 +1277,7 @@ foo[2][0]     32"""
         return x
 
     expected = [
+        ('w', None),
         ('x', {
             'bar': 'def1',
             'foo': 2
@@ -1293,6 +1297,7 @@ foo[2][0]     32"""
 
     # Original has not been modified.
     expected = [
+        ('w', None),
         ('x', {
             'bar': 'def',
             'foo': 1
@@ -1322,11 +1327,12 @@ foo[2][0]     32"""
   def testFlattenAdvanced(self):
     m = self._get_advanced_test_inputs()
 
-    expected = ['def', 1, (200, {'z': 'abc'}), self._TUPLE(x=5, y='xyz')]
+    expected = [None, 'def', 1, (200, {'z': 'abc'}), self._TUPLE(x=5, y='xyz')]
     self.assertEqual(py_utils.Flatten(m), expected)
     self.assertEqual(m.Flatten(), expected)
 
     expected = [
+        ('w', None),
         ('x', {
             'bar': 'def',
             'foo': 1
@@ -1369,23 +1375,25 @@ foo[2][0]     32"""
     m = self._get_advanced_test_inputs()
 
     expected = [
+        ('w', 0),
         ('x', {
-            'bar': 0,
-            'foo': 1
+            'bar': 1,
+            'foo': 2
         }),
-        ('y', 2),
-        ('z', 3),
+        ('y', 3),
+        ('z', None),
     ]
-    n = py_utils.Pack(m, list(range(4)))
+    n = py_utils.Pack(m, list(range(4)) + [None])
     self.assertEqual(n.zz, [])
     self.assertEqual(n.FlattenItems(), expected)
 
-    n = m.Pack(list(range(4)))
+    n = m.Pack(list(range(4)) + [None])
     self.assertEqual(n.zz, [])
     self.assertEqual(n.FlattenItems(), expected)
 
     # Original has not been modified.
     expected = [
+        ('w', None),
         ('x', {
             'bar': 'def',
             'foo': 1
