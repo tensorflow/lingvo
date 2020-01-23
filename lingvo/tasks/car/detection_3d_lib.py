@@ -330,6 +330,9 @@ class Utils3D(object):
     Returns:
       NestedMap with the following keys
 
+      - assigned_gt_idx: shape [A] index corresponding to the index of the
+        assigned ground truth box. Anchors not assigned to a ground truth box
+        will have the index set to -1.
       - assigned_gt_bbox: shape [A, 7] bbox parameters assigned to each anchor.
       - assigned_gt_similarity_score: shape [A] (iou) score between the anchor
         and the gt bbox.
@@ -432,7 +435,14 @@ class Utils3D(object):
                                 tf.float32)
     assigned_reg_mask = tf.cast(foreground_anchors, tf.float32)
 
+    # Set assigned_gt_idx such that dummy boxes have idx = -1.
+    assigned_gt_idx = tf.where(
+        tf.equal(anchor_gather_idx, dummy_bbox_idx),
+        tf.ones_like(anchor_gather_idx) * -1, anchor_gather_idx)
+    assigned_gt_idx = tf.cast(assigned_gt_idx, tf.int32)
+
     return py_utils.NestedMap(
+        assigned_gt_idx=assigned_gt_idx,
         assigned_gt_bbox=assigned_gt_bbox,
         assigned_gt_similarity_score=anchor_max_score,
         assigned_gt_labels=assigned_gt_labels,

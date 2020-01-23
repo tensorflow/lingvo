@@ -1551,6 +1551,9 @@ class AnchorAssignment(Preprocessor):
       residuals. The model is expected to regress against these residuals as
       targets. The residuals can be converted back into bboxes using
       detection_3d_lib.Utils3D.ResidualsToBBoxes.
+    assigned_gt_idx: base_shape - The corresponding index of the ground
+      truth bounding box for each anchor box in anchor_bboxes, anchors not
+      assigned will have idx be set to -1.
     assigned_gt_bbox: base_shape + [7] - The corresponding ground
       truth bounding box for each anchor box in anchor_bboxes.
     assigned_gt_labels: base_shape - The assigned groundtruth label
@@ -1595,6 +1598,8 @@ class AnchorAssignment(Preprocessor):
         background_assignment_threshold=p.background_assignment_threshold)
 
     # Add new features.
+    features.assigned_gt_idx = tf.reshape(assigned_anchors.assigned_gt_idx,
+                                          base_shape)
     features.assigned_gt_bbox = tf.reshape(assigned_anchors.assigned_gt_bbox,
                                            base_shape + [7])
     features.assigned_gt_labels = tf.reshape(
@@ -1617,6 +1622,7 @@ class AnchorAssignment(Preprocessor):
     box_shape = base_shape.concatenate([7])
 
     shapes.anchor_localization_residuals = box_shape
+    shapes.assigned_gt_idx = base_shape
     shapes.assigned_gt_bbox = box_shape
     shapes.assigned_gt_labels = base_shape
     shapes.assigned_gt_similarity_score = base_shape
@@ -1626,6 +1632,7 @@ class AnchorAssignment(Preprocessor):
 
   def TransformDTypes(self, dtypes):
     dtypes.anchor_localization_residuals = tf.float32
+    dtypes.assigned_gt_idx = tf.int32
     dtypes.assigned_gt_bbox = tf.float32
     dtypes.assigned_gt_labels = tf.int32
     dtypes.assigned_gt_similarity_score = tf.float32

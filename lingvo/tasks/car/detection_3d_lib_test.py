@@ -163,6 +163,8 @@ class Utils3DTest(test_utils.TestCase):
       actual_assigned_anchors, gt_bboxes = sess.run((assigned_anchors,
                                                      gt_bboxes))
 
+      self.assertAllEqual(actual_assigned_anchors.assigned_gt_idx,
+                          [-1, -1, 0, 1])
       self.assertAllEqual(actual_assigned_anchors.assigned_gt_labels,
                           [0, 0, 1, 2])
       self.assertAllEqual(actual_assigned_anchors.assigned_gt_bbox, [
@@ -210,6 +212,8 @@ class Utils3DTest(test_utils.TestCase):
       actual_assigned_anchors, gt_bboxes = sess.run((assigned_anchors,
                                                      gt_bboxes))
 
+      self.assertAllEqual(actual_assigned_anchors.assigned_gt_idx,
+                          [-1, -1, 0, -1])
       self.assertAllEqual(actual_assigned_anchors.assigned_gt_labels,
                           [0, 0, 1, 0])
       self.assertAllEqual(actual_assigned_anchors.assigned_gt_bbox, [
@@ -243,6 +247,8 @@ class Utils3DTest(test_utils.TestCase):
                                                      gt_bboxes))
 
       # Last two boxes are padded, thus not assigned.
+      self.assertAllEqual(actual_assigned_anchors.assigned_gt_idx,
+                          [0, 1, -1, -1])
       self.assertAllEqual(actual_assigned_anchors.assigned_gt_labels,
                           [1, 2, 0, 0])
       self.assertAllEqual(actual_assigned_anchors.assigned_gt_bbox[0:2, :],
