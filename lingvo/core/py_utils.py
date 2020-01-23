@@ -3303,18 +3303,36 @@ def FPropDtype(params):
 
 def UpdateFpropDtype(params, fprop_dtype):
   """Recursively update the fprop_dtype of the Params."""
+  # Handle the case when the input "params" is not an instance of hyperparams
+  # For example, when UpdateDtype is called recursively for all the items in
+  # the "sub" list of SequentialLayer (see 1st elif below)
+  if not isinstance(params, hyperparams.Params):
+    return
+
   for key, val in params.IterParams():
     if isinstance(val, hyperparams.Params):
       UpdateFpropDtype(val, fprop_dtype)
+    elif isinstance(val, (list, tuple)):
+      for item in val:
+        UpdateFpropDtype(item, fprop_dtype)
     elif key == 'fprop_dtype':
       params.fprop_dtype = fprop_dtype
 
 
 def UpdateDtype(params, dtype):
   """Recursively update the dtype of the Params."""
+  # Handle the case when the input "params" is not an instance of hyperparams
+  # For example, when UpdateDtype is called recursively for all the items in
+  # the "sub" list of SequentialLayer (see 1st elif below)
+  if not isinstance(params, hyperparams.Params):
+    return
+
   for key, val in params.IterParams():
     if isinstance(val, hyperparams.Params):
       UpdateDtype(val, dtype)
+    elif isinstance(val, (list, tuple)):
+      for item in val:
+        UpdateDtype(item, dtype)
     elif key == 'dtype':
       params.dtype = dtype
 

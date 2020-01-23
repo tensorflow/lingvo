@@ -28,6 +28,7 @@ import sys
 from lingvo import model_registry
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import builder_layers
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 from lingvo.core import recurrent
@@ -488,6 +489,26 @@ class PyUtilsTest(test_utils.TestCase):
     with self.session() as sess:
       f_v = sess.run(f, feed_dict={d: np.array([[1, 2]])})
       self.assertEqual(2, f_v)
+
+  def testUpdateFpropDtype(self):
+    network_p = builder_layers.SequentialLayer.Params()
+    linear_layer_p = builder_layers.LinearLayer.Params()
+    linear_layer_p.input_dims = 5
+    linear_layer_p.output_dims = 6
+    network_p.sub.append(linear_layer_p)
+
+    py_utils.UpdateFpropDtype(network_p, tf.bfloat16)
+    self.assertEqual(network_p.sub[0].fprop_dtype, tf.bfloat16)
+
+  def testUpdateDtype(self):
+    network_p = builder_layers.SequentialLayer.Params()
+    linear_layer_p = builder_layers.LinearLayer.Params()
+    linear_layer_p.input_dims = 5
+    linear_layer_p.output_dims = 6
+    network_p.sub.append(linear_layer_p)
+
+    py_utils.UpdateDtype(network_p, tf.bfloat16)
+    self.assertEqual(network_p.sub[0].dtype, tf.bfloat16)
 
   def testGetRank(self):
     a = tf.constant([1])
