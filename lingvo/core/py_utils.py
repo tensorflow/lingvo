@@ -63,8 +63,6 @@ tf.flags.DEFINE_bool('print_debug_tensors', False,
 tf.flags.DEFINE_string(
     'xla_device', '', 'If non-empty, can be cpu, gpu, or tpu (case sensitive)')
 
-tf.flags.DEFINE_bool('nas_run', False, 'If True, this is a NAS training run.')
-
 tf.flags.DEFINE_bool(
     'use_resource_var', False,
     'Use ResourceVariable instead of Variable; this option is '
@@ -437,10 +435,6 @@ def use_tpu():  # pylint: disable=invalid-name
   if res:
     assert not _FromGlobal('enable_asserts')  # asserts not supported on tpu
   return res
-
-
-def nas_run():  # pylint: disable=invalid-name
-  return _FromGlobal('nas_run')
 
 
 def tpu_compat():  # pylint: disable=invalid-name
@@ -1980,7 +1974,8 @@ def ComputeGradients(
     grad_aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE,
     colocate_gradients_with_ops=True,
     gate_gradients=False,
-    compute_gradients_fn=None):
+    compute_gradients_fn=None,
+    skip_zero_gradients=False):
   """Computes gradients of variables in vmap w.r.t loss.
 
   Args:
@@ -1996,6 +1991,10 @@ def ComputeGradients(
     compute_gradients_fn: Function to use to compute gradients. If None, use
       default. compute_gradients_fn should have the same signature as this
       function, but without the last argument.
+    skip_zero_gradients: Whether to skip aggregating zero gradients. This helps
+      in case where some weights may not be used in forward computation, e.g.,
+      sparsely activated networks or switchable layers in neural architectural
+      search.
 
   Returns:
     var_grad - a `.NestedMap` of (variable, gradient). You can view
@@ -2036,7 +2035,7 @@ def ComputeGradients(
   else:
     # tpu vs non-tpu is slightly different.
     if use_tpu():
-      if nas_run():
+      if skip_zero_gradients:
         take_grad = _ComputeGradientsTpuNas
       else:
         take_grad = _ComputeGradientsTpu
