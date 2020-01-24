@@ -390,11 +390,6 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.py_utils.nas_run">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">nas_run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#nas_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.nas_run" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
 <dt id="lingvo.core.py_utils.tpu_compat">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">tpu_compat</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#tpu_compat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.tpu_compat" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -1242,7 +1237,7 @@ with the original op.</p></li>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.ComputeGradients">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param">loss</em>, <em class="sig-param">vmap</em>, <em class="sig-param">grad_aggregation_method=1</em>, <em class="sig-param">colocate_gradients_with_ops=True</em>, <em class="sig-param">gate_gradients=False</em>, <em class="sig-param">compute_gradients_fn=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param">loss</em>, <em class="sig-param">vmap</em>, <em class="sig-param">grad_aggregation_method=1</em>, <em class="sig-param">colocate_gradients_with_ops=True</em>, <em class="sig-param">gate_gradients=False</em>, <em class="sig-param">compute_gradients_fn=None</em>, <em class="sig-param">skip_zero_gradients=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes gradients of variables in vmap w.r.t loss.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1259,6 +1254,10 @@ operations. This avoids some race conditions.</p></li>
 <li><p><strong>compute_gradients_fn</strong> – Function to use to compute gradients. If None, use
 default. compute_gradients_fn should have the same signature as this
 function, but without the last argument.</p></li>
+<li><p><strong>skip_zero_gradients</strong> – Whether to skip aggregating zero gradients. This helps
+in case where some weights may not be used in forward computation, e.g.,
+sparsely activated networks or switchable layers in neural architectural
+search.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

@@ -208,8 +208,6 @@
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
     <span class="s1">&#39;xla_device&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;If non-empty, can be cpu, gpu, or tpu (case sensitive)&#39;</span><span class="p">)</span>
 
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;nas_run&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, this is a NAS training run.&#39;</span><span class="p">)</span>
-
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
     <span class="s1">&#39;use_resource_var&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
     <span class="s1">&#39;Use ResourceVariable instead of Variable; this option is &#39;</span>
@@ -582,10 +580,6 @@
   <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">)</span>  <span class="c1"># asserts not supported on tpu</span>
   <span class="k">return</span> <span class="n">res</span></div>
-
-
-<div class="viewcode-block" id="nas_run"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.nas_run">[docs]</a><span class="k">def</span> <span class="nf">nas_run</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">return</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;nas_run&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="tpu_compat"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.tpu_compat">[docs]</a><span class="k">def</span> <span class="nf">tpu_compat</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
@@ -2125,7 +2119,8 @@
     <span class="n">grad_aggregation_method</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AggregationMethod</span><span class="o">.</span><span class="n">EXPERIMENTAL_TREE</span><span class="p">,</span>
     <span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">gate_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">compute_gradients_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">compute_gradients_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients of variables in vmap w.r.t loss.</span>
 
 <span class="sd">  Args:</span>
@@ -2141,6 +2136,10 @@
 <span class="sd">    compute_gradients_fn: Function to use to compute gradients. If None, use</span>
 <span class="sd">      default. compute_gradients_fn should have the same signature as this</span>
 <span class="sd">      function, but without the last argument.</span>
+<span class="sd">    skip_zero_gradients: Whether to skip aggregating zero gradients. This helps</span>
+<span class="sd">      in case where some weights may not be used in forward computation, e.g.,</span>
+<span class="sd">      sparsely activated networks or switchable layers in neural architectural</span>
+<span class="sd">      search.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    var_grad - a `.NestedMap` of (variable, gradient). You can view</span>
@@ -2181,7 +2180,7 @@
   <span class="k">else</span><span class="p">:</span>
     <span class="c1"># tpu vs non-tpu is slightly different.</span>
     <span class="k">if</span> <span class="n">use_tpu</span><span class="p">():</span>
-      <span class="k">if</span> <span class="n">nas_run</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">skip_zero_gradients</span><span class="p">:</span>
         <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsTpuNas</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsTpu</span>
