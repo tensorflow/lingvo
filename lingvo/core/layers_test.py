@@ -89,6 +89,8 @@ class BatchNormLayerTest(test_utils.TestCase):
           'bn/moving_variance/var:0'
       ]
       self.assertEqual(expected_var_names, bn_var_names)
+      self.assertEqual(['bn/moving_mean/var:0', 'bn/moving_variance/var:0'],
+                       [x.name for x in tf.moving_average_variables()])
 
   def testBatchNormLayerMoments(self):
     with self.session(use_gpu=True):
