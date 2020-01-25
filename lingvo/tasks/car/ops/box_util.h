@@ -33,7 +33,7 @@ struct Vertex;
 class RotatedBox2D {
  public:
   // Creates an empty rotated 2D box.
-  RotatedBox2D() = default;
+  RotatedBox2D() : RotatedBox2D(0, 0, 0, 0, 0) {}
 
   RotatedBox2D(const double cx, const double cy, const double w, const double h,
                const double heading);
