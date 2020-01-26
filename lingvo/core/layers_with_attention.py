@@ -418,6 +418,8 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
         'relu_dropout_prob', 0.0,
         'Probability at which we apply dropout to the hidden layer '
         'of feed-forward network.')
+    p.Define('add_skip_connection', True,
+             'If True, add skip_connection from input to output.')
     return p
 
   @base_layer.initializer
@@ -487,10 +489,12 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
     if hasattr(self, 'res_proj_layer'):
       inputs = self.res_proj_layer.FProp(theta.res_proj_layer, inputs)
-    h = inputs + self.residual_dropout.FProp(
+    h = self.residual_dropout.FProp(
         theta.residual_dropout,
         self.fflayer.FProp(theta.fflayer, inputs_normalized,
                            tf.expand_dims(paddings, -1)))
+    if self.params.add_skip_connection:
+      h += inputs
     return h
 
 
