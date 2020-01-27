@@ -88,28 +88,16 @@ class BatchNormLayer(base_layer.BaseLayer):
         self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
       # Two statistics.
-      # Add to the MOVING_AVERAGE_VARIABLES collection so that they are returned
-      # by tf.moving_average_variables() and included in EMA variables if
-      # ema_decay is enabled.
-      moving_collections = [
-          'moving_vars', tf.GraphKeys.MOVING_AVERAGE_VARIABLES,
-          self.__class__.__name__ + '_vars'
-      ]
-      mva = py_utils.WeightParams(
-          shape=[p.dim],
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=p.dtype,
-          collections=moving_collections)
       _, self._moving_mean = py_utils.CreateVariable(
-          'moving_mean', mva, trainable=False)
+          'moving_mean', pc, trainable=False)
 
-      mvv = py_utils.WeightParams(
+      pc = py_utils.WeightParams(
           shape=[p.dim],
           init=py_utils.WeightInit.Constant(1.0),
           dtype=p.dtype,
-          collections=moving_collections)
+          collections=[self.__class__.__name__ + '_vars'])
       _, self._moving_variance = py_utils.CreateVariable(
-          'moving_variance', mvv, trainable=False)
+          'moving_variance', pc, trainable=False)
     self._epsilon = 0.001
     self._decay = p.decay
 
