@@ -319,26 +319,30 @@ PSUtils::Result PSUtils::DoSampling(const Tensor& points,
       }
     }
 
-    // Adjust boundaries to avoid edge conditions.  We use max_dist as a
-    // conservative estimate.
-    xmin -= opts_.max_dist;
-    ymin -= opts_.max_dist;
-    zmin -= opts_.max_dist;
-    xmax += opts_.max_dist;
-    ymax += opts_.max_dist;
-    zmax += opts_.max_dist;
-
     // Stores a mapping of bucket_id -> list of point indices.  The buckets are
     // the voxelized breakdown of the 3D space and points fall into these
     // voxels.  The length of the cube is the max_distance.
     std::vector<std::vector<int>> buckets_vec;
     std::vector<std::vector<float>> buckets_values;
 
-    const int x_intervals = std::ceil((xmax - xmin) / opts_.max_dist);
-    const int y_intervals = std::ceil((ymax - ymin) / opts_.max_dist);
-    const int z_intervals = std::ceil((zmax - zmin) / opts_.max_dist);
+    int x_intervals = 0;
+    int y_intervals = 0;
+    int z_intervals = 0;
 
     if (use_hash_lookup) {
+      // Adjust boundaries to avoid edge conditions.  We use max_dist as a
+      // conservative estimate.
+      xmin -= opts_.max_dist;
+      ymin -= opts_.max_dist;
+      zmin -= opts_.max_dist;
+      xmax += opts_.max_dist;
+      ymax += opts_.max_dist;
+      zmax += opts_.max_dist;
+
+      x_intervals = std::ceil((xmax - xmin) / opts_.max_dist);
+      y_intervals = std::ceil((ymax - ymin) / opts_.max_dist);
+      z_intervals = std::ceil((zmax - zmin) / opts_.max_dist);
+
       // The number of buckets is the product of all the intervals.
       buckets_vec.resize(x_intervals * y_intervals * z_intervals);
       for (int i = 0; i < num_points; ++i) {
