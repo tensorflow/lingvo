@@ -3948,6 +3948,28 @@
   <span class="k">return</span> <span class="n">outputs</span></div>
 
 
+<div class="viewcode-block" id="RemoveAssertContext"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.RemoveAssertContext">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Hacks to replace certain unwanted tensorflow ops.&quot;&quot;&quot;</span>
+  <span class="c1"># TODO(zhifengc/huangyp): Consider implementing assert_equal</span>
+  <span class="c1"># op replacement for lingvo. As assert_equal doesn&#39;t support String on GPUs.</span>
+  <span class="c1"># Hack to replace tf.assert_equal</span>
+  <span class="c1"># TODO(b/136040013): Remove this after migration to tf.function.</span>
+  <span class="k">if</span> <span class="n">remove</span><span class="p">:</span>
+    <span class="n">saved_assert_equal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">check_ops</span><span class="o">.</span><span class="n">assert_equal</span>
+
+    <span class="c1"># pylint: disable=unused-argument</span>
+    <span class="k">def</span> <span class="nf">NoOP</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+
+    <span class="c1"># pylint: enable=unused-argument</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">check_ops</span><span class="o">.</span><span class="n">assert_equal</span> <span class="o">=</span> <span class="n">NoOP</span>  <span class="c1"># Make assert_equal a no op.</span>
+    <span class="k">yield</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">check_ops</span><span class="o">.</span><span class="n">assert_equal</span> <span class="o">=</span> <span class="n">saved_assert_equal</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">yield</span></div>
+
+
 <div class="viewcode-block" id="_DefineDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DefineDefun">[docs]</a><span class="k">def</span> <span class="nf">_DefineDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak.</span>
 
@@ -3972,20 +3994,26 @@
   <span class="n">get_shape</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
   <span class="n">arg_shapes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">get_shape</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
 
+  <span class="n">compiled</span> <span class="o">=</span> <span class="n">use_xla</span><span class="p">()</span>
+  <span class="n">noinline</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">compiled</span>
+
   <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="k">assert</span> <span class="n">bak</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="n">xs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
     <span class="c1"># Note: sigs.rets will be set during the Forward call.</span>
     <span class="n">ys</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
     <span class="n">dys</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-    <span class="n">dxs</span> <span class="o">=</span> <span class="n">bak</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
+      <span class="n">dxs</span> <span class="o">=</span> <span class="n">bak</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">dxs</span><span class="p">)</span>
 
-  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="p">),</span> <span class="n">python_grad_func</span><span class="o">=</span><span class="n">Backward</span><span class="p">)</span>
+  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
+      <span class="o">*</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="p">),</span> <span class="n">python_grad_func</span><span class="o">=</span><span class="n">Backward</span><span class="p">,</span> <span class="n">noinline</span><span class="o">=</span><span class="n">noinline</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">Forward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">arg</span><span class="p">,</span> <span class="n">shape</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">arg_shapes</span><span class="p">)):</span>
       <span class="n">arg</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
-    <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+    <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
+      <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
     <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">,</span> <span class="n">rets</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
 

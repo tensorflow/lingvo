@@ -733,10 +733,12 @@
         <span class="n">t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">pad_begin</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
         <span class="n">limit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
-      <span class="n">run</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">]),</span>
-          <span class="n">cond</span><span class="o">=</span><span class="n">ForwardLoopCond</span><span class="p">,</span>
-          <span class="n">body</span><span class="o">=</span><span class="n">ForwardLoopBody</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
+        <span class="n">run</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span>
+            <span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">]),</span>
+            <span class="n">cond</span><span class="o">=</span><span class="n">ForwardLoopCond</span><span class="p">,</span>
+            <span class="n">body</span><span class="o">=</span><span class="n">ForwardLoopBody</span><span class="p">)</span>
       <span class="n">t</span> <span class="o">=</span> <span class="n">run</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">_</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span>
           <span class="n">run</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span>
@@ -938,21 +940,22 @@
         <span class="n">limit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">limit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-      <span class="n">run</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">Flatten</span><span class="p">([</span>
-              <span class="n">theta</span><span class="p">,</span>
-              <span class="n">state0</span><span class="p">,</span>
-              <span class="n">inputs</span><span class="p">,</span>
-              <span class="n">acc_state</span><span class="p">,</span>
-              <span class="n">acc_extras</span><span class="p">,</span>
-              <span class="n">d_theta</span><span class="p">,</span>
-              <span class="n">d_state1</span><span class="p">,</span>
-              <span class="n">d_inputs</span><span class="p">,</span>
-              <span class="n">d_acc_state</span><span class="p">,</span>
-              <span class="n">d_captured</span><span class="p">,</span>
-          <span class="p">]),</span>
-          <span class="n">cond</span><span class="o">=</span><span class="n">BackwardLoopCond</span><span class="p">,</span>
-          <span class="n">body</span><span class="o">=</span><span class="n">BackwardLoopBody</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
+        <span class="n">run</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">Flatten</span><span class="p">([</span>
+                <span class="n">theta</span><span class="p">,</span>
+                <span class="n">state0</span><span class="p">,</span>
+                <span class="n">inputs</span><span class="p">,</span>
+                <span class="n">acc_state</span><span class="p">,</span>
+                <span class="n">acc_extras</span><span class="p">,</span>
+                <span class="n">d_theta</span><span class="p">,</span>
+                <span class="n">d_state1</span><span class="p">,</span>
+                <span class="n">d_inputs</span><span class="p">,</span>
+                <span class="n">d_acc_state</span><span class="p">,</span>
+                <span class="n">d_captured</span><span class="p">,</span>
+            <span class="p">]),</span>
+            <span class="n">cond</span><span class="o">=</span><span class="n">BackwardLoopCond</span><span class="p">,</span>
+            <span class="n">body</span><span class="o">=</span><span class="n">BackwardLoopBody</span><span class="p">)</span>
 
       <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">,</span> <span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span>
        <span class="n">d_inputs</span><span class="p">,</span> <span class="n">d_acc_state</span><span class="p">,</span> <span class="n">d_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">run</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">bakloop_sig</span><span class="p">)</span>
