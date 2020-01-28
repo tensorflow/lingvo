@@ -782,7 +782,7 @@ class ConvLayerTest(test_utils.TestCase):
     # pylint: enable=bad-whitespace
     actual = self._evalConvLayerFProp(strides=[1, 1], dilation_rate=[2, 2])
     print('testConvLayerWithDilationFProp actual = ', np.array_repr(actual))
-    self.assertAllClose(expected_output1, actual)
+    self.assertAllClose(expected_output1, actual, atol=1e-5)
 
   def testSeparableConv2DLayerWithDilationFProp(self):
     # pyformat: disable
