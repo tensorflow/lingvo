@@ -709,11 +709,9 @@ class NestedMap(dict):
   def FlattenItems(self):
     """Flatten the `.NestedMap` and returns <key, value> pairs in a list.
 
-    For lists, keys will be returned with `_<idx>` appended, e.g. `x.y_10.z`.
-
     Returns:
       A list of <key, value> pairs, where keys for nested entries will be
-      represented in the form of `foo.bar`.
+      represented in the form of `foo.bar[10].baz`.
     """
 
     def Expand(key, v):
@@ -726,7 +724,7 @@ class NestedMap(dict):
       elif isinstance(v, list):
         ret = []
         for i, x in enumerate(v):
-          ret += Expand('%s_%d' % (key, i), x)
+          ret += Expand('%s[%d]' % (key, i), x)
         return ret
       else:
         return [(key, v)]
@@ -822,8 +820,6 @@ class NestedMap(dict):
 
     If fn(key, entry) is True, the entry is copied into the returned NestedMap.
     Otherwise, it is not copied.
-    For lists, keys will be processed with indices, e.g. `x.y[10].z`.
-    This is different from FlattenItems.
 
     Args:
       fn: a callable of (string, entry)->boolean.
@@ -1265,6 +1261,11 @@ class _CollectionGetter(object):
     value = self._default_factory()
     tf.add_to_collection(self._key, value)
     return value
+
+
+def SanitizeScopeKey(key):
+  """Removes invalid symbols from name_scope keys."""
+  return key.replace('[', '_').replace(']', '')
 
 
 # Global variable to control multitask variable reuse

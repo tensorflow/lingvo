@@ -109,7 +109,7 @@ def _Update(nmap_acc, nmap_x, t):
   t = tf.cast([t], tf.int32)  # tf.cast casts on-device tensors.
   lst = []
   for acc, (key, x) in zip(acc_lst, kx_lst):
-    with tf.name_scope('update_%s' % key):
+    with tf.name_scope('update_%s' % py_utils.SanitizeScopeKey(key)):
       lst += [tf.InplaceUpdate(acc, t, tf.expand_dims(x, 0))]
   return nmap_acc.Pack(lst)
 

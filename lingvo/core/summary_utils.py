@@ -233,6 +233,7 @@ def CollectVarHistogram(vs_gs):
   """Adds histogram summaries for variables and gradients."""
 
   for name, (var, grad) in vs_gs.FlattenItems():
+    name = py_utils.SanitizeScopeKey(name)
     with tf.device(var.device), tf.name_scope(name + '/summary'):
       if isinstance(grad, tf.IndexedSlices):
         var = tf.gather(var, grad.indices)

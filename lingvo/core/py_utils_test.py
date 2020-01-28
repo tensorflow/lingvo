@@ -1383,7 +1383,7 @@ foo[2][0]     32"""
     self.assertEqual(m.Flatten(), expected)
 
     expected_keys = [
-        'bar.x', 'bar.y_0', 'bar.y_1.z', 'foo_0', 'foo_1', 'foo_2_0'
+        'bar.x', 'bar.y[0]', 'bar.y[1].z', 'foo[0]', 'foo[1]', 'foo[2][0]'
     ]
     self.assertEqual(m.FlattenItems(), list(zip(expected_keys, expected)))
 
@@ -1496,7 +1496,7 @@ foo[2][0]     32"""
         d=py_utils.NestedMap(foo=38, bar=192, ok=[200, 300], ko=[10, 20]))
     y = x.Filter(lambda v: v > 150)
     self.assertEqual(y.FlattenItems(), [('b', 200), ('c', 300), ('d.bar', 192),
-                                        ('d.ok_0', 200), ('d.ok_1', 300)])
+                                        ('d.ok[0]', 200), ('d.ok[1]', 300)])
 
   def testFilterKeyVal(self):
     x = py_utils.NestedMap(
@@ -1511,7 +1511,7 @@ foo[2][0]     32"""
 
     y = x.FilterKeyVal(Sel)
     self.assertEqual(y.FlattenItems(), [('a', 100), ('d.foo', 38),
-                                        ('d.ok_0', 300)])
+                                        ('d.ok[0]', 300)])
 
   def testCopy(self):
     # This is not a copy.
