@@ -585,6 +585,7 @@ class TransformerEncoder(base_layer.BaseLayer):
         proj_p.name = 'emb_proj'
         proj_p.input_dim = p.token_emb.embedding_dim
         proj_p.output_dim = p.model_dim
+        proj_p.batch_norm = True
         self.CreateChild('emb_proj', proj_p)
 
       # Token embeddings
