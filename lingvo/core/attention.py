@@ -1644,12 +1644,6 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             'atten_idx is not None, this means there are multiple post '
             'projections, and p.num_post_proj is supposed to be > 1. However '
             'you set p.num_post_proj=%s .' % p.num_post_proj)
-        # TODO(yuancao): Current implementation based on einsum may result in
-        # deteorating performance when num_post_proj is large (eg. >10).
-        # Consider alternative implementation for performance optimization.
-        assert p.num_post_proj < 10, (
-            'Out of performance consideration currently we only consider cases '
-            'where num_post_proj is relatively small (eg. <10).')
         bs_range = [tf.range(batch_size)]
         select = tf.transpose(tf.concat([bs_range, [atten_idx]], axis=0))
         # => [batch, dim, num_langs]
