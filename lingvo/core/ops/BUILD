@@ -262,7 +262,7 @@ custom_kernel_library(
     srcs = ["best_step_op_kernels.cc"],
     op_def_lib = [":x_ops"],
     deps = [
-        # Implicit tensorflow proto dependency.
+        # Implicit tensorflow C++ proto dependency.
     ],
 )
 
