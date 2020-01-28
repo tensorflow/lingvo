@@ -277,6 +277,48 @@ class DecoderTest(DecoderTestCaseBase):
     self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
     self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
 
+  def testBeamSearchDecodeUseZeroAttenState(self, dtype=tf.float32):
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      src_batch = 2
+      p = self._DecoderParams(dtype=dtype)
+      src_time = p.target_seq_len
+      p.beam_search.num_hyps_per_beam = 2
+      p.use_zero_atten_state = True
+      p.rnn_cell_dim = 32
+      dec = decoder.MTDecoderV1(p)
+      encoder_outputs, _ = self._Inputs(dtype=dtype)
+      decode = dec.BeamSearchDecode(encoder_outputs)
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # sess.run(decode).
+      decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
+
+      tf.global_variables_initializer().run()
+      actual_decode = sess.run(decode)
+
+    self.assertTupleEqual(
+        (src_time, src_batch * p.beam_search.num_hyps_per_beam),
+        actual_decode.done_hyps.shape)
+    self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
+                          actual_decode.topk_hyps.shape)
+    self.assertTupleEqual(
+        (src_batch * p.beam_search.num_hyps_per_beam, src_time),
+        actual_decode.topk_ids.shape)
+    self.assertTupleEqual((src_batch * p.beam_search.num_hyps_per_beam,),
+                          actual_decode.topk_lens.shape)
+    self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
+                          actual_decode.topk_scores.shape)
+
+    expected_topk_ids = [[2, 0, 0, 0, 0], [13, 2, 0, 0, 0], [0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0]]
+
+    expected_topk_lens = [1, 2, 0, 0]
+    expected_topk_scores = [[-3.783176, -5.767704], [0., 0.]]
+
+    self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
+    self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
+    self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
+
   def testBeamSearchDecodeFeedingAttContext(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess, self.SetEval(True):
       tf.set_random_seed(_TF_RANDOM_SEED)

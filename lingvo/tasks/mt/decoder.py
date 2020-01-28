@@ -640,8 +640,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
           theta.frnn_with_atten.atten, source_encs, source_encs,
           source_paddings)
       s_seq_len = tf.shape(source_encs)[0]
-      atten_context = tf.zeros(
-          [num_hyps, p.attention.source_dim], dtype=source_encs.dtype)
+      context_dim = tf.shape(source_encs)[2]
+      atten_context = tf.zeros([num_hyps, context_dim], dtype=source_encs.dtype)
       atten_states = self._atten.ZeroAttentionState(s_seq_len, num_hyps)
       atten_probs = tf.zeros([num_hyps, s_seq_len], dtype=source_encs.dtype)
     else:
