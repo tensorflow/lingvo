@@ -2113,6 +2113,27 @@
   <span class="k">return</span> <span class="n">aggregated_grads</span></div>
 
 
+<div class="viewcode-block" id="VarGrad"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.VarGrad">[docs]</a><span class="k">class</span> <span class="nc">VarGrad</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A class that holds a variable and a gradient.&quot;&quot;&quot;</span>
+
+  <span class="n">_VAR_GRAD</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;VarGradNamedTuple&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;grad&#39;</span><span class="p">])</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_VAR_GRAD</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+  <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s1">&#39;VarGrad(</span><span class="si">%r</span><span class="s1">, </span><span class="si">%r</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="o">.</span><span class="n">grad</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="ComputeGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeGradients">[docs]</a><span class="k">def</span> <span class="nf">ComputeGradients</span><span class="p">(</span>
     <span class="n">loss</span><span class="p">,</span>
     <span class="n">vmap</span><span class="p">,</span>
@@ -2142,7 +2163,7 @@
 <span class="sd">      search.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    var_grad - a `.NestedMap` of (variable, gradient). You can view</span>
+<span class="sd">    var_grad - a `.NestedMap` of VarGrad. You can view</span>
 <span class="sd">    var_grad as an ordered list of (key, (var, grad)) tuples. Every</span>
 <span class="sd">    key of var_grad exists in vmap. Every variable in vmap that</span>
 <span class="sd">    contributes to loss must exist in var_grad. Every var of var_grad</span>
@@ -2192,13 +2213,14 @@
 
   <span class="c1"># Formulate pairs of (var, grad) and pack them into the same</span>
   <span class="c1"># structure as filtered_vmap.</span>
-  <span class="n">var_grad</span> <span class="o">=</span> <span class="n">filtered_vmap</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">filtered_vlist</span><span class="p">,</span> <span class="n">grads</span><span class="p">)))</span>
+  <span class="n">var_grads</span> <span class="o">=</span> <span class="n">filtered_vmap</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
+      <span class="p">[</span><span class="n">VarGrad</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">filtered_vlist</span><span class="p">,</span> <span class="n">grads</span><span class="p">)])</span>
 
   <span class="c1"># Removes pairs whose grad is None.</span>
-  <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+  <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
     <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ComputeGradients drops </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v_g</span><span class="p">:</span> <span class="n">v_g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">var_grad</span><span class="p">:</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MaskGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.MaskGradients">[docs]</a><span class="k">def</span> <span class="nf">MaskGradients</span><span class="p">(</span><span class="n">var_grad</span><span class="p">,</span> <span class="n">grad_mask</span><span class="p">):</span>
@@ -2216,18 +2238,18 @@
     <span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="o">=</span> <span class="n">entry</span>
     <span class="n">mask</span> <span class="o">=</span> <span class="n">grad_mask</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">):</span>
-      <span class="k">return</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">(</span><span class="n">grad</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">mask</span><span class="p">,</span> <span class="n">grad</span><span class="o">.</span><span class="n">indices</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">VarGrad</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">(</span><span class="n">grad</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">mask</span><span class="p">,</span> <span class="n">grad</span><span class="o">.</span><span class="n">indices</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="o">*</span> <span class="n">mask</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">VarGrad</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="o">*</span> <span class="n">mask</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">ApplyMask</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="ApplyGradMultiplier"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ApplyGradMultiplier">[docs]</a><span class="k">def</span> <span class="nf">ApplyGradMultiplier</span><span class="p">(</span><span class="n">vs_gs_scale</span><span class="p">,</span> <span class="n">grad_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="ApplyGradMultiplier"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ApplyGradMultiplier">[docs]</a><span class="k">def</span> <span class="nf">ApplyGradMultiplier</span><span class="p">(</span><span class="n">vs_gs</span><span class="p">,</span> <span class="n">grad_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Scale gradients by grad_scale on same device as corresponding variables.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    vs_gs_scale: A `.NestedMap` of (variable, gradient, scale).</span>
+<span class="sd">    vs_gs: A `.NestedMap` of VarGrad.</span>
 <span class="sd">    grad_scale: If None, each vs_gs entry has the scale. Otherwise, grad_scale</span>
 <span class="sd">      applies to every entry.</span>
 
@@ -2236,10 +2258,6 @@
 <span class="sd">    grad_scale is 0, the result gradient is always 0, even if the input</span>
 <span class="sd">    gradient is inf or nan.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-
-  <span class="k">if</span> <span class="n">grad_scale</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">vs_gs_scale</span> <span class="o">=</span> <span class="n">vs_gs_scale</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">vg</span><span class="p">:</span> <span class="p">(</span><span class="n">vg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vg</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">grad_scale</span><span class="p">))</span>
-
   <span class="k">def</span> <span class="nf">ScaleOrZero</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
     <span class="n">grad</span> <span class="o">=</span> <span class="n">CheckNumerics</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="s1">&#39;Gradient for </span><span class="si">%s</span><span class="s1"> is not finite.&#39;</span> <span class="o">%</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
@@ -2248,8 +2266,12 @@
 
   <span class="k">def</span> <span class="nf">Scale</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Scales the gradient.&quot;&quot;&quot;</span>
-    <span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">scale</span> <span class="o">=</span> <span class="n">item</span>
+    <span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="o">=</span> <span class="n">item</span>
     <span class="k">assert</span> <span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;No grad found for &#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">grad_scale</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">scale</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">scale</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">scale</span> <span class="o">=</span> <span class="n">grad_scale</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">):</span>
         <span class="n">grad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">(</span>
@@ -2257,9 +2279,9 @@
             <span class="n">grad</span><span class="o">.</span><span class="n">dense_shape</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">grad</span> <span class="o">=</span> <span class="n">ScaleOrZero</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">VarGrad</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span>
 
-  <span class="k">return</span> <span class="n">vs_gs_scale</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">Scale</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">vs_gs</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">Scale</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="HasNanOrInfGradient"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.HasNanOrInfGradient">[docs]</a><span class="k">def</span> <span class="nf">HasNanOrInfGradient</span><span class="p">(</span><span class="n">var_grads</span><span class="p">):</span>
@@ -2283,28 +2305,26 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">([</span><span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span></div>
 
 
-<div class="viewcode-block" id="ApplyGradNormCliping"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ApplyGradNormCliping">[docs]</a><span class="k">def</span> <span class="nf">ApplyGradNormCliping</span><span class="p">(</span><span class="n">vs_gs</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+<div class="viewcode-block" id="ApplyGradNormClipping"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ApplyGradNormClipping">[docs]</a><span class="k">def</span> <span class="nf">ApplyGradNormClipping</span><span class="p">(</span><span class="n">vs_gs</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Clip gradients to norm on same device as corresponding variables.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    vs_gs: A `.NestedMap` of (variable, gradient).</span>
+<span class="sd">    vs_gs: A `.NestedMap` of VarGrad.</span>
 <span class="sd">    norm: Each tensor&#39;s gradient will be scaled down to have a maximum L2-norm</span>
 <span class="sd">      value of `norm`.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A `.NestedMap` of (variable, scaled_gradient). In particular, if</span>
+<span class="sd">    A `.NestedMap` of VarGrad(variable, scaled_gradient). In particular, if</span>
 <span class="sd">    grad_scale is 0, the result gradient is always 0, even if the input</span>
 <span class="sd">    gradient is inf or nan.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">vs_gs_norm</span> <span class="o">=</span> <span class="n">vs_gs</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v_g</span><span class="p">:</span> <span class="p">(</span><span class="n">v_g</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v_g</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">norm</span><span class="p">))</span>
-
   <span class="k">def</span> <span class="nf">ClipByNorm</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">norm</span><span class="p">):</span>
     <span class="n">grad</span> <span class="o">=</span> <span class="n">CheckNumerics</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="s1">&#39;Gradient for </span><span class="si">%s</span><span class="s1"> is not finite.&#39;</span> <span class="o">%</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_norm</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">norm</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="nf">Clip</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Scales the gradient.&quot;&quot;&quot;</span>
-    <span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">norm</span> <span class="o">=</span> <span class="n">item</span>
+    <span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="o">=</span> <span class="n">item</span>
     <span class="k">assert</span> <span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;No grad found for &#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">):</span>
@@ -2312,9 +2332,9 @@
             <span class="n">ClipByNorm</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">norm</span><span class="p">),</span> <span class="n">grad</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span> <span class="n">grad</span><span class="o">.</span><span class="n">dense_shape</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">grad</span> <span class="o">=</span> <span class="n">ClipByNorm</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">norm</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">VarGrad</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span>
 
-  <span class="k">return</span> <span class="n">vs_gs_norm</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">Clip</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">vs_gs</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">Clip</span><span class="p">)</span></div>
 
 
 <span class="n">SKIP_LP_REGULARIZATION</span> <span class="o">=</span> <span class="s1">&#39;__lingvo_skip_lp_regularization&#39;</span>
@@ -2352,9 +2372,10 @@
   <span class="k">def</span> <span class="nf">ShouldAdjust</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">)</span>
 
-  <span class="n">filtered_var_grads</span> <span class="o">=</span> <span class="p">[(</span><span class="n">v</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span> <span class="k">if</span> <span class="n">ShouldAdjust</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-                       <span class="p">]</span>
-  <span class="n">filtered_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">GetVar</span><span class="p">(</span><span class="n">v_g</span><span class="p">)</span> <span class="k">for</span> <span class="n">v_g</span> <span class="ow">in</span> <span class="n">filtered_var_grads</span><span class="p">]</span>
+  <span class="n">filtered_var_grads</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="n">var_grad</span> <span class="k">for</span> <span class="n">var_grad</span> <span class="ow">in</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span> <span class="k">if</span> <span class="n">ShouldAdjust</span><span class="p">(</span><span class="n">var_grad</span><span class="o">.</span><span class="n">var</span><span class="p">)</span>
+  <span class="p">]</span>
+  <span class="n">filtered_vars</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">filtered_var_grads</span><span class="p">,</span> <span class="n">GetVar</span><span class="p">)</span>
   <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">filtered_vars</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;AdjustGradientsWithLpLoss: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
@@ -2363,9 +2384,9 @@
   <span class="k">elif</span> <span class="n">p</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
     <span class="n">lp_loss</span> <span class="o">=</span> <span class="n">lp_regularizer_weight</span> <span class="o">*</span> <span class="n">SumAbs</span><span class="p">(</span><span class="n">filtered_vars</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">LpGrad</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">LpGrad</span><span class="p">(</span><span class="n">var_grad</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Adjusts item&#39;s grad w/ Lp loss term.&quot;&quot;&quot;</span>
-    <span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="o">=</span> <span class="n">item</span>
+    <span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="o">=</span> <span class="n">var_grad</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">):</span>
       <span class="c1"># Question(rpang): do we apply Lp loss here even if &#39;var&#39; is in</span>
       <span class="c1"># SKIP_LP_REGULARIZATION?</span>
@@ -2408,7 +2429,7 @@
         <span class="n">delta</span> <span class="o">=</span> <span class="n">lp_regularizer_weight</span> <span class="o">*</span> <span class="n">grad_v</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">grad</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="n">grad</span> <span class="o">+=</span> <span class="n">delta</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">VarGrad</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">lp_loss</span><span class="p">,</span> <span class="n">Transform</span><span class="p">(</span><span class="n">var_grads</span><span class="p">,</span> <span class="n">LpGrad</span><span class="p">)</span></div>
 

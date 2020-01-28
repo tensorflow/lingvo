@@ -1235,6 +1235,19 @@ with the original op.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.core.py_utils.VarGrad">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">VarGrad</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#VarGrad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.VarGrad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A class that holds a variable and a gradient.</p>
+<dl class="attribute">
+<dt id="lingvo.core.py_utils.VarGrad._VAR_GRAD">
+<code class="sig-name descname">_VAR_GRAD</code><a class="headerlink" href="#lingvo.core.py_utils.VarGrad._VAR_GRAD" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">VarGradNamedTuple</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="lingvo.core.py_utils.ComputeGradients">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param">loss</em>, <em class="sig-param">vmap</em>, <em class="sig-param">grad_aggregation_method=1</em>, <em class="sig-param">colocate_gradients_with_ops=True</em>, <em class="sig-param">gate_gradients=False</em>, <em class="sig-param">compute_gradients_fn=None</em>, <em class="sig-param">skip_zero_gradients=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
@@ -1261,7 +1274,7 @@ search.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>var_grad - a <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient). You can view
+<dd class="field-even"><p>var_grad - a <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of VarGrad. You can view
 var_grad as an ordered list of (key, (var, grad)) tuples. Every
 key of var_grad exists in vmap. Every variable in vmap that
 contributes to loss must exist in var_grad. Every var of var_grad
@@ -1290,12 +1303,12 @@ for var. grad is guaranteed to be not None.</p>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.ApplyGradMultiplier">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ApplyGradMultiplier</code><span class="sig-paren">(</span><em class="sig-param">vs_gs_scale</em>, <em class="sig-param">grad_scale=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ApplyGradMultiplier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ApplyGradMultiplier" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ApplyGradMultiplier</code><span class="sig-paren">(</span><em class="sig-param">vs_gs</em>, <em class="sig-param">grad_scale=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ApplyGradMultiplier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ApplyGradMultiplier" title="Permalink to this definition">¶</a></dt>
 <dd><p>Scale gradients by grad_scale on same device as corresponding variables.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>vs_gs_scale</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient, scale).</p></li>
+<li><p><strong>vs_gs</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of VarGrad.</p></li>
 <li><p><strong>grad_scale</strong> – If None, each vs_gs entry has the scale. Otherwise, grad_scale
 applies to every entry.</p></li>
 </ul>
@@ -1323,19 +1336,19 @@ gradient is inf or nan.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.py_utils.ApplyGradNormCliping">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ApplyGradNormCliping</code><span class="sig-paren">(</span><em class="sig-param">vs_gs</em>, <em class="sig-param">norm=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ApplyGradNormCliping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ApplyGradNormCliping" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.py_utils.ApplyGradNormClipping">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ApplyGradNormClipping</code><span class="sig-paren">(</span><em class="sig-param">vs_gs</em>, <em class="sig-param">norm=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ApplyGradNormClipping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ApplyGradNormClipping" title="Permalink to this definition">¶</a></dt>
 <dd><p>Clip gradients to norm on same device as corresponding variables.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>vs_gs</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient).</p></li>
+<li><p><strong>vs_gs</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of VarGrad.</p></li>
 <li><p><strong>norm</strong> – Each tensor’s gradient will be scaled down to have a maximum L2-norm
 value of <code class="xref py py-obj docutils literal notranslate"><span class="pre">norm</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, scaled_gradient). In particular, if
+<dd class="field-even"><p>A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of VarGrad(variable, scaled_gradient). In particular, if
 grad_scale is 0, the result gradient is always 0, even if the input
 gradient is inf or nan.</p>
 </dd>
