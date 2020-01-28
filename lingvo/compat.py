@@ -108,6 +108,7 @@ data.make_one_shot_iterator = tf1.data.make_one_shot_iterator
 data.Dataset = tf1.data.Dataset
 data.TFRecordDataset = tf1.data.TFRecordDataset
 decode_raw = tf1.decode_raw
+decode_csv = tf1.decode_csv
 device = tf1.device
 Dimension = tf1.Dimension
 div = tf1.div
@@ -216,6 +217,7 @@ sparse_tensor_to_dense = tf1.sparse_tensor_to_dense
 string_split = tf1.string_split
 strings.reduce_join = reduce_join
 strings.split = tf1.strings.split
+string_to_hash_bucket_fast = tf1.string_to_hash_bucket_fast
 Summary = tf1.Summary
 if tf1.summary is not None:
   # tf.summary are not supported on TPU so we sometimes set tf.summary to None
