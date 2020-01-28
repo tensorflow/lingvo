@@ -67,6 +67,12 @@ class BatchNormLayer(base_layer.BaseLayer):
         'If True, use global moving avg (mean, variance) during training'
         ' to avoid mismatch between train and eval, which then'
         ' essentially acts as an adaptive normalization step.')
+    p.Define(
+        'add_stats_to_moving_average_variables', None,
+        'If True, adds (mean, variance) to the MOVING_AVERAGE_VARIABLES '
+        'collection to be compatible with ema_decay. '
+        'Recommendation: set to True for new models, and to False to maintain '
+        'checkpoint compatibility.')
     return p
 
   @base_layer.initializer
@@ -88,16 +94,33 @@ class BatchNormLayer(base_layer.BaseLayer):
         self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
       # Two statistics.
+      moving_collections = ['moving_vars', self.__class__.__name__ + '_vars']
+      if p.add_stats_to_moving_average_variables:
+        moving_collections += [tf.GraphKeys.MOVING_AVERAGE_VARIABLES]
+      elif p.add_stats_to_moving_average_variables is None:
+        # TODO(rpang): force all models to set this param explicitly.
+        tf.logging.warn(
+            'BatchNormLayer.add_stats_to_moving_average_variables should be '
+            'set to True for new models, and to False explicitly for '
+            'checkpoint compatibility.')
+      # Add to the MOVING_AVERAGE_VARIABLES collection so that they are returned
+      # by tf.moving_average_variables() and included in EMA variables if
+      # ema_decay is enabled.
+      mva = py_utils.WeightParams(
+          shape=[p.dim],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=moving_collections)
       _, self._moving_mean = py_utils.CreateVariable(
-          'moving_mean', pc, trainable=False)
+          'moving_mean', mva, trainable=False)
 
-      pc = py_utils.WeightParams(
+      mvv = py_utils.WeightParams(
           shape=[p.dim],
           init=py_utils.WeightInit.Constant(1.0),
           dtype=p.dtype,
-          collections=[self.__class__.__name__ + '_vars'])
+          collections=moving_collections)
       _, self._moving_variance = py_utils.CreateVariable(
-          'moving_variance', pc, trainable=False)
+          'moving_variance', mvv, trainable=False)
     self._epsilon = 0.001
     self._decay = p.decay
 

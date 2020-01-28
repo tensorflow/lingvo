@@ -81,6 +81,7 @@ class BatchNormLayerTest(test_utils.TestCase):
       params.name = 'bn'
       params.dim = 2
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.add_stats_to_moving_average_variables = True
       layers.BatchNormLayer(params)
       bn_vars = tf.get_collection('BatchNormLayer_vars')
       bn_var_names = [x.name for x in bn_vars]
@@ -89,6 +90,8 @@ class BatchNormLayerTest(test_utils.TestCase):
           'bn/moving_variance/var:0'
       ]
       self.assertEqual(expected_var_names, bn_var_names)
+      self.assertEqual(['bn/moving_mean/var:0', 'bn/moving_variance/var:0'],
+                       [x.name for x in tf.moving_average_variables()])
 
   def testBatchNormLayerMoments(self):
     with self.session(use_gpu=True):
