@@ -3023,11 +3023,13 @@ class SingleShardFullSoftmax(SoftmaxLayer):
     chunk_size = p.chunk_size
     num_chunks = batch_size // chunk_size
 
-    num_chunks = py_utils.with_dependencies(
-        [tf.assert_equal(0, tf.mod(batch_size, chunk_size),
-                         summarize=2,
-                         message='assert_equal')],
-        num_chunks)
+    num_chunks = py_utils.with_dependencies([
+        py_utils.assert_equal(
+            0,
+            tf.mod(batch_size, chunk_size),
+            summarize=2,
+            message='assert_equal')
+    ], num_chunks)
 
     def ReshapeX(x):
       if x is None:

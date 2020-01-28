@@ -1039,6 +1039,23 @@ class PyUtilsTest(test_utils.TestCase):
       self.assertTrue(py_utils.use_tpu())
       self.assertEqual(1, mock_outside_compilation.call_count)
 
+  def testRemoveAssertContext(self):
+
+    @tf.Defun(tf.float32, noinline=True)
+    def Op(x):
+      with py_utils.RemoveAssertContext(remove=True):
+        x = py_utils.with_dependencies(
+            [tf.assert_equal(0, 1, message='assert not removed')], x)
+        x = py_utils.with_dependencies(
+            [tf.check_ops.assert_equal(0, 1, message='assert not removed')], x)
+      return x
+
+    with self.session(use_gpu=True) as sess:
+
+      x = tf.ones((2, 2))
+      y = Op(x)
+      _ = sess.run(y)
+
 
 class DeterministicDropoutTest(test_utils.TestCase):
 

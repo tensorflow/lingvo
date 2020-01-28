@@ -32,8 +32,10 @@ from absl import logging
 from tensorflow.python import tf2
 
 from tensorflow.python.framework import function as _function_lib
+from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
+
 from tensorflow.python.platform import app
 # pylint: enable=g-direct-tensorflow-import
 # pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top

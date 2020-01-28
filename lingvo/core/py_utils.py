@@ -3803,6 +3803,28 @@ def ProjectLastDim(inputs, weight, input_dim, output_dim):
   return outputs
 
 
+@contextlib.contextmanager
+def RemoveAssertContext(remove=True):
+  """Hacks to replace certain unwanted tensorflow ops."""
+  # TODO(zhifengc/huangyp): Consider implementing assert_equal
+  # op replacement for lingvo. As assert_equal doesn't support String on GPUs.
+  # Hack to replace tf.assert_equal
+  # TODO(b/136040013): Remove this after migration to tf.function.
+  if remove:
+    saved_assert_equal = tf.check_ops.assert_equal
+
+    # pylint: disable=unused-argument
+    def NoOP(*args, **kwargs):
+      return tf.no_op()
+
+    # pylint: enable=unused-argument
+    tf.check_ops.assert_equal = NoOP  # Make assert_equal a no op.
+    yield
+    tf.check_ops.assert_equal = saved_assert_equal
+  else:
+    yield
+
+
 def _DefineDefun(fwd, bak, args):
   """Wraps fwd in a defun with custom gradient bak.
 
@@ -3827,20 +3849,26 @@ def _DefineDefun(fwd, bak, args):
   get_shape = lambda x: x.shape
   arg_shapes = tf.nest.map_structure(get_shape, args)
 
+  compiled = use_xla()
+  noinline = not compiled
+
   def Backward(op, *args):
     assert bak is not None
     xs = tf.nest.pack_sequence_as(sigs.args, op.inputs)
     # Note: sigs.rets will be set during the Forward call.
     ys = tf.nest.pack_sequence_as(sigs.rets, op.outputs)
     dys = tf.nest.pack_sequence_as(sigs.rets, args)
-    dxs = bak(xs, ys, dys)
+    with RemoveAssertContext(remove=noinline):
+      dxs = bak(xs, ys, dys)
     return tf.nest.flatten(dxs)
 
-  @tf.Defun(*tf.nest.flatten(sigs.args), python_grad_func=Backward)
+  @tf.Defun(
+      *tf.nest.flatten(sigs.args), python_grad_func=Backward, noinline=noinline)
   def Forward(*args):
     for arg, shape in zip(args, tf.nest.flatten(arg_shapes)):
       arg.set_shape(shape)
-    rets = fwd(tf.nest.pack_sequence_as(sigs.args, args))
+    with RemoveAssertContext(remove=noinline):
+      rets = fwd(tf.nest.pack_sequence_as(sigs.args, args))
     sigs.rets = tf.nest.map_structure(get_dtype, rets)
     return tf.nest.flatten(rets)
 

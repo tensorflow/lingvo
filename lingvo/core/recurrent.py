@@ -588,10 +588,12 @@ class _Recurrent(object):
         t = tf.cast(pad_begin, tf.int64)
         limit = tf.cast(limit, tf.int64)
 
-      run = tf.While(
-          [t, limit] + Flatten([theta, state0, inputs, acc_state, acc_extras]),
-          cond=ForwardLoopCond,
-          body=ForwardLoopBody)
+      with py_utils.RemoveAssertContext(remove=noinline):
+        run = tf.While(
+            [t, limit] +
+            Flatten([theta, state0, inputs, acc_state, acc_extras]),
+            cond=ForwardLoopCond,
+            body=ForwardLoopBody)
       t = run[0]
       _, state1, _, acc_state, acc_extras = Pack(
           run[2:],
@@ -793,21 +795,22 @@ class _Recurrent(object):
         limit = tf.cast(limit, tf.int32)
       else:
         limit = tf.cast(limit, tf.int64)
-      run = tf.While(
-          [start - 1, limit] + Flatten([
-              theta,
-              state0,
-              inputs,
-              acc_state,
-              acc_extras,
-              d_theta,
-              d_state1,
-              d_inputs,
-              d_acc_state,
-              d_captured,
-          ]),
-          cond=BackwardLoopCond,
-          body=BackwardLoopBody)
+      with py_utils.RemoveAssertContext(remove=noinline):
+        run = tf.While(
+            [start - 1, limit] + Flatten([
+                theta,
+                state0,
+                inputs,
+                acc_state,
+                acc_extras,
+                d_theta,
+                d_state1,
+                d_inputs,
+                d_acc_state,
+                d_captured,
+            ]),
+            cond=BackwardLoopCond,
+            body=BackwardLoopBody)
 
       (theta, state0, inputs, acc_state, acc_extras, d_theta, d_state0,
        d_inputs, d_acc_state, d_captured) = Pack(run[2:], bakloop_sig)

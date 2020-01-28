@@ -92,25 +92,13 @@ def GenerateStepSeedPair(p, unused_global_step=None, op_seed=None):
 @contextlib.contextmanager
 def CellFnFPropOpReplacementWrapper():
   """Hacks to replace certain unwanted tensorflow ops."""
-  # TODO(zhifengc/huangyp): Consider implementing assert_equal
-  # op replacement for lingvo. As assert_equal doesn't support String on GPUs.
-  # Hack to replace tf.assert_equal
-  saved_assert_equal = tf.assert_equal
   # Hack to replace GenerateStepSeedPair since global_step is not available
   # in temp graph created by optional.while.
   saved_get_op_seed = py_utils.GenerateStepSeedPair
-
-  # pylint: disable=unused-argument
-  def NoOP(*args, **kwargs):
-    return tf.no_op()
-
-  # pylint: enable=unused-argument
-  tf.assert_equal = NoOP  # Make assert_equal a no op.
   py_utils.GenerateStepSeedPair = GenerateStepSeedPair
 
   yield
 
-  tf.assert_equal = saved_assert_equal
   py_utils.GenerateStepSeedPair = saved_get_op_seed
 
 
@@ -451,12 +439,13 @@ class PipeliningLayer(SeqLayer):
           else:
             fprop_inputs.append(None)
 
-        with CellFnFPropOpReplacementWrapper():
-          tf.logging.info('cell {} input {}'.format(i, fprop_inputs))
-          mb_tensor = inputs[_MICRO_BATCH_STATE_NAME]
-          SetOverWriteGlobalStep(mb_tensor)
-          _, cell = self._cells[i]
-          outputs = cell.FProp(theta, *fprop_inputs)
+        with py_utils.RemoveAssertContext(remove=True):
+          with CellFnFPropOpReplacementWrapper():
+            tf.logging.info('cell {} input {}'.format(i, fprop_inputs))
+            mb_tensor = inputs[_MICRO_BATCH_STATE_NAME]
+            SetOverWriteGlobalStep(mb_tensor)
+            _, cell = self._cells[i]
+            outputs = cell.FProp(theta, *fprop_inputs)
 
         state1 = py_utils.NestedMap()
         state1[_MICRO_BATCH_STATE_NAME] = mb_tensor
