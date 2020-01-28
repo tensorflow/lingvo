@@ -569,11 +569,10 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <dt id="lingvo.core.py_utils.NestedMap.FlattenItems">
 <code class="sig-name descname">FlattenItems</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.FlattenItems"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.FlattenItems" title="Permalink to this definition">¶</a></dt>
 <dd><p>Flatten the <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> and returns &lt;key, value&gt; pairs in a list.</p>
-<p>For lists, keys will be returned with <code class="xref py py-obj docutils literal notranslate"><span class="pre">_</span></code> appended, e.g. <code class="xref py py-obj docutils literal notranslate"><span class="pre">x.y_10.z</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>A list of &lt;key, value&gt; pairs, where keys for nested entries will be
-represented in the form of <code class="xref py py-obj docutils literal notranslate"><span class="pre">foo.bar</span></code>.</p>
+represented in the form of <code class="xref py py-obj docutils literal notranslate"><span class="pre">foo.bar[10].baz</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -655,9 +654,7 @@ considered as one key.</p>
 <code class="sig-name descname">FilterKeyVal</code><span class="sig-paren">(</span><em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.FilterKeyVal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.FilterKeyVal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with filtered by fn.</p>
 <p>If fn(key, entry) is True, the entry is copied into the returned NestedMap.
-Otherwise, it is not copied.
-For lists, keys will be processed with indices, e.g. <code class="xref py py-obj docutils literal notranslate"><span class="pre">x.y[10].z</span></code>.
-This is different from FlattenItems.</p>
+Otherwise, it is not copied.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>fn</strong> – a callable of (string, entry)-&gt;boolean.</p>
@@ -970,6 +967,12 @@ defined by the init parameters.</p>
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_CollectionGetter</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">default_factory</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_CollectionGetter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._CollectionGetter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Get graph local value from a defined collection.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.SanitizeScopeKey">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">SanitizeScopeKey</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SanitizeScopeKey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SanitizeScopeKey" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes invalid symbols from name_scope keys.</p>
 </dd></dl>
 
 <dl class="function">
