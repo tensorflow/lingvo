@@ -323,7 +323,7 @@ class Learner(base_layer.BaseLayer):
                          'clip_gradient_norm_to_value=%f.' %
                          (p.clip_gradient_single_norm_to_value,
                           p.clip_gradient_norm_to_value))
-      final_var_grads = py_utils.ApplyGradNormCliping(
+      final_var_grads = py_utils.ApplyGradNormClipping(
           var_grads, p.clip_gradient_single_norm_to_value)
 
     else:

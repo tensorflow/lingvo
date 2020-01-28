@@ -86,7 +86,7 @@ class LearnerTest(tf.test.TestCase):
     update_op, eval_metrics = lrnr.Apply(loss, layer.vars)
     with self.session() as sess:
       tf.global_variables_initializer().run()
-      var_grads = sess.run(lrnr.GetVarGrads())
+      var_grads = sess.run(lrnr.GetVarGrads().Transform(tuple))
       update_op.run()
       updated_vars = sess.run(layer.vars)
       return var_grads, updated_vars, eval_metrics

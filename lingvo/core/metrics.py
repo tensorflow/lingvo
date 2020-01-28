@@ -199,14 +199,14 @@ class TpuEvalMetrics(object):
     num_metrics = len(metric_dict)
     assert num_metrics <= self._max_metrics, ('Increase _max_metrics to >= %d' %
                                               num_metrics)
-    self._metrics = py_utils.NestedMap(metric_dict)
+    self._metrics = metric_dict
 
     # self._metrics contains a map of (metric_value,
     # metric_weight). We convert it into [metric_value *
     # metric_weight, metric_weight] to make it easier to aggregate
     # metric values across steps and TPU replicas.
     ret = []
-    for (value, weight) in self._metrics.Flatten():
+    for _, (value, weight) in sorted(self._metrics.items()):
       assert value.shape.is_fully_defined(), ('%s' % value)
       assert weight.shape.is_fully_defined(), ('%s' % weight)
       weight = tf.cast(weight, tf.float32)
@@ -243,7 +243,7 @@ class TpuEvalMetrics(object):
       The tensors of the final avg values and total weights.
     """
     # Each metric has two tensors in the loop carrying result.
-    metrics = loop_result[:2 * len(self._metrics.Flatten())]
+    metrics = loop_result[:2 * len(self._metrics.items())]
     # Aggregate across tpu replicas.
     metrics = [tf.tpu.cross_replica_sum(x) for x in metrics]
     ret = []
@@ -253,8 +253,9 @@ class TpuEvalMetrics(object):
     return ret
 
   def PackMetricsValues(self, values):
-    """Packs numpy values into a NestedMap of metrics."""
-    return self.metrics.Pack(self._Zip(values))
+    """Packs numpy values into a dict of metrics."""
+    for k, v in zip(sorted(self._metrics.keys()), self._Zip(values)):
+      self._metrics[k] = v
 
 
 class AUCMetric(BaseMetric):

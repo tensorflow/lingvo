@@ -3882,7 +3882,7 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
       grads = py_utils.ComputeGradients(loss, py_utils.NestedMap(w=w))
       tf.global_variables_initializer().run()
       y_val = sess.run(y)
-      grads_val = sess.run(grads)['w'][1]
+      grads_val = sess.run(grads.w.grad)
       self.assertAllClose(y_val, grads_val)
 
 

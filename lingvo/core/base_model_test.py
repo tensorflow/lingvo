@@ -66,7 +66,8 @@ class BaseTaskTest(test_utils.TestCase):
         'a',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
-    var_grads = py_utils.NestedMap(a=(var_a, tf.ones_like(var_a)))
+    var_grads = py_utils.NestedMap(
+        a=py_utils.VarGrad(var_a, tf.ones_like(var_a)))
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     FLAGS.enable_check_numerics = False
@@ -88,7 +89,7 @@ class BaseTaskTest(test_utils.TestCase):
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     # Infinite gradient.
-    var_grads = py_utils.NestedMap(a=(var_a, tf.log(0.)))
+    var_grads = py_utils.NestedMap(a=py_utils.VarGrad(var_a, tf.log(0.)))
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     with self.session():
@@ -109,7 +110,7 @@ class BaseTaskTest(test_utils.TestCase):
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     # Make a NaN gradient.
-    var_grads = py_utils.NestedMap(a=(var_a, 0. * tf.log(0.)))
+    var_grads = py_utils.NestedMap(a=py_utils.VarGrad(var_a, 0. * tf.log(0.)))
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     with self.session():
@@ -131,7 +132,7 @@ class BaseTaskTest(test_utils.TestCase):
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     # Make a NaN gradient.
-    var_grads = py_utils.NestedMap(a=(var_a, 0. * tf.log(0.)))
+    var_grads = py_utils.NestedMap(a=py_utils.VarGrad(var_a, 0. * tf.log(0.)))
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     with self.session():
@@ -152,7 +153,8 @@ class BaseTaskTest(test_utils.TestCase):
         'a',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
-    var_grads = py_utils.NestedMap(a=(var_a, tf.ones_like(var_a)))
+    var_grads = py_utils.NestedMap(
+        a=py_utils.VarGrad(var_a, tf.ones_like(var_a)))
     self.assertRaises(ValueError, task.learners[0].ScaleGradients, var_grads)
 
   def testScaleGradientsSingleTensorNorm(self):
@@ -171,8 +173,10 @@ class BaseTaskTest(test_utils.TestCase):
     var_a = task.theta.a
     var_b = task.theta.b
     var_grads = py_utils.NestedMap(
-        a=(var_a, tf.ones_like(var_a) * 10.0),
-        b=(var_b, tf.ones_like(var_b) * 0.5))
+        a=py_utils.VarGrad(var_a,
+                           tf.ones_like(var_a) * 10.0),
+        b=py_utils.VarGrad(var_b,
+                           tf.ones_like(var_b) * 0.5))
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     FLAGS.enable_check_numerics = False

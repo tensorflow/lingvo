@@ -261,7 +261,7 @@ class Accumulator(Base):
             trainable=False)
         a = tf.assign_add(a, g)
 
-      return v, a
+      return py_utils.VarGrad(v, a)
 
     var_grad = var_grad.Transform(_Acc)
 

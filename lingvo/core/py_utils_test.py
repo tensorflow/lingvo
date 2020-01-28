@@ -621,18 +621,33 @@ class PyUtilsTest(test_utils.TestCase):
       # Only 'a' matters. b is not trainable; c has stop_gradient; d
       # is None; e is not computed by l and aa is a duplicated.
       self.assertEqual([_[0] for _ in var_grads.FlattenItems()], ['a'])
-      self.assertEqual(var_grads.a[0].name, 'a:0')
+      self.assertEqual(var_grads.a.var.name, 'a:0')
 
-  def testClipSingleTensorGradients(self):
-
+  def testVarGradNestFlatten(self):
     a = tf.get_variable('a', [])
     b = tf.get_variable('b', [])
     vs_gs = py_utils.NestedMap(
-        a=(a, tf.ones_like(a) * 10.0), b=(b, tf.ones_like(b) * 0.5))
-    clipped = py_utils.ApplyGradNormCliping(vs_gs, norm=1.0)
+        a=py_utils.VarGrad(a,
+                           tf.ones_like(a) * 10.0),
+        b=py_utils.VarGrad(b,
+                           tf.ones_like(b) * 0.5))
+    flattened = tf.nest.flatten(vs_gs)
+    self.assertLen(flattened, 2)
+    for x in flattened:
+      self.assertIsInstance(x, py_utils.VarGrad)
+
+  def testClipSingleTensorGradients(self):
+    a = tf.get_variable('a', [])
+    b = tf.get_variable('b', [])
+    vs_gs = py_utils.NestedMap(
+        a=py_utils.VarGrad(a,
+                           tf.ones_like(a) * 10.0),
+        b=py_utils.VarGrad(b,
+                           tf.ones_like(b) * 0.5))
+    clipped = py_utils.ApplyGradNormClipping(vs_gs, norm=1.0)
     with self.session(use_gpu=False) as sess:
       tf.global_variables_initializer().run()
-      clipped_np = sess.run(clipped)
+      clipped_np = sess.run(clipped.Transform(tuple))
       # Each variable is clipped indipendently to grad scale of 1.
       self.assertAllClose(clipped_np.a[1], 1.0)
       self.assertAllClose(clipped_np.b[1], 0.5)
@@ -662,7 +677,9 @@ class PyUtilsTest(test_utils.TestCase):
       var_grads = py_utils.ComputeGradients(l, vmap)
       var_grads_mask = py_utils.MaskGradients(var_grads, grad_mask)
       sess.run(tf.global_variables_initializer())
-      _, var_grads_mask_vals = sess.run([var_grads, var_grads_mask])
+      _, var_grads_mask_vals = sess.run(
+          [var_grads.Transform(tuple),
+           var_grads_mask.Transform(tuple)])
       # 'a' and 'b' are masked, while 'c' and 'd' are not.
       self.assertEqual(var_grads_mask_vals['a'][1], 0)
       self.assertEqual(var_grads_mask_vals['b'][1], 0)
@@ -688,8 +705,10 @@ class PyUtilsTest(test_utils.TestCase):
           var_grads, 0.1, p=2.0)
 
       sess.run(tf.global_variables_initializer())
-      var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run(
-          [var_grads, l2_loss, var_grads_with_l2])
+      var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run([
+          var_grads.Transform(tuple), l2_loss,
+          var_grads_with_l2.Transform(tuple)
+      ])
       print('var_grads_vals = ', var_grads_vals)
       print('var_grads_with_l2_vals = ', var_grads_with_l2_vals)
       self.assertAllEqual(var_grads_vals.beta[0],
@@ -730,8 +749,10 @@ class PyUtilsTest(test_utils.TestCase):
           var_grads_with_l2 = py_utils.Pack(var_grads, var_grads_with_l2)
 
         sess.run(tf.global_variables_initializer())
-        var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run(
-            [var_grads, l2_loss, var_grads_with_l2])
+        var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run([
+            var_grads.Transform(tuple), l2_loss,
+            var_grads_with_l2.Transform(tuple)
+        ])
         print('var_grads_vals = ', var_grads_vals)
         print('var_grads_with_l2_vals = ', var_grads_with_l2_vals)
         self.assertAllEqual(var_grads_vals.emb[0],
@@ -776,8 +797,10 @@ class PyUtilsTest(test_utils.TestCase):
           var_grads, 0.1, p=1.0)
 
       sess.run(tf.global_variables_initializer())
-      var_grads_vals, l1_loss_val, var_grads_with_l1_vals = sess.run(
-          [var_grads, l1_loss, var_grads_with_l1])
+      var_grads_vals, l1_loss_val, var_grads_with_l1_vals = sess.run([
+          var_grads.Transform(tuple), l1_loss,
+          var_grads_with_l1.Transform(tuple)
+      ])
       print('var_grads_vals = ', var_grads_vals)
       print('var_grads_with_l1_vals = ', var_grads_with_l1_vals)
       self.assertAllEqual(var_grads_vals.beta[0],
@@ -805,8 +828,10 @@ class PyUtilsTest(test_utils.TestCase):
           var_grads, 0.1, p=1.0)
 
       sess.run(tf.global_variables_initializer())
-      var_grads_vals, l1_loss_val, var_grads_with_l1_vals = sess.run(
-          [var_grads, l1_loss, var_grads_with_l1])
+      var_grads_vals, l1_loss_val, var_grads_with_l1_vals = sess.run([
+          var_grads.Transform(tuple), l1_loss,
+          var_grads_with_l1.Transform(tuple)
+      ])
       print('var_grads_vals = ', var_grads_vals)
       print('var_grads_with_l1_vals = ', var_grads_with_l1_vals)
       self.assertAllEqual(var_grads_vals.emb[0], var_grads_with_l1_vals.emb[0])

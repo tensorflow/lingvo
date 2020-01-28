@@ -1968,6 +1968,27 @@ def _ComputeGradientsTpuNas(loss, all_vars, grad_aggregation_method,
   return aggregated_grads
 
 
+class VarGrad(object):
+  """A class that holds a variable and a gradient."""
+
+  _VAR_GRAD = py_collections.namedtuple('VarGradNamedTuple', ['var', 'grad'])
+
+  def __init__(self, *args, **kwargs):
+    self._var_grad = self._VAR_GRAD(*args, **kwargs)
+
+  def __getitem__(self, key):
+    return self._var_grad[key]
+
+  def __getattr__(self, key):
+    return getattr(self._var_grad, key)
+
+  def __iter__(self):
+    return iter(self._var_grad)
+
+  def __repr__(self):
+    return 'VarGrad(%r, %r)' % (self._var_grad.var, self._var_grad.grad)
+
+
 def ComputeGradients(
     loss,
     vmap,
@@ -1997,7 +2018,7 @@ def ComputeGradients(
       search.
 
   Returns:
-    var_grad - a `.NestedMap` of (variable, gradient). You can view
+    var_grad - a `.NestedMap` of VarGrad. You can view
     var_grad as an ordered list of (key, (var, grad)) tuples. Every
     key of var_grad exists in vmap. Every variable in vmap that
     contributes to loss must exist in var_grad. Every var of var_grad
@@ -2047,13 +2068,14 @@ def ComputeGradients(
 
   # Formulate pairs of (var, grad) and pack them into the same
   # structure as filtered_vmap.
-  var_grad = filtered_vmap.Pack(list(zip(filtered_vlist, grads)))
+  var_grads = filtered_vmap.Pack(
+      [VarGrad(v, g) for v, g in zip(filtered_vlist, grads)])
 
   # Removes pairs whose grad is None.
-  for key, (_, g) in var_grad.FlattenItems():
+  for key, (_, g) in var_grads.FlattenItems():
     if g is None:
       tf.logging.info('ComputeGradients drops %s', key)
-  return var_grad.Filter(lambda v_g: v_g[1] is not None)
+  return var_grads.Filter(lambda var_grad: var_grad.grad is not None)
 
 
 def MaskGradients(var_grad, grad_mask):
@@ -2071,18 +2093,18 @@ def MaskGradients(var_grad, grad_mask):
     var, grad = entry
     mask = grad_mask[var.name]
     if isinstance(grad, tf.IndexedSlices):
-      return (var, tf.IndexedSlices(grad.values * mask, grad.indices))
+      return VarGrad(var, tf.IndexedSlices(grad.values * mask, grad.indices))
     else:
-      return (var, grad * mask)
+      return VarGrad(var, grad * mask)
 
   return var_grad.Transform(ApplyMask)
 
 
-def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
+def ApplyGradMultiplier(vs_gs, grad_scale=None):
   """Scale gradients by grad_scale on same device as corresponding variables.
 
   Args:
-    vs_gs_scale: A `.NestedMap` of (variable, gradient, scale).
+    vs_gs: A `.NestedMap` of VarGrad.
     grad_scale: If None, each vs_gs entry has the scale. Otherwise, grad_scale
       applies to every entry.
 
@@ -2091,10 +2113,6 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
     grad_scale is 0, the result gradient is always 0, even if the input
     gradient is inf or nan.
   """
-
-  if grad_scale is not None:
-    vs_gs_scale = vs_gs_scale.Transform(lambda vg: (vg[0], vg[1], grad_scale))
-
   def ScaleOrZero(var, grad, scale):
     grad = CheckNumerics(grad, 'Gradient for %s is not finite.' % var.name)
     return tf.where(
@@ -2103,8 +2121,12 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
 
   def Scale(item):
     """Scales the gradient."""
-    var, grad, scale = item
+    var, grad = item
     assert grad is not None, ('No grad found for ', var.name)
+    if grad_scale is None:
+      scale = item.scale
+    else:
+      scale = grad_scale
     with tf.device(var.device):
       if isinstance(grad, tf.IndexedSlices):
         grad = tf.IndexedSlices(
@@ -2112,9 +2134,9 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
             grad.dense_shape)
       else:
         grad = ScaleOrZero(var, grad, scale)
-    return (var, grad)
+    return VarGrad(var, grad)
 
-  return vs_gs_scale.Transform(Scale)
+  return vs_gs.Transform(Scale)
 
 
 def HasNanOrInfGradient(var_grads):
@@ -2138,28 +2160,26 @@ def HasNanOrInfGradient(var_grads):
   return tf.reduce_any([HasNanOrInf(g) for (_, g) in var_grads.Flatten()])
 
 
-def ApplyGradNormCliping(vs_gs, norm=1.0):
+def ApplyGradNormClipping(vs_gs, norm=1.0):
   """Clip gradients to norm on same device as corresponding variables.
 
   Args:
-    vs_gs: A `.NestedMap` of (variable, gradient).
+    vs_gs: A `.NestedMap` of VarGrad.
     norm: Each tensor's gradient will be scaled down to have a maximum L2-norm
       value of `norm`.
 
   Returns:
-    A `.NestedMap` of (variable, scaled_gradient). In particular, if
+    A `.NestedMap` of VarGrad(variable, scaled_gradient). In particular, if
     grad_scale is 0, the result gradient is always 0, even if the input
     gradient is inf or nan.
   """
-  vs_gs_norm = vs_gs.Transform(lambda v_g: (v_g[0], v_g[1], norm))
-
   def ClipByNorm(var, grad, norm):
     grad = CheckNumerics(grad, 'Gradient for %s is not finite.' % var.name)
     return tf.clip_by_norm(grad, norm)
 
   def Clip(item):
     """Scales the gradient."""
-    var, grad, norm = item
+    var, grad = item
     assert grad is not None, ('No grad found for ', var.name)
     with tf.device(var.device):
       if isinstance(grad, tf.IndexedSlices):
@@ -2167,9 +2187,9 @@ def ApplyGradNormCliping(vs_gs, norm=1.0):
             ClipByNorm(var, grad.values, norm), grad.indices, grad.dense_shape)
       else:
         grad = ClipByNorm(var, grad, norm)
-    return (var, grad)
+    return VarGrad(var, grad)
 
-  return vs_gs_norm.Transform(Clip)
+  return vs_gs.Transform(Clip)
 
 
 SKIP_LP_REGULARIZATION = '__lingvo_skip_lp_regularization'
@@ -2207,9 +2227,10 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
   def ShouldAdjust(v):
     return v not in tf.get_collection(SKIP_LP_REGULARIZATION)
 
-  filtered_var_grads = [(v, g) for v, g in Flatten(var_grads) if ShouldAdjust(v)
-                       ]
-  filtered_vars = [GetVar(v_g) for v_g in filtered_var_grads]
+  filtered_var_grads = [
+      var_grad for var_grad in Flatten(var_grads) if ShouldAdjust(var_grad.var)
+  ]
+  filtered_vars = Transform(filtered_var_grads, GetVar)
   for v in filtered_vars:
     tf.logging.info('AdjustGradientsWithLpLoss: %s', v)
 
@@ -2218,9 +2239,9 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
   elif p == 1.0:
     lp_loss = lp_regularizer_weight * SumAbs(filtered_vars)
 
-  def LpGrad(item):
+  def LpGrad(var_grad):
     """Adjusts item's grad w/ Lp loss term."""
-    var, grad = item
+    var, grad = var_grad
     if isinstance(grad, tf.IndexedSlices):
       # Question(rpang): do we apply Lp loss here even if 'var' is in
       # SKIP_LP_REGULARIZATION?
@@ -2263,7 +2284,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
         delta = lp_regularizer_weight * grad_v
       with tf.device(grad.device):
         grad += delta
-    return (var, grad)
+    return VarGrad(var, grad)
 
   return lp_loss, Transform(var_grads, LpGrad)
 

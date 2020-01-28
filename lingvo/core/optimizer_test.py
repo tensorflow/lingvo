@@ -73,11 +73,16 @@ class OptimizerTest(test_utils.TestCase):
       sess.run(tf.global_variables_initializer())
       vars1 = sess.run(proj_layer.vars.Flatten())
       loss1_1, grads1_1, loss1_2, grads1_2 = sess.run(
-          [loss1, var_grads1, loss2, var_grads2],
+          [
+              loss1,
+              var_grads1.Transform(tuple), loss2,
+              var_grads2.Transform(tuple)
+          ],
           feed_dict={
               inputs1: np_input1,
               inputs2: np_input2,
-          })
+          },
+      )
       sess.run(
           [var_update_op2], feed_dict={
               inputs1: np_input1,
@@ -111,14 +116,14 @@ class OptimizerTest(test_utils.TestCase):
 
       sess.run(tf.global_variables_initializer())
       vars2 = sess.run(proj_layer.vars.Flatten())
-      loss2_1, grads2_1 = sess.run(
-          [loss, var_grads], feed_dict={
-              inputs1: np_input1,
-          })
-      loss2_2, grads2_2 = sess.run(
-          [loss, var_grads], feed_dict={
-              inputs1: np_input2,
-          })
+      loss2_1, grads2_1 = sess.run([loss, var_grads.Transform(tuple)],
+                                   feed_dict={
+                                       inputs1: np_input1,
+                                   })
+      loss2_2, grads2_2 = sess.run([loss, var_grads.Transform(tuple)],
+                                   feed_dict={
+                                       inputs1: np_input2,
+                                   })
       acc_0 = sess.run(
           [v for v in tf.global_variables() if 'grad_accumulator' in v.name])[0]
       sess.run(

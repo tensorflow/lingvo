@@ -860,7 +860,8 @@ class TrainerTpu(base_runner.BaseRunner):
           sess.run(self._retrieve_ops)
           tf.logging.info('Retrieve params done.')
 
-        eval_metrics = self._eval_metrics.PackMetricsValues(values)
+        self._eval_metrics.PackMetricsValues(values)
+        eval_metrics = self._eval_metrics.metrics
 
         # Note: global_step is incremented by self._steps_per_loop by the
         # previous sess.run call.
@@ -873,9 +874,10 @@ class TrainerTpu(base_runner.BaseRunner):
         self._model.ProcessFPropResults(sess, global_step, eval_metrics,
                                         outfeeds)
 
-        step_rate, example_rate, total_examples = self._step_rate_tracker.ComputeStepRate(
-            global_step,
-            eval_metrics['num_samples_in_batch'][0] * self._steps_per_loop)
+        step_rate, example_rate, total_examples = (
+            self._step_rate_tracker.ComputeStepRate(
+                global_step,
+                eval_metrics['num_samples_in_batch'][0] * self._steps_per_loop))
         self._SummarizeValue(global_step, 'global_step/sec', step_rate)
         self._SummarizeValue(global_step, 'examples/sec', example_rate)
         self._SummarizeValue(global_step, 'total_samples', total_examples)
