@@ -233,7 +233,9 @@
     <span class="n">bn_params</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">BatchNormLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">dim</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
-        <span class="n">decay</span><span class="o">=</span><span class="mf">0.99</span><span class="p">)</span>
+        <span class="n">decay</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span>
+        <span class="c1"># TODO(b/148537111): consider setting this to True.</span>
+        <span class="n">add_stats_to_moving_average_variables</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn_params_init</span><span class="p">:</span>
       <span class="n">bn_params</span> <span class="o">=</span> <span class="n">bn_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">params_init</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bn_params_init</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">bn_params</span></div>
